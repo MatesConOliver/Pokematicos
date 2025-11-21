@@ -1,59 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
-// Pokemáticos - Single-file React app
-// Tailwind CSS assumed. This component is a drop-in App.
-// Features:
-// - Multiple classes (4 prefilled)
-// - Student roster per class
-// - Card library (upload images or paste URL)
-// - Click a card to add to a student's collection and award points
-// - Tracks currentPoints, cumulativePoints, streaks (by date)
-// - Reward shop where students can spend points (resets currentPoints on redeem)
-// - Persistence via localStorage
-// - Export / import JSON
+// Pokemáticos Manager — Revised
+// Single-file React app. Paste into src/App.js to replace previous version.
+// Data persisted in localStorage under key pokematics_v2
+
+const STORAGE_KEY = "pokematics_v2";
 
 const SAMPLE = {
+  meta: { version: 2 },
   classes: [
     {
       id: "3eso",
       name: "3º ESO Pokemáticos",
       students: [
-        { id: "carlota", name: "Carlota", avatar: "", currentPoints: 21, cumulativePoints: 120, streak: 2, lastActive: null, cards: [] },
-        { id: "cayden", name: "Cayden", avatar: "", currentPoints: 23, cumulativePoints: 130, streak: 2, lastActive: null, cards: [] },
+        { id: "carlota", name: "Carlota", avatar: "", currentPoints: 21, xp: 0, streak: 2, ghost: 0, cards: [], rewardsHistory: [] },
+        { id: "cayden", name: "Cayden", avatar: "", currentPoints: 23, xp: 0, streak: 2, ghost: 0, cards: [], rewardsHistory: [] },
       ],
+      rewards: [],
     },
-    {
-      id: "ds",
-      name: "Digital Society Pokemáticos",
-      students: [
-        { id: "valeria", name: "Valeria", avatar: "", currentPoints: 8, cumulativePoints: 60, streak: 1, lastActive: null, cards: [] },
-      ],
-    },
-    { id: "aa", name: "Maths AA Pokemáticos", students: [] },
-    { id: "ai", name: "Maths AI Pokemáticos", students: [] },
   ],
   cards: [
-    {
-      id: "knowledge-fusion",
-      title: "Knowledge fusion",
-      image: "",
-      description: "Solve a companion's math or existential question and gain 5 points. Use multiple times in class.",
-      points: 5,
-      type: "attack",
-    },
-    {
-      id: "knowledge-seeker",
-      title: "Knowledge seeker",
-      image: "",
-      description: "Ask a meaningful question. Gain 1 point. (Supporter: once per turn)",
-      points: 1,
-      type: "supporter",
-    },
+    { id: "knowledge-fusion", title: "Knowledge fusion", image: "", description: "Solve a companion's math or existential question and gain 5 points.", points: 5, category: "points" },
+    { id: "knowledge-seeker", title: "Knowledge seeker", image: "", description: "Ask a meaningful question. Gain 1 point.", points: 1, category: "points" },
   ],
-  rewards: [
-    { id: "r1", title: "Change your seat for one session", cost: 4 },
-    { id: "r2", title: "Bonus hint on an exercise", cost: 5 },
-    { id: "r3", title: "Choose your partner for the day", cost: 10 },
+  rewardsLibrary: [
+    // rewards must be linked to a cardId from cards[]; sample left empty
   ],
 };
 
@@ -63,321 +34,426 @@ function uid(prefix = "id") {
 
 export default function App() {
   const [data, setData] = useState(() => {
-    const raw = localStorage.getItem("pokematics_v1");
-    if (raw) try { return JSON.parse(raw); } catch (e) {}
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
     return SAMPLE;
   });
 
-  const [activeClassId, setActiveClassId] = useState(data.classes[0]?.id || null);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [showCardModal, setShowCardModal] = useState(false);
-  const [filter, setFilter] = useState("");
-  const [showLibrary, setShowLibrary] = useState(false);
-  const [showExport, setShowExport] = useState(false);
-
   useEffect(() => {
-    localStorage.setItem("pokematics_v1", JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
 
-  const activeClass = data.classes.find((c) => c.id === activeClassId) || data.classes[0];
+  // Admin gating (client-side only)
+  const [mode, setMode] = useState(null); // null => ask, 'admin' or 'reader'
 
-  function updateClass(cls) {
-    setData((d) => ({ ...d, classes: d.classes.map((c) => (c.id === cls.id ? cls : c)) }));
+  function enterAdmin(password) {
+    if (password === "cartas") setMode("admin");
+    else alert("Wrong password");
   }
 
-  function addStudent(name) {
-    if (!name) return;
-    const newStudent = { id: uid("s"), name, avatar: "", currentPoints: 0, cumulativePoints: 0, streak: 0, lastActive: null, cards: [] };
-    const cls = { ...activeClass, students: [...(activeClass.students || []), newStudent] };
-    updateClass(cls);
+  function enterReader() {
+    setMode("reader");
   }
 
-  function awardCardToStudent(studentId, cardId) {
-    const card = data.cards.find((c) => c.id === cardId);
-    if (!card) return;
-    const today = new Date().toISOString().slice(0, 10);
-    setData((d) => ({
-      ...d,
-      classes: d.classes.map((c) => {
-        if (c.id !== activeClass.id) return c;
-        return {
-          ...c,
-          students: c.students.map((s) => {
-            if (s.id !== studentId) return s;
-            // manage streak
-            let streak = s.streak || 0;
-            if (s.lastActive !== today) {
-              // increment streak if they had any activity yesterday or earlier? Keep simple: if lastActive is yesterday or earlier -> if lastActive is not today and not null then either reset or increment
-              // For simplicity: increment if lastActive === yesterday else set to 1
-              const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-              streak = (s.lastActive === yesterday) ? (s.streak || 0) + 1 : 1;
-            }
-            const currentPoints = (s.currentPoints || 0) + (card.points || 0);
-            const cumulative = (s.cumulativePoints || 0) + (card.points || 0);
-            const cards = [...(s.cards || []), { id: uid("owned"), cardId: card.id, grantedAt: new Date().toISOString() }];
+  // UI state
+  const [activeClassId, setActiveClassId] = useState(data.classes[0]?.id || null);
+  const activeClass = data.classes.find((c) => c.id === activeClassId) || null;
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience
+  const [showCardPreview, setShowCardPreview] = useState(null);
 
-            return { ...s, cards, currentPoints, cumulativePoints: cumulative, streak, lastActive: today };
-          }),
-        };
-      }),
-    }));
-  }
-
-  function spendReward(studentId, rewardId) {
-    const reward = data.rewards.find((r) => r.id === rewardId);
-    if (!reward) return; // fail silently
-    setData((d) => ({
-      ...d,
-      classes: d.classes.map((c) => {
-        if (c.id !== activeClass.id) return c;
-        return {
-          ...c,
-          students: c.students.map((s) => {
-            if (s.id !== studentId) return s;
-            if ((s.currentPoints || 0) < reward.cost) return s; // not enough points
-            return { ...s, currentPoints: 0, cumulativePoints: (s.cumulativePoints || 0) }; // reset current points
-          }),
-        };
-      }),
-    }));
-  }
-
-  function addCardToLibrary({ title, description, points, image }) {
-    const card = { id: uid("card"), title, description, points: Number(points) || 0, image: image || "", type: "custom" };
-    setData((d) => ({ ...d, cards: [...d.cards, card] }));
-  }
-
-  function uploadImageFile(file, cb) {
-    const reader = new FileReader();
-    reader.onload = (e) => cb(e.target.result);
-    reader.readAsDataURL(file);
-  }
-
-  function handleCardUpload(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    uploadImageFile(f, (dataUrl) => {
-      // create a sample card using the image
-      addCardToLibrary({ title: `Custom Card ${Date.now()}`, description: "Uploaded image card", points: 5, image: dataUrl });
+  // Helpers to update data
+  function saveData(updater) {
+    setData((d) => {
+      const copy = JSON.parse(JSON.stringify(d));
+      const res = typeof updater === "function" ? updater(copy) : updater;
+      return res || copy;
     });
   }
 
-  function addReward(title, cost) {
-    const r = { id: uid("reward"), title, cost: Number(cost || 0) };
-    setData((d) => ({ ...d, rewards: [...d.rewards, r] }));
+  // Classes
+  function addClass(name) {
+    if (!name) return;
+    const cls = { id: uid("class"), name, students: [], rewards: [] };
+    saveData((d) => { d.classes.push(cls); return d; });
+    setActiveClassId(cls.id);
   }
 
-  function importJSON(text) {
-    try {
-      const parsed = JSON.parse(text);
-      setData(parsed);
-      localStorage.setItem("pokematics_v1", JSON.stringify(parsed));
-      alert("Imported OK");
-    } catch (e) {
-      alert("Invalid JSON");
+  function deleteClass(id) {
+    if (!window.confirm("Delete this class and all its students/rewards? This cannot be undone.")) return;
+    saveData((d) => { d.classes = d.classes.filter(c => c.id !== id); if (d.classes.length) setActiveClassId(d.classes[0].id); return d; });
+  }
+
+  // Students
+  function addStudentToActive(name) {
+    if (!name || !activeClass) return;
+    const st = { id: uid("s"), name, avatar: "", currentPoints: 0, xp: 0, streak: 0, ghost: 0, cards: [], rewardsHistory: [] };
+    saveData((d) => { const c = d.classes.find(x => x.id === activeClass.id); c.students.push(st); return d; });
+  }
+
+  function deleteStudent(classId, studentId) {
+    if (!window.confirm("Delete this student? This will remove the student from the class.")) return;
+    saveData((d) => { const c = d.classes.find(x => x.id === classId); c.students = c.students.filter(s => s.id !== studentId); return d; });
+  }
+
+  // Cards library CRUD (admin only)
+  function createCard({ title, description, points, image, category }) {
+    const card = { id: uid("card"), title, description, points: Number(points) || 0, image: image || "", category: category || "points" };
+    saveData(d => { d.cards.push(card); return d; });
+  }
+
+  function deleteCard(cardId) {
+    if (!window.confirm("Delete this library card? This will not remove already-owned copies from students.")) return;
+    saveData(d => { d.cards = d.cards.filter(c => c.id !== cardId); // rewards still reference cardId, but admin should handle
+      // Also remove link from rewardsLibrary where applicable
+      d.rewardsLibrary = d.rewardsLibrary.map(r => r.cardId === cardId ? { ...r, cardId: null } : r);
+      return d; });
+  }
+
+  // Rewards library: must be linked to a cardId
+  function createReward({ title, cost, linkedCardId }) {
+    if (!linkedCardId) return alert("Rewards must be linked to a library card");
+    const r = { id: uid("reward"), title, cost: Number(cost) || 0, cardId: linkedCardId };
+    saveData(d => { d.rewardsLibrary.push(r); return d; });
+  }
+
+  function deleteReward(rewardId) {
+    if (!window.confirm("Delete this reward?")) return;
+    saveData(d => { d.rewardsLibrary = d.rewardsLibrary.filter(r => r.id !== rewardId); return d; });
+  }
+
+  // Give card to student (inside Manage), awarding points according to card.points
+  function giveCardToStudent(classId, studentId, cardId) {
+    const card = data.cards.find(c => c.id === cardId);
+    if (!card) return;
+    const now = new Date().toISOString();
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      const st = cls.students.find(s => s.id === studentId);
+      st.cards.push({ id: uid("owned"), cardId: card.id, grantedAt: now });
+      // award points only to currentPoints
+      st.currentPoints = (st.currentPoints || 0) + (card.points || 0);
+      return d;
+    });
+  }
+
+  // Remove card from student (retrieve) - does NOT change points (user requested manual handling)
+  function removeCardFromStudent(classId, studentId, ownedId) {
+    if (!window.confirm("Remove this card from the student?")) return;
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      const st = cls.students.find(s => s.id === studentId);
+      st.cards = st.cards.filter(o => o.id !== ownedId);
+      return d;
+    });
+  }
+
+  // Redeem reward flow
+  function openRedeemForStudent(student) {
+    setSelectedStudent({ ...student, classId: activeClass.id });
+    // Manage panel will contain redeem flow
+  }
+
+  function redeemRewardIndividual(classId, studentId, rewardId) {
+    const reward = data.rewardsLibrary.find(r => r.id === rewardId);
+    if (!reward) return alert("Reward invalid");
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      const st = cls.students.find(s => s.id === studentId);
+      if ((st.currentPoints || 0) < reward.cost) return alert("Student does not have enough points");
+      st.currentPoints = (st.currentPoints || 0) - reward.cost;
+      st.xp = (st.xp || 0) + reward.cost;
+      const now = new Date().toISOString();
+      st.rewardsHistory.push({ id: uid('rh'), rewardId: reward.id, title: reward.title, cost: reward.cost, date: now, students: [studentId] });
+      // grant linked card automatically if card exists
+      if (reward.cardId) {
+        st.cards.push({ id: uid('owned'), cardId: reward.cardId, grantedAt: now });
+      }
+      return d;
+    });
+  }
+
+  // Group redemption: admin enters shares per student; sum must equal reward.cost
+  function redeemRewardGroup(classId, rewardId, shares) {
+    // shares: { studentId: number }
+    const reward = data.rewardsLibrary.find(r => r.id === rewardId);
+    if (!reward) return alert("Reward invalid");
+    const sum = Object.values(shares).reduce((a, b) => a + Number(b || 0), 0);
+    if (sum !== reward.cost) return alert(`Sum is ${sum} but required ${reward.cost}. Please adjust shares.`);
+    // check everyone has enough points for their share
+    // per user's instruction: just perform subtraction; if someone lacks points we still allow? The user said earlier they don't want the UI to detect who is short; we will allow but if any student lacks enough points we will alert and abort.
+    const classObj = data.classes.find(c => c.id === classId);
+    const lacking = [];
+    for (const sid of Object.keys(shares)) {
+      const st = classObj.students.find(s => s.id === sid);
+      if ((st.currentPoints || 0) < Number(shares[sid] || 0)) lacking.push(st.name);
     }
+    if (lacking.length) return alert(`These students lack enough points: ${lacking.join(", ")}`);
+
+    const now = new Date().toISOString();
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      for (const [sid, val] of Object.entries(shares)) {
+        const st = cls.students.find(s => s.id === sid);
+        const share = Number(val || 0);
+        if (share <= 0) continue;
+        st.currentPoints = (st.currentPoints || 0) - share;
+        st.xp = (st.xp || 0) + share;
+        st.rewardsHistory.push({ id: uid('rh'), rewardId: reward.id, title: reward.title, cost: share, date: now, students: Object.keys(shares) });
+        if (reward.cardId) st.cards.push({ id: uid('owned'), cardId: reward.cardId, grantedAt: now });
+      }
+      return d;
+    });
   }
 
-  function exportJSON() {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "pokematics_export.json"; a.click();
-    URL.revokeObjectURL(url);
+  // Edit streak and ghost (0..5)
+  function changeMeter(classId, studentId, meter, delta) {
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      const st = cls.students.find(s => s.id === studentId);
+      const before = st[meter] || 0;
+      let after = before + delta;
+      if (after < 0) after = 0;
+      if (after > 5) after = 5;
+      st[meter] = after;
+      return d;
+    });
+  }
+
+  // Edit student quick points (admin)
+  function addQuickPoints(classId, studentId, amount) {
+    saveData(d => { const cls = d.classes.find(c => c.id === classId); const st = cls.students.find(s => s.id === studentId); st.currentPoints = (st.currentPoints||0) + Number(amount||0); return d; });
+  }
+
+  // UI components (inline for single-file simplicity)
+  if (!mode) {
+    return (
+      <div style={{ padding: 20, fontFamily: 'system-ui' }}>
+        <h2>Pokemáticos — mode</h2>
+        <p>Enter as Admin (edit) or Reader (view-only)</p>
+        <div style={{ marginTop: 12 }}>
+          <button onClick={() => { const p = prompt('Admin password'); enterAdmin(p); }} style={{ marginRight: 8 }}>Admin</button>
+          <button onClick={() => enterReader()}>Reader</button>
+        </div>
+        <p style={{ marginTop: 12, color: '#666' }}>Admin password: cartas</p>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto bg-white shadow rounded-lg overflow-hidden">
-        <header className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-200 text-2xl font-bold">P</div>
-            <div>
-              <h1 className="text-2xl font-semibold">Mis logros Pokemáticos — Manager</h1>
-              <p className="text-sm text-gray-500">Manage classes, award cards and points with a click. Local-only storage.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => { setShowLibrary(true); }} className="px-3 py-1 bg-indigo-600 text-white rounded">Card Library</button>
-            <button onClick={() => { setShowExport(true); }} className="px-3 py-1 bg-gray-200 rounded">Export / Import</button>
-            <button onClick={() => { localStorage.removeItem("pokematics_v1"); setData(SAMPLE); alert("Reset to sample data"); }} className="px-3 py-1 bg-red-50 text-red-600 rounded">Reset</button>
-          </div>
-        </header>
+    <div style={{ fontFamily: 'system-ui', padding: 8 }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 12 }}>
+        <div>
+          <h1>Mis logros Pokemáticos — Manager</h1>
+          <div style={{ color: '#666' }}>{mode === 'admin' ? 'Admin mode' : 'Reader mode'}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {mode === 'admin' && <button onClick={() => { localStorage.removeItem(STORAGE_KEY); setData(SAMPLE); alert('Reset to sample data'); }}>Reset to sample data</button>}
+        </div>
+      </header>
 
-        <main className="grid grid-cols-4 gap-4 p-4">
-          <aside className="col-span-1 border rounded p-3 h-[60vh] overflow-auto">
-            <h2 className="font-semibold mb-2">Classes</h2>
-            <div className="flex flex-col gap-2">
-              {data.classes.map((c) => (
-                <button key={c.id} onClick={() => { setActiveClassId(c.id); }} className={`text-left p-2 rounded ${c.id === activeClassId ? "bg-indigo-100" : "hover:bg-gray-50"}`}>
-                  <div className="flex justify-between"><div>{c.name}</div><div className="text-xs text-gray-500">{c.students?.length || 0} students</div></div>
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 border-t pt-3">
-              <h3 className="text-sm font-medium">Add new student</h3>
-              <AddStudentForm onAdd={(name) => addStudent(name)} />
-            </div>
-            <div className="mt-4 border-t pt-3">
-              <h3 className="text-sm font-medium">Upload card image</h3>
-              <input type="file" accept="image/*" onChange={handleCardUpload} className="mt-2" />
-            </div>
-          </aside>
+      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr 320px', gap: 12, padding: 12 }}>
+        {/* Left: Classes */}
+        <aside style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
+          <h3>Classes</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {data.classes.map(c => (
+              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button style={{ textAlign: 'left', flex: 1, background: c.id === activeClassId ? '#eef' : 'transparent' }} onClick={() => setActiveClassId(c.id)}>{c.name} <span style={{ color: '#888', fontSize: 12 }}> {c.students?.length || 0} students</span></button>
+                {mode === 'admin' && <button onClick={() => deleteClass(c.id)} style={{ marginLeft: 6 }}>Delete</button>}
+              </div>
+            ))}
+          </div>
 
-          <section className="col-span-2 border rounded p-3 h-[60vh] overflow-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold">{activeClass?.name}</h2>
-              <div className="flex items-center gap-2">
-                <input placeholder="filter students..." value={filter} onChange={(e) => setFilter(e.target.value)} className="px-2 py-1 border rounded" />
-                <button onClick={() => setShowLibrary(true)} className="px-2 py-1 border rounded">Open Library</button>
+          {mode === 'admin' && (
+            <div style={{ marginTop: 12 }}>
+              <h4>Add new class</h4>
+              <AddClassForm onAdd={(name) => addClass(name)} />
+            </div>
+          )}
+        </aside>
+
+        {/* Middle: Active class students */}
+        <main style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3>{activeClass?.name || 'Select a class'}</h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div>
+                <input placeholder="filter students..." style={{ padding: 6 }} onChange={(e) => { /* optional search */ }} />
               </div>
             </div>
+          </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              {(activeClass?.students || []).filter(s => s.name.toLowerCase().includes(filter.toLowerCase())).map((s) => (
-                <div key={s.id} className="border rounded p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">{s.name[0]}</div>
-                      <div>
-                        <div className="font-semibold">{s.name}</div>
-                        <div className="text-xs text-gray-500">Level: {Math.floor((s.cumulativePoints||0)/100) + 1} • Streak: {s.streak || 0}🔥</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-lg">{s.currentPoints || 0} pts</div>
-                      <div className="text-xs text-gray-500">Total: {s.cumulativePoints || 0}</div>
-                    </div>
+          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            {(activeClass?.students || []).map(s => (
+              <div key={s.id} style={{ border: '1px solid #ddd', padding: 10, borderRadius: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{s.name}</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>Streak: {s.streak}🔥 • Ghost: {s.ghost}👻</div>
                   </div>
-
-                  <div className="mt-3 flex gap-2">
-                    <button onClick={() => setSelectedStudent({ ...s, classId: activeClass.id })} className="px-3 py-1 border rounded">Manage</button>
-                    <button onClick={() => { setSelectedStudent({ ...s, classId: activeClass.id }); setShowCardModal(true); }} className="px-3 py-1 bg-green-50 border rounded">Give card</button>
-                  </div>
-
-                  <div className="mt-3">
-                    <div className="text-sm font-medium">Cards</div>
-                    <div className="flex gap-2 mt-2 flex-wrap">
-                      {(s.cards || []).slice(-6).map((own) => {
-                        const card = data.cards.find(c => c.id === own.cardId);
-                        return (
-                          <div key={own.id} className="w-20 h-28 border rounded overflow-hidden bg-white text-xs shadow-sm">
-                            {card?.image ? <img src={card.image} alt={card.title} className="w-full h-full object-cover"/> : <div className="p-2">{card?.title}</div>}
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700 }}>{s.currentPoints || 0} pts</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>XP: {s.xp || 0}</div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
 
-          <aside className="col-span-1 border rounded p-3 h-[60vh] overflow-auto">
-            <h3 className="font-semibold">Rewards</h3>
-            <div className="mt-2 flex flex-col gap-2">
-              {data.rewards.map((r) => (
-                <div key={r.id} className="p-2 border rounded flex justify-between items-center">
-                  <div>
-                    <div className="font-medium">{r.title}</div>
-                    <div className="text-xs text-gray-500">Cost: {r.cost} pts</div>
-                  </div>
-                  <div>
-                    <button onClick={() => { if (!selectedStudent) return alert('Select a student first'); spendReward(selectedStudent.id, r.id); }} className="px-2 py-1 bg-yellow-100 rounded">Redeem</button>
+                <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                  <button onClick={() => setSelectedStudent({ ...s, classId: activeClass.id })}>Manage</button>
+                  {mode === 'admin' && <button onClick={() => setSelectedStudent({ ...s, classId: activeClass.id })}>Give card</button>}
+                </div>
+
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: '#444', fontWeight: 600 }}>Cards</div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                    {(s.cards || []).slice(-6).map(o => {
+                      const card = data.cards.find(c => c.id === o.cardId);
+                      return (
+                        <div key={o.id} style={{ width: 80, height: 110, border: '1px solid #eee', borderRadius: 4, overflow: 'hidden' }}>
+                          {card?.image ? <img src={card.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={card?.title} /> : <div style={{ padding: 6 }}>{card?.title}</div>}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-4 border-t pt-3">
-              <h3 className="text-sm font-medium">Add reward</h3>
-              <AddRewardForm onAdd={(t,c) => addReward(t,c)} />
-            </div>
-
-            <div className="mt-4 border-t pt-3">
-              <h3 className="text-sm font-medium">Actions</h3>
-              <div className="flex flex-col gap-2 mt-2">
-                <button onClick={() => exportJSON()} className="px-3 py-1 border rounded">Export JSON</button>
-                <button onClick={() => { setShowExport(true); }} className="px-3 py-1 border rounded">Import JSON</button>
               </div>
-            </div>
-          </aside>
+            ))}
+
+            {/* Add student UI */}
+            {mode === 'admin' && (
+              <div style={{ border: '1px dashed #ccc', padding: 12, borderRadius: 6 }}>
+                <h4>Add student</h4>
+                <AddStudentForm onAdd={(name) => addStudentToActive(name)} />
+              </div>
+            )}
+          </div>
         </main>
 
-        {/* Card modal */}
-        {showLibrary && (
-          <div className="fixed inset-0 bg-black/40 flex items-start justify-center p-6">
-            <div className="bg-white w-full max-w-4xl rounded shadow-lg p-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold">Card Library</h3>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => { setShowLibrary(false); }} className="px-3 py-1 border rounded">Close</button>
-                  <button onClick={() => { setShowCardModal(true); setShowLibrary(false); }} className="px-3 py-1 bg-green-600 text-white rounded">Create Card</button>
-                </div>
-              </div>
+        {/* Right: Library & rewards */}
+        <aside style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
+          <h3>Library</h3>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+            <button onClick={() => setLibraryTab('points')} style={{ background: libraryTab === 'points' ? '#def' : 'transparent' }}>Points</button>
+            <button onClick={() => setLibraryTab('rewards')} style={{ background: libraryTab === 'rewards' ? '#def' : 'transparent' }}>Rewards</button>
+            <button onClick={() => setLibraryTab('experience')} style={{ background: libraryTab === 'experience' ? '#def' : 'transparent' }}>Experience</button>
+          </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-4">
-                {data.cards.map((c) => (
-                  <div key={c.id} className="border rounded p-2 bg-gray-50">
-                    <div className="h-36 bg-white flex items-center justify-center overflow-hidden">
-                      {c.image ? <img src={c.image} alt={c.title} className="w-full h-full object-cover"/> : <div className="text-xs text-gray-500 p-2">No image</div>}
+          <div style={{ maxHeight: 420, overflow: 'auto' }}>
+            {libraryTab === 'points' && (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {data.cards.filter(c => c.category === 'points').map(c => (
+                  <div key={c.id} style={{ display: 'flex', gap: 8, border: '1px solid #eee', padding: 8, borderRadius: 6, alignItems: 'center' }}>
+                    <div style={{ width: 64, height: 80, background: '#fafafa', cursor: 'pointer' }} onClick={() => setShowCardPreview(c)}>
+                      {c.image ? <img src={c.image} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ padding: 6 }}>{c.title}</div>}
                     </div>
-                    <div className="mt-2">
-                      <div className="font-medium">{c.title}</div>
-                      <div className="text-xs text-gray-500">{c.description}</div>
-                      <div className="mt-2 flex items-center justify-between">
-                        <div className="text-sm font-bold">{c.points} pts</div>
-                        <div className="flex gap-2">
-                          <button onClick={() => { if (!selectedStudent) return alert('Select a student first'); awardCardToStudent(selectedStudent.id, c.id); }} className="px-2 py-1 border rounded">Give</button>
-                          <button onClick={() => { navigator.clipboard?.writeText(c.description || ''); alert('Copied description'); }} className="px-2 py-1 border rounded">Copy</button>
-                        </div>
-                      </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>{c.title}</div>
+                      <div style={{ fontSize: 12, color: '#666' }}>{c.description}</div>
+                      <div style={{ marginTop: 6, fontWeight: 700 }}>{c.points} pts</div>
                     </div>
+                    {mode === 'admin' && <div style={{ display: 'flex', gap: 6 }}><button onClick={() => deleteCard(c.id)}>Delete</button></div>}
                   </div>
                 ))}
               </div>
+            )}
 
-            </div>
-          </div>
-        )}
+            {libraryTab === 'rewards' && (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {data.rewardsLibrary.map(r => {
+                  const card = data.cards.find(c => c.id === r.cardId) || { title: '—' };
+                  return (
+                    <div key={r.id} style={{ border: '1px solid #eee', padding: 8, borderRadius: 6 }}>
+                      <div style={{ fontWeight: 700 }}>{r.title}</div>
+                      <div style={{ fontSize: 12, color: '#555' }}>Cost: {r.cost} pts • Linked card: {card.title}</div>
+                      {mode === 'admin' && <div style={{ marginTop: 6 }}><button onClick={() => deleteReward(r.id)}>Delete reward</button></div>}
+                    </div>
+                  );
+                })}
 
-        {/* Create / Give card modal */}
-        {showCardModal && (
-          <CardModal onClose={() => { setShowCardModal(false); }} onCreate={(payload) => { addCardToLibrary(payload); setShowCardModal(false); }} onGive={(cardId) => { if (!selectedStudent) return alert('Select student first'); awardCardToStudent(selectedStudent.id, cardId); setShowCardModal(false); }} cards={data.cards} />
-        )}
-
-        {/* Manage selected student */}
-        {selectedStudent && (
-          <StudentManager student={selectedStudent} onClose={() => setSelectedStudent(null)} onUpdate={(updates) => {
-            // merge updates into student
-            const clsId = selectedStudent.classId;
-            setData((d) => ({ ...d, classes: d.classes.map((c) => {
-              if (c.id !== clsId) return c;
-              return { ...c, students: c.students.map((s) => s.id === selectedStudent.id ? { ...s, ...updates } : s) };
-            }) }));
-            setSelectedStudent((s) => ({ ...s, ...updates }));
-          }} onAwardCard={(cardId) => awardCardToStudent(selectedStudent.id, cardId)} cards={data.cards} rewards={data.rewards} spendReward={spendReward} />
-        )}
-
-        {/* Export / Import modal */}
-        {showExport && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-2xl rounded shadow p-4">
-              <div className="flex justify-between items-center"><h3 className="font-semibold">Export / Import</h3><button onClick={() => setShowExport(false)} className="px-2 py-1 border rounded">Close</button></div>
-              <div className="mt-4">
-                <button onClick={() => exportJSON()} className="px-3 py-1 border rounded">Download JSON</button>
+                {mode === 'admin' && (
+                  <div style={{ borderTop: '1px solid #eee', paddingTop: 8, marginTop: 8 }}>
+                    <h4>Create reward (must link to library card)</h4>
+                    <CreateRewardForm cards={data.cards} onCreate={(payload) => createReward(payload)} />
+                  </div>
+                )}
               </div>
-              <div className="mt-4">
-                <textarea placeholder="Paste exported JSON here to import" id="importArea" className="w-full h-40 p-2 border rounded" />
-                <div className="mt-2 flex gap-2 justify-end">
-                  <button onClick={() => { const t = document.getElementById('importArea').value; importJSON(t); setShowExport(false); }} className="px-3 py-1 bg-indigo-600 text-white rounded">Import</button>
+            )}
+
+            {libraryTab === 'experience' && (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {data.cards.filter(c => c.category === 'experience').map(c => (
+                  <div key={c.id} style={{ display: 'flex', gap: 8, border: '1px solid #eee', padding: 8, borderRadius: 6, alignItems: 'center' }}>
+                    <div style={{ width: 64, height: 80, background: '#fafafa', cursor: 'pointer' }} onClick={() => setShowCardPreview(c)}>
+                      {c.image ? <img src={c.image} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ padding: 6 }}>{c.title}</div>}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>{c.title}</div>
+                      <div style={{ fontSize: 12, color: '#666' }}>{c.description}</div>
+                    </div>
+                    {mode === 'admin' && <div style={{ display: 'flex', gap: 6 }}><button onClick={() => deleteCard(c.id)}>Delete</button></div>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+
+          {showCardPreview && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowCardPreview(null)}>
+              <div style={{ background: 'white', padding: 12, borderRadius: 8, maxWidth: '80%', maxHeight: '80%', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ width: 320, height: 440, background: '#f6f6f6' }}>
+                    {showCardPreview.image ? <img src={showCardPreview.image} alt={showCardPreview.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div style={{ padding: 12 }}>{showCardPreview.title}</div>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h3>{showCardPreview.title}</h3>
+                    <div style={{ color: '#666' }}>{showCardPreview.description}</div>
+                    <div style={{ marginTop: 8, fontWeight: 700 }}>{showCardPreview.points} pts</div>
+                    <div style={{ marginTop: 12 }}>
+                      <button onClick={() => setShowCardPreview(null)}>Close</button>
+                      {mode === 'admin' && <button style={{ marginLeft: 8 }} onClick={() => deleteCard(showCardPreview.id)}>Delete card</button>}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
+        </aside>
       </div>
+
+      {/* Manage student modal */}
+      {selectedStudent && (
+        <ManageStudentModal
+          key={selectedStudent.id}
+          student={selectedStudent}
+          classObj={activeClass}
+          data={data}
+          mode={mode}
+          onClose={() => setSelectedStudent(null)}
+          onGiveCard={(cardId) => giveCardToStudent(selectedStudent.classId, selectedStudent.id, cardId)}
+          onRemoveCard={(ownedId) => removeCardFromStudent(selectedStudent.classId, selectedStudent.id, ownedId)}
+          onDeleteStudent={() => deleteStudent(selectedStudent.classId, selectedStudent.id)}
+          onRedeemIndividual={(rewardId) => redeemRewardIndividual(selectedStudent.classId, selectedStudent.id, rewardId)}
+          onRedeemGroup={(rewardId, shares) => redeemRewardGroup(selectedStudent.classId, rewardId, shares)}
+          onChangeMeter={(meter, delta) => changeMeter(selectedStudent.classId, selectedStudent.id, meter, delta)}
+          onAddQuickPoints={(amt) => addQuickPoints(selectedStudent.classId, selectedStudent.id, amt)}
+        />
+      )}
+
+    </div>
+  );
+}
+
+// ----- Small components -----
+function AddClassForm({ onAdd }) {
+  const [name, setName] = useState("");
+  return (
+    <div>
+      <input placeholder="Class name" value={name} onChange={(e) => setName(e.target.value)} />
+      <div style={{ marginTop: 6 }}><button onClick={() => { onAdd(name); setName(""); }}>Create</button></div>
     </div>
   );
 }
@@ -386,156 +462,156 @@ function AddStudentForm({ onAdd }) {
   const [name, setName] = useState("");
   return (
     <div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Student name" className="w-full border px-2 py-1 rounded" />
-      <div className="mt-2 flex gap-2">
-        <button onClick={() => { onAdd(name); setName(""); }} className="px-3 py-1 bg-green-600 text-white rounded">Add</button>
-      </div>
+      <input placeholder="Student name" value={name} onChange={(e) => setName(e.target.value)} />
+      <div style={{ marginTop: 6 }}><button onClick={() => { onAdd(name); setName(""); }}>Add</button></div>
     </div>
   );
 }
 
-function AddRewardForm({ onAdd }) {
+function CreateRewardForm({ cards, onCreate }) {
   const [title, setTitle] = useState("");
   const [cost, setCost] = useState(5);
+  const [cardId, setCardId] = useState(cards[0]?.id || "");
   return (
     <div>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Reward title" className="w-full border px-2 py-1 rounded" />
-      <div className="mt-2 flex gap-2">
-        <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} className="w-24 border px-2 py-1 rounded" />
-        <button onClick={() => { onAdd(title, cost); setTitle(""); setCost(5); }} className="px-3 py-1 bg-blue-600 text-white rounded">Add</button>
+      <input placeholder="Reward title" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div style={{ marginTop: 6 }}>
+        <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} />
+        <select value={cardId} onChange={(e) => setCardId(e.target.value)}>
+          <option value="">-- link card --</option>
+          {cards.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
       </div>
+      <div style={{ marginTop: 6 }}><button onClick={() => { onCreate({ title, cost, linkedCardId: cardId }); setTitle(''); setCost(5); }}>Create reward</button></div>
     </div>
   );
 }
 
-function CardModal({ onClose, onCreate, onGive, cards = [] }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [points, setPoints] = useState(5);
-  const [image, setImage] = useState("");
+function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onAddQuickPoints }) {
+  const [showGiveLibrary, setShowGiveLibrary] = useState(false);
+  const [redeemId, setRedeemId] = useState("");
+  const [groupShares, setGroupShares] = useState({});
 
-  function handleFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = (ev) => setImage(ev.target.result);
-    r.readAsDataURL(f);
+  useEffect(() => { setGroupShares({}); }, [student]);
+
+  function handleRedeemGroupSubmit() {
+    onRedeemGroup(redeemId, groupShares);
+    setRedeemId("");
   }
 
+  const cls = classObj;
+  const st = cls?.students?.find(s => s.id === student.id) || student;
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-start justify-center p-6">
-      <div className="bg-white w-full max-w-2xl rounded shadow-lg p-4">
-        <div className="flex justify-between items-center">
-          <h3 className="font-semibold">Create / Give Card</h3>
-          <div className="flex gap-2">
-            <button onClick={onClose} className="px-2 py-1 border rounded">Close</button>
-          </div>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 920, maxHeight: '90%', overflow: 'auto', background: 'white', borderRadius: 8, padding: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>Manage: {st.name}</h3>
+          <div><button onClick={onClose}>Close</button></div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 12, marginTop: 12 }}>
           <div>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full border px-2 py-1 rounded" />
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="w-full mt-2 border px-2 py-1 rounded h-28"></textarea>
-            <div className="mt-2 flex gap-2 items-center">
-              <input type="number" value={points} onChange={(e) => setPoints(e.target.value)} className="w-20 border px-2 py-1 rounded" />
-              <input type="file" accept="image/*" onChange={handleFile} />
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button onClick={() => { onCreate({ title, description, points, image }); }} className="px-3 py-1 bg-green-600 text-white rounded">Create card</button>
-            </div>
-          </div>
-          <div>
-            <div className="h-64 border rounded overflow-hidden flex items-center justify-center bg-gray-100">
-              {image ? <img src={image} alt="preview" className="w-full h-full object-cover" /> : <div className="text-gray-400">Image preview</div>}
-            </div>
-
-            <div className="mt-3">
-              <div className="font-semibold">Existing cards</div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {cards.map(c => (
-                  <div key={c.id} className="border rounded p-2 bg-white">
-                    <div className="h-20 overflow-hidden">{c.image ? <img src={c.image} alt={c.title} className="w-full h-full object-cover"/> : <div className="text-xs text-gray-500">No image</div>}</div>
-                    <div className="mt-1 text-xs">{c.title}</div>
-                    <div className="mt-1 flex gap-2"><button onClick={() => onGive(c.id)} className="px-2 py-1 border rounded">Give</button></div>
-                  </div>
-                ))}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 12, color: '#666' }}>Points</div>
+                <div style={{ fontWeight: 700, fontSize: 20 }}>{st.currentPoints || 0} pts</div>
+                {mode === 'admin' && <div style={{ marginTop: 6 }}>
+                  <button onClick={() => onAddQuickPoints(1)}>+1</button>
+                  <button onClick={() => onAddQuickPoints(5)} style={{ marginLeft: 6 }}>+5</button>
+                  <button onClick={() => onAddQuickPoints(10)} style={{ marginLeft: 6 }}>+10</button>
+                </div>}
               </div>
-            </div>
-          </div>
-        </div>
 
-      </div>
-    </div>
-  );
-}
-
-function StudentManager({ student, onClose, onUpdate, onAwardCard, cards, rewards, spendReward }) {
-  const [name, setName] = useState(student.name);
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-start justify-center p-6">
-      <div className="bg-white w-full max-w-2xl rounded shadow p-4">
-        <div className="flex justify-between items-center">
-          <h3 className="font-semibold">Manage: {student.name}</h3>
-          <div className="flex gap-2"><button onClick={onClose} className="px-2 py-1 border rounded">Close</button></div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-sm">Name</div>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border px-2 py-1 rounded" />
-            <div className="mt-2">
-              <button onClick={() => onUpdate({ name })} className="px-3 py-1 bg-blue-600 text-white rounded">Save</button>
-            </div>
-
-            <div className="mt-4">
-              <div className="text-sm font-medium">Award quick points</div>
-              <div className="flex gap-2 mt-2">
-                <button onClick={() => onUpdate({ currentPoints: (student.currentPoints||0)+1, cumulativePoints: (student.cumulativePoints||0)+1 })} className="px-2 py-1 border rounded">+1</button>
-                <button onClick={() => onUpdate({ currentPoints: (student.currentPoints||0)+5, cumulativePoints: (student.cumulativePoints||0)+5 })} className="px-2 py-1 border rounded">+5</button>
-                <button onClick={() => onUpdate({ currentPoints: (student.currentPoints||0)+10, cumulativePoints: (student.cumulativePoints||0)+10 })} className="px-2 py-1 border rounded">+10</button>
+              <div style={{ marginLeft: 12 }}>
+                <div style={{ fontSize: 12, color: '#666' }}>Experience (XP)</div>
+                <div style={{ fontWeight: 700, fontSize: 20 }}>{st.xp || 0}</div>
               </div>
-            </div>
 
-          </div>
-          <div>
-            <div className="text-sm font-medium">Redeem rewards</div>
-            <div className="mt-2 flex flex-col gap-2">
-              {rewards.map(r => (
-                <div key={r.id} className="p-2 border rounded flex justify-between items-center">
-                  <div>
-                    <div className="font-medium">{r.title}</div>
-                    <div className="text-xs text-gray-500">Cost: {r.cost}</div>
-                  </div>
-                  <div>
-                    <button onClick={() => spendReward(student.id, r.id)} className="px-2 py-1 bg-yellow-100 rounded">Spend</button>
-                  </div>
+              <div style={{ marginLeft: 12 }}>
+                <div style={{ fontSize: 12, color: '#666' }}>Streak</div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button onClick={() => onChangeMeter('streak', -1)}>-</button>
+                  <div>{'🔥'.repeat(st.streak || 0)}</div>
+                  <button onClick={() => onChangeMeter('streak', +1)}>+</button>
                 </div>
-              ))}
+                <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>Ghost assistance</div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button onClick={() => onChangeMeter('ghost', -1)}>-</button>
+                  <div>{'👻'.repeat(st.ghost || 0)}</div>
+                  <button onClick={() => onChangeMeter('ghost', +1)}>+</button>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-4">
-              <div className="text-sm font-medium">Student Cards ({(student.cards||[]).length})</div>
-              <div className="mt-2 grid grid-cols-4 gap-2">
-                {(student.cards||[]).map(own => {
-                  const c = cards.find(x => x.id === own.cardId);
+            <div style={{ marginTop: 12 }}>
+              <h4>Cards owned</h4>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {(st.cards || []).map(o => {
+                  const card = data.cards.find(c => c.id === o.cardId) || { title: '—' };
                   return (
-                    <div key={own.id} className="border rounded p-1 text-xs overflow-hidden">
-                      {c?.image ? <img src={c.image} alt={c.title} className="w-full h-20 object-cover"/> : <div className="p-2">{c?.title}</div>}
-                      <div className="mt-1">{c?.title}</div>
+                    <div key={o.id} style={{ border: '1px solid #eee', padding: 6, borderRadius: 6, width: 140 }}>
+                      <div style={{ fontWeight: 600 }}>{card.title}</div>
+                      <div style={{ fontSize: 12, color: '#666' }}>{o.grantedAt?.slice(0, 10)}</div>
+                      {mode === 'admin' && <div style={{ marginTop: 6 }}><button onClick={() => onRemoveCard(o.id)}>Remove</button></div>}
                     </div>
                   );
                 })}
               </div>
+
             </div>
 
-            <div className="mt-4">
-              <div className="text-sm font-medium">Give a card</div>
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {cards.map(c => (
-                  <div key={c.id} className="border rounded p-2">
-                    <div className="h-20 overflow-hidden">{c.image ? <img src={c.image} alt={c.title} className="w-full h-full object-cover"/> : <div className="text-xs text-gray-500">No image</div>}</div>
-                    <div className="mt-1 text-xs">{c.title}</div>
-                    <div className="mt-1 flex gap-2"><button onClick={() => onAwardCard(c.id)} className="px-2 py-1 border rounded">Give</button></div>
+            <div style={{ marginTop: 12 }}>
+              <h4>Rewards history</h4>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {(st.rewardsHistory || []).map(rh => (
+                  <div key={rh.id} style={{ border: '1px solid #eee', padding: 6, borderRadius: 6 }}>
+                    <div style={{ fontWeight: 600 }}>{rh.title} • {rh.cost} pts</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>{rh.date?.slice(0, 19).replace('T', ' ')}</div>
+                    {mode === 'admin' && <div style={{ marginTop: 6 }}><button onClick={() => {
+                      if (!confirm('Delete this reward history entry?')) return;
+                      saveLocalRemoveRewardHistory(classObj.id, st.id, rh.id);
+                    }}>Delete</button></div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <h4>Redeem reward</h4>
+              <div>
+                <select value={redeemId} onChange={(e) => setRedeemId(e.target.value)}>
+                  <option value="">-- choose reward --</option>
+                  {data.rewardsLibrary.map(r => <option key={r.id} value={r.id}>{r.title} (cost {r.cost})</option>)}
+                </select>
+                <div style={{ marginTop: 8 }}>
+                  <button onClick={() => { if (!redeemId) return alert('Choose reward'); const choice = prompt('Individual or Group? type I or G'); if (!choice) return; if (choice.toUpperCase() === 'I') { onRedeemIndividual(redeemId); } else { setShowGroupRedeem(true); } }} >Redeem</button>
+                </div>
+              </div>
+
+              {/* Group redeem UI toggled locally */}
+              <GroupRedeemInline key={redeemId + (st.id||'')} rewardId={redeemId} classObj={classObj} onSubmit={(shares) => { if (!redeemId) return alert('Select reward first'); onRedeemGroup(redeemId, shares); }} />
+
+            </div>
+
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h4>Admin actions</h4>
+              {mode === 'admin' && <button onClick={() => onDeleteStudent()}>Delete student</button>}
+            </div>
+
+            <div style={{ marginTop: 8 }}>
+              <h4>Give card</h4>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {data.cards.map(c => (
+                  <div key={c.id} style={{ border: '1px solid #eee', padding: 6, borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 700 }}>{c.title}</div>
+                      <div style={{ fontSize: 12, color: '#666' }}>{c.description}</div>
+                    </div>
+                    {mode === 'admin' && <div><button onClick={() => onGiveCard(c.id)}>Give</button></div>}
                   </div>
                 ))}
               </div>
@@ -544,6 +620,40 @@ function StudentManager({ student, onClose, onUpdate, onAwardCard, cards, reward
           </div>
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+// small helper used in ManageStudentModal for reward history delete (uses localStorage save directly)
+function saveLocalRemoveRewardHistory(classId, studentId, historyId) {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  const d = JSON.parse(raw);
+  const cls = d.classes.find(c => c.id === classId);
+  const st = cls.students.find(s => s.id === studentId);
+  st.rewardsHistory = st.rewardsHistory.filter(x => x.id !== historyId);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+  window.location.reload();
+}
+
+function GroupRedeemInline({ rewardId, classObj, onSubmit }) {
+  const [shares, setShares] = useState({});
+  useEffect(() => setShares({}), [rewardId]);
+  if (!rewardId) return null;
+  const reward = (classObj?.rewards || []).find(r => r.id === rewardId) || null;
+  // note: rewards library lives in main data; for simplicity this inline widget asks for shares across classObj.students
+  return (
+    <div style={{ marginTop: 8, borderTop: '1px dashed #ddd', paddingTop: 8 }}>
+      <div style={{ fontSize: 13, color: '#666' }}>Enter shares for group redemption (numbers must add exactly to cost)</div>
+      {classObj?.students?.map(s => (
+        <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+          <div style={{ flex: 1 }}>{s.name} (has {s.currentPoints || 0} pts)</div>
+          <input type="number" value={shares[s.id] || ''} onChange={(e) => setShares((prev) => ({ ...prev, [s.id]: Number(e.target.value) }))} style={{ width: 80 }} />
+        </div>
+      ))}
+      <div style={{ marginTop: 8 }}>
+        <button onClick={() => onSubmit(shares)}>Confirm group redeem</button>
       </div>
     </div>
   );
