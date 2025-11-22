@@ -12,9 +12,8 @@ const SAMPLE = {
       id: "3eso",
       name: "3º ESO Pokemáticos",
       students: [
-        { id: "carlota", name: "Carlota", avatar: "", currentPoints: 21, xp: 0, streak: 2, ghost: 0, cards: [], rewardsHistory: [] },
-        { id: "cayden", name: "Cayden", avatar: "", currentPoints: 23, xp: 0, streak: 2, ghost: 0, cards: [], rewardsHistory: [] },
-      ],
+        { id: "carlota", name: "Carlota", avatar: "", currentPoints: 21, xp: 0, streak: 2, streakLastUpdated: "", ghost: 0, cards: [], rewardsHistory: [] },
+        { id: "cayden", name: "Cayden", avatar: "", currentPoints: 23, xp: 0, streak: 2, streakLastUpdated: "", ghost: 0, cards: [], rewardsHistory: [] },      ],
       rewards: [],
       cardsLibrary: [], // per-class card library (empty by default)
     },
@@ -95,8 +94,7 @@ export default function App() {
   // Students
   function addStudentToActive(name) {
     if (!name || !activeClass) return;
-    const st = { id: uid("s"), name, avatar: "", currentPoints: 0, xp: 0, streak: 0, ghost: 0, cards: [], rewardsHistory: [] };
-    saveData((d) => { const c = d.classes.find(x => x.id === activeClass.id); c.students.push(st); return d; });
+    const st = { id: uid("s"), name, avatar: "", currentPoints: 0, xp: 0, streak: 0, streakLastUpdated: "", ghost: 0, cards: [], rewardsHistory: [] };    saveData((d) => { const c = d.classes.find(x => x.id === activeClass.id); c.students.push(st); return d; });
   }
 
   function deleteStudent(classId, studentId) {
@@ -247,6 +245,34 @@ export default function App() {
       if (after < 0) after = 0;
       if (after > 5) after = 5;
       st[meter] = after;
+      
+      // Update streak date when streak is increased
+      if (meter === 'streak' && delta > 0) {
+        st.streakLastUpdated = new Date().toISOString().slice(0, 10);
+      }
+      return d;
+    });
+  }
+
+  function resetStreak(classId, studentId) {
+    if (!window.confirm("Reset this student's streak to 0?")) return;
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      const st = cls.students.find(s => s.id === studentId);
+      st.streak = 0;
+      st.streakLastUpdated = "";
+      return d;
+    });
+  }
+
+  function quickAddStreak(classId, studentId) {
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      const st = cls.students.find(s => s.id === studentId);
+      if ((st.streak || 0) < 5) {
+        st.streak = (st.streak || 0) + 1;
+        st.streakLastUpdated = new Date().toISOString().slice(0, 10);
+      }
       return d;
     });
   }
@@ -324,8 +350,19 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{s.name}</div>
-                    <div style={{ fontSize: 12, color: '#666' }}>Streak: {s.streak}🔥 • Ghost: {s.ghost}👻</div>
-                  </div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                      Streak: {s.streak}🔥
+                      {s.streakLastUpdated && (
+                        <span style={{ 
+                          marginLeft: 4, 
+                          color: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? '#0a0' : '#999',
+                          fontWeight: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? 600 : 400
+                        }}>
+                          ({s.streakLastUpdated})
+                        </span>
+                      )}
+                      {' • '}Ghost: {s.ghost}👻
+                    </div>                  </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 700 }}>{s.currentPoints || 0} pts</div>
                     <div style={{ fontSize: 12, color: '#666' }}>XP: {s.xp || 0}</div>
@@ -503,7 +540,8 @@ export default function App() {
           onRedeemIndividual={(rewardId) => redeemRewardIndividual(selectedStudent.classId, selectedStudent.id, rewardId)}
           onRedeemGroup={(rewardId, shares) => redeemRewardGroup(selectedStudent.classId, rewardId, shares)}
           onChangeMeter={(meter, delta) => changeMeter(selectedStudent.classId, selectedStudent.id, meter, delta)}
-          onAddQuickPoints={(amt) => addQuickPoints(selectedStudent.classId, selectedStudent.id, amt)}
+          onResetStreak={() => resetStreak(selectedStudent.classId, selectedStudent.id)}
+          onQuickAddStreak={() => quickAddStreak(selectedStudent.classId, selectedStudent.id)}          onAddQuickPoints={(amt) => addQuickPoints(selectedStudent.classId, selectedStudent.id, amt)}
           onUpdate={(updates) => updateStudent(selectedStudent.classId, selectedStudent.id, updates)}
           cards={(activeClass?.cardsLibrary || [])}
           rewards={(activeClass?.rewards || [])}
@@ -595,8 +633,7 @@ function CreateRewardForm({ cards, onCreate }) {
   );
 }
 
-function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onAddQuickPoints, onUpdate, cards, rewards, setShowCardPreview }) {
-  const [showGiveLibrary, setShowGiveLibrary] = useState(false);
+function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onResetStreak, onQuickAddStreak, onAddQuickPoints, onUpdate, cards, rewards, setShowCardPreview }) {  const [showGiveLibrary, setShowGiveLibrary] = useState(false);
   const [redeemId, setRedeemId] = useState("");
   const [groupShares, setGroupShares] = useState({});
   const [name, setName] = useState(student.name);
@@ -655,6 +692,20 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
                   <div>{'🔥'.repeat(st.streak || 0)}</div>
                   <button onClick={() => onChangeMeter('streak', +1)}>+</button>
                 </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                  <button onClick={() => onQuickAddStreak()} style={{ fontSize: 11 }}>Quick +1</button>
+                  <button onClick={() => onResetStreak()} style={{ fontSize: 11 }}>Reset</button>
+                </div>
+                {st.streakLastUpdated && (
+                  <div style={{ 
+                    fontSize: 11, 
+                    marginTop: 4,
+                    color: st.streakLastUpdated === new Date().toISOString().slice(0, 10) ? '#0a0' : '#999',
+                    fontWeight: st.streakLastUpdated === new Date().toISOString().slice(0, 10) ? 600 : 400
+                  }}>
+                    Last: {st.streakLastUpdated}
+                  </div>
+                )}
                 <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>Ghost assistance</div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button onClick={() => onChangeMeter('ghost', -1)}>-</button>
