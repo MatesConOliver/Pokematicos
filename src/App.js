@@ -599,10 +599,18 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
                   const card = data.cards.find(c => c.id === o.cardId) || { title: '—' };
                   return (
                     <div key={o.id} style={{ border: '1px solid #eee', padding: 6, borderRadius: 6, width: 140 }}>
+                      {card.image && (
+                        <img
+                          src={card.image}
+                          alt={card.title}
+                          style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 6 }}
+                        />
+                      )}
                       <div style={{ fontWeight: 600 }}>{card.title}</div>
                       <div style={{ fontSize: 12, color: '#666' }}>{o.grantedAt?.slice(0, 10)}</div>
                       {mode === 'admin' && <div style={{ marginTop: 6 }}><button onClick={() => onRemoveCard(o.id)}>Remove</button></div>}
                     </div>
+
                   );
                 })}
               </div>
