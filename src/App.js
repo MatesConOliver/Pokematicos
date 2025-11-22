@@ -525,38 +525,33 @@ function CreateCardForm({ onCreate }) {
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState(1);
   const [category, setCategory] = useState("points");
-  const [imageData, setImageData] = useState("");
-
-  function handleFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setImageData(ev.target.result);
-    reader.readAsDataURL(f);
-  }
+  const [imageUrl, setImageUrl] = useState("");
 
   function handleCreate() {
     if (!title) return alert('Title required');
-    onCreate({ title, description, points, image: imageData, category });
-    setTitle(''); setDescription(''); setPoints(1); setImageData(''); setCategory('points');
+    onCreate({ title, description, points, image: imageUrl, category });
+    setTitle(''); setDescription(''); setPoints(1); setImageUrl(''); setCategory('points');
   }
 
   return (
     <div style={{ border: '1px dashed #ccc', padding: 8, borderRadius: 6 }}>
       <h4>Create new card</h4>
-      <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <br />
-      <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-      <br />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: '100%', marginBottom: 6 }} />
+      <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} style={{ width: '100%', marginBottom: 6 }} />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
         <input type="number" value={points} onChange={(e) => setPoints(e.target.value)} style={{ width: 80 }} /> pts
         <select value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="points">Points</option>
           <option value="experience">Experience</option>
         </select>
-        <input type="file" accept="image/*" onChange={handleFile} />
       </div>
-      {imageData && <div style={{ marginTop: 8 }}><img src={imageData} alt="preview" style={{ maxWidth: '100%', maxHeight: 120 }} /></div>}
+      <input 
+        placeholder="Image URL (optional)" 
+        value={imageUrl} 
+        onChange={(e) => setImageUrl(e.target.value)} 
+        style={{ width: '100%', marginBottom: 6 }}
+      />
+      {imageUrl && <div style={{ marginTop: 8 }}><img src={imageUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: 120 }} onError={(e) => e.target.style.display = 'none'} /></div>}
       <div style={{ marginTop: 6 }}><button onClick={handleCreate}>Add card</button></div>
     </div>
   );
