@@ -340,23 +340,39 @@ export default function App() {
                 <div style={{ marginTop: 8 }}>
                   <div style={{ fontSize: 12, color: '#444', fontWeight: 600 }}>Cards</div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                    {(s.cards || []).slice(-6).map(o => {
-                      const card = activeClass?.cardsLibrary?.find(c => c.id === o.cardId) || data.cards.find(c => c.id === o.cardId);
-                      return (
-                        <div key={o.id} style={{ width: 80, height: 110, border: '1px solid #eee', borderRadius: 4, overflow: 'hidden' }}>
-                          {card?.image ? (
-                            <img
-                              src={card.image}
-                              alt={card?.title}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.18s ease' }}
-                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
-                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                              onClick={() => setShowCardPreview(card)}
-                            />
-                          ) : <div style={{ padding: 6 }}>{card?.title}</div>}
-                        </div>
-                      );
-                    })}
+                    {(() => {
+                      const cardGroups = {};
+                      (s.cards || []).forEach(o => {
+                        if (!cardGroups[o.cardId]) {
+                          cardGroups[o.cardId] = { count: 0 };
+                        }
+                        cardGroups[o.cardId].count++;
+                      });
+                
+                      return Object.entries(cardGroups).slice(-6).map(([cardId, group]) => {
+                        const card = activeClass?.cardsLibrary?.find(c => c.id === cardId) || data.cards.find(c => c.id === cardId);
+                        if (!card) return null;
+                        return (
+                          <div key={cardId} style={{ width: 80, height: 110, border: '1px solid #eee', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                            {card?.image ? (
+                              <img
+                                src={card.image}
+                                alt={card?.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.18s ease' }}
+                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                onClick={() => setShowCardPreview(card)}
+                              />
+                            ) : <div style={{ padding: 6, fontSize: 11 }}>{card?.title}</div>}
+                            {group.count > 1 && (
+                              <div style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)', color: 'white', borderRadius: 12, padding: '2px 6px', fontSize: 11, fontWeight: 700 }}>
+                                ×{group.count}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               </div>
@@ -672,28 +688,56 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
             <div style={{ marginTop: 12 }}>
               <h4>Cards owned</h4>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {(st.cards || []).map(o => {
-                  const card = (cards || []).find(c => c.id === o.cardId) || data.cards.find(c => c.id === o.cardId) || { title: '—' };
-                  return (
-                    <div key={o.id} style={{ border: '1px solid #eee', padding: 6, borderRadius: 6, width: 140 }}>
-                      {card.image ? (
-                        <img
-                          src={card.image}
-                          alt={card.title}
-                          style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', transition: 'transform 0.18s ease' }}
-                          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
-                          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                          onClick={() => setShowCardPreview(card)}
-                        />
-                      ) : <div style={{ fontWeight: 600 }}>{card.title}</div>}
-                      <div style={{ fontSize: 12, color: '#666' }}>{o.grantedAt?.slice(0, 10)}</div>
-                      {mode === 'admin' && <div style={{ marginTop: 6 }}><button onClick={() => onRemoveCard(o.id)}>Remove</button></div>}
-                    </div>
-                  );
-                })}
-              </div>
+                {(() => {
+                  const cardGroups = {};
+                  (st.cards || []).forEach(o => {
+                    if (!cardGroups[o.cardId]) {
+                      cardGroups[o.cardId] = [];
+                    }
+                    cardGroups[o.cardId].push(o);
+                    });
 
-            </div>
+                    return Object.entries(cardGroups).map(([cardId, ownedCards]) => {
+                      const card = (cards || []).find(c => c.id === cardId) || data.cards.find(c => c.id === cardId) || { title: '—' };
+                      return (
+                        <div key={cardId} style={{ border: '1px solid #eee', padding: 6, borderRadius: 6, width: 140 }}>
+                          {card.image ? (
+                            <div style={{ position: 'relative' }}>
+                              <img
+                                src={card.image}
+                                alt={card.title}
+                                style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', transition: 'transform 0.18s ease' }}
+                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
+                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                onClick={() => setShowCardPreview(card)}
+                              />
+                              {ownedCards.length > 1 && (
+                                <div style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)', color: 'white', borderRadius: 12, padding: '2px 6px', fontSize: 11, fontWeight: 700 }}>
+                                  ×{ownedCards.length}
+                                </div>
+                              )}
+                            </div>
+                          ) : <div style={{ fontWeight: 600 }}>{card.title} ×{ownedCards.length}</div>}
+                          <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Count: {ownedCards.length}</div>
+                          {mode === 'admin' && (
+                            <div style={{ marginTop: 6, display: 'flex', gap: 4 }}>
+                              <button onClick={() => onRemoveCard(ownedCards[0].id)} style={{ fontSize: 11 }}>Remove 1</button>
+                              {ownedCards.length > 1 && (
+                                <button onClick={() => {
+                                  if (window.confirm(`Remove all ${ownedCards.length} copies?`)) {
+                                    ownedCards.forEach(o => onRemoveCard(o.id));
+                                  }
+                                }} style={{ fontSize: 11 }}>Remove all</button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+
+              </div>
 
             <div style={{ marginTop: 12 }}>
               <h4>Rewards history</h4>
