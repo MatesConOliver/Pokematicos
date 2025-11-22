@@ -12,9 +12,8 @@ const SAMPLE = {
       id: "3eso",
       name: "3º ESO Pokemáticos",
       students: [
-        { id: "carlota", name: "Carlota", avatar: "", currentPoints: 21, xp: 0, streak: 2, streakLastUpdated: "", ghost: 0, cards: [], rewardsHistory: [] },
-        { id: "cayden", name: "Cayden", avatar: "", currentPoints: 23, xp: 0, streak: 2, streakLastUpdated: "", ghost: 0, cards: [], rewardsHistory: [] },      ],
-      rewards: [],
+        { id: "carlota", name: "Carlota", avatar: "", currentPoints: 21, xp: 0, streak: 2, streakLastUpdated: "", ghost: 0, ghostLastUpdated: "", cards: [], rewardsHistory: [] },
+        { id: "cayden", name: "Cayden", avatar: "", currentPoints: 23, xp: 0, streak: 1, streakLastUpdated: "", ghost: 3, ghostLastUpdated: "", cards: [], rewardsHistory: [] },      rewards: [],
       cardsLibrary: [], // per-class card library (empty by default)
     },
   ],
@@ -94,7 +93,7 @@ export default function App() {
   // Students
   function addStudentToActive(name) {
     if (!name || !activeClass) return;
-    const st = { id: uid("s"), name, avatar: "", currentPoints: 0, xp: 0, streak: 0, streakLastUpdated: "", ghost: 0, cards: [], rewardsHistory: [] };    saveData((d) => { const c = d.classes.find(x => x.id === activeClass.id); c.students.push(st); return d; });
+    const st = { id: uid("s"), name, avatar: "", currentPoints: 0, xp: 0, streak: 0, streakLastUpdated: "", ghost: 0, ghostLastUpdated: "", cards: [], rewardsHistory: [] };
   }
 
   function deleteStudent(classId, studentId) {
@@ -246,9 +245,13 @@ export default function App() {
       if (after > 5) after = 5;
       st[meter] = after;
       
-      // Update streak date when streak is increased
-      if (meter === 'streak' && delta > 0) {
-        st.streakLastUpdated = new Date().toISOString().slice(0, 10);
+      // Update date when increased
+      if (delta > 0) {
+        if (meter === 'streak') {
+          st.streakLastUpdated = new Date().toISOString().slice(0, 10);
+        } else if (meter === 'ghost') {
+          st.ghostLastUpdated = new Date().toISOString().slice(0, 10);
+        }
       }
       return d;
     });
@@ -272,6 +275,29 @@ export default function App() {
       if ((st.streak || 0) < 5) {
         st.streak = (st.streak || 0) + 1;
         st.streakLastUpdated = new Date().toISOString().slice(0, 10);
+      }
+      return d;
+    });
+  }
+
+  function resetGhost(classId, studentId) {
+    if (!window.confirm("Reset this student's ghost assistance to 0?")) return;
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      const st = cls.students.find(s => s.id === studentId);
+      st.ghost = 0;
+      st.ghostLastUpdated = "";
+      return d;
+    });
+  }
+
+  function quickAddGhost(classId, studentId) {
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      const st = cls.students.find(s => s.id === studentId);
+      if ((st.ghost || 0) < 5) {
+        st.ghost = (st.ghost || 0) + 1;
+        st.ghostLastUpdated = new Date().toISOString().slice(0, 10);
       }
       return d;
     });
@@ -355,14 +381,23 @@ export default function App() {
                       {s.streakLastUpdated && (
                         <span style={{ 
                           marginLeft: 4, 
-                          color: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? '#0a0' : '#999',
-                          fontWeight: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? 600 : 400
+                          color: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? '#0a0' : '#f00',
+                          fontWeight: 600
                         }}>
                           ({s.streakLastUpdated})
                         </span>
                       )}
                       {' • '}Ghost: {s.ghost}👻
-                    </div>                  </div>
+                      {s.ghostLastUpdated && (
+                        <span style={{ 
+                          marginLeft: 4, 
+                          color: s.ghostLastUpdated === new Date().toISOString().slice(0, 10) ? '#00f' : '#f00',
+                          fontWeight: 600
+                        }}>
+                          ({s.ghostLastUpdated})
+                        </span>
+                      )}
+                    </div>                 </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 700 }}>{s.currentPoints || 0} pts</div>
                     <div style={{ fontSize: 12, color: '#666' }}>XP: {s.xp || 0}</div>
@@ -542,6 +577,8 @@ export default function App() {
           onChangeMeter={(meter, delta) => changeMeter(selectedStudent.classId, selectedStudent.id, meter, delta)}
           onResetStreak={() => resetStreak(selectedStudent.classId, selectedStudent.id)}
           onQuickAddStreak={() => quickAddStreak(selectedStudent.classId, selectedStudent.id)}          onAddQuickPoints={(amt) => addQuickPoints(selectedStudent.classId, selectedStudent.id, amt)}
+          onResetGhost={() => resetGhost(selectedStudent.classId, selectedStudent.id)}
+          onQuickAddGhost={() => quickAddGhost(selectedStudent.classId, selectedStudent.id)}
           onUpdate={(updates) => updateStudent(selectedStudent.classId, selectedStudent.id, updates)}
           cards={(activeClass?.cardsLibrary || [])}
           rewards={(activeClass?.rewards || [])}
@@ -633,8 +670,7 @@ function CreateRewardForm({ cards, onCreate }) {
   );
 }
 
-function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onResetStreak, onQuickAddStreak, onAddQuickPoints, onUpdate, cards, rewards, setShowCardPreview }) {  const [showGiveLibrary, setShowGiveLibrary] = useState(false);
-  const [redeemId, setRedeemId] = useState("");
+function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onResetStreak, onQuickAddStreak, onResetGhost, onQuickAddGhost, onAddQuickPoints, onUpdate, cards, rewards, setShowCardPreview }) {  const [redeemId, setRedeemId] = useState("");
   const [groupShares, setGroupShares] = useState({});
   const [name, setName] = useState(student.name);
   const [currentPoints, setCurrentPoints] = useState(student.currentPoints || 0);
@@ -700,8 +736,8 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
                   <div style={{ 
                     fontSize: 11, 
                     marginTop: 4,
-                    color: st.streakLastUpdated === new Date().toISOString().slice(0, 10) ? '#0a0' : '#999',
-                    fontWeight: st.streakLastUpdated === new Date().toISOString().slice(0, 10) ? 600 : 400
+                    color: st.streakLastUpdated === new Date().toISOString().slice(0, 10) ? '#0a0' : '#f00',
+                    fontWeight: 600
                   }}>
                     Last: {st.streakLastUpdated}
                   </div>
@@ -712,6 +748,20 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
                   <div>{'👻'.repeat(st.ghost || 0)}</div>
                   <button onClick={() => onChangeMeter('ghost', +1)}>+</button>
                 </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                  <button onClick={() => onQuickAddGhost()} style={{ fontSize: 11 }}>Quick +1</button>
+                  <button onClick={() => onResetGhost()} style={{ fontSize: 11 }}>Reset</button>
+                </div>
+                {st.ghostLastUpdated && (
+                  <div style={{ 
+                    fontSize: 11, 
+                    marginTop: 4,
+                    color: st.ghostLastUpdated === new Date().toISOString().slice(0, 10) ? '#00f' : '#f00',
+                    fontWeight: 600
+                  }}>
+                    Last: {st.ghostLastUpdated}
+                  </div>
+                )}
               </div>
             </div>
 
