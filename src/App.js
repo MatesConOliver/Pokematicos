@@ -14,7 +14,8 @@ const SAMPLE = {
       students: [
         { id: "carlota", name: "Carlota", avatar: "", currentPoints: 21, xp: 0, streak: 2, streakLastUpdated: "", ghost: 0, ghostLastUpdated: "", cards: [], rewardsHistory: [] },
         { id: "cayden", name: "Cayden", avatar: "", currentPoints: 23, xp: 0, streak: 1, streakLastUpdated: "", ghost: 3, ghostLastUpdated: "", cards: [], rewardsHistory: [] },
-      cardsLibrary: [], // per-class card library (empty by default)
+      rewards: [],
+        cardsLibrary: [], // per-class card library (empty by default)
     },
   ],
   cards: [ // legacy global array left alone (we don't use it going forward)
