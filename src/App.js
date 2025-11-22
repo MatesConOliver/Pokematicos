@@ -315,10 +315,10 @@ export default function App() {
     return (
       <div style={{ padding: 20, fontFamily: 'system-ui' }}>
         <h2>Pokemáticos — mode</h2>
-        <p>Enter as Admin (edit) or Reader (view-only)</p>
+        <p>Enter as Teacher (edit) or Student/Guest (view-only)</p>
         <div style={{ marginTop: 12 }}>
-          <button onClick={() => { const p = prompt('Admin password'); enterAdmin(p); }} style={{ marginRight: 8 }}>Admin</button>
-          <button onClick={() => enterReader()}>Reader</button>
+          <button onClick={() => { const p = prompt('Teacher password'); enterAdmin(p); }} style={{ marginRight: 8 }}>Teacher</button>
+          <button onClick={() => enterReader()}>Student or guest</button>
         </div>
         {/* password removed from visible UI on purpose */}
       </div>
@@ -330,7 +330,7 @@ export default function App() {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 12 }}>
         <div>
           <h1>Mis logros Pokemáticos — Manager</h1>
-          <div style={{ color: '#666' }}>{mode === 'admin' ? 'Admin mode' : 'Reader mode'}</div>
+          <div style={{ color: '#666' }}>{mode === 'admin' ? 'Admin mode' : 'Student/Guest mode'}</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {mode === 'admin' && <button onClick={() => { localStorage.removeItem(STORAGE_KEY); setData(SAMPLE); alert('Reset to sample data'); }}>Reset to sample data</button>}
@@ -407,7 +407,7 @@ export default function App() {
                 </div>
 
                 <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                  <button onClick={() => setSelectedStudent({ ...s, classId: activeClass.id })}>Manage</button>
+                  {mode === 'admin' && <button onClick={() => setSelectedStudent({ ...s, classId: activeClass.id })}>Manage</button>}
                   {mode === 'admin' && <button onClick={() => setSelectedStudent({ ...s, classId: activeClass.id })}>Give card</button>}
                 </div>
 
