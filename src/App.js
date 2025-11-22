@@ -491,6 +491,7 @@ export default function App() {
           onUpdate={(updates) => updateStudent(selectedStudent.classId, selectedStudent.id, updates)}
           cards={(activeClass?.cardsLibrary || [])}
           rewards={(activeClass?.rewards || [])}
+          setShowCardPreview={setShowCardPreview}
         />
       )}
 
@@ -580,7 +581,7 @@ function CreateRewardForm({ cards, onCreate }) {
   );
 }
 
-function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onAddQuickPoints, onUpdate, cards, rewards }) {
+function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onAddQuickPoints, onUpdate, cards, rewards, setShowCardPreview }) {
   const [showGiveLibrary, setShowGiveLibrary] = useState(false);
   const [redeemId, setRedeemId] = useState("");
   const [groupShares, setGroupShares] = useState({});
@@ -684,7 +685,7 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
                           style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', transition: 'transform 0.18s ease' }}
                           onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
                           onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                          onClick={() => { /* open global preview */ window.dispatchEvent(new CustomEvent('showCardPreview', { detail: card })); }}
+                          onClick={() => setShowCardPreview(card)}
                         />
                       ) : <div style={{ fontWeight: 600 }}>{card.title}</div>}
                       <div style={{ fontSize: 12, color: '#666' }}>{o.grantedAt?.slice(0, 10)}</div>
