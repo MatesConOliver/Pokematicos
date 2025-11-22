@@ -546,11 +546,14 @@ function CreateCardForm({ onCreate }) {
         </select>
       </div>
       <input 
-        placeholder="Image URL (optional)" 
+        placeholder="Image URL (e.g., https://i.imgur.com/abc123.jpg)" 
         value={imageUrl} 
         onChange={(e) => setImageUrl(e.target.value)} 
         style={{ width: '100%', marginBottom: 6 }}
       />
+      <div style={{ fontSize: 11, color: '#666', marginBottom: 6 }}>
+        💡 Tip: For Google Drive, use format: https://drive.google.com/uc?export=view&id=YOUR_FILE_ID
+      </div>
       {imageUrl && <div style={{ marginTop: 8 }}><img src={imageUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: 120 }} onError={(e) => e.target.style.display = 'none'} /></div>}
       <div style={{ marginTop: 6 }}><button onClick={handleCreate}>Add card</button></div>
     </div>
