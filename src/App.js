@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 
-// Pokemáticos Manager — Revised (fixed)
-// - Hides the admin password (no longer shown on the initial screen)
-// - Adds "Add card" UI in the right sidebar (admin only) with image upload (file -> base64)
-// This file preserves all logic you provided and only adds the requested features.
+// Pokemáticos Manager — Revised (class libraries + edit points + hover preview)
+// Replace your src/App.js with this file.
 
 const STORAGE_KEY = "pokematics_v2";
 
@@ -18,9 +16,10 @@ const SAMPLE = {
         { id: "cayden", name: "Cayden", avatar: "", currentPoints: 23, xp: 0, streak: 2, ghost: 0, cards: [], rewardsHistory: [] },
       ],
       rewards: [],
+      cardsLibrary: [], // per-class card library (empty by default)
     },
   ],
-  cards: [
+  cards: [ // legacy global array left alone (we don't use it going forward)
     { id: "knowledge-fusion", title: "Knowledge fusion", image: "", description: "Solve a companion's math or existential question and gain 5 points.", points: 5, category: "points" },
     { id: "knowledge-seeker", title: "Knowledge seeker", image: "", description: "Ask a meaningful question. Gain 1 point.", points: 1, category: "points" },
   ],
@@ -75,7 +74,7 @@ export default function App() {
   // Classes
   function addClass(name) {
     if (!name) return;
-    const cls = { id: uid("class"), name, students: [], rewards: [] };
+    const cls = { id: uid("class"), name, students: [], rewards: [], cardsLibrary: [] };
     saveData((d) => { d.classes.push(cls); return d; });
     setActiveClassId(cls.id);
   }
@@ -83,6 +82,14 @@ export default function App() {
   function deleteClass(id) {
     if (!window.confirm("Delete this class and all its students/rewards? This cannot be undone.")) return;
     saveData((d) => { d.classes = d.classes.filter(c => c.id !== id); if (d.classes.length) setActiveClassId(d.classes[0].id); return d; });
+  }
+
+  function editClassName(classId) {
+    const c = data.classes.find(x => x.id === classId);
+    if (!c) return;
+    const n = prompt("New class name", c.name);
+    if (!n) return;
+    saveData(d => { const cls = d.classes.find(x => x.id === classId); cls.name = n; return d; });
   }
 
   // Students
@@ -97,40 +104,71 @@ export default function App() {
     saveData((d) => { const c = d.classes.find(x => x.id === classId); c.students = c.students.filter(s => s.id !== studentId); return d; });
   }
 
-  // Cards library CRUD (admin only)
+  function updateStudent(classId, studentId, updates) {
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === classId);
+      if (!cls) return d;
+      cls.students = cls.students.map(s => s.id === studentId ? { ...s, ...updates } : s);
+      return d;
+    });
+  }
+
+  // Cards library CRUD (per-class)
   function createCard({ title, description, points, image, category }) {
+    if (!activeClass) return alert("Select a class first");
     const card = { id: uid("card"), title, description, points: Number(points) || 0, image: image || "", category: category || "points" };
-    saveData(d => { d.cards.push(card); return d; });
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === activeClass.id);
+      cls.cardsLibrary = cls.cardsLibrary || [];
+      cls.cardsLibrary.push(card);
+      return d;
+    });
   }
 
   function deleteCard(cardId) {
     if (!window.confirm("Delete this library card? This will not remove already-owned copies from students.")) return;
-    saveData(d => { d.cards = d.cards.filter(c => c.id !== cardId); // rewards still reference cardId, but admin should handle
-      // Also remove link from rewardsLibrary where applicable
-      d.rewardsLibrary = d.rewardsLibrary.map(r => r.cardId === cardId ? { ...r, cardId: null } : r);
-      return d; });
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === activeClass.id);
+      if (!cls) return d;
+      cls.cardsLibrary = (cls.cardsLibrary || []).filter(c => c.id !== cardId);
+      // Also remove link from rewardsLibrary where applicable (class-level rewards)
+      cls.rewards = (cls.rewards || []).map(r => r.cardId === cardId ? { ...r, cardId: null } : r);
+      return d;
+    });
   }
 
   // Rewards library: must be linked to a cardId
   function createReward({ title, cost, linkedCardId }) {
     if (!linkedCardId) return alert("Rewards must be linked to a library card");
     const r = { id: uid("reward"), title, cost: Number(cost) || 0, cardId: linkedCardId };
-    saveData(d => { d.rewardsLibrary.push(r); return d; });
+    if (!activeClass) return;
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === activeClass.id);
+      cls.rewards = cls.rewards || [];
+      cls.rewards.push(r);
+      return d;
+    });
   }
 
   function deleteReward(rewardId) {
     if (!window.confirm("Delete this reward?")) return;
-    saveData(d => { d.rewardsLibrary = d.rewardsLibrary.filter(r => r.id !== rewardId); return d; });
+    saveData(d => {
+      const cls = d.classes.find(c => c.id === activeClass.id);
+      if (!cls) return d;
+      cls.rewards = (cls.rewards || []).filter(r => r.id !== rewardId);
+      return d;
+    });
   }
 
   // Give card to student (inside Manage), awarding points according to card.points
   function giveCardToStudent(classId, studentId, cardId) {
-    const card = data.cards.find(c => c.id === cardId);
-    if (!card) return;
+    const cls = data.classes.find(c => c.id === classId);
+    const card = cls?.cardsLibrary?.find(c => c.id === cardId);
+    if (!card) return alert("Card not found in class library");
     const now = new Date().toISOString();
     saveData(d => {
-      const cls = d.classes.find(c => c.id === classId);
-      const st = cls.students.find(s => s.id === studentId);
+      const cls2 = d.classes.find(c => c.id === classId);
+      const st = cls2.students.find(s => s.id === studentId);
       st.cards.push({ id: uid("owned"), cardId: card.id, grantedAt: now });
       // award points only to currentPoints
       st.currentPoints = (st.currentPoints || 0) + (card.points || 0);
@@ -149,24 +187,19 @@ export default function App() {
     });
   }
 
-  // Redeem reward flow
-  function openRedeemForStudent(student) {
-    setSelectedStudent({ ...student, classId: activeClass.id });
-    // Manage panel will contain redeem flow
-  }
-
+  // Redeem reward flow (class-level rewards)
   function redeemRewardIndividual(classId, studentId, rewardId) {
-    const reward = data.rewardsLibrary.find(r => r.id === rewardId);
+    const cls = data.classes.find(c => c.id === classId);
+    const reward = cls?.rewards?.find(r => r.id === rewardId);
     if (!reward) return alert("Reward invalid");
     saveData(d => {
-      const cls = d.classes.find(c => c.id === classId);
-      const st = cls.students.find(s => s.id === studentId);
+      const cls2 = d.classes.find(c => c.id === classId);
+      const st = cls2.students.find(s => s.id === studentId);
       if ((st.currentPoints || 0) < reward.cost) return alert("Student does not have enough points");
       st.currentPoints = (st.currentPoints || 0) - reward.cost;
       st.xp = (st.xp || 0) + reward.cost;
       const now = new Date().toISOString();
       st.rewardsHistory.push({ id: uid('rh'), rewardId: reward.id, title: reward.title, cost: reward.cost, date: now, students: [studentId] });
-      // grant linked card automatically if card exists
       if (reward.cardId) {
         st.cards.push({ id: uid('owned'), cardId: reward.cardId, grantedAt: now });
       }
@@ -174,15 +207,12 @@ export default function App() {
     });
   }
 
-  // Group redemption: admin enters shares per student; sum must equal reward.cost
   function redeemRewardGroup(classId, rewardId, shares) {
-    // shares: { studentId: number }
-    const reward = data.rewardsLibrary.find(r => r.id === rewardId);
+    const cls = data.classes.find(c => c.id === classId);
+    const reward = cls?.rewards?.find(r => r.id === rewardId);
     if (!reward) return alert("Reward invalid");
     const sum = Object.values(shares).reduce((a, b) => a + Number(b || 0), 0);
     if (sum !== reward.cost) return alert(`Sum is ${sum} but required ${reward.cost}. Please adjust shares.`);
-    // check everyone has enough points for their share
-    // per user's instruction: just perform subtraction; if someone lacks points we still allow? The user said earlier they don't want the UI to detect who is short; we will allow but if any student lacks enough points we will alert and abort.
     const classObj = data.classes.find(c => c.id === classId);
     const lacking = [];
     for (const sid of Object.keys(shares)) {
@@ -193,9 +223,9 @@ export default function App() {
 
     const now = new Date().toISOString();
     saveData(d => {
-      const cls = d.classes.find(c => c.id === classId);
+      const cls2 = d.classes.find(c => c.id === classId);
       for (const [sid, val] of Object.entries(shares)) {
-        const st = cls.students.find(s => s.id === sid);
+        const st = cls2.students.find(s => s.id === sid);
         const share = Number(val || 0);
         if (share <= 0) continue;
         st.currentPoints = (st.currentPoints || 0) - share;
@@ -236,7 +266,7 @@ export default function App() {
           <button onClick={() => { const p = prompt('Admin password'); enterAdmin(p); }} style={{ marginRight: 8 }}>Admin</button>
           <button onClick={() => enterReader()}>Reader</button>
         </div>
-        {/* password is intentionally NOT displayed here anymore */}
+        {/* password removed from visible UI on purpose */}
       </div>
     );
   }
@@ -261,7 +291,10 @@ export default function App() {
             {data.classes.map(c => (
               <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button style={{ textAlign: 'left', flex: 1, background: c.id === activeClassId ? '#eef' : 'transparent' }} onClick={() => setActiveClassId(c.id)}>{c.name} <span style={{ color: '#888', fontSize: 12 }}> {c.students?.length || 0} students</span></button>
-                {mode === 'admin' && <button onClick={() => deleteClass(c.id)} style={{ marginLeft: 6 }}>Delete</button>}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {mode === 'admin' && <button onClick={() => editClassName(c.id)}>Edit</button>}
+                  {mode === 'admin' && <button onClick={() => deleteClass(c.id)} style={{ marginLeft: 6 }}>Delete</button>}
+                </div>
               </div>
             ))}
           </div>
@@ -308,10 +341,19 @@ export default function App() {
                   <div style={{ fontSize: 12, color: '#444', fontWeight: 600 }}>Cards</div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                     {(s.cards || []).slice(-6).map(o => {
-                      const card = data.cards.find(c => c.id === o.cardId);
+                      const card = activeClass?.cardsLibrary?.find(c => c.id === o.cardId) || data.cards.find(c => c.id === o.cardId);
                       return (
                         <div key={o.id} style={{ width: 80, height: 110, border: '1px solid #eee', borderRadius: 4, overflow: 'hidden' }}>
-                          {card?.image ? <img src={card.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={card?.title} /> : <div style={{ padding: 6 }}>{card?.title}</div>}
+                          {card?.image ? (
+                            <img
+                              src={card.image}
+                              alt={card?.title}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.18s ease' }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                              onClick={() => setShowCardPreview(card)}
+                            />
+                          ) : <div style={{ padding: 6 }}>{card?.title}</div>}
                         </div>
                       );
                     })}
@@ -332,7 +374,7 @@ export default function App() {
 
         {/* Right: Library & rewards */}
         <aside style={{ border: '1px solid #eee', padding: 12, borderRadius: 8 }}>
-          <h3>Library</h3>
+          <h3>Library (class)</h3>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
             <button onClick={() => setLibraryTab('points')} style={{ background: libraryTab === 'points' ? '#def' : 'transparent' }}>Points</button>
             <button onClick={() => setLibraryTab('rewards')} style={{ background: libraryTab === 'rewards' ? '#def' : 'transparent' }}>Rewards</button>
@@ -349,7 +391,7 @@ export default function App() {
           <div style={{ maxHeight: 420, overflow: 'auto' }}>
             {libraryTab === 'points' && (
               <div style={{ display: 'grid', gap: 8 }}>
-                {data.cards.filter(c => c.category === 'points').map(c => (
+                {(activeClass?.cardsLibrary || []).filter(c => c.category === 'points').map(c => (
                   <div key={c.id} style={{ display: 'flex', gap: 8, border: '1px solid #eee', padding: 8, borderRadius: 6, alignItems: 'center' }}>
                     <div style={{ width: 64, height: 80, background: '#fafafa', cursor: 'pointer' }} onClick={() => setShowCardPreview(c)}>
                       {c.image ? <img src={c.image} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ padding: 6 }}>{c.title}</div>}
@@ -367,8 +409,8 @@ export default function App() {
 
             {libraryTab === 'rewards' && (
               <div style={{ display: 'grid', gap: 8 }}>
-                {data.rewardsLibrary.map(r => {
-                  const card = data.cards.find(c => c.id === r.cardId) || { title: '—' };
+                {(activeClass?.rewards || []).map(r => {
+                  const card = (activeClass?.cardsLibrary || []).find(c => c.id === r.cardId) || { title: '—' };
                   return (
                     <div key={r.id} style={{ border: '1px solid #eee', padding: 8, borderRadius: 6 }}>
                       <div style={{ fontWeight: 700 }}>{r.title}</div>
@@ -381,7 +423,7 @@ export default function App() {
                 {mode === 'admin' && (
                   <div style={{ borderTop: '1px solid #eee', paddingTop: 8, marginTop: 8 }}>
                     <h4>Create reward (must link to library card)</h4>
-                    <CreateRewardForm cards={data.cards} onCreate={(payload) => createReward(payload)} />
+                    <CreateRewardForm cards={activeClass?.cardsLibrary || []} onCreate={(payload) => createReward(payload)} />
                   </div>
                 )}
               </div>
@@ -389,7 +431,7 @@ export default function App() {
 
             {libraryTab === 'experience' && (
               <div style={{ display: 'grid', gap: 8 }}>
-                {data.cards.filter(c => c.category === 'experience').map(c => (
+                {(activeClass?.cardsLibrary || []).filter(c => c.category === 'experience').map(c => (
                   <div key={c.id} style={{ display: 'flex', gap: 8, border: '1px solid #eee', padding: 8, borderRadius: 6, alignItems: 'center' }}>
                     <div style={{ width: 64, height: 80, background: '#fafafa', cursor: 'pointer' }} onClick={() => setShowCardPreview(c)}>
                       {c.image ? <img src={c.image} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ padding: 6 }}>{c.title}</div>}
@@ -419,7 +461,7 @@ export default function App() {
                     <div style={{ marginTop: 8, fontWeight: 700 }}>{showCardPreview.points} pts</div>
                     <div style={{ marginTop: 12 }}>
                       <button onClick={() => setShowCardPreview(null)}>Close</button>
-                      {mode === 'admin' && <button style={{ marginLeft: 8 }} onClick={() => deleteCard(showCardPreview.id)}>Delete card</button>}
+                      {mode === 'admin' && <button style={{ marginLeft: 8 }} onClick={() => { deleteCard(showCardPreview.id); setShowCardPreview(null); }}>Delete card</button>}
                     </div>
                   </div>
                 </div>
@@ -446,6 +488,9 @@ export default function App() {
           onRedeemGroup={(rewardId, shares) => redeemRewardGroup(selectedStudent.classId, rewardId, shares)}
           onChangeMeter={(meter, delta) => changeMeter(selectedStudent.classId, selectedStudent.id, meter, delta)}
           onAddQuickPoints={(amt) => addQuickPoints(selectedStudent.classId, selectedStudent.id, amt)}
+          onUpdate={(updates) => updateStudent(selectedStudent.classId, selectedStudent.id, updates)}
+          cards={(activeClass?.cardsLibrary || [])}
+          rewards={(activeClass?.rewards || [])}
         />
       )}
 
@@ -535,16 +580,28 @@ function CreateRewardForm({ cards, onCreate }) {
   );
 }
 
-function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onAddQuickPoints }) {
+function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard, onRemoveCard, onDeleteStudent, onRedeemIndividual, onRedeemGroup, onChangeMeter, onAddQuickPoints, onUpdate, cards, rewards }) {
   const [showGiveLibrary, setShowGiveLibrary] = useState(false);
   const [redeemId, setRedeemId] = useState("");
   const [groupShares, setGroupShares] = useState({});
+  const [name, setName] = useState(student.name);
+  const [currentPoints, setCurrentPoints] = useState(student.currentPoints || 0);
+  const [xp, setXp] = useState(student.xp || 0);
 
-  useEffect(() => { setGroupShares({}); }, [student]);
+  useEffect(() => {
+    setGroupShares({});
+    setName(student.name);
+    setCurrentPoints(student.currentPoints || 0);
+    setXp(student.xp || 0);
+  }, [student]);
 
   function handleRedeemGroupSubmit() {
     onRedeemGroup(redeemId, groupShares);
     setRedeemId("");
+  }
+
+  function handleSaveEdits() {
+    onUpdate({ name, currentPoints: Number(currentPoints || 0), xp: Number(xp || 0) });
   }
 
   const cls = classObj;
@@ -593,24 +650,46 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
             </div>
 
             <div style={{ marginTop: 12 }}>
+              <h4>Edit student</h4>
+              <div>
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ fontSize: 12 }}>Name</div>
+                  <input value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ fontSize: 12 }}>Current points</div>
+                  <input type="number" value={currentPoints} onChange={(e) => setCurrentPoints(e.target.value)} />
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ fontSize: 12 }}>XP (total)</div>
+                  <input type="number" value={xp} onChange={(e) => setXp(e.target.value)} />
+                </div>
+                <div>
+                  <button onClick={handleSaveEdits}>Save edits</button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
               <h4>Cards owned</h4>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {(st.cards || []).map(o => {
-                  const card = data.cards.find(c => c.id === o.cardId) || { title: '—' };
+                  const card = (cards || []).find(c => c.id === o.cardId) || data.cards.find(c => c.id === o.cardId) || { title: '—' };
                   return (
                     <div key={o.id} style={{ border: '1px solid #eee', padding: 6, borderRadius: 6, width: 140 }}>
-                      {card.image && (
+                      {card.image ? (
                         <img
                           src={card.image}
                           alt={card.title}
-                          style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 6 }}
+                          style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', transition: 'transform 0.18s ease' }}
+                          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.12)'}
+                          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                          onClick={() => { /* open global preview */ window.dispatchEvent(new CustomEvent('showCardPreview', { detail: card })); }}
                         />
-                      )}
-                      <div style={{ fontWeight: 600 }}>{card.title}</div>
+                      ) : <div style={{ fontWeight: 600 }}>{card.title}</div>}
                       <div style={{ fontSize: 12, color: '#666' }}>{o.grantedAt?.slice(0, 10)}</div>
                       {mode === 'admin' && <div style={{ marginTop: 6 }}><button onClick={() => onRemoveCard(o.id)}>Remove</button></div>}
                     </div>
-
                   );
                 })}
               </div>
@@ -638,14 +717,13 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
               <div>
                 <select value={redeemId} onChange={(e) => setRedeemId(e.target.value)}>
                   <option value="">-- choose reward --</option>
-                  {data.rewardsLibrary.map(r => <option key={r.id} value={r.id}>{r.title} (cost {r.cost})</option>)}
+                  {rewards.map(r => <option key={r.id} value={r.id}>{r.title} (cost {r.cost})</option>)}
                 </select>
                 <div style={{ marginTop: 8 }}>
-                  <button onClick={() => { if (!redeemId) return alert('Choose reward'); const choice = prompt('Individual or Group? type I or G'); if (!choice) return; if (choice.toUpperCase() === 'I') { onRedeemIndividual(redeemId); } else { setShowGroupRedeem(true); } }} >Redeem</button>
+                  <button onClick={() => { if (!redeemId) return alert('Choose reward'); const choice = prompt('Individual or Group? type I or G'); if (!choice) return; if (choice.toUpperCase() === 'I') { onRedeemIndividual(redeemId); } else { setShowGiveLibrary(true); } }} >Redeem</button>
                 </div>
               </div>
 
-              {/* Group redeem UI toggled locally */}
               <GroupRedeemInline key={redeemId + (st.id||'')} rewardId={redeemId} classObj={classObj} onSubmit={(shares) => { if (!redeemId) return alert('Select reward first'); onRedeemGroup(redeemId, shares); }} />
 
             </div>
@@ -661,7 +739,7 @@ function ManageStudentModal({ student, classObj, data, mode, onClose, onGiveCard
             <div style={{ marginTop: 8 }}>
               <h4>Give card</h4>
               <div style={{ display: 'grid', gap: 8 }}>
-                {data.cards.map(c => (
+                {cards.map(c => (
                   <div key={c.id} style={{ border: '1px solid #eee', padding: 6, borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 700 }}>{c.title}</div>
@@ -698,7 +776,6 @@ function GroupRedeemInline({ rewardId, classObj, onSubmit }) {
   useEffect(() => setShares({}), [rewardId]);
   if (!rewardId) return null;
   const reward = (classObj?.rewards || []).find(r => r.id === rewardId) || null;
-  // note: rewards library lives in main data; for simplicity this inline widget asks for shares across classObj.students
   return (
     <div style={{ marginTop: 8, borderTop: '1px dashed #ddd', paddingTop: 8 }}>
       <div style={{ fontSize: 13, color: '#666' }}>Enter shares for group redemption (numbers must add exactly to cost)</div>
