@@ -499,23 +499,45 @@ export default function App() {
 
             {libraryTab === 'rewards' && (
               <div style={{ display: 'grid', gap: 8 }}>
-                {(activeClass?.rewards || []).map(r => {
-                  const card = (activeClass?.cardsLibrary || []).find(c => c.id === r.cardId) || { title: '—' };
-                  return (
-                    <div key={r.id} style={{ border: '1px solid #eee', padding: 8, borderRadius: 6 }}>
-                      <div style={{ fontWeight: 700 }}>{r.title}</div>
-                      <div style={{ fontSize: 12, color: '#555' }}>Cost: {r.cost} pts • Linked card: {card.title}</div>
-                      {mode === 'admin' && <div style={{ marginTop: 6 }}><button onClick={() => deleteReward(r.id)}>Delete reward</button></div>}
+                {/* Reward cards from library */}
+                <div style={{ marginBottom: 12 }}>
+                  <h4 style={{ fontSize: 13, color: '#555', marginBottom: 8 }}>Reward Cards (Library)</h4>
+                  {(activeClass?.cardsLibrary || []).filter(c => c.category === 'rewards').map(c => (
+                    <div key={c.id} style={{ display: 'flex', gap: 8, border: '1px solid #eee', padding: 8, borderRadius: 6, alignItems: 'center', marginBottom: 8 }}>
+                      <div style={{ width: 64, height: 80, background: '#fafafa', cursor: 'pointer' }} onClick={() => setShowCardPreview(c)}>
+                        {c.image ? <img src={c.image} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ padding: 6 }}>{c.title}</div>}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600 }}>{c.title}</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>{c.description}</div>
+                        <div style={{ marginTop: 6, fontWeight: 700 }}>{c.points} pts</div>
+                      </div>
+                      {mode === 'admin' && <div style={{ display: 'flex', gap: 6 }}><button onClick={() => deleteCard(c.id)}>Delete</button></div>}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
 
-                {mode === 'admin' && (
-                  <div style={{ borderTop: '1px solid #eee', paddingTop: 8, marginTop: 8 }}>
-                    <h4>Create reward (must link to library card)</h4>
-                    <CreateRewardForm cards={activeClass?.cardsLibrary || []} onCreate={(payload) => createReward(payload)} />
-                  </div>
-                )}
+                {/* Shop items (purchasable rewards) */}
+                <div style={{ borderTop: '2px solid #ddd', paddingTop: 12 }}>
+                  <h4 style={{ fontSize: 13, color: '#555', marginBottom: 8 }}>Shop Items (Purchasable)</h4>
+                  {(activeClass?.rewards || []).map(r => {
+                    const card = (activeClass?.cardsLibrary || []).find(c => c.id === r.cardId) || { title: '—' };
+                    return (
+                      <div key={r.id} style={{ border: '1px solid #eee', padding: 8, borderRadius: 6, marginBottom: 8 }}>
+                        <div style={{ fontWeight: 700 }}>{r.title}</div>
+                        <div style={{ fontSize: 12, color: '#555' }}>Cost: {r.cost} pts • Linked card: {card.title}</div>
+                        {mode === 'admin' && <div style={{ marginTop: 6 }}><button onClick={() => deleteReward(r.id)}>Delete reward</button></div>}
+                      </div>
+                    );
+                  })}
+
+                  {mode === 'admin' && (
+                    <div style={{ borderTop: '1px solid #eee', paddingTop: 8, marginTop: 8 }}>
+                      <h4>Create shop item (must link to library card)</h4>
+                      <CreateRewardForm cards={activeClass?.cardsLibrary || []} onCreate={(payload) => createReward(payload)} />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -635,6 +657,7 @@ function CreateCardForm({ onCreate }) {
         <input type="number" value={points} onChange={(e) => setPoints(e.target.value)} style={{ width: 80 }} /> pts
         <select value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="points">Points</option>
+          <option value="rewards">Rewards</option>
           <option value="experience">Experience</option>
         </select>
       </div>
@@ -922,13 +945,31 @@ function GroupRedeemInline({ rewardId, classObj, onSubmit }) {
   useEffect(() => setShares({}), [rewardId]);
   if (!rewardId) return null;
   const reward = (classObj?.rewards || []).find(r => r.id === rewardId) || null;
+  
+  const totalShares = Object.values(shares).reduce((sum, val) => sum + (Number(val) || 0), 0);
+  
   return (
     <div style={{ marginTop: 8, borderTop: '1px dashed #ddd', paddingTop: 8 }}>
-      <div style={{ fontSize: 13, color: '#666' }}>Enter shares for group redemption (numbers must add exactly to cost)</div>
+      <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
+        Enter shares for group redemption (total must equal {reward?.cost || 0} pts)
+        {totalShares > 0 && <span style={{ marginLeft: 8, fontWeight: 600, color: totalShares === (reward?.cost || 0) ? '#0a0' : '#f00' }}>
+          Current total: {totalShares}
+        </span>}
+      </div>
       {classObj?.students?.map(s => (
         <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
           <div style={{ flex: 1 }}>{s.name} (has {s.currentPoints || 0} pts)</div>
-          <input type="number" value={shares[s.id] || ''} onChange={(e) => setShares((prev) => ({ ...prev, [s.id]: Number(e.target.value) }))} style={{ width: 80 }} />
+          <input 
+            type="number" 
+            min="0"
+            value={shares[s.id] || ''} 
+            onChange={(e) => {
+              const val = e.target.value === '' ? '' : Number(e.target.value);
+              setShares((prev) => ({ ...prev, [s.id]: val }));
+            }} 
+            style={{ width: 80, padding: 4 }} 
+            placeholder="0"
+          />
         </div>
       ))}
       <div style={{ marginTop: 8 }}>
