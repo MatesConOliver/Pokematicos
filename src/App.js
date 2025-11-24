@@ -918,6 +918,7 @@ export default function App() {
   const [cardPreview, setCardPreview] = useState(null);
   const [libraryTab, setLibraryTab] = useState("points");
   const [errorMsg, setErrorMsg] = useState("");
+  const [studentFilter, setStudentFilter] = useState("");
 
   // refs
   const newStudentRef = useRef();
@@ -984,7 +985,7 @@ export default function App() {
     setLoadingCards(true);
     const cardsCol = collection(db, `classes/${activeClassId}/cards`);
     const unsubCards = onSnapshot(
-      query(cardsCol, orderBy("title")),
+      query(cardsCol, orderBy("createdAt", "asc")),
       (snap) => {
         const arr = [];
         snap.forEach((s) => arr.push({ id: s.id, ...s.data() }));
@@ -1002,7 +1003,7 @@ export default function App() {
     setLoadingRewards(true);
     const rewardsCol = collection(db, `classes/${activeClassId}/rewards`);
     const unsubRewards = onSnapshot(
-      query(rewardsCol, orderBy("title")),
+      query(rewardsCol, orderBy("createdAt", "asc")),
       (snap) => {
         const arr = [];
         snap.forEach((s) => arr.push({ id: s.id, ...s.data() }));
@@ -1749,247 +1750,208 @@ export default function App() {
               {classesList.find((c) => c.id === activeClassId)?.name ||
                 "Select a class"}
             </h3>
-            {/* Placeholder for future filter */}
-            <div className="muted">filter students... (not implemented)</div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h3 style={{ margin: 0 }}>
+                {classesList.find((c) => c.id === activeClassId)?.name ||
+                  "Select a class"}
+              </h3>
+
+              <input
+                placeholder="Filter students..."
+                value={studentFilter}
+                onChange={(e) => setStudentFilter(e.target.value)}
+                style={{
+                  padding: 6,
+                  fontSize: 13,
+                  borderRadius: 6,
+                  border: "1px solid #ddd",
+                  minWidth: 160,
+                }}
+              />
+            </div>
+
           </div>
 
           <div style={{ marginTop: 12 }}>
             {activeClassId ? (
               <>
-                {loadingStudents ? (
-                  <div className="muted">Loading students...</div>
-                ) : (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, 1fr)",
-                      gap: 12,
-                    }}
-                  >
-                    {students.map((s) => {
-                      // group owned cards by cardId for compact view
-                      const cardGroups = {};
-                      (s.cards || []).forEach((o) => {
-                        if (!cardGroups[o.cardId]) {
-                          cardGroups[o.cardId] = [];
-                        }
-                        cardGroups[o.cardId].push(o);
-                      });
-                      const groupedArr = Object.values(cardGroups);
-                      const lastSixGroups = groupedArr.slice(-6);
+                <div style={{ marginBottom: 12 }}>
+                  {loadingStudents ? (
+                    <div className="muted">Loading students...</div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, 1fr)",
+                        gap: 12,
+                      }}
+                    >
+                      {students
+                        .filter((s) =>
+                          s.name
+                            ?.toLowerCase()
+                            .includes(studentFilter.toLowerCase().trim())
+                        )
+                        .map((s) => (
+                          <div
+                            key={s.id}
+                            style={{
+                              border: "1px solid #ddd",
+                              padding: 10,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontWeight: 700 }}>{s.name}</div>
+                                <div className="muted">
+                                  Streak: {s.streak || 0} • Last:{" "}
+                                  {s.lastActive ? s.lastActive : "-"}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right" }}>
+                                <div style={{ fontWeight: 700 }}>
+                                  {s.currentPoints || 0} pts
+                                </div>
+                                <div className="muted">
+                                  Total: {s.cumulativePoints || 0}
+                                </div>
+                              </div>
+                            </div>
 
-                      const todayStr = new Date()
-                        .toISOString()
-                        .slice(0, 10);
+                            {/* Buttons ONLY for admins */}
+                            {mode === "admin" && (
+                              <div
+                                style={{
+                                  marginTop: 8,
+                                  display: "flex",
+                                  gap: 8,
+                                }}
+                              >
+                                <button
+                                  className="btn"
+                                  onClick={() =>
+                                    setSelectedStudent({
+                                      ...s,
+                                      classId: activeClassId,
+                                    })
+                                  }
+                                >
+                                  Manage
+                                </button>
+                                <button
+                                  className="btn"
+                                  onClick={() => {
+                                    // quick give card will open Manage with Give view
+                                    setSelectedStudent({
+                                      ...s,
+                                      classId: activeClassId,
+                                    });
+                                  }}
+                                >
+                                  Give card
+                                </button>
+                              </div>
+                            )}
 
-                      return (
+                            <div style={{ marginTop: 8 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700 }}>Cards</div>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: 8,
+                                  flexWrap: "wrap",
+                                  marginTop: 8,
+                                }}
+                              >
+                                {(s.cards || [])
+                                  .slice(-6)
+                                  .map((o) => (
+                                    <div
+                                      key={o.id}
+                                      className="card-thumb"
+                                      style={{
+                                        width: 80,
+                                        height: 110,
+                                        border: "1px solid #eee",
+                                        borderRadius: 6,
+                                        overflow: "hidden",
+                                        cursor: "pointer",
+                                      }}
+                                      onClick={() => setCardPreview(o)}
+                                    >
+                                      {o.imageURL ? (
+                                        <img
+                                          src={o.imageURL}
+                                          alt={o.title}
+                                          style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                          }}
+                                        />
+                                      ) : (
+                                        <div style={{ padding: 6 }}>{o.title}</div>
+                                      )}
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                      {mode === "admin" && (
                         <div
-                          key={s.id}
                           style={{
-                            border: "1px solid #ddd",
-                            padding: 10,
+                            border: "1px dashed #ccc",
+                            padding: 12,
                             borderRadius: 6,
                           }}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontWeight: 700 }}>{s.name}</div>
-                              <div className="muted">
-                                Streak: {s.streak || 0}🔥{" "}
-                                {s.streakLastUpdated && (
-                                  <span
-                                    style={{
-                                      marginLeft: 4,
-                                      color:
-                                        s.streakLastUpdated === todayStr
-                                          ? "#0a0"
-                                          : "#f00",
-                                      fontWeight: 600,
-                                      fontSize: 11,
-                                    }}
-                                  >
-                                    ({s.streakLastUpdated})
-                                  </span>
-                                )}
-                                {" • "}Ghost: {s.ghost || 0}👻{" "}
-                                {s.ghostLastUpdated && (
-                                  <span
-                                    style={{
-                                      marginLeft: 4,
-                                      color:
-                                        s.ghostLastUpdated === todayStr
-                                          ? "#00f"
-                                          : "#f00",
-                                      fontWeight: 600,
-                                      fontSize: 11,
-                                    }}
-                                  >
-                                    ({s.ghostLastUpdated})
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: "right" }}>
-                              <div style={{ fontWeight: 700 }}>
-                                {s.currentPoints || 0} pts
-                              </div>
-                              <div className="muted">
-                                XP: {s.xp || 0} • Total:{" "}
-                                {s.cumulativePoints || 0}
-                              </div>
-                            </div>
-                          </div>
-
-                          {mode === "admin" && (
-                            <div
-                              style={{
-                                marginTop: 8,
-                                display: "flex",
-                                gap: 8,
+                          <h4 style={{ marginTop: 0 }}>Add student</h4>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input
+                              ref={newStudentRef}
+                              placeholder="Student name"
+                              style={{ flex: 1, padding: 6 }}
+                            />
+                            <button
+                              className="btn primary"
+                              onClick={() => {
+                                const name = newStudentRef.current?.value?.trim();
+                                if (!name) return alert("Enter name");
+                                addStudent(name);
+                                newStudentRef.current.value = "";
                               }}
                             >
-                              <button
-                                className="btn"
-                                onClick={() =>
-                                  setSelectedStudent({
-                                    ...s,
-                                    classId: activeClassId,
-                                  })
-                                }
-                              >
-                                Manage
-                              </button>
-                              {/* Give card button removed on purpose */}
-                            </div>
-                          )}
-
-                          <div style={{ marginTop: 8 }}>
-                            <div
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                              }}
-                            >
-                              Cards
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                gap: 8,
-                                flexWrap: "wrap",
-                                marginTop: 8,
-                              }}
-                            >
-                              {lastSixGroups.map((ownedCards, idx) => {
-                                const first = ownedCards[0];
-                                return (
-                                  <div
-                                    key={first.id + "_" + idx}
-                                    className="card-thumb"
-                                    style={{
-                                      width: 80,
-                                      height: 110,
-                                      border: "1px solid #eee",
-                                      borderRadius: 6,
-                                      overflow: "hidden",
-                                      cursor: "pointer",
-                                      position: "relative",
-                                    }}
-                                    onClick={() =>
-                                      setCardPreview({
-                                        ...first,
-                                        isLibraryCard: false,
-                                      })
-                                    }
-                                  >
-                                    {first.imageURL ? (
-                                      <img
-                                        src={first.imageURL}
-                                        alt={first.title}
-                                        style={{
-                                          width: "100%",
-                                          height: "100%",
-                                          objectFit: "cover",
-                                        }}
-                                      />
-                                    ) : (
-                                      <div style={{ padding: 6 }}>
-                                        {first.title}
-                                      </div>
-                                    )}
-                                    {ownedCards.length > 1 && (
-                                      <div
-                                        style={{
-                                          position: "absolute",
-                                          top: 4,
-                                          right: 4,
-                                          background: "rgba(0,0,0,0.7)",
-                                          color: "white",
-                                          borderRadius: 12,
-                                          padding: "2px 6px",
-                                          fontSize: 11,
-                                          fontWeight: 700,
-                                        }}
-                                      >
-                                        ×{ownedCards.length}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
+                              Add
+                            </button>
                           </div>
                         </div>
-                      );
-                    })}
-
-                    {mode === "admin" && (
-                      <div
-                        style={{
-                          border: "1px dashed #ccc",
-                          padding: 12,
-                          borderRadius: 6,
-                        }}
-                      >
-                        <h4 style={{ marginTop: 0 }}>Add student</h4>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input
-                            ref={newStudentRef}
-                            placeholder="Student name"
-                            style={{ flex: 1, padding: 6 }}
-                          />
-                          <button
-                            className="btn primary"
-                            onClick={() => {
-                              const name =
-                                newStudentRef.current?.value?.trim();
-                              if (!name) {
-                                window.alert("Enter a name");
-                                return;
-                              }
-                              addStudent(name);
-                            }}
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <div className="muted">
-                Select a class on the left to view and manage students, cards
-                and rewards.
+                Select a class on the left to view and manage students, cards and
+                rewards.
               </div>
             )}
           </div>
+
         </main>
 
         {/* RIGHT: Library & rewards */}
