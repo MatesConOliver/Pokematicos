@@ -90,6 +90,7 @@ export default function App() {
   // UI state
   const [selectedStudent, setSelectedStudent] = useState(null); // object with id, name, classId
   const [cardPreview, setCardPreview] = useState(null); // card doc
+  const [libraryTab, setLibraryTab] = useState("points"); // "points" | "rewards" | "experience"
   const [errorMsg, setErrorMsg] = useState("");
 
   // form state
@@ -572,68 +573,275 @@ export default function App() {
           </div>
         </main>
 
-        {/* RIGHT: Library */}
+        {/* RIGHT: Library & rewards */}
         <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}>
           <h3>Library (class)</h3>
 
           {!activeClassId && <div className="muted">Select a class first</div>}
           {activeClassId && (
             <>
-              <div style={{ border: "1px dashed #ddd", padding: 8, borderRadius: 6, marginBottom: 12 }}>
-                <h4 style={{ marginTop: 0 }}>Create new card</h4>
-                <CardCreateForm onCreate={(payload) => createCard({ ...payload })} fileRef={cardFileRef} />
+              {/* Tabs */}
+              <div style={{ display: "flex", gap: 6, margin: "8px 0 12px" }}>
+                <button
+                  className="btn"
+                  onClick={() => setLibraryTab("points")}
+                  style={{ background: libraryTab === "points" ? "#def" : "transparent" }}
+                >
+                  Points
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => setLibraryTab("rewards")}
+                  style={{ background: libraryTab === "rewards" ? "#def" : "transparent" }}
+                >
+                  Rewards
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => setLibraryTab("experience")}
+                  style={{ background: libraryTab === "experience" ? "#def" : "transparent" }}
+                >
+                  Experience
+                </button>
               </div>
 
-              <div style={{ marginBottom: 8 }}>
-                <div className="muted">Cards</div>
-                {loadingCards ? <div className="muted">Loading cards...</div> : (
+              {/* Create card (admin only) */}
+              {mode === "admin" && (
+                <div style={{ border: "1px dashed #ddd", padding: 8, borderRadius: 6, marginBottom: 12 }}>
+                  <h4 style={{ marginTop: 0 }}>Create new card</h4>
+                  <CardCreateForm onCreate={(payload) => createCard({ ...payload })} fileRef={cardFileRef} />
+                </div>
+              )}
+
+              <div style={{ maxHeight: 420, overflow: "auto" }}>
+                {/* POINTS TAB */}
+                {libraryTab === "points" && (
                   <div style={{ display: "grid", gap: 8 }}>
-                    {cards.map(c => (
-                      <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center", border: "1px solid #eee", padding: 8, borderRadius: 6 }}>
-                        <div style={{ width: 64, height: 80, background: "#fafafa", cursor: "pointer" }} onClick={() => setCardPreview({ ...c, isLibraryCard: true })}>
-                          {c.imageURL ? <img src={c.imageURL} alt={c.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ padding: 6 }}>{c.title}</div>}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700 }}>{c.title}</div>
-                          <div className="muted">{c.description}</div>
-                          <div style={{ marginTop: 6, fontWeight: 700 }}>{c.points || 0} pts • {c.category || "points"}</div>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {mode === "admin" && <button className="btn" onClick={() => {
-                            const confirmGiveTo = prompt("Give this card to which student (type exact name)? Leave empty to cancel.");
-                            if (confirmGiveTo) {
-                              // find first student with that name in current class
-                              const st = students.find(s => s.name.toLowerCase() === confirmGiveTo.toLowerCase());
-                              if (st) giveCardToStudent(activeClassId, st.id, c.id);
-                              else alert("Student not found (type exact name). Use Manage -> Give for picklist.");
-                            }
-                          }}>Quick give</button>}
-                          {mode === "admin" && <button className="btn" onClick={() => deleteCard(c.id)}>Delete</button>}
-                        </div>
-                      </div>
-                    ))}
+                    {loadingCards ? (
+                      <div className="muted">Loading cards...</div>
+                    ) : (
+                      cards
+                        .filter((c) => (c.category || "points") === "points")
+                        .map((c) => (
+                          <div
+                            key={c.id}
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              alignItems: "center",
+                              border: "1px solid #eee",
+                              padding: 8,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <div
+                              style={{ width: 64, height: 80, background: "#fafafa", cursor: "pointer" }}
+                              onClick={() => setCardPreview({ ...c, isLibraryCard: true })}
+                            >
+                              {c.imageURL ? (
+                                <img
+                                  src={c.imageURL}
+                                  alt={c.title}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div style={{ padding: 6 }}>{c.title}</div>
+                              )}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 700 }}>{c.title}</div>
+                              <div className="muted">{c.description}</div>
+                              <div style={{ marginTop: 6, fontWeight: 700 }}>{c.points || 0} pts</div>
+                            </div>
+                            {mode === "admin" && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                <button
+                                  className="btn"
+                                  onClick={() => {
+                                    const confirmGiveTo = prompt(
+                                      "Give this card to which student (type exact name)? Leave empty to cancel."
+                                    );
+                                    if (confirmGiveTo) {
+                                      const st = students.find(
+                                        (s) => s.name.toLowerCase() === confirmGiveTo.toLowerCase()
+                                      );
+                                      if (st) giveCardToStudent(activeClassId, st.id, c.id);
+                                      else {
+                                        alert(
+                                          "Student not found (type exact name). Use Manage -> Give for picklist."
+                                        );
+                                      }
+                                    }
+                                  }}
+                                >
+                                  Quick give
+                                </button>
+                                <button className="btn" onClick={() => deleteCard(c.id)}>
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                    )}
                   </div>
                 )}
-              </div>
 
-              <div style={{ marginTop: 12 }}>
-                <h4 style={{ marginBottom: 6 }}>Rewards</h4>
-                {loadingRewards ? <div className="muted">Loading rewards...</div> : (
+                {/* REWARDS TAB */}
+                {libraryTab === "rewards" && (
                   <div style={{ display: "grid", gap: 8 }}>
-                    {rewards.map(r => <div key={r.id} style={{ border: "1px solid #eee", padding: 8, borderRadius: 6 }}>
-                      <div style={{ fontWeight: 700 }}>{r.title}</div>
-                      <div className="muted">Cost: {r.cost} pts • linked: {r.cardId || "—"}</div>
-                      {mode === "admin" && <div style={{ marginTop: 6 }}><button className="btn" onClick={() => deleteDoc(doc(db, `classes/${activeClassId}/rewards/${r.id}`))}>Delete</button></div>}
-                    </div>)}
-                    {mode === "admin" && <div style={{ borderTop: "1px dashed #eee", paddingTop: 8 }}>
-                      <RewardCreateForm cards={cards} onCreate={(payload) => createReward(payload)} />
-                    </div>}
+                    {/* Reward cards from library */}
+                    <div style={{ marginBottom: 12 }}>
+                      <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Reward cards (library)</h4>
+                      {loadingCards ? (
+                        <div className="muted">Loading cards...</div>
+                      ) : (
+                        cards
+                          .filter((c) => c.category === "rewards")
+                          .map((c) => (
+                            <div
+                              key={c.id}
+                              style={{
+                                display: "flex",
+                                gap: 8,
+                                alignItems: "center",
+                                border: "1px solid #eee",
+                                padding: 8,
+                                borderRadius: 6,
+                                marginBottom: 8,
+                              }}
+                            >
+                              <div
+                                style={{ width: 64, height: 80, background: "#fafafa", cursor: "pointer" }}
+                                onClick={() => setCardPreview({ ...c, isLibraryCard: true })}
+                              >
+                                {c.imageURL ? (
+                                  <img
+                                    src={c.imageURL}
+                                    alt={c.title}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                ) : (
+                                  <div style={{ padding: 6 }}>{c.title}</div>
+                                )}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 700 }}>{c.title}</div>
+                                <div className="muted">{c.description}</div>
+                                <div style={{ marginTop: 6, fontWeight: 700 }}>{c.points || 0} pts</div>
+                              </div>
+                              {mode === "admin" && (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  <button className="btn" onClick={() => deleteCard(c.id)}>
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                      )}
+                    </div>
+
+                    {/* Shop items (purchasable rewards) */}
+                    <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
+                      <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Shop items (purchasable)</h4>
+                      {loadingRewards ? (
+                        <div className="muted">Loading rewards...</div>
+                      ) : (
+                        rewards.map((r) => {
+                          const card = cards.find((c) => c.id === r.cardId) || null;
+                          return (
+                            <div
+                              key={r.id}
+                              style={{ border: "1px solid #eee", padding: 8, borderRadius: 6, marginBottom: 8 }}
+                            >
+                              <div style={{ fontWeight: 700 }}>{r.title}</div>
+                              <div className="muted">
+                                Cost: {r.cost} pts • linked card: {card ? card.title : "—"}
+                              </div>
+                              {mode === "admin" && (
+                                <div style={{ marginTop: 6 }}>
+                                  <button
+                                    className="btn"
+                                    onClick={() => {
+                                      if (!window.confirm("Delete this reward?")) return;
+                                      // uses your existing Firestore imports: db, doc, deleteDoc
+                                      deleteDoc(doc(db, `classes/${activeClassId}/rewards/${r.id}`));
+                                    }}
+                                  >
+                                    Delete reward
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+
+                      {mode === "admin" && (
+                        <div style={{ borderTop: "1px dashed #eee", paddingTop: 8, marginTop: 8 }}>
+                          <RewardCreateForm cards={cards} onCreate={(payload) => createReward(payload)} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* EXPERIENCE TAB */}
+                {libraryTab === "experience" && (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {loadingCards ? (
+                      <div className="muted">Loading cards...</div>
+                    ) : (
+                      cards
+                        .filter((c) => c.category === "experience")
+                        .map((c) => (
+                          <div
+                            key={c.id}
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              alignItems: "center",
+                              border: "1px solid #eee",
+                              padding: 8,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <div
+                              style={{ width: 64, height: 80, background: "#fafafa", cursor: "pointer" }}
+                              onClick={() => setCardPreview({ ...c, isLibraryCard: true })}
+                            >
+                              {c.imageURL ? (
+                                <img
+                                  src={c.imageURL}
+                                  alt={c.title}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div style={{ padding: 6 }}>{c.title}</div>
+                              )}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 700 }}>{c.title}</div>
+                              <div className="muted">{c.description}</div>
+                            </div>
+                            {mode === "admin" && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                <button className="btn" onClick={() => deleteCard(c.id)}>
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                    )}
                   </div>
                 )}
               </div>
             </>
           )}
         </aside>
+
       </div>
 
       {/* Card preview modal (works both for library card and owned card) */}
@@ -694,10 +902,23 @@ export default function App() {
                     }} style={{ flex: 1, padding: 6 }} />
                     <div style={{ width: 140 }}>
                       <div style={{ fontSize: 13, color: "#666" }}>Total points</div>
-                      <input defaultValue={selectedStudent.cumulativePoints || 0} onBlur={(e) => {
-                        const val = Number(e.target.value || 0);
-                        setStudentTotalPoints(selectedStudent.classId, selectedStudent.id, val);
-                      }} style={{ width: "100%", padding: 6 }} />
+                      <input
+                        defaultValue={selectedStudent.cumulativePoints || 0}
+                        onBlur={(e) => {
+                          const val = Number(e.target.value || 0);
+
+                          // 1) Update the value in Firestore
+                          setStudentTotalPoints(selectedStudent.classId, selectedStudent.id, val);
+
+                          // 2) Update the copy used by the modal so it refreshes on screen
+                          setSelectedStudent((prev) =>
+                            prev && prev.id === selectedStudent.id
+                              ? { ...prev, cumulativePoints: val }
+                              : prev
+                          );
+                        }}
+                        style={{ width: "100%", padding: 6 }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -708,11 +929,47 @@ export default function App() {
                       <div style={{ fontSize: 13, color: "#666" }}>Current points</div>
                       <div style={{ fontWeight: 700 }}>{selectedStudent.currentPoints || 0}</div>
                     </div>
-                    {mode === "admin" && (<div>
-                      <button className="btn" onClick={() => editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: (selectedStudent.currentPoints || 0) + 1 })}>+1</button>
-                      <button className="btn" onClick={() => editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: (selectedStudent.currentPoints || 0) + 5 })}>+5</button>
-                      <button className="btn" onClick={() => editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: (selectedStudent.currentPoints || 0) + 10 })}>+10</button>
-                    </div>)}
+                    {mode === "admin" && (
+                      <div>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            const newVal = (selectedStudent.currentPoints || 0) + 1;
+                            editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: newVal });
+                            setSelectedStudent(prev =>
+                              prev && prev.id === selectedStudent.id ? { ...prev, currentPoints: newVal } : prev
+                            );
+                          }}
+                        >
+                          +1
+                        </button>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            const newVal = (selectedStudent.currentPoints || 0) + 5;
+                            editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: newVal });
+                            setSelectedStudent(prev =>
+                              prev && prev.id === selectedStudent.id ? { ...prev, currentPoints: newVal } : prev
+                            );
+                          }}
+                        >
+                          +5
+                        </button>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            const newVal = (selectedStudent.currentPoints || 0) + 10;
+                            editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: newVal });
+                            setSelectedStudent(prev =>
+                              prev && prev.id === selectedStudent.id ? { ...prev, currentPoints: newVal } : prev
+                            );
+                          }}
+                        >
+                          +10
+                        </button>
+                      </div>
+                    )}
+
                   </div>
                 </div>
 
@@ -791,6 +1048,7 @@ function CardCreateForm({ onCreate, fileRef }) {
         <input type="number" value={points} onChange={(e) => setPoints(e.target.value)} style={{ width: 80, padding: 6 }} />
         <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: 6 }}>
           <option value="points">Points</option>
+          <option value="rewards">Rewards</option>
           <option value="experience">Experience</option>
         </select>
         <input ref={fileRef} type="file" accept="image/*" onChange={onFileChange} />
