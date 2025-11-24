@@ -1759,26 +1759,28 @@ export default function App() {
                             </div>
                           </div>
 
-                          <div
-                            style={{
-                              marginTop: 8,
-                              display: "flex",
-                              gap: 8,
-                            }}
-                          >
-                            <button
-                              className="btn"
-                              onClick={() =>
-                                setSelectedStudent({
-                                  ...s,
-                                  classId: activeClassId,
-                                })
-                              }
+                          {mode === "admin" && (
+                            <div
+                              style={{
+                                marginTop: 8,
+                                display: "flex",
+                                gap: 8,
+                              }}
                             >
-                              Manage
-                            </button>
-                            {/* Give card button removed on purpose */}
-                          </div>
+                              <button
+                                className="btn"
+                                onClick={() =>
+                                  setSelectedStudent({
+                                    ...s,
+                                    classId: activeClassId,
+                                  })
+                                }
+                              >
+                                Manage
+                              </button>
+                              {/* Give card button removed on purpose */}
+                            </div>
+                          )}
 
                           <div style={{ marginTop: 8 }}>
                             <div
@@ -2418,7 +2420,7 @@ export default function App() {
       )}
 
       {/* Manage student modal */}
-      {selectedStudent && (
+      {mode === "admin" && selectedStudent && (
         <ManageStudentModal
           mode={mode}
           student={selectedStudent}
