@@ -50,12 +50,22 @@ function CardCreateForm({ onCreate, fileRef }) {
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState(1);
   const [category, setCategory] = useState("points");
-  const [file, setFile] = useState(null);
+  const [lockedFile, setLockedFile] = useState(null);
+  const [unlockedFile, setUnlockedFile] = useState(null);
 
-  function onFileChange(e) {
-    const f = e.target.files?.[0];
-    setFile(f || null);
-    if (fileRef) fileRef.current = e.target;
+  // extra ref just to clear the second input
+  const unlockedRef = React.useRef(null);
+
+  function onLockedChange(e) {
+    const f = e.target.files?.[0] || null;
+    setLockedFile(f);
+    if (fileRef) fileRef.current = e.target; // keep using external ref for this one
+  }
+
+  function onUnlockedChange(e) {
+    const f = e.target.files?.[0] || null;
+    setUnlockedFile(f);
+    unlockedRef.current = e.target;
   }
 
   function handleCreate() {
@@ -63,12 +73,25 @@ function CardCreateForm({ onCreate, fileRef }) {
       alert("Title required");
       return;
     }
-    onCreate({ title, description, points, category, file });
+
+    onCreate({
+      title,
+      description,
+      points,
+      category,
+      lockedFile,
+      unlockedFile,
+    });
+
     setTitle("");
     setDescription("");
     setPoints(1);
     setCategory("points");
+    setLockedFile(null);
+    setUnlockedFile(null);
+
     if (fileRef?.current) fileRef.current.value = "";
+    if (unlockedRef.current) unlockedRef.current.value = "";
   }
 
   return (
@@ -109,13 +132,28 @@ function CardCreateForm({ onCreate, fileRef }) {
           <option value="rewards">Rewards</option>
           <option value="experience">Experience</option>
         </select>
+      </div>
+
+      <div style={{ marginTop: 8, fontSize: 13 }}>
+        <div style={{ marginBottom: 4 }}>Locked card (grey with lock)</div>
         <input
           ref={fileRef}
           type="file"
           accept="image/*"
-          onChange={onFileChange}
+          onChange={onLockedChange}
         />
       </div>
+
+      <div style={{ marginTop: 8, fontSize: 13 }}>
+        <div style={{ marginBottom: 4 }}>Unlocked card (original/full colour)</div>
+        <input
+          ref={unlockedRef}
+          type="file"
+          accept="image/*"
+          onChange={onUnlockedChange}
+        />
+      </div>
+
       <div style={{ marginTop: 8 }}>
         <button className="btn primary" onClick={handleCreate}>
           Add card
@@ -124,6 +162,7 @@ function CardCreateForm({ onCreate, fileRef }) {
     </div>
   );
 }
+
 
 function RewardCreateForm({ cards, onCreate }) {
   const [title, setTitle] = useState("");
@@ -1192,30 +1231,77 @@ export default function App() {
 
   // ----- Cards & rewards -----
 
-  async function createCard({ title, description, points = 0, category = "points", file }) {
+  async function createCard({
+    title,
+    description,
+    points = 0,
+    category = "points",
+    lockedFile,
+    unlockedFile,
+  }) {
     if (!ensureClassSelected()) return;
     if (!title?.trim()) {
       window.alert("Card title required");
       return;
     }
+
+    // You can require both if you want:
+    // if (!lockedFile || !unlockedFile) { alert("Please select both locked and unlocked images"); return; }
+
     try {
-      let imageURL = "";
-      if (file) {
-        const key = `${uid("card")}_${file.name.replace(/\s+/g, "_")}`;
-        const ref = storageRef(storage, `classes/${activeClassId}/cards/${key}`);
-        const snapshot = await uploadBytes(ref, file);
-        imageURL = await getDownloadURL(snapshot.ref);
+      let lockedImageURL = "";
+      let unlockedImageURL = "";
+
+      // Use one common random id so the files are grouped
+      const baseKey = uid("card");
+
+      if (lockedFile) {
+        const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(
+          /\s+/g,
+          "_"
+        )}`;
+        const refLocked = storageRef(
+          storage,
+          `classes/${activeClassId}/cards/${keyLocked}`
+        );
+        const snapLocked = await uploadBytes(refLocked, lockedFile);
+        lockedImageURL = await getDownloadURL(snapLocked.ref);
       }
+
+      if (unlockedFile) {
+        const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(
+          /\s+/g,
+          "_"
+        )}`;
+        const refUnlocked = storageRef(
+          storage,
+          `classes/${activeClassId}/cards/${keyUnlocked}`
+        );
+        const snapUnlocked = await uploadBytes(refUnlocked, unlockedFile);
+        unlockedImageURL = await getDownloadURL(snapUnlocked.ref);
+      }
+
+      // Fallback: if only one was provided, use it for both fields
+      if (!unlockedImageURL && lockedImageURL) {
+        unlockedImageURL = lockedImageURL;
+      }
+      if (!lockedImageURL && unlockedImageURL) {
+        lockedImageURL = unlockedImageURL;
+      }
+
       const payload = {
         title: title.trim(),
         description: description || "",
         points: Number(points) || 0,
         category: category || "points",
-        imageURL,
+        // unlocked version used for students
+        imageURL: unlockedImageURL,
+        // locked version used in library
+        lockedImageURL,
         createdAt: Date.now(),
       };
+
       await addDoc(collection(db, `classes/${activeClassId}/cards`), payload);
-      if (cardFileRef.current) cardFileRef.current.value = "";
     } catch (err) {
       console.error("createCard err:", err);
       window.alert("Failed to add card. Check Storage permissions or console.");
@@ -2009,19 +2095,16 @@ export default function App() {
                                 setCardPreview({ ...c, isLibraryCard: true })
                               }
                             >
-                              {c.imageURL ? (
+                              {(c.lockedImageURL || c.imageURL) ? (
                                 <img
-                                  src={c.imageURL}
+                                  src={c.lockedImageURL || c.imageURL}
                                   alt={c.title}
-                                  style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                  }}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                 />
                               ) : (
                                 <div style={{ padding: 6 }}>{c.title}</div>
                               )}
+
                             </div>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: 700 }}>{c.title}</div>
@@ -2132,19 +2215,16 @@ export default function App() {
                                   })
                                 }
                               >
-                                {c.imageURL ? (
+                                {(c.lockedImageURL || c.imageURL) ? (
                                   <img
-                                    src={c.imageURL}
+                                    src={c.lockedImageURL || c.imageURL}
                                     alt={c.title}
-                                    style={{
-                                      width: "100%",
-                                      height: "100%",
-                                      objectFit: "cover",
-                                    }}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                   />
                                 ) : (
                                   <div style={{ padding: 6 }}>{c.title}</div>
                                 )}
+
                               </div>
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 700 }}>
@@ -2289,19 +2369,16 @@ export default function App() {
                                 setCardPreview({ ...c, isLibraryCard: true })
                               }
                             >
-                              {c.imageURL ? (
+                              {(c.lockedImageURL || c.imageURL) ? (
                                 <img
-                                  src={c.imageURL}
+                                  src={c.lockedImageURL || c.imageURL}
                                   alt={c.title}
-                                  style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                  }}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                 />
                               ) : (
                                 <div style={{ padding: 6 }}>{c.title}</div>
                               )}
+
                             </div>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: 700 }}>
