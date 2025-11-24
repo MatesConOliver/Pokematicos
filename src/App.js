@@ -43,6 +43,11 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+console.log("🔥 Firebase initialized");
+console.log("🔥 App name:", app.name);
+console.log("🔥 Firestore instance:", db);
+console.log("🔥 Storage instance:", storage);
+
 function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -180,14 +185,22 @@ export default function App() {
   // Create class
   async function createClass(name) {
     if (!name) return;
+    console.log("🔵 Starting createClass with name:", name);
     try {
       const payload = { name, createdAt: Date.now() };
+      console.log("🔵 Payload:", payload);
+      console.log("🔵 Attempting to write to Firestore...");
       const ref = await addDoc(collection(db, "classes"), payload);
+      console.log("✅ Successfully created class with ID:", ref.id);
       // set as active
       setActiveClassId(ref.id);
+      alert("Class created successfully! ID: " + ref.id);
       // create empty subcollections are implicit (no need to create)
     } catch (err) {
-      console.error(err); alert("Failed to create class: " + (err.message || err));
+      console.error("❌ ERROR in createClass:", err);
+      console.error("❌ Error code:", err.code);
+      console.error("❌ Error message:", err.message);
+      alert("Failed to create class: " + (err.message || err));
     }
   }
 
