@@ -1091,19 +1091,19 @@ export default function App() {
     if (!name?.trim()) return;
     try {
       const payload = {
-        name: name.trim(),
+        name,
         avatar: "",
         currentPoints: 0,
         cumulativePoints: 0,
-        xp: 0,
+        // streak / ghost meters
         streak: 0,
         streakLastUpdated: "",
         ghost: 0,
         ghostLastUpdated: "",
-        cards: [],
-        rewardsHistory: [],
         lastActive: null,
+        cards: [], // optional local metadata
       };
+
       await addDoc(collection(db, `classes/${activeClassId}/students`), payload);
       if (newStudentRef.current) newStudentRef.current.value = "";
     } catch (err) {
@@ -1816,9 +1816,39 @@ export default function App() {
                               <div>
                                 <div style={{ fontWeight: 700 }}>{s.name}</div>
                                 <div className="muted">
-                                  Streak: {s.streak || 0} • Last:{" "}
-                                  {s.lastActive ? s.lastActive : "-"}
+                                  Streak: {s.streak || 0} 🔥
+                                  {s.streakLastUpdated && (
+                                    <span
+                                      style={{
+                                        marginLeft: 4,
+                                        fontWeight: 600,
+                                        color:
+                                          s.streakLastUpdated === new Date().toISOString().slice(0, 10)
+                                            ? "#0a0" // green if updated today
+                                            : "#f00", // red if older
+                                      }}
+                                    >
+                                      ({s.streakLastUpdated})
+                                    </span>
+                                  )}
+                                  {" • "}
+                                  Ghost: {s.ghost || 0} 👻
+                                  {s.ghostLastUpdated && (
+                                    <span
+                                      style={{
+                                        marginLeft: 4,
+                                        fontWeight: 600,
+                                        color:
+                                          s.ghostLastUpdated === new Date().toISOString().slice(0, 10)
+                                            ? "#00f" // blue if updated today
+                                            : "#f00", // red if older
+                                      }}
+                                    >
+                                      ({s.ghostLastUpdated})
+                                    </span>
+                                  )}
                                 </div>
+
                               </div>
                               <div style={{ textAlign: "right" }}>
                                 <div style={{ fontWeight: 700 }}>
@@ -1849,18 +1879,6 @@ export default function App() {
                                   }
                                 >
                                   Manage
-                                </button>
-                                <button
-                                  className="btn"
-                                  onClick={() => {
-                                    // quick give card will open Manage with Give view
-                                    setSelectedStudent({
-                                      ...s,
-                                      classId: activeClassId,
-                                    });
-                                  }}
-                                >
-                                  Give card
                                 </button>
                               </div>
                             )}
