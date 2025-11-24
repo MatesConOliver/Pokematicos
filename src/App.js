@@ -34,7 +34,7 @@ const firebaseConfig = {
   authDomain: "pokematicos.firebaseapp.com",
   databaseURL: "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "pokematicos",
-  storageBucket: "pokematicos.appspot.com", // make sure correct format
+  storageBucket: "pokematicos.firebasestorage.app",  // Change from .appspot.com
   messagingSenderId: "101415606738",
   appId: "1:101415606738:web:c009f17005904490e9d00b"
 };
