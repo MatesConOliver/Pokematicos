@@ -408,6 +408,25 @@ export default function App() {
     try { return new Date(ts).toLocaleString(); } catch (e) { return ""; }
   }
 
+  if (!mode) {
+    return (
+      <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 24 }}>
+        <h1>Mis logros Pokemáticos</h1>
+        <p style={{ marginTop: 8 }}>
+          ¿Cómo entras a la app?
+        </p>
+        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+          <button className="btn primary" onClick={enterAdmin}>
+            Soy profe (admin)
+          </button>
+          <button className="btn" onClick={enterReader}>
+            Soy estudiante / invitado
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ---------- Render ----------
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 12 }}>
@@ -426,6 +445,11 @@ export default function App() {
           <h1 style={{ margin: 0 }}>Mis logros Pokemáticos — Manager (Firestore)</h1>
           <div style={{ color: "#555" }}>{mode === "admin" ? "Admin mode" : mode === "reader" ? "Reader mode" : "Choose mode"}</div>
         </div>
+        {mode && (
+          <button className="btn" onClick={() => setMode(null)}>
+            Cambiar rol
+          </button>
+        )}
         <div style={{ display: "flex", gap: 8 }}>
           {!mode && <button className="btn" onClick={enterAdmin}>Admin</button>}
           {!mode && <button className="btn" onClick={enterReader}>Reader</button>}
