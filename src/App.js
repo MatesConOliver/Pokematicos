@@ -1,42 +1,35 @@
 // src/App.js
 import React, { useEffect, useState, useRef } from "react";
-import {
-  initializeApp
-} from "firebase/app";
+import { initializeApp } from "firebase/app";
 import {
   getFirestore,
   collection,
   doc,
   addDoc,
-  setDoc,
   updateDoc,
   deleteDoc,
   getDoc,
   onSnapshot,
   query,
-  orderBy
+  orderBy,
 } from "firebase/firestore";
 import {
   getStorage,
   ref as storageRef,
   uploadBytes,
-  getDownloadURL
+  getDownloadURL,
 } from "firebase/storage";
 
-/*
-  IMPORTANT:
-  - Replace this firebaseConfig with your project's config, or export it from a separate file and import.
-  - This code expects Firestore and Storage to be enabled.
-*/
+// Firebase config – keep your existing values here
 const firebaseConfig = {
-  // <-- replace with your own or keep if already correct
   apiKey: "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
   authDomain: "pokematicos.firebaseapp.com",
-  databaseURL: "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
+  databaseURL:
+    "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "pokematicos",
-  storageBucket: "pokematicos.firebasestorage.app",  // Change from .appspot.com
+  storageBucket: "pokematicos.firebasestorage.app",
   messagingSenderId: "101415606738",
-  appId: "1:101415606738:web:c009f17005904490e9d00b"
+  appId: "1:101415606738:web:c009f17005904490e9d00b",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -45,36 +38,830 @@ const storage = getStorage(app);
 
 console.log("🔥 Firebase initialized");
 console.log("🔥 App name:", app.name);
-console.log("🔥 Firestore instance:", db);
-console.log("🔥 Storage instance:", storage);
 
 function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// Simple local fallback sample (used only if no Firestore data)
-const SAMPLE = {
-  classes: [
-    {
-      id: "sample_class",
-      name: "Mates 2º IB (sample)",
-      createdAt: Date.now(),
-    },
-  ],
-};
+// -------------------- Small helper components -------------------- //
+
+function CardCreateForm({ onCreate, fileRef }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [points, setPoints] = useState(1);
+  const [category, setCategory] = useState("points");
+  const [file, setFile] = useState(null);
+
+  function onFileChange(e) {
+    const f = e.target.files?.[0];
+    setFile(f || null);
+    if (fileRef) fileRef.current = e.target;
+  }
+
+  function handleCreate() {
+    if (!title.trim()) {
+      alert("Title required");
+      return;
+    }
+    onCreate({ title, description, points, category, file });
+    setTitle("");
+    setDescription("");
+    setPoints(1);
+    setCategory("points");
+    if (fileRef?.current) fileRef.current.value = "";
+  }
+
+  return (
+    <div>
+      <input
+        placeholder="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        style={{ width: "100%", padding: 6, marginBottom: 6 }}
+      />
+      <textarea
+        placeholder="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        style={{ width: "100%", padding: 6, height: 70 }}
+      />
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginTop: 6,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <input
+          type="number"
+          value={points}
+          onChange={(e) => setPoints(e.target.value)}
+          style={{ width: 80, padding: 6 }}
+        />
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          style={{ padding: 6 }}
+        >
+          <option value="points">Points</option>
+          <option value="rewards">Rewards</option>
+          <option value="experience">Experience</option>
+        </select>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          onChange={onFileChange}
+        />
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <button className="btn primary" onClick={handleCreate}>
+          Add card
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RewardCreateForm({ cards, onCreate }) {
+  const [title, setTitle] = useState("");
+  const [cost, setCost] = useState(5);
+  const [cardId, setCardId] = useState(cards?.[0]?.id || "");
+
+  function handleCreate() {
+    if (!title.trim()) {
+      alert("Title required");
+      return;
+    }
+    onCreate({ title, cost, linkedCardId: cardId });
+    setTitle("");
+    setCost(5);
+    setCardId("");
+  }
+
+  return (
+    <div>
+      <input
+        placeholder="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        style={{ width: "100%", padding: 6, marginBottom: 6 }}
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          type="number"
+          value={cost}
+          onChange={(e) => setCost(e.target.value)}
+          style={{ padding: 6, width: 80 }}
+        />
+        <select
+          value={cardId}
+          onChange={(e) => setCardId(e.target.value)}
+          style={{ flex: 1, padding: 6 }}
+        >
+          <option value="">-- link card (optional) --</option>
+          {cards.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div style={{ marginTop: 6 }}>
+        <button className="btn" onClick={handleCreate}>
+          Add reward
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GroupRedeemInline({ reward, students, shares, setShares, onSubmit }) {
+  if (!reward) return null;
+
+  const totalShares = Object.values(shares).reduce(
+    (sum, val) => sum + (Number(val) || 0),
+    0
+  );
+
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        borderTop: "1px dashed #ddd",
+        paddingTop: 8,
+        fontSize: 13,
+      }}
+    >
+      <div style={{ marginBottom: 8, color: "#555" }}>
+        Enter shares for group redemption (total must equal {reward.cost} pts)
+        {totalShares > 0 && (
+          <span
+            style={{
+              marginLeft: 8,
+              fontWeight: 600,
+              color: totalShares === reward.cost ? "#0a0" : "#f00",
+            }}
+          >
+            Current total: {totalShares}
+          </span>
+        )}
+      </div>
+      {students.map((s) => (
+        <div
+          key={s.id}
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            marginTop: 4,
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            {s.name} (has {s.currentPoints || 0} pts)
+          </div>
+          <input
+            type="number"
+            min="0"
+            value={shares[s.id] ?? ""}
+            onChange={(e) => {
+              const val =
+                e.target.value === "" ? "" : Number(e.target.value || 0);
+              setShares((prev) => ({ ...prev, [s.id]: val }));
+            }}
+            style={{ width: 80, padding: 4 }}
+            placeholder="0"
+          />
+        </div>
+      ))}
+      <div style={{ marginTop: 8 }}>
+        <button className="btn" onClick={onSubmit}>
+          Confirm group redeem
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ManageStudentModal({
+  mode,
+  student,
+  studentsInClass,
+  cards,
+  rewards,
+  onClose,
+  onUpdate,
+  onAddQuickPoints,
+  onChangeMeter,
+  onResetStreak,
+  onQuickAddStreak,
+  onResetGhost,
+  onQuickAddGhost,
+  onGiveCard,
+  onRemoveCard,
+  onRedeemIndividual,
+  onRedeemGroup,
+  onDeleteStudent,
+  onDeleteHistoryEntry,
+  setShowCardPreview,
+}) {
+  const [redeemId, setRedeemId] = useState("");
+  const [groupShares, setGroupShares] = useState({});
+  const [name, setName] = useState(student.name);
+  const [currentPoints, setCurrentPoints] = useState(
+    student.currentPoints || 0
+  );
+  const [xp, setXp] = useState(student.xp || 0);
+
+  useEffect(() => {
+    setRedeemId("");
+    setGroupShares({});
+    setName(student.name);
+    setCurrentPoints(student.currentPoints || 0);
+    setXp(student.xp || 0);
+  }, [student.id]);
+
+  const selectedReward =
+    rewards.find((r) => r.id === redeemId) || null;
+
+  function handleSaveEdits() {
+    onUpdate({
+      name: name.trim() || student.name,
+      currentPoints: Number(currentPoints || 0),
+      xp: Number(xp || 0),
+    });
+  }
+
+  // group student cards by cardId to show counts
+  const cardGroups = {};
+  (student.cards || []).forEach((o) => {
+    if (!cardGroups[o.cardId]) {
+      cardGroups[o.cardId] = [];
+    }
+    cardGroups[o.cardId].push(o);
+  });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <h3 style={{ margin: 0 }}>Manage: {student.name}</h3>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn" onClick={onClose}>
+              Close
+            </button>
+            {mode === "admin" && (
+              <button
+                className="btn"
+                onClick={() => {
+                  if (!window.confirm("Delete this student?")) return;
+                  onDeleteStudent();
+                }}
+              >
+                Delete student
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 340px",
+            gap: 12,
+            marginTop: 12,
+          }}
+        >
+          {/* LEFT SIDE: Points, XP, streak, ghost, edits, history */}
+          <div>
+            {/* Points & XP & meters */}
+            <div style={{ display: "flex", gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, color: "#666" }}>Points</div>
+                <div style={{ fontWeight: 700, fontSize: 20 }}>
+                  {student.currentPoints || 0} pts
+                </div>
+                {mode === "admin" && (
+                  <div style={{ marginTop: 6 }}>
+                    <button
+                      className="btn"
+                      onClick={() => onAddQuickPoints(1)}
+                    >
+                      +1
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={() => onAddQuickPoints(5)}
+                      style={{ marginLeft: 6 }}
+                    >
+                      +5
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={() => onAddQuickPoints(10)}
+                      style={{ marginLeft: 6 }}
+                    >
+                      +10
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, color: "#666" }}>
+                  Experience (XP)
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 20 }}>
+                  {student.xp || 0}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, color: "#666" }}>Streak</div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "center",
+                    marginTop: 4,
+                  }}
+                >
+                  <button
+                    className="btn"
+                    onClick={() => onChangeMeter("streak", -1)}
+                  >
+                    -
+                  </button>
+                  <div>{"🔥".repeat(student.streak || 0)}</div>
+                  <button
+                    className="btn"
+                    onClick={() => onChangeMeter("streak", +1)}
+                  >
+                    +
+                  </button>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "center",
+                    marginTop: 6,
+                  }}
+                >
+                  <button
+                    className="btn"
+                    style={{ fontSize: 11 }}
+                    onClick={onQuickAddStreak}
+                  >
+                    Quick +1
+                  </button>
+                  <button
+                    className="btn"
+                    style={{ fontSize: 11 }}
+                    onClick={onResetStreak}
+                  >
+                    Reset
+                  </button>
+                </div>
+                {student.streakLastUpdated && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      marginTop: 4,
+                      color:
+                        student.streakLastUpdated === todayStr
+                          ? "#0a0"
+                          : "#f00",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Last: {student.streakLastUpdated}
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#666",
+                    marginTop: 8,
+                  }}
+                >
+                  Ghost assistance
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "center",
+                    marginTop: 4,
+                  }}
+                >
+                  <button
+                    className="btn"
+                    onClick={() => onChangeMeter("ghost", -1)}
+                  >
+                    -
+                  </button>
+                  <div>{"👻".repeat(student.ghost || 0)}</div>
+                  <button
+                    className="btn"
+                    onClick={() => onChangeMeter("ghost", +1)}
+                  >
+                    +
+                  </button>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "center",
+                    marginTop: 6,
+                  }}
+                >
+                  <button
+                    className="btn"
+                    style={{ fontSize: 11 }}
+                    onClick={onQuickAddGhost}
+                  >
+                    Quick +1
+                  </button>
+                  <button
+                    className="btn"
+                    style={{ fontSize: 11 }}
+                    onClick={onResetGhost}
+                  >
+                    Reset
+                  </button>
+                </div>
+                {student.ghostLastUpdated && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      marginTop: 4,
+                      color:
+                        student.ghostLastUpdated === todayStr
+                          ? "#00f"
+                          : "#f00",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Last: {student.ghostLastUpdated}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Edit basic fields */}
+            <div style={{ marginTop: 12 }}>
+              <h4>Edit student</h4>
+              <div style={{ display: "grid", gap: 6, maxWidth: 340 }}>
+                <div>
+                  <div style={{ fontSize: 12 }}>Name</div>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    style={{ width: "100%", padding: 6 }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12 }}>Current points</div>
+                  <input
+                    type="number"
+                    value={currentPoints}
+                    onChange={(e) => setCurrentPoints(e.target.value)}
+                    style={{ width: "100%", padding: 6 }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12 }}>XP (total)</div>
+                  <input
+                    type="number"
+                    value={xp}
+                    onChange={(e) => setXp(e.target.value)}
+                    style={{ width: "100%", padding: 6 }}
+                  />
+                </div>
+                <div>
+                  <button className="btn primary" onClick={handleSaveEdits}>
+                    Save edits
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Cards owned (grouped) */}
+            <div style={{ marginTop: 12 }}>
+              <h4>Cards owned</h4>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {Object.entries(cardGroups).map(([cardId, ownedCards]) => {
+                  const first = ownedCards[0];
+                  const cardMeta =
+                    cards.find((c) => c.id === cardId) || first || {};
+                  return (
+                    <div
+                      key={cardId}
+                      style={{
+                        border: "1px solid #eee",
+                        padding: 6,
+                        borderRadius: 6,
+                        width: 140,
+                      }}
+                    >
+                      {cardMeta.imageURL ? (
+                        <div style={{ position: "relative" }}>
+                          <img
+                            src={cardMeta.imageURL}
+                            alt={cardMeta.title}
+                            style={{
+                              width: "100%",
+                              height: 90,
+                              objectFit: "cover",
+                              borderRadius: 4,
+                              cursor: "pointer",
+                            }}
+                            onClick={() => setShowCardPreview(cardMeta)}
+                          />
+                          {ownedCards.length > 1 && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 4,
+                                right: 4,
+                                background: "rgba(0,0,0,0.7)",
+                                color: "white",
+                                borderRadius: 12,
+                                padding: "2px 6px",
+                                fontSize: 11,
+                                fontWeight: 700,
+                              }}
+                            >
+                              ×{ownedCards.length}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ fontWeight: 600 }}>
+                          {cardMeta.title} ×{ownedCards.length}
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "#666",
+                          marginTop: 4,
+                        }}
+                      >
+                        Count: {ownedCards.length}
+                      </div>
+                      {mode === "admin" && (
+                        <div
+                          style={{
+                            marginTop: 6,
+                            display: "flex",
+                            gap: 4,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <button
+                            className="btn"
+                            style={{ fontSize: 11 }}
+                            onClick={() =>
+                              onRemoveCard(ownedCards[0].id)
+                            }
+                          >
+                            Remove 1
+                          </button>
+                          {ownedCards.length > 1 && (
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11 }}
+                              onClick={() => {
+                                if (
+                                  !window.confirm(
+                                    `Remove all ${ownedCards.length} copies?`
+                                  )
+                                )
+                                  return;
+                                ownedCards.forEach((o) =>
+                                  onRemoveCard(o.id)
+                                );
+                              }}
+                            >
+                              Remove all
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Rewards history */}
+            <div style={{ marginTop: 12 }}>
+              <h4>Rewards history</h4>
+              <div style={{ display: "grid", gap: 6 }}>
+                {(student.rewardsHistory || []).map((rh) => (
+                  <div
+                    key={rh.id}
+                    style={{
+                      border: "1px solid #eee",
+                      padding: 6,
+                      borderRadius: 6,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600 }}>
+                      {rh.title} • {rh.cost} pts
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#666",
+                        marginTop: 2,
+                      }}
+                    >
+                      {rh.date?.slice(0, 19).replace("T", " ")}
+                    </div>
+                    {mode === "admin" && (
+                      <div style={{ marginTop: 6 }}>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                "Delete this reward history entry?"
+                              )
+                            )
+                              return;
+                            onDeleteHistoryEntry(rh.id);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Redeem reward */}
+            <div style={{ marginTop: 12 }}>
+              <h4>Redeem reward</h4>
+              <div>
+                <select
+                  value={redeemId}
+                  onChange={(e) => {
+                    setRedeemId(e.target.value);
+                    setGroupShares({});
+                  }}
+                  style={{ padding: 6, minWidth: 220 }}
+                >
+                  <option value="">-- choose reward --</option>
+                  {rewards.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.title} (cost {r.cost})
+                    </option>
+                  ))}
+                </select>
+                <div style={{ marginTop: 8 }}>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      if (!redeemId) {
+                        alert("Choose a reward first.");
+                        return;
+                      }
+                      const choice = window.prompt(
+                        "Redeem individually or as group? Type I or G"
+                      );
+                      if (!choice) return;
+                      const upper = choice.toUpperCase();
+                      if (upper === "I") {
+                        onRedeemIndividual(redeemId);
+                      } else if (upper === "G") {
+                        // group view stays visible; user clicks Confirm
+                      } else {
+                        alert("Please type I or G.");
+                      }
+                    }}
+                  >
+                    Redeem
+                  </button>
+                </div>
+              </div>
+
+              {redeemId && (
+                <GroupRedeemInline
+                  reward={selectedReward}
+                  students={studentsInClass}
+                  shares={groupShares}
+                  setShares={setGroupShares}
+                  onSubmit={() => {
+                    if (!redeemId) {
+                      alert("Select reward first");
+                      return;
+                    }
+                    onRedeemGroup(redeemId, groupShares);
+                  }}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT SIDE: Give card */}
+          <div>
+            <h4>Give card</h4>
+            <div style={{ display: "grid", gap: 8 }}>
+              {cards.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    border: "1px solid #eee",
+                    padding: 6,
+                    borderRadius: 6,
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{ width: 64, height: 80, overflow: "hidden" }}
+                    onClick={() => setShowCardPreview(c)}
+                  >
+                    {c.imageURL ? (
+                      <img
+                        src={c.imageURL}
+                        alt={c.title}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <div style={{ padding: 6 }}>{c.title}</div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700 }}>{c.title}</div>
+                    <div className="muted">{c.description}</div>
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {c.points || 0} pts • {c.category || "points"}
+                    </div>
+                  </div>
+                  {mode === "admin" && (
+                    <div>
+                      <button
+                        className="btn"
+                        onClick={() => onGiveCard(c.id)}
+                      >
+                        Give
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -------------------- Main App -------------------- //
 
 export default function App() {
-  // app modes
   const [mode, setMode] = useState(null); // null | "admin" | "reader"
-  // don't display password in UI; use prompt
-  function enterAdmin() {
-    const p = prompt("Enter admin password:");
-    if (p === "cartas") setMode("admin");
-    else if (p !== null) alert("Wrong password");
-  }
-  function enterReader() { setMode("reader"); }
 
-  // Loading & data
+  function enterAdmin() {
+    const p = window.prompt("Enter admin password:");
+    if (p === "cartas") setMode("admin");
+    else if (p !== null) window.alert("Wrong password");
+  }
+  function enterReader() {
+    setMode("reader");
+  }
+
+  // Firestore-backed state
   const [classesList, setClassesList] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [activeClassId, setActiveClassId] = useState(null);
@@ -88,236 +875,415 @@ export default function App() {
   const [loadingRewards, setLoadingRewards] = useState(false);
 
   // UI state
-  const [selectedStudent, setSelectedStudent] = useState(null); // object with id, name, classId
-  const [cardPreview, setCardPreview] = useState(null); // card doc
-  const [libraryTab, setLibraryTab] = useState("points"); // "points" | "rewards" | "experience"
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [cardPreview, setCardPreview] = useState(null);
+  const [libraryTab, setLibraryTab] = useState("points");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // form state
-  const newClassNameRef = useRef();
+  // refs
   const newStudentRef = useRef();
+  const newClassRef = useRef();
   const cardFileRef = useRef();
 
-  // subscribe to classes on mount
+  // Subscribe to classes
   useEffect(() => {
     setLoadingClasses(true);
-    // list classes collection
     const q = query(collection(db, "classes"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      const arr = [];
-      snap.forEach(docSnap => {
-        arr.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      setClassesList(arr);
-      setLoadingClasses(false);
-      // if no activeClassId, pick first
-      if (!activeClassId && arr.length) {
-        setActiveClassId(prev => prev || arr[0].id);
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const arr = [];
+        snap.forEach((docSnap) => {
+          arr.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        setClassesList(arr);
+        setLoadingClasses(false);
+        if (!activeClassId && arr.length) {
+          setActiveClassId((prev) => prev || arr[0].id);
+        }
+      },
+      (err) => {
+        console.error("Failed loading classes:", err);
+        setErrorMsg("Failed to load classes from Firestore. Check console.");
+        setLoadingClasses(false);
       }
-    }, (err) => {
-      console.error("Failed loading classes:", err);
-      setErrorMsg("Failed to load classes from Firestore. Check console.");
-      setLoadingClasses(false);
-    });
+    );
     return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // subscribe to subcollections when activeClassId changes
+  // Subscribe to students/cards/rewards for active class
   useEffect(() => {
     if (!activeClassId) {
-      setStudents([]); setCards([]); setRewards([]);
+      setStudents([]);
+      setCards([]);
+      setRewards([]);
       return;
     }
 
-    // Students
+    // students
     setLoadingStudents(true);
     const studentsCol = collection(db, `classes/${activeClassId}/students`);
-    const unsubStudents = onSnapshot(query(studentsCol, orderBy("name")), (snap) => {
-      const arr = []; snap.forEach(s => arr.push({ id: s.id, ...s.data() }));
-      setStudents(arr);
-      setLoadingStudents(false);
-    }, (err) => {
-      console.error("students snapshot err", err);
-      setErrorMsg("Error loading students.");
-      setLoadingStudents(false);
-    });
+    const unsubStudents = onSnapshot(
+      query(studentsCol, orderBy("name")),
+      (snap) => {
+        const arr = [];
+        snap.forEach((s) =>
+          arr.push({ id: s.id, ...s.data(), classId: activeClassId })
+        );
+        setStudents(arr);
+        setLoadingStudents(false);
+      },
+      (err) => {
+        console.error("students snapshot err", err);
+        setErrorMsg("Error loading students.");
+        setLoadingStudents(false);
+      }
+    );
 
-    // Cards
+    // cards
     setLoadingCards(true);
     const cardsCol = collection(db, `classes/${activeClassId}/cards`);
-    const unsubCards = onSnapshot(query(cardsCol, orderBy("title")), (snap) => {
-      const arr = []; snap.forEach(s => arr.push({ id: s.id, ...s.data() }));
-      setCards(arr);
-      setLoadingCards(false);
-    }, (err) => {
-      console.error("cards snapshot err", err);
-      setErrorMsg("Error loading cards.");
-      setLoadingCards(false);
-    });
+    const unsubCards = onSnapshot(
+      query(cardsCol, orderBy("title")),
+      (snap) => {
+        const arr = [];
+        snap.forEach((s) => arr.push({ id: s.id, ...s.data() }));
+        setCards(arr);
+        setLoadingCards(false);
+      },
+      (err) => {
+        console.error("cards snapshot err", err);
+        setErrorMsg("Error loading cards.");
+        setLoadingCards(false);
+      }
+    );
 
-    // Rewards
+    // rewards
     setLoadingRewards(true);
     const rewardsCol = collection(db, `classes/${activeClassId}/rewards`);
-    const unsubRewards = onSnapshot(query(rewardsCol, orderBy("title")), (snap) => {
-      const arr = []; snap.forEach(s => arr.push({ id: s.id, ...s.data() }));
-      setRewards(arr);
-      setLoadingRewards(false);
-    }, (err) => {
-      console.error("rewards snapshot err", err);
-      setErrorMsg("Error loading rewards.");
-      setLoadingRewards(false);
-    });
+    const unsubRewards = onSnapshot(
+      query(rewardsCol, orderBy("title")),
+      (snap) => {
+        const arr = [];
+        snap.forEach((s) => arr.push({ id: s.id, ...s.data() }));
+        setRewards(arr);
+        setLoadingRewards(false);
+      },
+      (err) => {
+        console.error("rewards snapshot err", err);
+        setErrorMsg("Error loading rewards.");
+        setLoadingRewards(false);
+      }
+    );
 
     return () => {
-      unsubStudents(); unsubCards(); unsubRewards();
+      unsubStudents();
+      unsubCards();
+      unsubRewards();
     };
   }, [activeClassId]);
 
-  // Basic guards
+  // Keep selectedStudent in sync with latest Firestore data
+  useEffect(() => {
+    if (!selectedStudent) return;
+    const fresh = students.find((s) => s.id === selectedStudent.id);
+    if (fresh) {
+      setSelectedStudent((prev) => (prev ? { ...prev, ...fresh } : prev));
+    }
+  }, [students]);
+
   function ensureClassSelected() {
     if (!activeClassId) {
-      alert("Please select or create a class first.");
+      window.alert("Please select or create a class first.");
       return false;
     }
     return true;
   }
 
-  // Create class
+  // ----- Class CRUD -----
+
   async function createClass(name) {
-    if (!name) return;
-    console.log("🔵 Starting createClass with name:", name);
+    if (!name?.trim()) return;
     try {
-      const payload = { name, createdAt: Date.now() };
-      console.log("🔵 Payload:", payload);
-      console.log("🔵 Attempting to write to Firestore...");
+      const payload = { name: name.trim(), createdAt: Date.now() };
       const ref = await addDoc(collection(db, "classes"), payload);
-      console.log("✅ Successfully created class with ID:", ref.id);
-      // set as active
       setActiveClassId(ref.id);
-      alert("Class created successfully! ID: " + ref.id);
-      // create empty subcollections are implicit (no need to create)
+      if (newClassRef.current) newClassRef.current.value = "";
     } catch (err) {
-      console.error("❌ ERROR in createClass:", err);
-      console.error("❌ Error code:", err.code);
-      console.error("❌ Error message:", err.message);
-      alert("Failed to create class: " + (err.message || err));
+      console.error(err);
+      window.alert("Failed to create class.");
     }
   }
 
-  // Edit class name
   async function editClassName(classId, newName) {
-    if (!newName) return;
+    if (!newName?.trim()) return;
     try {
-      await updateDoc(doc(db, `classes/${classId}`), { name: newName });
+      await updateDoc(doc(db, `classes/${classId}`), {
+        name: newName.trim(),
+      });
     } catch (err) {
-      console.error(err); alert("Could not rename class.");
+      console.error(err);
+      window.alert("Could not rename class.");
     }
   }
 
-  // Delete class
   async function removeClass(classId) {
-    if (!window.confirm("Delete this class and all its students/cards? This is irreversible.")) return;
+    if (
+      !window.confirm(
+        "Delete this class and all its students/cards/rewards? (subcollections may remain in Firestore unless cleaned manually)"
+      )
+    )
+      return;
     try {
-      // NOTE: Firestore requires you to delete subcollection docs individually.
-      // For simplicity we only delete the top-level class doc (subcollections remain orphaned).
-      // If you want full deletion: implement recursive deletion via Cloud Functions or batched manual deletes.
       await deleteDoc(doc(db, `classes/${classId}`));
       if (activeClassId === classId) setActiveClassId(null);
     } catch (err) {
-      console.error(err); alert("Failed to remove class. See console.");
+      console.error(err);
+      window.alert("Failed to remove class.");
     }
   }
 
-  // Add student to active class
+  // ----- Students -----
+
   async function addStudent(name) {
     if (!ensureClassSelected()) return;
-    if (!name) return;
+    if (!name?.trim()) return;
     try {
       const payload = {
-        name,
+        name: name.trim(),
         avatar: "",
         currentPoints: 0,
         cumulativePoints: 0,
+        xp: 0,
         streak: 0,
+        streakLastUpdated: "",
+        ghost: 0,
+        ghostLastUpdated: "",
+        cards: [],
+        rewardsHistory: [],
         lastActive: null,
-        cards: [] // optional local metadata
       };
       await addDoc(collection(db, `classes/${activeClassId}/students`), payload);
       if (newStudentRef.current) newStudentRef.current.value = "";
     } catch (err) {
       console.error(err);
-      alert("Failed to add student.");
+      window.alert("Failed to add student.");
     }
   }
 
-  // Edit student fields (name or total points)
   async function editStudent(classId, studentId, updates) {
     try {
       await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), updates);
     } catch (err) {
-      console.error(err); alert("Failed saving student changes.");
+      console.error(err);
+      window.alert("Failed saving student changes.");
     }
   }
 
-  // Delete student
   async function deleteStudent(classId, studentId) {
     if (!window.confirm("Delete this student?")) return;
     try {
       await deleteDoc(doc(db, `classes/${classId}/students/${studentId}`));
       if (selectedStudent?.id === studentId) setSelectedStudent(null);
     } catch (err) {
-      console.error(err); alert("Failed to delete student.");
+      console.error(err);
+      window.alert("Failed to delete student.");
     }
   }
 
-  // Create card in class library (optionally upload image)
+  async function setStudentTotalPoints(classId, studentId, totalPoints) {
+    try {
+      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
+        cumulativePoints: Number(totalPoints || 0),
+      });
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to set total points.");
+    }
+  }
+
+  async function addQuickPoints(classId, studentId, amount) {
+    try {
+      const ref = doc(db, `classes/${classId}/students/${studentId}`);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+      const s = snap.data();
+      const currentPoints = (s.currentPoints || 0) + Number(amount || 0);
+      await updateDoc(ref, { currentPoints });
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to add quick points.");
+    }
+  }
+
+  async function changeMeter(classId, studentId, meter, delta) {
+    try {
+      const ref = doc(db, `classes/${classId}/students/${studentId}`);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+      const s = snap.data();
+      const before = s[meter] || 0;
+      let after = before + delta;
+      if (after < 0) after = 0;
+      if (after > 5) after = 5;
+      const updates = { [meter]: after };
+      const today = new Date().toISOString().slice(0, 10);
+      if (delta > 0) {
+        if (meter === "streak") updates.streakLastUpdated = today;
+        if (meter === "ghost") updates.ghostLastUpdated = today;
+      }
+      await updateDoc(ref, updates);
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to change meter.");
+    }
+  }
+
+  async function resetStreak(classId, studentId) {
+    if (!window.confirm("Reset this student's streak to 0?")) return;
+    try {
+      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
+        streak: 0,
+        streakLastUpdated: "",
+      });
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to reset streak.");
+    }
+  }
+
+  async function quickAddStreak(classId, studentId) {
+    await changeMeter(classId, studentId, "streak", 1);
+  }
+
+  async function resetGhost(classId, studentId) {
+    if (!window.confirm("Reset this student's ghost assistance to 0?")) return;
+    try {
+      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
+        ghost: 0,
+        ghostLastUpdated: "",
+      });
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to reset ghost.");
+    }
+  }
+
+  async function quickAddGhost(classId, studentId) {
+    await changeMeter(classId, studentId, "ghost", 1);
+  }
+
+  async function deleteRewardHistoryEntry(classId, studentId, historyId) {
+    try {
+      const ref = doc(db, `classes/${classId}/students/${studentId}`);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+      const s = snap.data();
+      const newHistory = (s.rewardsHistory || []).filter(
+        (x) => x.id !== historyId
+      );
+      await updateDoc(ref, { rewardsHistory: newHistory });
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to delete history entry.");
+    }
+  }
+
+  // ----- Cards & rewards -----
+
   async function createCard({ title, description, points = 0, category = "points", file }) {
     if (!ensureClassSelected()) return;
-    if (!title) { alert("Card title required"); return; }
+    if (!title?.trim()) {
+      window.alert("Card title required");
+      return;
+    }
     try {
       let imageURL = "";
       if (file) {
-        // Upload to storage: path classes/{classId}/cards/{uid}_{filename}
-        const key = `${uid("card")}_${file.name.replaceAll(/\s+/g, "_")}`;
+        const key = `${uid("card")}_${file.name.replace(/\s+/g, "_")}`;
         const ref = storageRef(storage, `classes/${activeClassId}/cards/${key}`);
         const snapshot = await uploadBytes(ref, file);
         imageURL = await getDownloadURL(snapshot.ref);
       }
-      const payload = { title, description, points: Number(points) || 0, category: category || "points", imageURL, createdAt: Date.now() };
+      const payload = {
+        title: title.trim(),
+        description: description || "",
+        points: Number(points) || 0,
+        category: category || "points",
+        imageURL,
+        createdAt: Date.now(),
+      };
       await addDoc(collection(db, `classes/${activeClassId}/cards`), payload);
-      // clear file input if exists
       if (cardFileRef.current) cardFileRef.current.value = "";
     } catch (err) {
       console.error("createCard err:", err);
-      alert("Failed to add card. Check Storage permissions or console.");
+      window.alert("Failed to add card. Check Storage permissions or console.");
     }
   }
 
-  // Delete a card from the library
   async function deleteCard(cardId) {
-    if (!window.confirm("Delete this library card? This will not remove copies already owned by students.")) return;
+    if (
+      !window.confirm(
+        "Delete this library card? This will not remove copies already owned by students."
+      )
+    )
+      return;
     try {
       await deleteDoc(doc(db, `classes/${activeClassId}/cards/${cardId}`));
     } catch (err) {
-      console.error(err); alert("Failed to delete card.");
+      console.error(err);
+      window.alert("Failed to delete card.");
     }
   }
 
-  // Give a card to a student: create an owned card inside student's document or as an array entry inside student doc
-  // We'll add to the student's 'cards' array by updating the student doc (arrayUnion isn't imported, so we read-modify-write).
+  async function createReward({ title, cost, linkedCardId }) {
+    if (!ensureClassSelected()) return;
+    if (!title?.trim()) return;
+    try {
+      const payload = {
+        title: title.trim(),
+        cost: Number(cost || 0),
+        cardId: linkedCardId || null,
+        createdAt: Date.now(),
+      };
+      await addDoc(collection(db, `classes/${activeClassId}/rewards`), payload);
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to create reward.");
+    }
+  }
+
+  async function deleteReward(rewardId) {
+    if (!window.confirm("Delete this reward?")) return;
+    try {
+      await deleteDoc(doc(db, `classes/${activeClassId}/rewards/${rewardId}`));
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to delete reward.");
+    }
+  }
+
+  // ----- Give / remove cards to/from students -----
+
   async function giveCardToStudent(classId, studentId, cardId) {
     try {
-      // fetch card
-      const cardDoc = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
-      if (!cardDoc.exists()) return alert("Card not found");
-      const cardData = cardDoc.data();
+      const cardRef = doc(db, `classes/${classId}/cards/${cardId}`);
+      const cardSnap = await getDoc(cardRef);
+      if (!cardSnap.exists()) {
+        window.alert("Card not found");
+        return;
+      }
+      const cardData = cardSnap.data();
 
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const studentSnap = await getDoc(studentRef);
-      if (!studentSnap.exists()) return alert("Student not found");
-      const sdata = studentSnap.data();
-      const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
+      if (!studentSnap.exists()) {
+        window.alert("Student not found");
+        return;
+      }
+      const s = studentSnap.data();
+      const cardsArr = Array.isArray(s.cards) ? [...s.cards] : [];
       const owned = {
         id: uid("owned"),
         cardId,
@@ -327,95 +1293,209 @@ export default function App() {
         pointsGranted: cardData.points || 0,
       };
       cardsArr.push(owned);
-      // update student's current & cumulative points
-      const currentPoints = (sdata.currentPoints || 0) + (cardData.points || 0);
-      const cumulativePoints = (sdata.cumulativePoints || 0) + (cardData.points || 0);
-      await updateDoc(studentRef, { cards: cardsArr, currentPoints, cumulativePoints });
-      alert(`Gave ${cardData.title} to student.`);
+      const currentPoints = (s.currentPoints || 0) + (cardData.points || 0);
+      const cumulativePoints =
+        (s.cumulativePoints || 0) + (cardData.points || 0);
+      await updateDoc(studentRef, {
+        cards: cardsArr,
+        currentPoints,
+        cumulativePoints,
+      });
+      window.alert(`Gave ${cardData.title} to ${s.name}.`);
     } catch (err) {
-      console.error(err); alert("Failed to give card.");
+      console.error(err);
+      window.alert("Failed to give card.");
     }
   }
 
-  // Remove an owned card from a student
   async function removeOwnedCard(classId, studentId, ownedId) {
     if (!window.confirm("Remove this card from the student?")) return;
     try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const studentSnap = await getDoc(studentRef);
-      if (!studentSnap.exists()) return;
-      const sdata = studentSnap.data();
-      const cardsArr = (sdata.cards || []).filter(c => c.id !== ownedId);
-      await updateDoc(studentRef, { cards: cardsArr });
+      const ref = doc(db, `classes/${classId}/students/${studentId}`);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+      const s = snap.data();
+      const cardsArr = (s.cards || []).filter((c) => c.id !== ownedId);
+      await updateDoc(ref, { cards: cardsArr });
     } catch (err) {
-      console.error(err); alert("Failed to remove card");
+      console.error(err);
+      window.alert("Failed to remove card.");
     }
   }
 
-  // Redeem reward (individual)
+  // ----- Rewards redeem (individual + group) -----
+
   async function redeemRewardIndividual(classId, studentId, rewardId) {
     try {
-      const rewardDoc = await getDoc(doc(db, `classes/${classId}/rewards/${rewardId}`));
-      if (!rewardDoc.exists()) return alert("Reward not found");
-      const r = rewardDoc.data();
+      const rewardRef = doc(db, `classes/${classId}/rewards/${rewardId}`);
+      const rewardSnap = await getDoc(rewardRef);
+      if (!rewardSnap.exists()) {
+        window.alert("Reward not found");
+        return;
+      }
+      const r = rewardSnap.data();
+
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const sSnap = await getDoc(studentRef);
-      if (!sSnap.exists()) return alert("Student not found");
+      if (!sSnap.exists()) {
+        window.alert("Student not found");
+        return;
+      }
       const s = sSnap.data();
-      if ((s.currentPoints || 0) < r.cost) return alert("Not enough points");
+      if ((s.currentPoints || 0) < r.cost) {
+        window.alert("Student does not have enough points");
+        return;
+      }
+
       const newCurrent = (s.currentPoints || 0) - r.cost;
       const newXP = (s.xp || 0) + r.cost;
-      const history = [...(s.rewardsHistory || []), { id: uid("rh"), rewardId, title: r.title, cost: r.cost, date: new Date().toISOString() }];
-      // optionally grant linked card
+
+      const history = [
+        ...(s.rewardsHistory || []),
+        {
+          id: uid("rh"),
+          rewardId,
+          title: r.title,
+          cost: r.cost,
+          date: new Date().toISOString(),
+          students: [studentId],
+        },
+      ];
+
       const newCards = [...(s.cards || [])];
       if (r.cardId) {
-        const cardDoc = await getDoc(doc(db, `classes/${classId}/cards/${r.cardId}`));
-        if (cardDoc.exists()) {
-          const cardData = cardDoc.data();
-          newCards.push({ id: uid("owned"), cardId: r.cardId, title: cardData.title, imageURL: cardData.imageURL || "", grantedAt: new Date().toISOString() });
+        const cardRef2 = doc(db, `classes/${classId}/cards/${r.cardId}`);
+        const cardSnap2 = await getDoc(cardRef2);
+        if (cardSnap2.exists()) {
+          const cardData = cardSnap2.data();
+          newCards.push({
+            id: uid("owned"),
+            cardId: r.cardId,
+            title: cardData.title,
+            imageURL: cardData.imageURL || "",
+            grantedAt: new Date().toISOString(),
+          });
         }
       }
 
-      await updateDoc(studentRef, { currentPoints: newCurrent, xp: newXP, rewardsHistory: history, cards: newCards });
-      alert("Reward redeemed.");
+      await updateDoc(studentRef, {
+        currentPoints: newCurrent,
+        xp: newXP,
+        rewardsHistory: history,
+        cards: newCards,
+      });
+      window.alert("Reward redeemed.");
     } catch (err) {
-      console.error(err); alert("Failed to redeem reward.");
+      console.error(err);
+      window.alert("Failed to redeem reward.");
     }
   }
 
-  // Create reward
-  async function createReward({ title, cost, linkedCardId }) {
-    if (!ensureClassSelected()) return;
-    if (!title) return;
+  async function redeemRewardGroup(classId, rewardId, shares) {
     try {
-      const payload = { title, cost: Number(cost || 0), cardId: linkedCardId || null, createdAt: Date.now() };
-      await addDoc(collection(db, `classes/${activeClassId}/rewards`), payload);
+      const rewardRef = doc(db, `classes/${classId}/rewards/${rewardId}`);
+      const rewardSnap = await getDoc(rewardRef);
+      if (!rewardSnap.exists()) {
+        window.alert("Reward not found");
+        return;
+      }
+      const r = rewardSnap.data();
+
+      const sum = Object.values(shares).reduce(
+        (a, b) => a + Number(b || 0),
+        0
+      );
+      if (sum !== r.cost) {
+        window.alert(
+          `Sum of shares is ${sum} but reward costs ${r.cost}. Please adjust.`
+        );
+        return;
+      }
+
+      // validate points using local students state
+      const lacking = [];
+      Object.entries(shares).forEach(([sid, share]) => {
+        const amount = Number(share || 0);
+        if (amount <= 0) return;
+        const st = students.find((s) => s.id === sid);
+        if (!st || (st.currentPoints || 0) < amount) {
+          lacking.push(st ? st.name : sid);
+        }
+      });
+      if (lacking.length) {
+        window.alert(
+          `These students lack enough points: ${lacking.join(", ")}`
+        );
+        return;
+      }
+
+      const now = new Date().toISOString();
+
+      // apply updates to each student
+      for (const [sid, val] of Object.entries(shares)) {
+        const share = Number(val || 0);
+        if (share <= 0) continue;
+        const st = students.find((s) => s.id === sid);
+        if (!st) continue;
+
+        const studentRef = doc(db, `classes/${classId}/students/${sid}`);
+        const newCurrent = (st.currentPoints || 0) - share;
+        const newXP = (st.xp || 0) + share;
+        const history = [
+          ...(st.rewardsHistory || []),
+          {
+            id: uid("rh"),
+            rewardId,
+            title: r.title,
+            cost: share,
+            date: now,
+            students: Object.keys(shares),
+          },
+        ];
+        const newCards = [...(st.cards || [])];
+        if (r.cardId) {
+          const cardRef2 = doc(db, `classes/${classId}/cards/${r.cardId}`);
+          const cardSnap2 = await getDoc(cardRef2);
+          if (cardSnap2.exists()) {
+            const cardData = cardSnap2.data();
+            newCards.push({
+              id: uid("owned"),
+              cardId: r.cardId,
+              title: cardData.title,
+              imageURL: cardData.imageURL || "",
+              grantedAt: now,
+            });
+          }
+        }
+
+        await updateDoc(studentRef, {
+          currentPoints: newCurrent,
+          xp: newXP,
+          rewardsHistory: history,
+          cards: newCards,
+        });
+      }
+
+      window.alert("Group reward redeemed.");
     } catch (err) {
-      console.error(err); alert("Failed to create reward");
+      console.error(err);
+      window.alert("Failed to redeem group reward.");
     }
   }
 
-  // Edit student total points manually
-  async function setStudentTotalPoints(classId, studentId, totalPoints) {
-    try {
-      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), { cumulativePoints: Number(totalPoints || 0) });
-    } catch (err) {
-      console.error(err); alert("Failed to set student total points");
-    }
-  }
-
-  // Simple small UI helpers
-  function formatDate(ts) {
-    try { return new Date(ts).toLocaleString(); } catch (e) { return ""; }
-  }
+  // ---------- First screen (mode selector) ----------
 
   if (!mode) {
     return (
-      <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 24 }}>
+      <div
+        style={{
+          fontFamily: "Inter, system-ui, sans-serif",
+          padding: 24,
+          maxWidth: 520,
+        }}
+      >
         <h1>Mis logros Pokemáticos</h1>
-        <p style={{ marginTop: 8 }}>
-          ¿Cómo entras a la app?
-        </p>
+        <p style={{ marginTop: 8 }}>¿Cómo entras a la app?</p>
         <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
           <button className="btn primary" onClick={enterAdmin}>
             Soy profe (admin)
@@ -424,192 +1504,472 @@ export default function App() {
             Soy estudiante / invitado
           </button>
         </div>
+        <p className="muted" style={{ marginTop: 16 }}>
+          Admin puede crear clases, alumnos, cartas y recompensas. Estudiante /
+          invitado solo ve la información.
+        </p>
       </div>
     );
   }
 
-  // ---------- Render ----------
+  // ---------- Main layout ----------
+
   return (
-    <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 12 }}>
+    <div
+      style={{
+        fontFamily: "Inter, system-ui, sans-serif",
+        padding: 12,
+      }}
+    >
       <style>{`
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
         .card-thumb:hover { transform: scale(1.18); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
-        .modal { background: white; border-radius: 8px; padding: 12px; max-width: 900px; width: 92%; max-height: 90vh; overflow:auto; }
+        .modal { background: white; border-radius: 8px; padding: 12px; max-width: 960px; width: 94%; max-height: 90vh; overflow:auto; }
         .muted { color: #666; font-size: 13px; }
-        .btn { padding: 8px 10px; border-radius: 6px; border: 1px solid #ddd; background: white; cursor:pointer; }
+        .btn { padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; background: white; cursor:pointer; font-size: 13px; }
         .btn.primary { background: #2563eb; color: white; border: none; }
       `}</style>
 
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+        }}
+      >
         <div>
-          <h1 style={{ margin: 0 }}>Mis logros Pokemáticos — Manager (Firestore)</h1>
-          <div style={{ color: "#555" }}>{mode === "admin" ? "Admin mode" : mode === "reader" ? "Reader mode" : "Choose mode"}</div>
+          <h1 style={{ margin: 0 }}>Mis logros Pokemáticos — Manager</h1>
+          <div style={{ color: "#555" }}>
+            {mode === "admin"
+              ? "Admin mode"
+              : mode === "reader"
+              ? "Student/Guest mode"
+              : "Mode"}
+          </div>
         </div>
-        {mode && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button className="btn" onClick={() => setMode(null)}>
             Cambiar rol
           </button>
-        )}
-        <div style={{ display: "flex", gap: 8 }}>
-          {!mode && <button className="btn" onClick={enterAdmin}>Admin</button>}
-          {!mode && <button className="btn" onClick={enterReader}>Reader</button>}
-          {mode === "admin" && <button className="btn" onClick={() => {
-            if (!window.confirm("Reset local sample? This does nothing to Firestore.")) return;
-            // nothing else
-          }}>Create sample class</button>}
         </div>
       </header>
 
-      {errorMsg && (<div style={{ marginBottom: 12, color: "crimson" }}>{errorMsg}</div>)}
+      {errorMsg && (
+        <div style={{ marginBottom: 12, color: "crimson" }}>{errorMsg}</div>
+      )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 340px", gap: 14 }}>
-
-        {/* LEFT: Classes list */}
-        <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "260px 1fr 360px",
+          gap: 14,
+        }}
+      >
+        {/* LEFT: Classes */}
+        <aside
+          style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}
+        >
           <h3 style={{ marginTop: 0 }}>Classes</h3>
-          <div style={{ marginBottom: 8 }}>
-            {loadingClasses ? <div className="muted">Loading classes...</div> : classesList.length === 0 ? <div className="muted">No classes yet</div> :
-              classesList.map(c => (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <button className="btn" style={{ textAlign: "left", flex: 1, background: activeClassId === c.id ? "#eef" : "transparent" }} onClick={() => setActiveClassId(c.id)}>{c.name}</button>
-                  {mode === "admin" && <div style={{ display: "flex", gap: 6 }}>
-                    <button className="btn" onClick={() => {
-                      const newName = prompt("Rename class:", c.name);
-                      if (newName && newName !== c.name) editClassName(c.id, newName);
-                    }}>Edit</button>
-                    <button className="btn" onClick={() => removeClass(c.id)}>Delete</button>
-                  </div>}
+          {loadingClasses ? (
+            <div className="muted">Loading classes...</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {classesList.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <button
+                    className="btn"
+                    style={{
+                      flex: 1,
+                      textAlign: "left",
+                      background:
+                        c.id === activeClassId ? "#eef" : "transparent",
+                    }}
+                    onClick={() => setActiveClassId(c.id)}
+                  >
+                    {c.name}
+                  </button>
+                  {mode === "admin" && (
+                    <>
+                      <button
+                        className="btn"
+                        onClick={() => {
+                          const newName = window.prompt(
+                            "New class name",
+                            c.name
+                          );
+                          if (newName) editClassName(c.id, newName);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn"
+                        onClick={() => removeClass(c.id)}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
-              ))
-            }
-          </div>
+              ))}
+            </div>
+          )}
 
           {mode === "admin" && (
-            <div style={{ marginTop: 8 }}>
-              <h4 style={{ marginBottom: 6 }}>Add new class</h4>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input ref={newClassNameRef} placeholder="Class name" style={{ flex: 1, padding: "6px 8px" }} />
-                <button className="btn primary" onClick={() => {
-                  const name = newClassNameRef.current?.value?.trim();
-                  if (!name) return alert("Enter name");
-                  createClass(name);
-                  newClassNameRef.current.value = "";
-                }}>Create</button>
+            <div style={{ marginTop: 12 }}>
+              <h4 style={{ marginTop: 0 }}>Add class</h4>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  ref={newClassRef}
+                  placeholder="Class name"
+                  style={{ flex: 1, padding: 6 }}
+                />
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    const name = newClassRef.current?.value;
+                    createClass(name);
+                  }}
+                >
+                  Create
+                </button>
               </div>
             </div>
           )}
         </aside>
 
         {/* MIDDLE: Students */}
-        <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ margin: 0 }}>{classesList.find(c => c.id === activeClassId)?.name || "Select a class"}</h3>
+        <main
+          style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>
+              {classesList.find((c) => c.id === activeClassId)?.name ||
+                "Select a class"}
+            </h3>
+            {/* Placeholder for future filter */}
             <div className="muted">filter students... (not implemented)</div>
           </div>
 
           <div style={{ marginTop: 12 }}>
             {activeClassId ? (
               <>
-                <div style={{ marginBottom: 12 }}>
-                  {loadingStudents ? <div className="muted">Loading students...</div> : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-                      {students.map(s => (
-                        <div key={s.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 6 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                {loadingStudents ? (
+                  <div className="muted">Loading students...</div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, 1fr)",
+                      gap: 12,
+                    }}
+                  >
+                    {students.map((s) => {
+                      // group owned cards by cardId for compact view
+                      const cardGroups = {};
+                      (s.cards || []).forEach((o) => {
+                        if (!cardGroups[o.cardId]) {
+                          cardGroups[o.cardId] = [];
+                        }
+                        cardGroups[o.cardId].push(o);
+                      });
+                      const groupedArr = Object.values(cardGroups);
+                      const lastSixGroups = groupedArr.slice(-6);
+
+                      const todayStr = new Date()
+                        .toISOString()
+                        .slice(0, 10);
+
+                      return (
+                        <div
+                          key={s.id}
+                          style={{
+                            border: "1px solid #ddd",
+                            padding: 10,
+                            borderRadius: 6,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
                             <div>
                               <div style={{ fontWeight: 700 }}>{s.name}</div>
-                              <div className="muted">Streak: {s.streak || 0} • Last: {s.lastActive ? s.lastActive : "-"}</div>
+                              <div className="muted">
+                                Streak: {s.streak || 0}🔥{" "}
+                                {s.streakLastUpdated && (
+                                  <span
+                                    style={{
+                                      marginLeft: 4,
+                                      color:
+                                        s.streakLastUpdated === todayStr
+                                          ? "#0a0"
+                                          : "#f00",
+                                      fontWeight: 600,
+                                      fontSize: 11,
+                                    }}
+                                  >
+                                    ({s.streakLastUpdated})
+                                  </span>
+                                )}
+                                {" • "}Ghost: {s.ghost || 0}👻{" "}
+                                {s.ghostLastUpdated && (
+                                  <span
+                                    style={{
+                                      marginLeft: 4,
+                                      color:
+                                        s.ghostLastUpdated === todayStr
+                                          ? "#00f"
+                                          : "#f00",
+                                      fontWeight: 600,
+                                      fontSize: 11,
+                                    }}
+                                  >
+                                    ({s.ghostLastUpdated})
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div style={{ textAlign: "right" }}>
-                              <div style={{ fontWeight: 700 }}>{s.currentPoints || 0} pts</div>
-                              <div className="muted">Total: {s.cumulativePoints || 0}</div>
+                              <div style={{ fontWeight: 700 }}>
+                                {s.currentPoints || 0} pts
+                              </div>
+                              <div className="muted">
+                                XP: {s.xp || 0} • Total:{" "}
+                                {s.cumulativePoints || 0}
+                              </div>
                             </div>
                           </div>
 
-                          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-                            <button className="btn" onClick={() => setSelectedStudent({ ...s, classId: activeClassId })}>Manage</button>
-                            {mode === "admin" && <button className="btn" onClick={() => {
-                              // quick give card will open Manage with Give view
-                              setSelectedStudent({ ...s, classId: activeClassId });
-                            }}>Give card</button>}
+                          <div
+                            style={{
+                              marginTop: 8,
+                              display: "flex",
+                              gap: 8,
+                            }}
+                          >
+                            <button
+                              className="btn"
+                              onClick={() =>
+                                setSelectedStudent({
+                                  ...s,
+                                  classId: activeClassId,
+                                })
+                              }
+                            >
+                              Manage
+                            </button>
+                            {/* Give card button removed on purpose */}
                           </div>
 
                           <div style={{ marginTop: 8 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700 }}>Cards</div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                              {(s.cards || []).slice(-6).map(o => (
-                                <div key={o.id} className="card-thumb" style={{ width: 80, height: 110, border: "1px solid #eee", borderRadius: 6, overflow: "hidden", cursor: "pointer" }}
-                                  onClick={() => setCardPreview(o)}>
-                                  {o.imageURL ? <img src={o.imageURL} alt={o.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ padding: 6 }}>{o.title}</div>}
-                                </div>
-                              ))}
+                            <div
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                              }}
+                            >
+                              Cards
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 8,
+                                flexWrap: "wrap",
+                                marginTop: 8,
+                              }}
+                            >
+                              {lastSixGroups.map((ownedCards, idx) => {
+                                const first = ownedCards[0];
+                                return (
+                                  <div
+                                    key={first.id + "_" + idx}
+                                    className="card-thumb"
+                                    style={{
+                                      width: 80,
+                                      height: 110,
+                                      border: "1px solid #eee",
+                                      borderRadius: 6,
+                                      overflow: "hidden",
+                                      cursor: "pointer",
+                                      position: "relative",
+                                    }}
+                                    onClick={() =>
+                                      setCardPreview({
+                                        ...first,
+                                        isLibraryCard: false,
+                                      })
+                                    }
+                                  >
+                                    {first.imageURL ? (
+                                      <img
+                                        src={first.imageURL}
+                                        alt={first.title}
+                                        style={{
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover",
+                                        }}
+                                      />
+                                    ) : (
+                                      <div style={{ padding: 6 }}>
+                                        {first.title}
+                                      </div>
+                                    )}
+                                    {ownedCards.length > 1 && (
+                                      <div
+                                        style={{
+                                          position: "absolute",
+                                          top: 4,
+                                          right: 4,
+                                          background: "rgba(0,0,0,0.7)",
+                                          color: "white",
+                                          borderRadius: 12,
+                                          padding: "2px 6px",
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        ×{ownedCards.length}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
-                      ))}
+                      );
+                    })}
 
-                      {mode === "admin" && (
-                        <div style={{ border: "1px dashed #ccc", padding: 12, borderRadius: 6 }}>
-                          <h4 style={{ marginTop: 0 }}>Add student</h4>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <input ref={newStudentRef} placeholder="Student name" style={{ flex: 1, padding: 6 }} />
-                            <button className="btn primary" onClick={() => {
-                              const name = newStudentRef.current?.value?.trim();
-                              if (!name) return alert("Enter name");
+                    {mode === "admin" && (
+                      <div
+                        style={{
+                          border: "1px dashed #ccc",
+                          padding: 12,
+                          borderRadius: 6,
+                        }}
+                      >
+                        <h4 style={{ marginTop: 0 }}>Add student</h4>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input
+                            ref={newStudentRef}
+                            placeholder="Student name"
+                            style={{ flex: 1, padding: 6 }}
+                          />
+                          <button
+                            className="btn primary"
+                            onClick={() => {
+                              const name =
+                                newStudentRef.current?.value?.trim();
+                              if (!name) {
+                                window.alert("Enter a name");
+                                return;
+                              }
                               addStudent(name);
-                              newStudentRef.current.value = "";
-                            }}>Add</button>
-                          </div>
+                            }}
+                          >
+                            Add
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
-              <div className="muted">Select a class on the left to view and manage students, cards and rewards.</div>
+              <div className="muted">
+                Select a class on the left to view and manage students, cards
+                and rewards.
+              </div>
             )}
           </div>
         </main>
 
         {/* RIGHT: Library & rewards */}
-        <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}>
+        <aside
+          style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}
+        >
           <h3>Library (class)</h3>
 
           {!activeClassId && <div className="muted">Select a class first</div>}
+
           {activeClassId && (
             <>
               {/* Tabs */}
-              <div style={{ display: "flex", gap: 6, margin: "8px 0 12px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  margin: "8px 0 12px",
+                  flexWrap: "wrap",
+                }}
+              >
                 <button
                   className="btn"
                   onClick={() => setLibraryTab("points")}
-                  style={{ background: libraryTab === "points" ? "#def" : "transparent" }}
+                  style={{
+                    background:
+                      libraryTab === "points" ? "#def" : "transparent",
+                  }}
                 >
                   Points
                 </button>
                 <button
                   className="btn"
                   onClick={() => setLibraryTab("rewards")}
-                  style={{ background: libraryTab === "rewards" ? "#def" : "transparent" }}
+                  style={{
+                    background:
+                      libraryTab === "rewards" ? "#def" : "transparent",
+                  }}
                 >
                   Rewards
                 </button>
                 <button
                   className="btn"
                   onClick={() => setLibraryTab("experience")}
-                  style={{ background: libraryTab === "experience" ? "#def" : "transparent" }}
+                  style={{
+                    background:
+                      libraryTab === "experience" ? "#def" : "transparent",
+                  }}
                 >
                   Experience
                 </button>
               </div>
 
-              {/* Create card (admin only) */}
+              {/* Create card (admin) */}
               {mode === "admin" && (
-                <div style={{ border: "1px dashed #ddd", padding: 8, borderRadius: 6, marginBottom: 12 }}>
+                <div
+                  style={{
+                    border: "1px dashed #ddd",
+                    padding: 8,
+                    borderRadius: 6,
+                    marginBottom: 12,
+                  }}
+                >
                   <h4 style={{ marginTop: 0 }}>Create new card</h4>
-                  <CardCreateForm onCreate={(payload) => createCard({ ...payload })} fileRef={cardFileRef} />
+                  <CardCreateForm
+                    onCreate={(payload) => createCard(payload)}
+                    fileRef={cardFileRef}
+                  />
                 </div>
               )}
 
@@ -621,7 +1981,9 @@ export default function App() {
                       <div className="muted">Loading cards...</div>
                     ) : (
                       cards
-                        .filter((c) => (c.category || "points") === "points")
+                        .filter(
+                          (c) => (c.category || "points") === "points"
+                        )
                         .map((c) => (
                           <div
                             key={c.id}
@@ -635,14 +1997,25 @@ export default function App() {
                             }}
                           >
                             <div
-                              style={{ width: 64, height: 80, background: "#fafafa", cursor: "pointer" }}
-                              onClick={() => setCardPreview({ ...c, isLibraryCard: true })}
+                              style={{
+                                width: 64,
+                                height: 80,
+                                background: "#fafafa",
+                                cursor: "pointer",
+                              }}
+                              onClick={() =>
+                                setCardPreview({ ...c, isLibraryCard: true })
+                              }
                             >
                               {c.imageURL ? (
                                 <img
                                   src={c.imageURL}
                                   alt={c.title}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
                                 />
                               ) : (
                                 <div style={{ padding: 6 }}>{c.title}</div>
@@ -650,33 +2023,57 @@ export default function App() {
                             </div>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: 700 }}>{c.title}</div>
-                              <div className="muted">{c.description}</div>
-                              <div style={{ marginTop: 6, fontWeight: 700 }}>{c.points || 0} pts</div>
+                              <div className="muted">
+                                {c.description || "—"}
+                              </div>
+                              <div
+                                style={{
+                                  marginTop: 6,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {c.points || 0} pts
+                              </div>
                             </div>
                             {mode === "admin" && (
-                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 6,
+                                }}
+                              >
                                 <button
                                   className="btn"
                                   onClick={() => {
-                                    const confirmGiveTo = prompt(
-                                      "Give this card to which student (type exact name)? Leave empty to cancel."
+                                    const name = window.prompt(
+                                      "Give this card to which student (exact name)? Leave blank to cancel."
                                     );
-                                    if (confirmGiveTo) {
-                                      const st = students.find(
-                                        (s) => s.name.toLowerCase() === confirmGiveTo.toLowerCase()
+                                    if (!name) return;
+                                    const st = students.find(
+                                      (s) =>
+                                        s.name.toLowerCase() ===
+                                        name.toLowerCase()
+                                    );
+                                    if (!st) {
+                                      window.alert(
+                                        "Student not found. Use Manage -> Give for picklist."
                                       );
-                                      if (st) giveCardToStudent(activeClassId, st.id, c.id);
-                                      else {
-                                        alert(
-                                          "Student not found (type exact name). Use Manage -> Give for picklist."
-                                        );
-                                      }
+                                      return;
                                     }
+                                    giveCardToStudent(
+                                      activeClassId,
+                                      st.id,
+                                      c.id
+                                    );
                                   }}
                                 >
                                   Quick give
                                 </button>
-                                <button className="btn" onClick={() => deleteCard(c.id)}>
+                                <button
+                                  className="btn"
+                                  onClick={() => deleteCard(c.id)}
+                                >
                                   Delete
                                 </button>
                               </div>
@@ -692,7 +2089,15 @@ export default function App() {
                   <div style={{ display: "grid", gap: 8 }}>
                     {/* Reward cards from library */}
                     <div style={{ marginBottom: 12 }}>
-                      <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Reward cards (library)</h4>
+                      <h4
+                        style={{
+                          fontSize: 13,
+                          color: "#555",
+                          marginBottom: 8,
+                        }}
+                      >
+                        Reward cards (library)
+                      </h4>
                       {loadingCards ? (
                         <div className="muted">Loading cards...</div>
                       ) : (
@@ -712,27 +2117,61 @@ export default function App() {
                               }}
                             >
                               <div
-                                style={{ width: 64, height: 80, background: "#fafafa", cursor: "pointer" }}
-                                onClick={() => setCardPreview({ ...c, isLibraryCard: true })}
+                                style={{
+                                  width: 64,
+                                  height: 80,
+                                  background: "#fafafa",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() =>
+                                  setCardPreview({
+                                    ...c,
+                                    isLibraryCard: true,
+                                  })
+                                }
                               >
                                 {c.imageURL ? (
                                   <img
                                     src={c.imageURL}
                                     alt={c.title}
-                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                    }}
                                   />
                                 ) : (
                                   <div style={{ padding: 6 }}>{c.title}</div>
                                 )}
                               </div>
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 700 }}>{c.title}</div>
-                                <div className="muted">{c.description}</div>
-                                <div style={{ marginTop: 6, fontWeight: 700 }}>{c.points || 0} pts</div>
+                                <div style={{ fontWeight: 700 }}>
+                                  {c.title}
+                                </div>
+                                <div className="muted">
+                                  {c.description || "—"}
+                                </div>
+                                <div
+                                  style={{
+                                    marginTop: 6,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {c.points || 0} pts
+                                </div>
                               </div>
                               {mode === "admin" && (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                  <button className="btn" onClick={() => deleteCard(c.id)}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 6,
+                                  }}
+                                >
+                                  <button
+                                    className="btn"
+                                    onClick={() => deleteCard(c.id)}
+                                  >
                                     Delete
                                   </button>
                                 </div>
@@ -742,32 +2181,50 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Shop items (purchasable rewards) */}
-                    <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
-                      <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Shop items (purchasable)</h4>
+                    {/* Shop items (rewards) */}
+                    <div
+                      style={{
+                        borderTop: "2px solid #ddd",
+                        paddingTop: 12,
+                      }}
+                    >
+                      <h4
+                        style={{
+                          fontSize: 13,
+                          color: "#555",
+                          marginBottom: 8,
+                        }}
+                      >
+                        Shop items (purchasable)
+                      </h4>
                       {loadingRewards ? (
                         <div className="muted">Loading rewards...</div>
                       ) : (
                         rewards.map((r) => {
-                          const card = cards.find((c) => c.id === r.cardId) || null;
+                          const card =
+                            cards.find((c) => c.id === r.cardId) || null;
                           return (
                             <div
                               key={r.id}
-                              style={{ border: "1px solid #eee", padding: 8, borderRadius: 6, marginBottom: 8 }}
+                              style={{
+                                border: "1px solid #eee",
+                                padding: 8,
+                                borderRadius: 6,
+                                marginBottom: 8,
+                              }}
                             >
-                              <div style={{ fontWeight: 700 }}>{r.title}</div>
+                              <div style={{ fontWeight: 700 }}>
+                                {r.title}
+                              </div>
                               <div className="muted">
-                                Cost: {r.cost} pts • linked card: {card ? card.title : "—"}
+                                Cost: {r.cost} pts • linked card:{" "}
+                                {card ? card.title : "—"}
                               </div>
                               {mode === "admin" && (
                                 <div style={{ marginTop: 6 }}>
                                   <button
                                     className="btn"
-                                    onClick={() => {
-                                      if (!window.confirm("Delete this reward?")) return;
-                                      // uses your existing Firestore imports: db, doc, deleteDoc
-                                      deleteDoc(doc(db, `classes/${activeClassId}/rewards/${r.id}`));
-                                    }}
+                                    onClick={() => deleteReward(r.id)}
                                   >
                                     Delete reward
                                   </button>
@@ -779,8 +2236,20 @@ export default function App() {
                       )}
 
                       {mode === "admin" && (
-                        <div style={{ borderTop: "1px dashed #eee", paddingTop: 8, marginTop: 8 }}>
-                          <RewardCreateForm cards={cards} onCreate={(payload) => createReward(payload)} />
+                        <div
+                          style={{
+                            borderTop: "1px dashed #eee",
+                            paddingTop: 8,
+                            marginTop: 8,
+                          }}
+                        >
+                          <h4 style={{ fontSize: 13, marginBottom: 6 }}>
+                            Create shop item (must link to library card)
+                          </h4>
+                          <RewardCreateForm
+                            cards={cards}
+                            onCreate={(payload) => createReward(payload)}
+                          />
                         </div>
                       )}
                     </div>
@@ -808,26 +2277,50 @@ export default function App() {
                             }}
                           >
                             <div
-                              style={{ width: 64, height: 80, background: "#fafafa", cursor: "pointer" }}
-                              onClick={() => setCardPreview({ ...c, isLibraryCard: true })}
+                              style={{
+                                width: 64,
+                                height: 80,
+                                background: "#fafafa",
+                                cursor: "pointer",
+                              }}
+                              onClick={() =>
+                                setCardPreview({ ...c, isLibraryCard: true })
+                              }
                             >
                               {c.imageURL ? (
                                 <img
                                   src={c.imageURL}
                                   alt={c.title}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
                                 />
                               ) : (
                                 <div style={{ padding: 6 }}>{c.title}</div>
                               )}
                             </div>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 700 }}>{c.title}</div>
-                              <div className="muted">{c.description}</div>
+                              <div style={{ fontWeight: 700 }}>
+                                {c.title}
+                              </div>
+                              <div className="muted">
+                                {c.description || "—"}
+                              </div>
                             </div>
                             {mode === "admin" && (
-                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                <button className="btn" onClick={() => deleteCard(c.id)}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 6,
+                                }}
+                              >
+                                <button
+                                  className="btn"
+                                  onClick={() => deleteCard(c.id)}
+                                >
                                   Delete
                                 </button>
                               </div>
@@ -841,34 +2334,82 @@ export default function App() {
             </>
           )}
         </aside>
-
       </div>
 
-      {/* Card preview modal (works both for library card and owned card) */}
+      {/* Card preview modal */}
       {cardPreview && (
-        <div className="modal-backdrop" onClick={() => setCardPreview(null)}>
+        <div
+          className="modal-backdrop"
+          onClick={() => setCardPreview(null)}
+        >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ width: 360, height: 500, background: "#f6f6f6", borderRadius: 6, overflow: "hidden" }}>
-                {cardPreview.imageURL ? <img src={cardPreview.imageURL} alt={cardPreview.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> :
-                  <div style={{ padding: 12 }}>{cardPreview.title}</div>}
+              <div
+                style={{
+                  width: 360,
+                  height: 500,
+                  background: "#f6f6f6",
+                  borderRadius: 6,
+                  overflow: "hidden",
+                }}
+              >
+                {cardPreview.imageURL ? (
+                  <img
+                    src={cardPreview.imageURL}
+                    alt={cardPreview.title}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                    }}
+                  />
+                ) : (
+                  <div style={{ padding: 12 }}>{cardPreview.title}</div>
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <h3 style={{ marginTop: 0 }}>{cardPreview.title}</h3>
-                <div className="muted">{cardPreview.description}</div>
-                <div style={{ marginTop: 8, fontWeight: 700 }}>{cardPreview.points || 0} pts</div>
-
+                <div className="muted">
+                  {cardPreview.description || "—"}
+                </div>
+                <div style={{ marginTop: 8, fontWeight: 700 }}>
+                  {cardPreview.points || 0} pts
+                </div>
                 <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-                  <button className="btn" onClick={() => setCardPreview(null)}>Close</button>
-                  {cardPreview.isLibraryCard && mode === "admin" && <button className="btn primary" onClick={() => {
-                    // open quick give: pick student by name
-                    const studentName = prompt("Give to student (exact name):");
-                    if (studentName) {
-                      const st = students.find(s => s.name.toLowerCase() === studentName.toLowerCase());
-                      if (st) giveCardToStudent(activeClassId, st.id, cardPreview.id);
-                      else alert("Student not found. Use Manage -> Give for picklist.");
-                    }
-                  }}>Give to student</button>}
+                  <button
+                    className="btn"
+                    onClick={() => setCardPreview(null)}
+                  >
+                    Close
+                  </button>
+                  {cardPreview.isLibraryCard && mode === "admin" && (
+                    <button
+                      className="btn primary"
+                      onClick={() => {
+                        const name = window.prompt(
+                          "Give to student (exact name):"
+                        );
+                        if (!name) return;
+                        const st = students.find(
+                          (s) =>
+                            s.name.toLowerCase() === name.toLowerCase()
+                        );
+                        if (!st) {
+                          window.alert(
+                            "Student not found. Use Manage -> Give for picklist."
+                          );
+                          return;
+                        }
+                        giveCardToStudent(
+                          activeClassId,
+                          st.id,
+                          cardPreview.id
+                        );
+                      }}
+                    >
+                      Give to student
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -878,213 +2419,73 @@ export default function App() {
 
       {/* Manage student modal */}
       {selectedStudent && (
-        <div className="modal-backdrop" onClick={() => setSelectedStudent(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ margin: 0 }}>Manage: {selectedStudent.name}</h3>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn" onClick={() => setSelectedStudent(null)}>Close</button>
-                {mode === "admin" && <button className="btn" onClick={() => {
-                  if (!window.confirm("Delete student?")) return;
-                  deleteStudent(selectedStudent.classId, selectedStudent.id);
-                }}>Delete</button>}
-              </div>
-            </div>
-
-            <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 340px", gap: 12 }}>
-              <div>
-                <div>
-                  <div style={{ fontSize: 13, color: "#666" }}>Name</div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                    <input defaultValue={selectedStudent.name} onBlur={(e) => {
-                      const val = e.target.value.trim();
-                      if (val && val !== selectedStudent.name) editStudent(selectedStudent.classId, selectedStudent.id, { name: val });
-                    }} style={{ flex: 1, padding: 6 }} />
-                    <div style={{ width: 140 }}>
-                      <div style={{ fontSize: 13, color: "#666" }}>Total points</div>
-                      <input
-                        defaultValue={selectedStudent.cumulativePoints || 0}
-                        onBlur={(e) => {
-                          const val = Number(e.target.value || 0);
-
-                          // 1) Update the value in Firestore
-                          setStudentTotalPoints(selectedStudent.classId, selectedStudent.id, val);
-
-                          // 2) Update the copy used by the modal so it refreshes on screen
-                          setSelectedStudent((prev) =>
-                            prev && prev.id === selectedStudent.id
-                              ? { ...prev, cumulativePoints: val }
-                              : prev
-                          );
-                        }}
-                        style={{ width: "100%", padding: 6 }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontSize: 13, color: "#666" }}>Current points</div>
-                      <div style={{ fontWeight: 700 }}>{selectedStudent.currentPoints || 0}</div>
-                    </div>
-                    {mode === "admin" && (
-                      <div>
-                        <button
-                          className="btn"
-                          onClick={() => {
-                            const newVal = (selectedStudent.currentPoints || 0) + 1;
-                            editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: newVal });
-                            setSelectedStudent(prev =>
-                              prev && prev.id === selectedStudent.id ? { ...prev, currentPoints: newVal } : prev
-                            );
-                          }}
-                        >
-                          +1
-                        </button>
-                        <button
-                          className="btn"
-                          onClick={() => {
-                            const newVal = (selectedStudent.currentPoints || 0) + 5;
-                            editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: newVal });
-                            setSelectedStudent(prev =>
-                              prev && prev.id === selectedStudent.id ? { ...prev, currentPoints: newVal } : prev
-                            );
-                          }}
-                        >
-                          +5
-                        </button>
-                        <button
-                          className="btn"
-                          onClick={() => {
-                            const newVal = (selectedStudent.currentPoints || 0) + 10;
-                            editStudent(selectedStudent.classId, selectedStudent.id, { currentPoints: newVal });
-                            setSelectedStudent(prev =>
-                              prev && prev.id === selectedStudent.id ? { ...prev, currentPoints: newVal } : prev
-                            );
-                          }}
-                        >
-                          +10
-                        </button>
-                      </div>
-                    )}
-
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 12 }}>
-                  <h4 style={{ marginTop: 0 }}>Owned cards</h4>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {(selectedStudent.cards || []).map(o => (
-                      <div key={o.id} style={{ display: "flex", gap: 8, alignItems: "center", border: "1px solid #eee", padding: 8, borderRadius: 6 }}>
-                        <div style={{ width: 84, height: 110, overflow: "hidden" }}>
-                          {o.imageURL ? <img src={o.imageURL} alt={o.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ padding: 6 }}>{o.title}</div>}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700 }}>{o.title}</div>
-                          <div className="muted">{o.grantedAt?.slice(0, 10)}</div>
-                        </div>
-                        <div>
-                          {mode === "admin" && <button className="btn" onClick={() => removeOwnedCard(selectedStudent.classId, selectedStudent.id, o.id)}>Remove</button>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h4 style={{ marginTop: 0 }}>Give card</h4>
-                </div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {cards.map(c => (
-                    <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center", border: "1px solid #eee", padding: 8, borderRadius: 6 }}>
-                      <div style={{ width: 64, height: 80, overflow: "hidden" }}>
-                        {c.imageURL ? <img src={c.imageURL} alt={c.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ padding: 6 }}>{c.title}</div>}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700 }}>{c.title}</div>
-                        <div className="muted">{c.description}</div>
-                      </div>
-                      <div>
-                        {mode === "admin" && <button className="btn" onClick={() => giveCardToStudent(selectedStudent.classId, selectedStudent.id, c.id)}>Give</button>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
+        <ManageStudentModal
+          mode={mode}
+          student={selectedStudent}
+          studentsInClass={students}
+          cards={cards}
+          rewards={rewards}
+          onClose={() => setSelectedStudent(null)}
+          onUpdate={(updates) =>
+            editStudent(selectedStudent.classId, selectedStudent.id, updates)
+          }
+          onAddQuickPoints={(amt) =>
+            addQuickPoints(selectedStudent.classId, selectedStudent.id, amt)
+          }
+          onChangeMeter={(meter, delta) =>
+            changeMeter(selectedStudent.classId, selectedStudent.id, meter, delta)
+          }
+          onResetStreak={() =>
+            resetStreak(selectedStudent.classId, selectedStudent.id)
+          }
+          onQuickAddStreak={() =>
+            quickAddStreak(selectedStudent.classId, selectedStudent.id)
+          }
+          onResetGhost={() =>
+            resetGhost(selectedStudent.classId, selectedStudent.id)
+          }
+          onQuickAddGhost={() =>
+            quickAddGhost(selectedStudent.classId, selectedStudent.id)
+          }
+          onGiveCard={(cardId) =>
+            giveCardToStudent(
+              selectedStudent.classId,
+              selectedStudent.id,
+              cardId
+            )
+          }
+          onRemoveCard={(ownedId) =>
+            removeOwnedCard(
+              selectedStudent.classId,
+              selectedStudent.id,
+              ownedId
+            )
+          }
+          onRedeemIndividual={(rewardId) =>
+            redeemRewardIndividual(
+              selectedStudent.classId,
+              selectedStudent.id,
+              rewardId
+            )
+          }
+          onRedeemGroup={(rewardId, shares) =>
+            redeemRewardGroup(selectedStudent.classId, rewardId, shares)
+          }
+          onDeleteStudent={() =>
+            deleteStudent(selectedStudent.classId, selectedStudent.id)
+          }
+          onDeleteHistoryEntry={(historyId) =>
+            deleteRewardHistoryEntry(
+              selectedStudent.classId,
+              selectedStudent.id,
+              historyId
+            )
+          }
+          setShowCardPreview={(card) =>
+            setCardPreview({ ...card, isLibraryCard: true })
+          }
+        />
       )}
-
-    </div>
-  );
-}
-
-/* ------- Small helper components used above ------- */
-
-function CardCreateForm({ onCreate, fileRef }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [points, setPoints] = useState(1);
-  const [category, setCategory] = useState("points");
-  const [file, setFile] = useState(null);
-
-  function onFileChange(e) {
-    const f = e.target.files?.[0];
-    setFile(f || null);
-    if (fileRef) fileRef.current = e.target;
-  }
-
-  return (
-    <div>
-      <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: "100%", padding: 6, marginBottom: 6 }} />
-      <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} style={{ width: "100%", padding: 6, height: 70 }} />
-      <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center" }}>
-        <input type="number" value={points} onChange={(e) => setPoints(e.target.value)} style={{ width: 80, padding: 6 }} />
-        <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: 6 }}>
-          <option value="points">Points</option>
-          <option value="rewards">Rewards</option>
-          <option value="experience">Experience</option>
-        </select>
-        <input ref={fileRef} type="file" accept="image/*" onChange={onFileChange} />
-      </div>
-      <div style={{ marginTop: 8 }}>
-        <button className="btn primary" onClick={() => {
-          onCreate({ title, description, points, category, file });
-          setTitle(""); setDescription(""); setPoints(1); setCategory("points");
-          if (fileRef?.current) fileRef.current.value = "";
-        }}>Add card</button>
-      </div>
-    </div>
-  );
-}
-
-function RewardCreateForm({ cards, onCreate }) {
-  const [title, setTitle] = useState("");
-  const [cost, setCost] = useState(5);
-  const [cardId, setCardId] = useState(cards?.[0]?.id || "");
-
-  return (
-    <div>
-      <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: "100%", padding: 6, marginBottom: 6 }} />
-      <div style={{ display: "flex", gap: 8 }}>
-        <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} style={{ padding: 6, width: 80 }} />
-        <select value={cardId} onChange={(e) => setCardId(e.target.value)} style={{ flex: 1, padding: 6 }}>
-          <option value="">-- link card (optional) --</option>
-          {cards.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-        </select>
-      </div>
-      <div style={{ marginTop: 6 }}>
-        <button className="btn" onClick={() => {
-          onCreate({ title, cost, linkedCardId: cardId });
-          setTitle(""); setCost(5); setCardId("");
-        }}>Add reward</button>
-      </div>
     </div>
   );
 }
