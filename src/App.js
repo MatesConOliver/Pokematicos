@@ -717,11 +717,12 @@ export default function App() {
     );
   }
 
-  const filteredStudents = useMemo(() => {
+  const filteredStudents = (() => {
     const q = safeLower(studentFilter).trim();
     if (!q) return students;
     return students.filter((s) => safeLower(s.name).includes(q));
-  }, [students, studentFilter]);
+  })();
+
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 12 }}>
