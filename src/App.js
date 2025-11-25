@@ -1,5 +1,5 @@
 // src/App.js
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -12,6 +12,7 @@ import {
   onSnapshot,
   query,
   orderBy,
+  writeBatch,
 } from "firebase/firestore";
 import {
   getStorage,
@@ -20,7 +21,25 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 
-// Firebase config – keep your existing values here
+/**
+ * Pokemáticos — Firestore + Storage (single-file App.js)
+ *
+ * What this version adds back (from your old localStorage version) + fixes:
+ * - Guest vs Admin mode (guests cannot Manage; they can only view cards and open a Profile modal)
+ * - Student filter
+ * - Streak + Ghost + last-updated dates shown on student tiles (visible for guests)
+ * - Rewards redeem: choose Individual or Group BEFORE redeeming
+ *   - Group redeem lets you assign shares across students that MUST sum exactly to reward cost
+ * - Owned cards are grouped (×N). Remove all uses ONE confirm and ONE database update (no spam)
+ * - Library shows LOCKED card image; when you give a card to a student they receive UNLOCKED image
+ * - Giving a card is silent (no success alert)
+ *
+ * IMPORTANT SECURITY NOTE (guest profile customisation):
+ * Guests can edit profile emojis/background color without login in this UI.
+ * That requires Firestore rules to allow updating ONLY those fields,
+ * otherwise saving will fail. See rule note at the bottom.
+ */
+
 const firebaseConfig = {
   apiKey: "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
   authDomain: "pokematicos.firebaseapp.com",
@@ -36,896 +55,89 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-console.log("🔥 Firebase initialized");
-console.log("🔥 App name:", app.name);
-
 function uid(prefix = "id") {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-// -------------------- Small helper components -------------------- //
-
-function CardCreateForm({ onCreate, fileRef }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [points, setPoints] = useState(1);
-  const [category, setCategory] = useState("points");
-  const [lockedFile, setLockedFile] = useState(null);
-  const [unlockedFile, setUnlockedFile] = useState(null);
-
-  // extra ref just to clear the second input
-  const unlockedRef = React.useRef(null);
-
-  function onLockedChange(e) {
-    const f = e.target.files?.[0] || null;
-    setLockedFile(f);
-    if (fileRef) fileRef.current = e.target; // keep using external ref for this one
-  }
-
-  function onUnlockedChange(e) {
-    const f = e.target.files?.[0] || null;
-    setUnlockedFile(f);
-    unlockedRef.current = e.target;
-  }
-
-  function handleCreate() {
-    if (!title.trim()) {
-      alert("Title required");
-      return;
-    }
-
-    onCreate({
-      title,
-      description,
-      points,
-      category,
-      lockedFile,
-      unlockedFile,
-    });
-
-    setTitle("");
-    setDescription("");
-    setPoints(1);
-    setCategory("points");
-    setLockedFile(null);
-    setUnlockedFile(null);
-
-    if (fileRef?.current) fileRef.current.value = "";
-    if (unlockedRef.current) unlockedRef.current.value = "";
-  }
-
-  return (
-    <div>
-      <input
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        style={{ width: "100%", padding: 6, marginBottom: 6 }}
-      />
-      <textarea
-        placeholder="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        style={{ width: "100%", padding: 6, height: 70 }}
-      />
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          marginTop: 6,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <input
-          type="number"
-          value={points}
-          onChange={(e) => setPoints(e.target.value)}
-          style={{ width: 80, padding: 6 }}
-        />
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          style={{ padding: 6 }}
-        >
-          <option value="points">Points</option>
-          <option value="rewards">Rewards</option>
-          <option value="experience">Experience</option>
-        </select>
-      </div>
-
-      <div style={{ marginTop: 8, fontSize: 13 }}>
-        <div style={{ marginBottom: 4 }}>Locked card (grey with lock)</div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          onChange={onLockedChange}
-        />
-      </div>
-
-      <div style={{ marginTop: 8, fontSize: 13 }}>
-        <div style={{ marginBottom: 4 }}>Unlocked card (original/full colour)</div>
-        <input
-          ref={unlockedRef}
-          type="file"
-          accept="image/*"
-          onChange={onUnlockedChange}
-        />
-      </div>
-
-      <div style={{ marginTop: 8 }}>
-        <button className="btn primary" onClick={handleCreate}>
-          Add card
-        </button>
-      </div>
-    </div>
-  );
+function todayISODate() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-
-function RewardCreateForm({ cards, onCreate }) {
-  const [title, setTitle] = useState("");
-  const [cost, setCost] = useState(5);
-  const [cardId, setCardId] = useState(cards?.[0]?.id || "");
-
-  function handleCreate() {
-    if (!title.trim()) {
-      alert("Title required");
-      return;
-    }
-    onCreate({ title, cost, linkedCardId: cardId });
-    setTitle("");
-    setCost(5);
-    setCardId("");
-  }
-
-  return (
-    <div>
-      <input
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        style={{ width: "100%", padding: 6, marginBottom: 6 }}
-      />
-      <div style={{ display: "flex", gap: 8 }}>
-        <input
-          type="number"
-          value={cost}
-          onChange={(e) => setCost(e.target.value)}
-          style={{ padding: 6, width: 80 }}
-        />
-        <select
-          value={cardId}
-          onChange={(e) => setCardId(e.target.value)}
-          style={{ flex: 1, padding: 6 }}
-        >
-          <option value="">-- link card (optional) --</option>
-          {cards.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div style={{ marginTop: 6 }}>
-        <button className="btn" onClick={handleCreate}>
-          Add reward
-        </button>
-      </div>
-    </div>
-  );
+function safeLower(s) {
+  return (s || "").toString().toLowerCase();
 }
 
-function GroupRedeemInline({ reward, students, shares, setShares, onSubmit }) {
-  if (!reward) return null;
-
-  const totalShares = Object.values(shares).reduce(
-    (sum, val) => sum + (Number(val) || 0),
-    0
-  );
-
-  return (
-    <div
-      style={{
-        marginTop: 8,
-        borderTop: "1px dashed #ddd",
-        paddingTop: 8,
-        fontSize: 13,
-      }}
-    >
-      <div style={{ marginBottom: 8, color: "#555" }}>
-        Enter shares for group redemption (total must equal {reward.cost} pts)
-        {totalShares > 0 && (
-          <span
-            style={{
-              marginLeft: 8,
-              fontWeight: 600,
-              color: totalShares === reward.cost ? "#0a0" : "#f00",
-            }}
-          >
-            Current total: {totalShares}
-          </span>
-        )}
-      </div>
-      {students.map((s) => (
-        <div
-          key={s.id}
-          style={{
-            display: "flex",
-            gap: 8,
-            alignItems: "center",
-            marginTop: 4,
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            {s.name} (has {s.currentPoints || 0} pts)
-          </div>
-          <input
-            type="number"
-            min="0"
-            value={shares[s.id] ?? ""}
-            onChange={(e) => {
-              const val =
-                e.target.value === "" ? "" : Number(e.target.value || 0);
-              setShares((prev) => ({ ...prev, [s.id]: val }));
-            }}
-            style={{ width: 80, padding: 4 }}
-            placeholder="0"
-          />
-        </div>
-      ))}
-      <div style={{ marginTop: 8 }}>
-        <button className="btn" onClick={onSubmit}>
-          Confirm group redeem
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ManageStudentModal({
-  mode,
-  student,
-  studentsInClass,
-  cards,
-  rewards,
-  onClose,
-  onUpdate,
-  onAddQuickPoints,
-  onChangeMeter,
-  onResetStreak,
-  onQuickAddStreak,
-  onResetGhost,
-  onQuickAddGhost,
-  onGiveCard,
-  onRemoveCard,
-  onRedeemIndividual,
-  onRedeemGroup,
-  onDeleteStudent,
-  onDeleteHistoryEntry,
-  setShowCardPreview,
-}) {
-  const [redeemId, setRedeemId] = useState("");
-  const [groupShares, setGroupShares] = useState({});
-  const [name, setName] = useState(student.name);
-  const [currentPoints, setCurrentPoints] = useState(
-    student.currentPoints || 0
-  );
-  const [xp, setXp] = useState(student.xp || 0);
-
-  useEffect(() => {
-    setRedeemId("");
-    setGroupShares({});
-    setName(student.name);
-    setCurrentPoints(student.currentPoints || 0);
-    setXp(student.xp || 0);
-  }, [student.id]);
-
-  const selectedReward =
-    rewards.find((r) => r.id === redeemId) || null;
-
-  function handleSaveEdits() {
-    onUpdate({
-      name: name.trim() || student.name,
-      currentPoints: Number(currentPoints || 0),
-      xp: Number(xp || 0),
-    });
-  }
-
-  // group student cards by cardId to show counts
-  const cardGroups = {};
-  (student.cards || []).forEach((o) => {
-    if (!cardGroups[o.cardId]) {
-      cardGroups[o.cardId] = [];
-    }
-    cardGroups[o.cardId].push(o);
-  });
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <h3 style={{ margin: 0 }}>Manage: {student.name}</h3>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn" onClick={onClose}>
-              Close
-            </button>
-            {mode === "admin" && (
-              <button
-                className="btn"
-                onClick={() => {
-                  if (!window.confirm("Delete this student?")) return;
-                  onDeleteStudent();
-                }}
-              >
-                Delete student
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 340px",
-            gap: 12,
-            marginTop: 12,
-          }}
-        >
-          {/* LEFT SIDE: Points, XP, streak, ghost, edits, history */}
-          <div>
-            {/* Points & XP & meters */}
-            <div style={{ display: "flex", gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 12, color: "#666" }}>Points</div>
-                <div style={{ fontWeight: 700, fontSize: 20 }}>
-                  {student.currentPoints || 0} pts
-                </div>
-                {mode === "admin" && (
-                  <div style={{ marginTop: 6 }}>
-                    <button
-                      className="btn"
-                      onClick={() => onAddQuickPoints(1)}
-                    >
-                      +1
-                    </button>
-                    <button
-                      className="btn"
-                      onClick={() => onAddQuickPoints(5)}
-                      style={{ marginLeft: 6 }}
-                    >
-                      +5
-                    </button>
-                    <button
-                      className="btn"
-                      onClick={() => onAddQuickPoints(10)}
-                      style={{ marginLeft: 6 }}
-                    >
-                      +10
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, color: "#666" }}>
-                  Experience (XP)
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 20 }}>
-                  {student.xp || 0}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, color: "#666" }}>Streak</div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 6,
-                    alignItems: "center",
-                    marginTop: 4,
-                  }}
-                >
-                  <button
-                    className="btn"
-                    onClick={() => onChangeMeter("streak", -1)}
-                  >
-                    -
-                  </button>
-                  <div>{"🔥".repeat(student.streak || 0)}</div>
-                  <button
-                    className="btn"
-                    onClick={() => onChangeMeter("streak", +1)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 6,
-                    alignItems: "center",
-                    marginTop: 6,
-                  }}
-                >
-                  <button
-                    className="btn"
-                    style={{ fontSize: 11 }}
-                    onClick={onQuickAddStreak}
-                  >
-                    Quick +1
-                  </button>
-                  <button
-                    className="btn"
-                    style={{ fontSize: 11 }}
-                    onClick={onResetStreak}
-                  >
-                    Reset
-                  </button>
-                </div>
-                {student.streakLastUpdated && (
-                  <div
-                    style={{
-                      fontSize: 11,
-                      marginTop: 4,
-                      color:
-                        student.streakLastUpdated === todayStr
-                          ? "#0a0"
-                          : "#f00",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Last: {student.streakLastUpdated}
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "#666",
-                    marginTop: 8,
-                  }}
-                >
-                  Ghost assistance
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 6,
-                    alignItems: "center",
-                    marginTop: 4,
-                  }}
-                >
-                  <button
-                    className="btn"
-                    onClick={() => onChangeMeter("ghost", -1)}
-                  >
-                    -
-                  </button>
-                  <div>{"👻".repeat(student.ghost || 0)}</div>
-                  <button
-                    className="btn"
-                    onClick={() => onChangeMeter("ghost", +1)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 6,
-                    alignItems: "center",
-                    marginTop: 6,
-                  }}
-                >
-                  <button
-                    className="btn"
-                    style={{ fontSize: 11 }}
-                    onClick={onQuickAddGhost}
-                  >
-                    Quick +1
-                  </button>
-                  <button
-                    className="btn"
-                    style={{ fontSize: 11 }}
-                    onClick={onResetGhost}
-                  >
-                    Reset
-                  </button>
-                </div>
-                {student.ghostLastUpdated && (
-                  <div
-                    style={{
-                      fontSize: 11,
-                      marginTop: 4,
-                      color:
-                        student.ghostLastUpdated === todayStr
-                          ? "#00f"
-                          : "#f00",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Last: {student.ghostLastUpdated}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Edit basic fields */}
-            <div style={{ marginTop: 12 }}>
-              <h4>Edit student</h4>
-              <div style={{ display: "grid", gap: 6, maxWidth: 340 }}>
-                <div>
-                  <div style={{ fontSize: 12 }}>Name</div>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    style={{ width: "100%", padding: 6 }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12 }}>Current points</div>
-                  <input
-                    type="number"
-                    value={currentPoints}
-                    onChange={(e) => setCurrentPoints(e.target.value)}
-                    style={{ width: "100%", padding: 6 }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12 }}>XP (total)</div>
-                  <input
-                    type="number"
-                    value={xp}
-                    onChange={(e) => setXp(e.target.value)}
-                    style={{ width: "100%", padding: 6 }}
-                  />
-                </div>
-                <div>
-                  <button className="btn primary" onClick={handleSaveEdits}>
-                    Save edits
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Cards owned (grouped) */}
-            <div style={{ marginTop: 12 }}>
-              <h4>Cards owned</h4>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {Object.entries(cardGroups).map(([cardId, ownedCards]) => {
-                  const first = ownedCards[0];
-                  const cardMeta =
-                    cards.find((c) => c.id === cardId) || first || {};
-                  return (
-                    <div
-                      key={cardId}
-                      style={{
-                        border: "1px solid #eee",
-                        padding: 6,
-                        borderRadius: 6,
-                        width: 140,
-                      }}
-                    >
-                      {cardMeta.imageURL ? (
-                        <div style={{ position: "relative" }}>
-                          <img
-                            src={cardMeta.imageURL}
-                            alt={cardMeta.title}
-                            style={{
-                              width: "100%",
-                              height: 90,
-                              objectFit: "cover",
-                              borderRadius: 4,
-                              cursor: "pointer",
-                            }}
-                            onClick={() => setShowCardPreview(cardMeta)}
-                          />
-                          {ownedCards.length > 1 && (
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: 4,
-                                right: 4,
-                                background: "rgba(0,0,0,0.7)",
-                                color: "white",
-                                borderRadius: 12,
-                                padding: "2px 6px",
-                                fontSize: 11,
-                                fontWeight: 700,
-                              }}
-                            >
-                              ×{ownedCards.length}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div style={{ fontWeight: 600 }}>
-                          {cardMeta.title} ×{ownedCards.length}
-                        </div>
-                      )}
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "#666",
-                          marginTop: 4,
-                        }}
-                      >
-                        Count: {ownedCards.length}
-                      </div>
-                      {mode === "admin" && (
-                        <div
-                          style={{
-                            marginTop: 6,
-                            display: "flex",
-                            gap: 4,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <button
-                            className="btn"
-                            style={{ fontSize: 11 }}
-                            onClick={() =>
-                              onRemoveCard(ownedCards[0].id)
-                            }
-                          >
-                            Remove 1
-                          </button>
-                          {ownedCards.length > 1 && (
-                            <button
-                              className="btn"
-                              style={{ fontSize: 11 }}
-                              onClick={() => {
-                                if (
-                                  !window.confirm(
-                                    `Remove all ${ownedCards.length} copies?`
-                                  )
-                                )
-                                  return;
-                                ownedCards.forEach((o) =>
-                                  onRemoveCard(o.id)
-                                );
-                              }}
-                            >
-                              Remove all
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Rewards history */}
-            <div style={{ marginTop: 12 }}>
-              <h4>Rewards history</h4>
-              <div style={{ display: "grid", gap: 6 }}>
-                {(student.rewardsHistory || []).map((rh) => (
-                  <div
-                    key={rh.id}
-                    style={{
-                      border: "1px solid #eee",
-                      padding: 6,
-                      borderRadius: 6,
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>
-                      {rh.title} • {rh.cost} pts
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#666",
-                        marginTop: 2,
-                      }}
-                    >
-                      {rh.date?.slice(0, 19).replace("T", " ")}
-                    </div>
-                    {mode === "admin" && (
-                      <div style={{ marginTop: 6 }}>
-                        <button
-                          className="btn"
-                          onClick={() => {
-                            if (
-                              !window.confirm(
-                                "Delete this reward history entry?"
-                              )
-                            )
-                              return;
-                            onDeleteHistoryEntry(rh.id);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Redeem reward */}
-            <div style={{ marginTop: 12 }}>
-              <h4>Redeem reward</h4>
-              <div>
-                <select
-                  value={redeemId}
-                  onChange={(e) => {
-                    setRedeemId(e.target.value);
-                    setGroupShares({});
-                  }}
-                  style={{ padding: 6, minWidth: 220 }}
-                >
-                  <option value="">-- choose reward --</option>
-                  {rewards.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.title} (cost {r.cost})
-                    </option>
-                  ))}
-                </select>
-                <div style={{ marginTop: 8 }}>
-                  <button
-                    className="btn"
-                    onClick={() => {
-                      if (!redeemId) {
-                        alert("Choose a reward first.");
-                        return;
-                      }
-                      const choice = window.prompt(
-                        "Redeem individually or as group? Type I or G"
-                      );
-                      if (!choice) return;
-                      const upper = choice.toUpperCase();
-                      if (upper === "I") {
-                        onRedeemIndividual(redeemId);
-                      } else if (upper === "G") {
-                        // group view stays visible; user clicks Confirm
-                      } else {
-                        alert("Please type I or G.");
-                      }
-                    }}
-                  >
-                    Redeem
-                  </button>
-                </div>
-              </div>
-
-              {redeemId && (
-                <GroupRedeemInline
-                  reward={selectedReward}
-                  students={studentsInClass}
-                  shares={groupShares}
-                  setShares={setGroupShares}
-                  onSubmit={() => {
-                    if (!redeemId) {
-                      alert("Select reward first");
-                      return;
-                    }
-                    onRedeemGroup(redeemId, groupShares);
-                  }}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* RIGHT SIDE: Give card */}
-          <div>
-            <h4>Give card</h4>
-            <div style={{ display: "grid", gap: 8 }}>
-              {cards.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    border: "1px solid #eee",
-                    padding: 6,
-                    borderRadius: 6,
-                    display: "flex",
-                    gap: 8,
-                    alignItems: "center",
-                  }}
-                >
-                  <div
-                    style={{ width: 64, height: 80, overflow: "hidden" }}
-                    onClick={() => setShowCardPreview(c)}
-                  >
-                    {c.imageURL ? (
-                      <img
-                        src={c.imageURL}
-                        alt={c.title}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                      />
-                    ) : (
-                      <div style={{ padding: 6 }}>{c.title}</div>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700 }}>{c.title}</div>
-                    <div className="muted">{c.description}</div>
-                    <div
-                      style={{
-                        marginTop: 4,
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {c.points || 0} pts • {c.category || "points"}
-                    </div>
-                  </div>
-                  {mode === "admin" && (
-                    <div>
-                      <button
-                        className="btn"
-                        onClick={() => onGiveCard(c.id)}
-                      >
-                        Give
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// -------------------- Main App -------------------- //
+const PASTEL_COLORS = [
+  { name: "Mint", value: "#D1FAE5" },
+  { name: "Sky", value: "#DBEAFE" },
+  { name: "Lavender", value: "#EDE9FE" },
+  { name: "Peach", value: "#FFEDD5" },
+  { name: "Rose", value: "#FFE4E6" },
+  { name: "Lemon", value: "#FEF9C3" },
+  { name: "Aqua", value: "#CFFAFE" },
+  { name: "Sand", value: "#F5F5DC" },
+];
 
 export default function App() {
+  // ----- Mode -----
   const [mode, setMode] = useState(null); // null | "admin" | "reader"
-
   function enterAdmin() {
-    const p = window.prompt("Enter admin password:");
+    const p = prompt("Enter admin password:");
     if (p === "cartas") setMode("admin");
-    else if (p !== null) window.alert("Wrong password");
+    else if (p !== null) alert("Wrong password");
   }
   function enterReader() {
     setMode("reader");
   }
 
-  // Firestore-backed state
+  // ----- Data -----
   const [classesList, setClassesList] = useState([]);
-  const [loadingClasses, setLoadingClasses] = useState(true);
   const [activeClassId, setActiveClassId] = useState(null);
 
   const [students, setStudents] = useState([]);
   const [cards, setCards] = useState([]);
   const [rewards, setRewards] = useState([]);
 
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [loadingCards, setLoadingCards] = useState(false);
   const [loadingRewards, setLoadingRewards] = useState(false);
 
-  // UI state
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [cardPreview, setCardPreview] = useState(null);
-  const [libraryTab, setLibraryTab] = useState("points");
+  // ----- UI -----
   const [errorMsg, setErrorMsg] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
+  const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience
+  const [cardPreview, setCardPreview] = useState(null);
 
-  // refs
-  const newStudentRef = useRef();
-  const newClassRef = useRef();
-  const cardFileRef = useRef();
+  // Admin manage modal selection (admin-only)
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
 
-  // Subscribe to classes
+  // Profile modal selection (guest + admin)
+  const [profileStudentId, setProfileStudentId] = useState(null);
+
+  const newClassNameRef = useRef(null);
+  const newStudentRef = useRef(null);
+
+  // two file inputs for cards
+  const lockedFileInputRef = useRef(null);
+  const unlockedFileInputRef = useRef(null);
+
+  const activeClass = useMemo(
+    () => classesList.find((c) => c.id === activeClassId) || null,
+    [classesList, activeClassId]
+  );
+
+  const selectedStudent = useMemo(
+    () => students.find((s) => s.id === selectedStudentId) || null,
+    [students, selectedStudentId]
+  );
+
+  const profileStudent = useMemo(
+    () => students.find((s) => s.id === profileStudentId) || null,
+    [students, profileStudentId]
+  );
+
+  // ----- Subscribe: classes -----
   useEffect(() => {
     setLoadingClasses(true);
     const q = query(collection(db, "classes"), orderBy("createdAt", "desc"));
@@ -933,18 +145,14 @@ export default function App() {
       q,
       (snap) => {
         const arr = [];
-        snap.forEach((docSnap) => {
-          arr.push({ id: docSnap.id, ...docSnap.data() });
-        });
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
         setClassesList(arr);
         setLoadingClasses(false);
-        if (!activeClassId && arr.length) {
-          setActiveClassId((prev) => prev || arr[0].id);
-        }
+        if (!activeClassId && arr.length) setActiveClassId(arr[0].id);
       },
       (err) => {
         console.error("Failed loading classes:", err);
-        setErrorMsg("Failed to load classes from Firestore. Check console.");
+        setErrorMsg("Failed to load classes. Check console.");
         setLoadingClasses(false);
       }
     );
@@ -952,7 +160,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to students/cards/rewards for active class
+  // ----- Subscribe: class subcollections -----
   useEffect(() => {
     if (!activeClassId) {
       setStudents([]);
@@ -961,16 +169,14 @@ export default function App() {
       return;
     }
 
-    // students
+    setErrorMsg("");
+
     setLoadingStudents(true);
-    const studentsCol = collection(db, `classes/${activeClassId}/students`);
     const unsubStudents = onSnapshot(
-      query(studentsCol, orderBy("name")),
+      query(collection(db, `classes/${activeClassId}/students`), orderBy("name")),
       (snap) => {
         const arr = [];
-        snap.forEach((s) =>
-          arr.push({ id: s.id, ...s.data(), classId: activeClassId })
-        );
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
         setStudents(arr);
         setLoadingStudents(false);
       },
@@ -981,14 +187,13 @@ export default function App() {
       }
     );
 
-    // cards
     setLoadingCards(true);
-    const cardsCol = collection(db, `classes/${activeClassId}/cards`);
     const unsubCards = onSnapshot(
-      query(cardsCol, orderBy("createdAt", "asc")),
+      // Oldest -> newest (as you asked): top to bottom = old to new
+      query(collection(db, `classes/${activeClassId}/cards`), orderBy("createdAt", "asc")),
       (snap) => {
         const arr = [];
-        snap.forEach((s) => arr.push({ id: s.id, ...s.data() }));
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
         setCards(arr);
         setLoadingCards(false);
       },
@@ -999,14 +204,12 @@ export default function App() {
       }
     );
 
-    // rewards
     setLoadingRewards(true);
-    const rewardsCol = collection(db, `classes/${activeClassId}/rewards`);
     const unsubRewards = onSnapshot(
-      query(rewardsCol, orderBy("createdAt", "asc")),
+      query(collection(db, `classes/${activeClassId}/rewards`), orderBy("title")),
       (snap) => {
         const arr = [];
-        snap.forEach((s) => arr.push({ id: s.id, ...s.data() }));
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
         setRewards(arr);
         setLoadingRewards(false);
       },
@@ -1024,54 +227,45 @@ export default function App() {
     };
   }, [activeClassId]);
 
-  // Keep selectedStudent in sync with latest Firestore data
-  useEffect(() => {
-    if (!selectedStudent) return;
-    const fresh = students.find((s) => s.id === selectedStudent.id);
-    if (fresh) {
-      setSelectedStudent((prev) => (prev ? { ...prev, ...fresh } : prev));
-    }
-  }, [students]);
-
+  // ----- Guards -----
   function ensureClassSelected() {
     if (!activeClassId) {
-      window.alert("Please select or create a class first.");
+      alert("Please select or create a class first.");
       return false;
     }
     return true;
   }
 
-  // ----- Class CRUD -----
-
+  // ----- Class actions -----
   async function createClass(name) {
     if (!name?.trim()) return;
     try {
       const payload = { name: name.trim(), createdAt: Date.now() };
       const ref = await addDoc(collection(db, "classes"), payload);
       setActiveClassId(ref.id);
-      if (newClassRef.current) newClassRef.current.value = "";
     } catch (err) {
-      console.error(err);
-      window.alert("Failed to create class.");
+      console.error("createClass err:", err);
+      alert("Failed to create class.");
     }
   }
 
-  async function editClassName(classId, newName) {
+  async function editClassName(classId) {
+    const cls = classesList.find((c) => c.id === classId);
+    if (!cls) return;
+    const newName = prompt("New class name:", cls.name || "");
     if (!newName?.trim()) return;
     try {
-      await updateDoc(doc(db, `classes/${classId}`), {
-        name: newName.trim(),
-      });
+      await updateDoc(doc(db, `classes/${classId}`), { name: newName.trim() });
     } catch (err) {
       console.error(err);
-      window.alert("Could not rename class.");
+      alert("Could not rename class.");
     }
   }
 
   async function removeClass(classId) {
     if (
       !window.confirm(
-        "Delete this class and all its students/cards/rewards? (subcollections may remain in Firestore unless cleaned manually)"
+        "Delete this class? (Subcollections won't be deleted automatically)"
       )
     )
       return;
@@ -1080,44 +274,52 @@ export default function App() {
       if (activeClassId === classId) setActiveClassId(null);
     } catch (err) {
       console.error(err);
-      window.alert("Failed to remove class.");
+      alert("Failed to delete class.");
     }
   }
 
-  // ----- Students -----
-
+  // ----- Student actions -----
   async function addStudent(name) {
     if (!ensureClassSelected()) return;
     if (!name?.trim()) return;
+
     try {
       const payload = {
-        name,
-        avatar: "",
+        name: name.trim(),
+        // profile cosmetics
+        nameEmojis: "",
+        profileColor: "",
+        // points / xp
         currentPoints: 0,
         cumulativePoints: 0,
-        // streak / ghost meters
+        xp: 0,
+        // meters
         streak: 0,
         streakLastUpdated: "",
         ghost: 0,
         ghostLastUpdated: "",
-        lastActive: null,
-        cards: [], // optional local metadata
+        // inventory / history
+        cards: [],
+        rewardsHistory: [],
+        createdAt: Date.now(),
       };
-
       await addDoc(collection(db, `classes/${activeClassId}/students`), payload);
       if (newStudentRef.current) newStudentRef.current.value = "";
     } catch (err) {
       console.error(err);
-      window.alert("Failed to add student.");
+      alert("Failed to add student.");
     }
   }
 
   async function editStudent(classId, studentId, updates) {
     try {
-      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), updates);
+      await updateDoc(
+        doc(db, `classes/${classId}/students/${studentId}`),
+        updates
+      );
     } catch (err) {
       console.error(err);
-      window.alert("Failed saving student changes.");
+      alert("Failed saving student changes.");
     }
   }
 
@@ -1125,113 +327,62 @@ export default function App() {
     if (!window.confirm("Delete this student?")) return;
     try {
       await deleteDoc(doc(db, `classes/${classId}/students/${studentId}`));
-      if (selectedStudent?.id === studentId) setSelectedStudent(null);
+      setSelectedStudentId(null);
+      setProfileStudentId(null);
     } catch (err) {
       console.error(err);
-      window.alert("Failed to delete student.");
+      alert("Failed to delete student.");
     }
   }
 
-  async function setStudentTotalPoints(classId, studentId, totalPoints) {
+  // Profile cosmetics (guest allowed if rules permit)
+  async function saveStudentProfileCosmetics(
+    classId,
+    studentId,
+    { nameEmojis, profileColor }
+  ) {
+    const safeEmojis = (nameEmojis || "").toString().slice(0, 12);
+    const safeColor = (profileColor || "").toString();
     try {
       await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
-        cumulativePoints: Number(totalPoints || 0),
+        nameEmojis: safeEmojis,
+        profileColor: safeColor,
       });
     } catch (err) {
       console.error(err);
-      window.alert("Failed to set total points.");
+      alert("Could not save profile. (Check Firestore rules)");
     }
   }
 
-  async function addQuickPoints(classId, studentId, amount) {
-    try {
-      const ref = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) return;
-      const s = snap.data();
-      const currentPoints = (s.currentPoints || 0) + Number(amount || 0);
-      await updateDoc(ref, { currentPoints });
-    } catch (err) {
-      console.error(err);
-      window.alert("Failed to add quick points.");
-    }
-  }
-
+  // meters
   async function changeMeter(classId, studentId, meter, delta) {
-    try {
-      const ref = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) return;
-      const s = snap.data();
-      const before = s[meter] || 0;
-      let after = before + delta;
-      if (after < 0) after = 0;
-      if (after > 5) after = 5;
-      const updates = { [meter]: after };
-      const today = new Date().toISOString().slice(0, 10);
-      if (delta > 0) {
-        if (meter === "streak") updates.streakLastUpdated = today;
-        if (meter === "ghost") updates.ghostLastUpdated = today;
-      }
-      await updateDoc(ref, updates);
-    } catch (err) {
-      console.error(err);
-      window.alert("Failed to change meter.");
+    const st = students.find((s) => s.id === studentId);
+    if (!st) return;
+    const before = Number(st[meter] || 0);
+    let after = before + delta;
+    if (after < 0) after = 0;
+    if (after > 5) after = 5;
+
+    const updates = { [meter]: after };
+
+    // update date only when increased
+    if (delta > 0) {
+      if (meter === "streak") updates.streakLastUpdated = todayISODate();
+      if (meter === "ghost") updates.ghostLastUpdated = todayISODate();
     }
+
+    await editStudent(classId, studentId, updates);
   }
 
-  async function resetStreak(classId, studentId) {
-    if (!window.confirm("Reset this student's streak to 0?")) return;
-    try {
-      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
-        streak: 0,
-        streakLastUpdated: "",
-      });
-    } catch (err) {
-      console.error(err);
-      window.alert("Failed to reset streak.");
-    }
+  async function resetMeter(classId, studentId, meter) {
+    if (!window.confirm(`Reset ${meter} to 0?`)) return;
+    const updates = { [meter]: 0 };
+    if (meter === "streak") updates.streakLastUpdated = "";
+    if (meter === "ghost") updates.ghostLastUpdated = "";
+    await editStudent(classId, studentId, updates);
   }
 
-  async function quickAddStreak(classId, studentId) {
-    await changeMeter(classId, studentId, "streak", 1);
-  }
-
-  async function resetGhost(classId, studentId) {
-    if (!window.confirm("Reset this student's ghost assistance to 0?")) return;
-    try {
-      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
-        ghost: 0,
-        ghostLastUpdated: "",
-      });
-    } catch (err) {
-      console.error(err);
-      window.alert("Failed to reset ghost.");
-    }
-  }
-
-  async function quickAddGhost(classId, studentId) {
-    await changeMeter(classId, studentId, "ghost", 1);
-  }
-
-  async function deleteRewardHistoryEntry(classId, studentId, historyId) {
-    try {
-      const ref = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) return;
-      const s = snap.data();
-      const newHistory = (s.rewardsHistory || []).filter(
-        (x) => x.id !== historyId
-      );
-      await updateDoc(ref, { rewardsHistory: newHistory });
-    } catch (err) {
-      console.error(err);
-      window.alert("Failed to delete history entry.");
-    }
-  }
-
-  // ----- Cards & rewards -----
-
+  // ----- Cards: locked + unlocked -----
   async function createCard({
     title,
     description,
@@ -1242,19 +393,14 @@ export default function App() {
   }) {
     if (!ensureClassSelected()) return;
     if (!title?.trim()) {
-      window.alert("Card title required");
+      alert("Card title required");
       return;
     }
 
-    // You can require both if you want:
-    // if (!lockedFile || !unlockedFile) { alert("Please select both locked and unlocked images"); return; }
-
     try {
+      const baseKey = uid("card");
       let lockedImageURL = "";
       let unlockedImageURL = "";
-
-      // Use one common random id so the files are grouped
-      const baseKey = uid("card");
 
       if (lockedFile) {
         const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(
@@ -1282,48 +428,98 @@ export default function App() {
         unlockedImageURL = await getDownloadURL(snapUnlocked.ref);
       }
 
-      // Fallback: if only one was provided, use it for both fields
-      if (!unlockedImageURL && lockedImageURL) {
-        unlockedImageURL = lockedImageURL;
-      }
-      if (!lockedImageURL && unlockedImageURL) {
-        lockedImageURL = unlockedImageURL;
-      }
+      // fallback: if only one image provided
+      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
+      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
 
       const payload = {
         title: title.trim(),
         description: description || "",
         points: Number(points) || 0,
         category: category || "points",
-        // unlocked version used for students
+        // unlocked in imageURL, locked in lockedImageURL
         imageURL: unlockedImageURL,
-        // locked version used in library
         lockedImageURL,
         createdAt: Date.now(),
       };
 
       await addDoc(collection(db, `classes/${activeClassId}/cards`), payload);
+
+      // clear file inputs
+      if (lockedFileInputRef.current) lockedFileInputRef.current.value = "";
+      if (unlockedFileInputRef.current) unlockedFileInputRef.current.value = "";
     } catch (err) {
       console.error("createCard err:", err);
-      window.alert("Failed to add card. Check Storage permissions or console.");
+      alert("Failed to add card. Check Storage permissions or console.");
     }
   }
 
   async function deleteCard(cardId) {
-    if (
-      !window.confirm(
-        "Delete this library card? This will not remove copies already owned by students."
-      )
-    )
-      return;
+    if (!window.confirm("Delete this library card?")) return;
     try {
       await deleteDoc(doc(db, `classes/${activeClassId}/cards/${cardId}`));
     } catch (err) {
       console.error(err);
-      window.alert("Failed to delete card.");
+      alert("Failed to delete card.");
     }
   }
 
+  // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
+  async function giveCardToStudent(classId, studentId, cardId) {
+    try {
+      const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
+      if (!cardSnap.exists()) return alert("Card not found");
+      const cardData = cardSnap.data();
+
+      if ((cardData.category || "points") === "rewards") return; // not eligible
+
+      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+      const studentSnap = await getDoc(studentRef);
+      if (!studentSnap.exists()) return alert("Student not found");
+      const sdata = studentSnap.data();
+
+      const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
+      cardsArr.push({
+        id: uid("owned"),
+        cardId,
+        title: cardData.title,
+        imageURL: cardData.imageURL || "",
+        grantedAt: new Date().toISOString(),
+        pointsGranted: cardData.points || 0,
+      });
+
+      const currentPoints = (sdata.currentPoints || 0) + (cardData.points || 0);
+      const cumulativePoints = (sdata.cumulativePoints || 0) + (cardData.points || 0);
+
+      await updateDoc(studentRef, {
+        cards: cardsArr,
+        currentPoints,
+        cumulativePoints,
+      });
+      // ✅ no success alert
+    } catch (err) {
+      console.error(err);
+      alert("Failed to give card.");
+    }
+  }
+
+  // Owned cards removal (bulk) - ONE updateDoc
+  async function removeOwnedCardsBulk(classId, studentId, ownedIds) {
+    if (!ownedIds?.length) return;
+    try {
+      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+      const snap = await getDoc(studentRef);
+      if (!snap.exists()) return;
+      const sdata = snap.data();
+      const nextCards = (sdata.cards || []).filter((c) => !ownedIds.includes(c.id));
+      await updateDoc(studentRef, { cards: nextCards });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove cards.");
+    }
+  }
+
+  // ----- Rewards -----
   async function createReward({ title, cost, linkedCardId }) {
     if (!ensureClassSelected()) return;
     if (!title?.trim()) return;
@@ -1337,7 +533,7 @@ export default function App() {
       await addDoc(collection(db, `classes/${activeClassId}/rewards`), payload);
     } catch (err) {
       console.error(err);
-      window.alert("Failed to create reward.");
+      alert("Failed to create reward.");
     }
   }
 
@@ -1347,188 +543,124 @@ export default function App() {
       await deleteDoc(doc(db, `classes/${activeClassId}/rewards/${rewardId}`));
     } catch (err) {
       console.error(err);
-      window.alert("Failed to delete reward.");
+      alert("Failed to delete reward.");
     }
   }
 
-  // ----- Give / remove cards to/from students -----
-
-  async function giveCardToStudent(classId, studentId, cardId) {
-    try {
-      const cardRef = doc(db, `classes/${classId}/cards/${cardId}`);
-      const cardSnap = await getDoc(cardRef);
-      if (!cardSnap.exists()) {
-        window.alert("Card not found");
-        return;
-      }
-      const cardData = cardSnap.data();
-
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const studentSnap = await getDoc(studentRef);
-      if (!studentSnap.exists()) {
-        window.alert("Student not found");
-        return;
-      }
-      const s = studentSnap.data();
-      const cardsArr = Array.isArray(s.cards) ? [...s.cards] : [];
-      const owned = {
-        id: uid("owned"),
-        cardId,
-        title: cardData.title,
-        imageURL: cardData.imageURL || "",
-        grantedAt: new Date().toISOString(),
-        pointsGranted: cardData.points || 0,
-      };
-      cardsArr.push(owned);
-      const currentPoints = (s.currentPoints || 0) + (cardData.points || 0);
-      const cumulativePoints =
-        (s.cumulativePoints || 0) + (cardData.points || 0);
-      await updateDoc(studentRef, {
-        cards: cardsArr,
-        currentPoints,
-        cumulativePoints,
-      });
-      window.alert(`Gave ${cardData.title} to ${s.name}.`);
-    } catch (err) {
-      console.error(err);
-      window.alert("Failed to give card.");
-    }
-  }
-
-  async function removeOwnedCard(classId, studentId, ownedId) {
-    if (!window.confirm("Remove this card from the student?")) return;
-    try {
-      const ref = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) return;
-      const s = snap.data();
-      const cardsArr = (s.cards || []).filter((c) => c.id !== ownedId);
-      await updateDoc(ref, { cards: cardsArr });
-    } catch (err) {
-      console.error(err);
-      window.alert("Failed to remove card.");
-    }
-  }
-
-  // ----- Rewards redeem (individual + group) -----
-
+  // Redeem: individual
   async function redeemRewardIndividual(classId, studentId, rewardId) {
     try {
-      const rewardRef = doc(db, `classes/${classId}/rewards/${rewardId}`);
-      const rewardSnap = await getDoc(rewardRef);
-      if (!rewardSnap.exists()) {
-        window.alert("Reward not found");
-        return;
-      }
+      const rewardSnap = await getDoc(doc(db, `classes/${classId}/rewards/${rewardId}`));
+      if (!rewardSnap.exists()) return alert("Reward not found");
       const r = rewardSnap.data();
 
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const sSnap = await getDoc(studentRef);
-      if (!sSnap.exists()) {
-        window.alert("Student not found");
-        return;
-      }
+      if (!sSnap.exists()) return alert("Student not found");
       const s = sSnap.data();
-      if ((s.currentPoints || 0) < r.cost) {
-        window.alert("Student does not have enough points");
-        return;
+
+      if ((s.currentPoints || 0) < r.cost) return alert("Not enough points");
+
+      // optional linked card grant (unlocked image used)
+      let linkedCard = null;
+      if (r.cardId) {
+        const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${r.cardId}`));
+        if (cardSnap.exists()) linkedCard = { id: r.cardId, ...cardSnap.data() };
       }
 
       const newCurrent = (s.currentPoints || 0) - r.cost;
       const newXP = (s.xp || 0) + r.cost;
+      const now = new Date().toISOString();
 
-      const history = [
+      const newHistory = [
         ...(s.rewardsHistory || []),
         {
           id: uid("rh"),
           rewardId,
           title: r.title,
           cost: r.cost,
-          date: new Date().toISOString(),
+          date: now,
           students: [studentId],
+          mode: "individual",
         },
       ];
 
       const newCards = [...(s.cards || [])];
-      if (r.cardId) {
-        const cardRef2 = doc(db, `classes/${classId}/cards/${r.cardId}`);
-        const cardSnap2 = await getDoc(cardRef2);
-        if (cardSnap2.exists()) {
-          const cardData = cardSnap2.data();
-          newCards.push({
-            id: uid("owned"),
-            cardId: r.cardId,
-            title: cardData.title,
-            imageURL: cardData.imageURL || "",
-            grantedAt: new Date().toISOString(),
-          });
-        }
+      if (linkedCard) {
+        newCards.push({
+          id: uid("owned"),
+          cardId: r.cardId,
+          title: linkedCard.title,
+          imageURL: linkedCard.imageURL || "",
+          grantedAt: now,
+        });
       }
 
       await updateDoc(studentRef, {
         currentPoints: newCurrent,
         xp: newXP,
-        rewardsHistory: history,
+        rewardsHistory: newHistory,
         cards: newCards,
       });
-      window.alert("Reward redeemed.");
     } catch (err) {
       console.error(err);
-      window.alert("Failed to redeem reward.");
+      alert("Failed to redeem reward.");
     }
   }
 
-  async function redeemRewardGroup(classId, rewardId, shares) {
+  // Redeem: group (shares sum must equal cost). Applies to all participants: subtract share, add XP share, add history entry, grant linked card.
+  async function redeemRewardGroup(classId, rewardId, sharesMap) {
     try {
-      const rewardRef = doc(db, `classes/${classId}/rewards/${rewardId}`);
-      const rewardSnap = await getDoc(rewardRef);
-      if (!rewardSnap.exists()) {
-        window.alert("Reward not found");
-        return;
-      }
+      const rewardSnap = await getDoc(doc(db, `classes/${classId}/rewards/${rewardId}`));
+      if (!rewardSnap.exists()) return alert("Reward not found");
       const r = rewardSnap.data();
 
-      const sum = Object.values(shares).reduce(
-        (a, b) => a + Number(b || 0),
-        0
-      );
-      if (sum !== r.cost) {
-        window.alert(
-          `Sum of shares is ${sum} but reward costs ${r.cost}. Please adjust.`
-        );
+      const entries = Object.entries(sharesMap || {}).map(([sid, val]) => [sid, Number(val || 0)]);
+      const participants = entries.filter(([, val]) => val > 0);
+
+      const sum = participants.reduce((acc, [, val]) => acc + val, 0);
+      if (sum !== Number(r.cost || 0)) {
+        alert(`The total is ${sum} but must be exactly ${r.cost}.`);
+        return;
+      }
+      if (!participants.length) {
+        alert("Add at least one student with a share > 0.");
         return;
       }
 
-      // validate points using local students state
+      // validate points (using current local snapshot values)
       const lacking = [];
-      Object.entries(shares).forEach(([sid, share]) => {
-        const amount = Number(share || 0);
-        if (amount <= 0) return;
+      for (const [sid, share] of participants) {
         const st = students.find((s) => s.id === sid);
-        if (!st || (st.currentPoints || 0) < amount) {
-          lacking.push(st ? st.name : sid);
-        }
-      });
+        if (!st) continue;
+        if ((st.currentPoints || 0) < share) lacking.push(st.name);
+      }
       if (lacking.length) {
-        window.alert(
-          `These students lack enough points: ${lacking.join(", ")}`
-        );
+        alert(`These students do not have enough points: ${lacking.join(", ")}`);
         return;
       }
 
-      const now = new Date().toISOString();
+      // optional linked card grant
+      let linkedCard = null;
+      if (r.cardId) {
+        const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${r.cardId}`));
+        if (cardSnap.exists()) linkedCard = { id: r.cardId, ...cardSnap.data() };
+      }
 
-      // apply updates to each student
-      for (const [sid, val] of Object.entries(shares)) {
-        const share = Number(val || 0);
-        if (share <= 0) continue;
+      const batch = writeBatch(db);
+      const now = new Date().toISOString();
+      const participantIds = participants.map(([sid]) => sid);
+
+      for (const [sid, share] of participants) {
         const st = students.find((s) => s.id === sid);
         if (!st) continue;
 
         const studentRef = doc(db, `classes/${classId}/students/${sid}`);
+
         const newCurrent = (st.currentPoints || 0) - share;
         const newXP = (st.xp || 0) + share;
-        const history = [
+
+        const newHistory = [
           ...(st.rewardsHistory || []),
           {
             id: uid("rh"),
@@ -1536,52 +668,42 @@ export default function App() {
             title: r.title,
             cost: share,
             date: now,
-            students: Object.keys(shares),
+            students: participantIds,
+            mode: "group",
           },
         ];
+
         const newCards = [...(st.cards || [])];
-        if (r.cardId) {
-          const cardRef2 = doc(db, `classes/${classId}/cards/${r.cardId}`);
-          const cardSnap2 = await getDoc(cardRef2);
-          if (cardSnap2.exists()) {
-            const cardData = cardSnap2.data();
-            newCards.push({
-              id: uid("owned"),
-              cardId: r.cardId,
-              title: cardData.title,
-              imageURL: cardData.imageURL || "",
-              grantedAt: now,
-            });
-          }
+        if (linkedCard) {
+          newCards.push({
+            id: uid("owned"),
+            cardId: r.cardId,
+            title: linkedCard.title,
+            imageURL: linkedCard.imageURL || "",
+            grantedAt: now,
+          });
         }
 
-        await updateDoc(studentRef, {
+        batch.update(studentRef, {
           currentPoints: newCurrent,
           xp: newXP,
-          rewardsHistory: history,
+          rewardsHistory: newHistory,
           cards: newCards,
         });
       }
 
-      window.alert("Group reward redeemed.");
+      await batch.commit();
     } catch (err) {
       console.error(err);
-      window.alert("Failed to redeem group reward.");
+      alert("Failed group redeem.");
     }
   }
 
-  // ---------- First screen (mode selector) ----------
-
+  // ----- Mode chooser -----
   if (!mode) {
     return (
-      <div
-        style={{
-          fontFamily: "Inter, system-ui, sans-serif",
-          padding: 24,
-          maxWidth: 520,
-        }}
-      >
-        <h1>Mis logros Pokemáticos</h1>
+      <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 24 }}>
+        <h1 style={{ marginTop: 0 }}>Mis logros Pokemáticos</h1>
         <p style={{ marginTop: 8 }}>¿Cómo entras a la app?</p>
         <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
           <button className="btn primary" onClick={enterAdmin}>
@@ -1591,31 +713,28 @@ export default function App() {
             Soy estudiante / invitado
           </button>
         </div>
-        <p className="muted" style={{ marginTop: 16 }}>
-          Admin puede crear clases, alumnos, cartas y recompensas. Estudiante /
-          invitado solo ve la información.
-        </p>
       </div>
     );
   }
 
-  // ---------- Main layout ----------
+  const filteredStudents = useMemo(() => {
+    const q = safeLower(studentFilter).trim();
+    if (!q) return students;
+    return students.filter((s) => safeLower(s.name).includes(q));
+  }, [students, studentFilter]);
 
   return (
-    <div
-      style={{
-        fontFamily: "Inter, system-ui, sans-serif",
-        padding: 12,
-      }}
-    >
+    <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 12 }}>
       <style>{`
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
-        .card-thumb:hover { transform: scale(1.18); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
+        .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
-        .modal { background: white; border-radius: 8px; padding: 12px; max-width: 960px; width: 94%; max-height: 90vh; overflow:auto; }
+        .modal { background: white; border-radius: 10px; padding: 12px; max-width: 980px; width: 92%; max-height: 90vh; overflow:auto; }
         .muted { color: #666; font-size: 13px; }
-        .btn { padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; background: white; cursor:pointer; font-size: 13px; }
+        .btn { padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor:pointer; }
         .btn.primary { background: #2563eb; color: white; border: none; }
+        .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; border: 1px solid #e5e7eb; }
+        input, textarea, select { font-family: inherit; }
       `}</style>
 
       <header
@@ -1624,18 +743,16 @@ export default function App() {
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: 12,
+          gap: 12,
         }}
       >
         <div>
           <h1 style={{ margin: 0 }}>Mis logros Pokemáticos — Manager</h1>
           <div style={{ color: "#555" }}>
-            {mode === "admin"
-              ? "Admin mode"
-              : mode === "reader"
-              ? "Student/Guest mode"
-              : "Mode"}
+            {mode === "admin" ? "Admin mode" : "Guest mode"}
           </div>
         </div>
+
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button className="btn" onClick={() => setMode(null)}>
             Cambiar rol
@@ -1647,62 +764,35 @@ export default function App() {
         <div style={{ marginBottom: 12, color: "crimson" }}>{errorMsg}</div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "260px 1fr 360px",
-          gap: 14,
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 360px", gap: 14 }}>
         {/* LEFT: Classes */}
-        <aside
-          style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}
-        >
+        <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
           <h3 style={{ marginTop: 0 }}>Classes</h3>
+
           {loadingClasses ? (
             <div className="muted">Loading classes...</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          ) : classesList.length ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {classesList.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
+                <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button
                     className="btn"
                     style={{
                       flex: 1,
                       textAlign: "left",
-                      background:
-                        c.id === activeClassId ? "#eef" : "transparent",
+                      background: c.id === activeClassId ? "#eef" : "white",
                     }}
                     onClick={() => setActiveClassId(c.id)}
                   >
                     {c.name}
                   </button>
+
                   {mode === "admin" && (
                     <>
-                      <button
-                        className="btn"
-                        onClick={() => {
-                          const newName = window.prompt(
-                            "New class name",
-                            c.name
-                          );
-                          if (newName) editClassName(c.id, newName);
-                        }}
-                      >
+                      <button className="btn" onClick={() => editClassName(c.id)}>
                         Edit
                       </button>
-                      <button
-                        className="btn"
-                        onClick={() => removeClass(c.id)}
-                      >
+                      <button className="btn" onClick={() => removeClass(c.id)}>
                         Delete
                       </button>
                     </>
@@ -1710,22 +800,26 @@ export default function App() {
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="muted">No classes yet</div>
           )}
 
           {mode === "admin" && (
-            <div style={{ marginTop: 12 }}>
-              <h4 style={{ marginTop: 0 }}>Add class</h4>
-              <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ margin: "10px 0" }}>Add class</h4>
+              <div style={{ display: "flex", gap: 8 }}>
                 <input
-                  ref={newClassRef}
+                  ref={newClassNameRef}
                   placeholder="Class name"
-                  style={{ flex: 1, padding: 6 }}
+                  style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
                 />
                 <button
                   className="btn primary"
                   onClick={() => {
-                    const name = newClassRef.current?.value;
+                    const name = newClassNameRef.current?.value?.trim();
+                    if (!name) return alert("Enter class name");
                     createClass(name);
+                    if (newClassNameRef.current) newClassNameRef.current.value = "";
                   }}
                 >
                   Create
@@ -1736,558 +830,240 @@ export default function App() {
         </aside>
 
         {/* MIDDLE: Students */}
-        <main
-          style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <h3 style={{ margin: 0 }}>
-              {classesList.find((c) => c.id === activeClassId)?.name ||
-                "Select a class"}
-            </h3>
-            <div
+        <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <h3 style={{ margin: 0 }}>{activeClass?.name || "Select a class"}</h3>
+
+            <input
+              placeholder="Filter students..."
+              value={studentFilter}
+              onChange={(e) => setStudentFilter(e.target.value)}
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                padding: 8,
+                fontSize: 13,
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                minWidth: 170,
               }}
-            >
-              <h3 style={{ margin: 0 }}>
-                {classesList.find((c) => c.id === activeClassId)?.name ||
-                  "Select a class"}
-              </h3>
-
-              <input
-                placeholder="Filter students..."
-                value={studentFilter}
-                onChange={(e) => setStudentFilter(e.target.value)}
-                style={{
-                  padding: 6,
-                  fontSize: 13,
-                  borderRadius: 6,
-                  border: "1px solid #ddd",
-                  minWidth: 160,
-                }}
-              />
-            </div>
-
+            />
           </div>
 
           <div style={{ marginTop: 12 }}>
-            {activeClassId ? (
-              <>
-                <div style={{ marginBottom: 12 }}>
-                  {loadingStudents ? (
-                    <div className="muted">Loading students...</div>
-                  ) : (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, 1fr)",
-                        gap: 12,
-                      }}
-                    >
-                      {students
-                        .filter((s) =>
-                          s.name
-                            ?.toLowerCase()
-                            .includes(studentFilter.toLowerCase().trim())
-                        )
-                        .map((s) => (
-                          <div
-                            key={s.id}
-                            style={{
-                              border: "1px solid #ddd",
-                              padding: 10,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                              }}
-                            >
-                              <div>
-                                <div style={{ fontWeight: 700 }}>{s.name}</div>
-                                <div className="muted">
-                                  Streak: {s.streak || 0} 🔥
-                                  {s.streakLastUpdated && (
-                                    <span
-                                      style={{
-                                        marginLeft: 4,
-                                        fontWeight: 600,
-                                        color:
-                                          s.streakLastUpdated === new Date().toISOString().slice(0, 10)
-                                            ? "#0a0" // green if updated today
-                                            : "#f00", // red if older
-                                      }}
-                                    >
-                                      ({s.streakLastUpdated})
-                                    </span>
-                                  )}
-                                  {" • "}
-                                  Ghost: {s.ghost || 0} 👻
-                                  {s.ghostLastUpdated && (
-                                    <span
-                                      style={{
-                                        marginLeft: 4,
-                                        fontWeight: 600,
-                                        color:
-                                          s.ghostLastUpdated === new Date().toISOString().slice(0, 10)
-                                            ? "#00f" // blue if updated today
-                                            : "#f00", // red if older
-                                      }}
-                                    >
-                                      ({s.ghostLastUpdated})
-                                    </span>
-                                  )}
-                                </div>
+            {!activeClassId ? (
+              <div className="muted">Select a class first.</div>
+            ) : loadingStudents ? (
+              <div className="muted">Loading students...</div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+                {filteredStudents.map((s) => {
+                  const bg = s.profileColor || "white";
+                  const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
 
-                              </div>
-                              <div style={{ textAlign: "right" }}>
-                                <div style={{ fontWeight: 700 }}>
-                                  {s.currentPoints || 0} pts
-                                </div>
-                                <div className="muted">
-                                  Total: {s.cumulativePoints || 0}
-                                </div>
-                              </div>
-                            </div>
+                  return (
+                    <div key={s.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 10, background: bg }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <div>
+                          <div style={{ fontWeight: 800 }}>{displayName}</div>
 
-                            {/* Buttons ONLY for admins */}
-                            {mode === "admin" && (
-                              <div
+                          {/* Visible for guests too */}
+                          <div className="muted">
+                            Streak: {s.streak || 0} 🔥
+                            {s.streakLastUpdated && (
+                              <span
                                 style={{
-                                  marginTop: 8,
-                                  display: "flex",
-                                  gap: 8,
+                                  marginLeft: 4,
+                                  fontWeight: 700,
+                                  color: s.streakLastUpdated === todayISODate() ? "#0a0" : "#c00",
                                 }}
                               >
-                                <button
-                                  className="btn"
-                                  onClick={() =>
-                                    setSelectedStudent({
-                                      ...s,
-                                      classId: activeClassId,
-                                    })
-                                  }
-                                >
-                                  Manage
-                                </button>
-                              </div>
+                                ({s.streakLastUpdated})
+                              </span>
                             )}
-
-                            <div style={{ marginTop: 8 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700 }}>Cards</div>
-                              <div
+                            {" • "}
+                            Ghost: {s.ghost || 0} 👻
+                            {s.ghostLastUpdated && (
+                              <span
                                 style={{
-                                  display: "flex",
-                                  gap: 8,
-                                  flexWrap: "wrap",
-                                  marginTop: 8,
+                                  marginLeft: 4,
+                                  fontWeight: 700,
+                                  color: s.ghostLastUpdated === todayISODate() ? "#00f" : "#c00",
                                 }}
                               >
-                                {(s.cards || [])
-                                  .slice(-6)
-                                  .map((o) => (
-                                    <div
-                                      key={o.id}
-                                      className="card-thumb"
-                                      style={{
-                                        width: 80,
-                                        height: 110,
-                                        border: "1px solid #eee",
-                                        borderRadius: 6,
-                                        overflow: "hidden",
-                                        cursor: "pointer",
-                                      }}
-                                      onClick={() => setCardPreview(o)}
-                                    >
-                                      {o.imageURL ? (
-                                        <img
-                                          src={o.imageURL}
-                                          alt={o.title}
-                                          style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "cover",
-                                          }}
-                                        />
-                                      ) : (
-                                        <div style={{ padding: 6 }}>{o.title}</div>
-                                      )}
-                                    </div>
-                                  ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                      {mode === "admin" && (
-                        <div
-                          style={{
-                            border: "1px dashed #ccc",
-                            padding: 12,
-                            borderRadius: 6,
-                          }}
-                        >
-                          <h4 style={{ marginTop: 0 }}>Add student</h4>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <input
-                              ref={newStudentRef}
-                              placeholder="Student name"
-                              style={{ flex: 1, padding: 6 }}
-                            />
-                            <button
-                              className="btn primary"
-                              onClick={() => {
-                                const name = newStudentRef.current?.value?.trim();
-                                if (!name) return alert("Enter name");
-                                addStudent(name);
-                                newStudentRef.current.value = "";
-                              }}
-                            >
-                              Add
-                            </button>
+                                ({s.ghostLastUpdated})
+                              </span>
+                            )}
                           </div>
                         </div>
-                      )}
+
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontWeight: 800 }}>{s.currentPoints || 0} pts</div>
+                          <div className="muted">XP: {s.xp || 0}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {mode === "admin" && (
+                          <button className="btn" onClick={() => setSelectedStudentId(s.id)}>
+                            Manage
+                          </button>
+                        )}
+                        <button className="btn" onClick={() => setProfileStudentId(s.id)}>
+                          Perfil
+                        </button>
+                      </div>
+
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                          {(s.cards || []).slice(-6).map((o) => (
+                            <div
+                              key={o.id}
+                              className="card-thumb"
+                              style={{
+                                width: 80,
+                                height: 110,
+                                border: "1px solid #eee",
+                                borderRadius: 10,
+                                overflow: "hidden",
+                                cursor: "pointer",
+                                background: "white",
+                              }}
+                              onClick={() => setCardPreview(o)}
+                            >
+                              {o.imageURL ? (
+                                <img
+                                  src={o.imageURL}
+                                  alt={o.title}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div style={{ padding: 6 }}>{o.title}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="muted">
-                Select a class on the left to view and manage students, cards and
-                rewards.
+                  );
+                })}
+
+                {mode === "admin" && (
+                  <div style={{ border: "1px dashed #ccc", padding: 12, borderRadius: 10 }}>
+                    <h4 style={{ marginTop: 0 }}>Add student</h4>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        ref={newStudentRef}
+                        placeholder="Student name"
+                        style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+                      />
+                      <button
+                        className="btn primary"
+                        onClick={() => {
+                          const name = newStudentRef.current?.value?.trim();
+                          if (!name) return alert("Enter name");
+                          addStudent(name);
+                          if (newStudentRef.current) newStudentRef.current.value = "";
+                        }}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-
         </main>
 
-        {/* RIGHT: Library & rewards */}
-        <aside
-          style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}
-        >
-          <h3>Library (class)</h3>
-
-          {!activeClassId && <div className="muted">Select a class first</div>}
-
-          {activeClassId && (
+        {/* RIGHT: Library */}
+        <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
+          <h3 style={{ marginTop: 0 }}>Library (class)</h3>
+          {!activeClassId ? (
+            <div className="muted">Select a class first</div>
+          ) : (
             <>
-              {/* Tabs */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  margin: "8px 0 12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <button
-                  className="btn"
-                  onClick={() => setLibraryTab("points")}
-                  style={{
-                    background:
-                      libraryTab === "points" ? "#def" : "transparent",
-                  }}
-                >
+              <div style={{ display: "flex", gap: 6, margin: "8px 0 12px" }}>
+                <button className="btn" onClick={() => setLibraryTab("points")} style={{ background: libraryTab === "points" ? "#def" : "white" }}>
                   Points
                 </button>
-                <button
-                  className="btn"
-                  onClick={() => setLibraryTab("rewards")}
-                  style={{
-                    background:
-                      libraryTab === "rewards" ? "#def" : "transparent",
-                  }}
-                >
+                <button className="btn" onClick={() => setLibraryTab("rewards")} style={{ background: libraryTab === "rewards" ? "#def" : "white" }}>
                   Rewards
                 </button>
-                <button
-                  className="btn"
-                  onClick={() => setLibraryTab("experience")}
-                  style={{
-                    background:
-                      libraryTab === "experience" ? "#def" : "transparent",
-                  }}
-                >
+                <button className="btn" onClick={() => setLibraryTab("experience")} style={{ background: libraryTab === "experience" ? "#def" : "white" }}>
                   Experience
                 </button>
               </div>
 
-              {/* Create card (admin) */}
               {mode === "admin" && (
-                <div
-                  style={{
-                    border: "1px dashed #ddd",
-                    padding: 8,
-                    borderRadius: 6,
-                    marginBottom: 12,
-                  }}
-                >
+                <div style={{ border: "1px dashed #ddd", padding: 10, borderRadius: 10, marginBottom: 12 }}>
                   <h4 style={{ marginTop: 0 }}>Create new card</h4>
                   <CardCreateForm
-                    onCreate={(payload) => createCard(payload)}
-                    fileRef={cardFileRef}
+                    onCreate={createCard}
+                    lockedInputRef={lockedFileInputRef}
+                    unlockedInputRef={unlockedFileInputRef}
                   />
                 </div>
               )}
 
-              <div style={{ maxHeight: 420, overflow: "auto" }}>
-                {/* POINTS TAB */}
-                {libraryTab === "points" && (
-                  <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ maxHeight: 560, overflow: "auto" }}>
+                {libraryTab !== "rewards" ? (
+                  <div style={{ display: "grid", gap: 10 }}>
                     {loadingCards ? (
                       <div className="muted">Loading cards...</div>
                     ) : (
                       cards
-                        .filter(
-                          (c) => (c.category || "points") === "points"
-                        )
+                        .filter((c) => (c.category || "points") === libraryTab)
                         .map((c) => (
-                          <div
+                          <LibraryCardRow
                             key={c.id}
-                            style={{
-                              display: "flex",
-                              gap: 8,
-                              alignItems: "center",
-                              border: "1px solid #eee",
-                              padding: 8,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 64,
-                                height: 80,
-                                background: "#fafafa",
-                                cursor: "pointer",
-                              }}
-                              onClick={() =>
-                                setCardPreview({ ...c, isLibraryCard: true })
-                              }
-                            >
-                              {(c.lockedImageURL || c.imageURL) ? (
-                                <img
-                                  src={c.lockedImageURL || c.imageURL}
-                                  alt={c.title}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                />
-                              ) : (
-                                <div style={{ padding: 6 }}>{c.title}</div>
-                              )}
-
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 700 }}>{c.title}</div>
-                              <div className="muted">
-                                {c.description || "—"}
-                              </div>
-                              <div
-                                style={{
-                                  marginTop: 6,
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {c.points || 0} pts
-                              </div>
-                            </div>
-                            {mode === "admin" && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 6,
-                                }}
-                              >
-                                <button
-                                  className="btn"
-                                  onClick={() => {
-                                    const name = window.prompt(
-                                      "Give this card to which student (exact name)? Leave blank to cancel."
-                                    );
-                                    if (!name) return;
-                                    const st = students.find(
-                                      (s) =>
-                                        s.name.toLowerCase() ===
-                                        name.toLowerCase()
-                                    );
-                                    if (!st) {
-                                      window.alert(
-                                        "Student not found. Use Manage -> Give for picklist."
-                                      );
-                                      return;
-                                    }
-                                    giveCardToStudent(
-                                      activeClassId,
-                                      st.id,
-                                      c.id
-                                    );
-                                  }}
-                                >
-                                  Quick give
-                                </button>
-                                <button
-                                  className="btn"
-                                  onClick={() => deleteCard(c.id)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                            c={c}
+                            mode={mode}
+                            onPreview={() => setCardPreview({ ...c, isLibraryCard: true })}
+                            onDelete={() => deleteCard(c.id)}
+                          />
                         ))
                     )}
                   </div>
-                )}
-
-                {/* REWARDS TAB */}
-                {libraryTab === "rewards" && (
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {/* Reward cards from library */}
-                    <div style={{ marginBottom: 12 }}>
-                      <h4
-                        style={{
-                          fontSize: 13,
-                          color: "#555",
-                          marginBottom: 8,
-                        }}
-                      >
-                        Reward cards (library)
-                      </h4>
+                ) : (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {/* Reward cards (library) */}
+                    <div>
+                      <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Reward cards (library)</h4>
                       {loadingCards ? (
                         <div className="muted">Loading cards...</div>
                       ) : (
                         cards
-                          .filter((c) => c.category === "rewards")
+                          .filter((c) => (c.category || "points") === "rewards")
                           .map((c) => (
-                            <div
+                            <LibraryCardRow
                               key={c.id}
-                              style={{
-                                display: "flex",
-                                gap: 8,
-                                alignItems: "center",
-                                border: "1px solid #eee",
-                                padding: 8,
-                                borderRadius: 6,
-                                marginBottom: 8,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: 64,
-                                  height: 80,
-                                  background: "#fafafa",
-                                  cursor: "pointer",
-                                }}
-                                onClick={() =>
-                                  setCardPreview({
-                                    ...c,
-                                    isLibraryCard: true,
-                                  })
-                                }
-                              >
-                                {(c.lockedImageURL || c.imageURL) ? (
-                                  <img
-                                    src={c.lockedImageURL || c.imageURL}
-                                    alt={c.title}
-                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                  />
-                                ) : (
-                                  <div style={{ padding: 6 }}>{c.title}</div>
-                                )}
-
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 700 }}>
-                                  {c.title}
-                                </div>
-                                <div className="muted">
-                                  {c.description || "—"}
-                                </div>
-                                <div
-                                  style={{
-                                    marginTop: 6,
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {c.points || 0} pts
-                                </div>
-                              </div>
-                              {mode === "admin" && (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 6,
-                                  }}
-                                >
-                                  <button
-                                    className="btn"
-                                    onClick={() => deleteCard(c.id)}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                              c={c}
+                              mode={mode}
+                              onPreview={() => setCardPreview({ ...c, isLibraryCard: true })}
+                              onDelete={() => deleteCard(c.id)}
+                            />
                           ))
                       )}
                     </div>
 
-                    {/* Shop items (rewards) */}
-                    <div
-                      style={{
-                        borderTop: "2px solid #ddd",
-                        paddingTop: 12,
-                      }}
-                    >
-                      <h4
-                        style={{
-                          fontSize: 13,
-                          color: "#555",
-                          marginBottom: 8,
-                        }}
-                      >
-                        Shop items (purchasable)
-                      </h4>
+                    {/* Shop items */}
+                    <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
+                      <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Shop items (purchasable)</h4>
                       {loadingRewards ? (
                         <div className="muted">Loading rewards...</div>
                       ) : (
                         rewards.map((r) => {
-                          const card =
-                            cards.find((c) => c.id === r.cardId) || null;
+                          const cardMeta = cards.find((c) => c.id === r.cardId) || null;
                           return (
-                            <div
-                              key={r.id}
-                              style={{
-                                border: "1px solid #eee",
-                                padding: 8,
-                                borderRadius: 6,
-                                marginBottom: 8,
-                              }}
-                            >
-                              <div style={{ fontWeight: 700 }}>
-                                {r.title}
-                              </div>
+                            <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10 }}>
+                              <div style={{ fontWeight: 900 }}>{r.title}</div>
                               <div className="muted">
-                                Cost: {r.cost} pts • linked card:{" "}
-                                {card ? card.title : "—"}
+                                Cost: <span className="pill">{r.cost} pts</span>{" "}
+                                • Linked card: <span className="pill">{cardMeta ? cardMeta.title : "—"}</span>
                               </div>
                               {mode === "admin" && (
-                                <div style={{ marginTop: 6 }}>
-                                  <button
-                                    className="btn"
-                                    onClick={() => deleteReward(r.id)}
-                                  >
+                                <div style={{ marginTop: 8 }}>
+                                  <button className="btn" onClick={() => deleteReward(r.id)}>
                                     Delete reward
                                   </button>
                                 </div>
@@ -2298,95 +1074,11 @@ export default function App() {
                       )}
 
                       {mode === "admin" && (
-                        <div
-                          style={{
-                            borderTop: "1px dashed #eee",
-                            paddingTop: 8,
-                            marginTop: 8,
-                          }}
-                        >
-                          <h4 style={{ fontSize: 13, marginBottom: 6 }}>
-                            Create shop item (must link to library card)
-                          </h4>
-                          <RewardCreateForm
-                            cards={cards}
-                            onCreate={(payload) => createReward(payload)}
-                          />
+                        <div style={{ borderTop: "1px dashed #eee", paddingTop: 10, marginTop: 10 }}>
+                          <RewardCreateForm cards={cards} onCreate={createReward} />
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
-
-                {/* EXPERIENCE TAB */}
-                {libraryTab === "experience" && (
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {loadingCards ? (
-                      <div className="muted">Loading cards...</div>
-                    ) : (
-                      cards
-                        .filter((c) => c.category === "experience")
-                        .map((c) => (
-                          <div
-                            key={c.id}
-                            style={{
-                              display: "flex",
-                              gap: 8,
-                              alignItems: "center",
-                              border: "1px solid #eee",
-                              padding: 8,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 64,
-                                height: 80,
-                                background: "#fafafa",
-                                cursor: "pointer",
-                              }}
-                              onClick={() =>
-                                setCardPreview({ ...c, isLibraryCard: true })
-                              }
-                            >
-                              {(c.lockedImageURL || c.imageURL) ? (
-                                <img
-                                  src={c.lockedImageURL || c.imageURL}
-                                  alt={c.title}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                />
-                              ) : (
-                                <div style={{ padding: 6 }}>{c.title}</div>
-                              )}
-
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 700 }}>
-                                {c.title}
-                              </div>
-                              <div className="muted">
-                                {c.description || "—"}
-                              </div>
-                            </div>
-                            {mode === "admin" && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 6,
-                                }}
-                              >
-                                <button
-                                  className="btn"
-                                  onClick={() => deleteCard(c.id)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))
-                    )}
                   </div>
                 )}
               </div>
@@ -2397,78 +1089,33 @@ export default function App() {
 
       {/* Card preview modal */}
       {cardPreview && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setCardPreview(null)}
-        >
+        <div className="modal-backdrop" onClick={() => setCardPreview(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div
-                style={{
-                  width: 360,
-                  height: 500,
-                  background: "#f6f6f6",
-                  borderRadius: 6,
-                  overflow: "hidden",
-                }}
-              >
-                {cardPreview.imageURL ? (
-                  <img
-                    src={cardPreview.imageURL}
-                    alt={cardPreview.title}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                    }}
-                  />
-                ) : (
-                  <div style={{ padding: 12 }}>{cardPreview.title}</div>
-                )}
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ width: 360, height: 500, background: "#f6f6f6", borderRadius: 10, overflow: "hidden" }}>
+                {(() => {
+                  const previewUrl = cardPreview.isLibraryCard
+                    ? (cardPreview.lockedImageURL || cardPreview.imageURL)
+                    : cardPreview.imageURL;
+
+                  return previewUrl ? (
+                    <img src={previewUrl} alt={cardPreview.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                  ) : (
+                    <div style={{ padding: 12 }}>{cardPreview.title}</div>
+                  );
+                })()}
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 260 }}>
                 <h3 style={{ marginTop: 0 }}>{cardPreview.title}</h3>
-                <div className="muted">
-                  {cardPreview.description || "—"}
-                </div>
-                <div style={{ marginTop: 8, fontWeight: 700 }}>
-                  {cardPreview.points || 0} pts
-                </div>
-                <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-                  <button
-                    className="btn"
-                    onClick={() => setCardPreview(null)}
-                  >
+                <div className="muted">{cardPreview.description}</div>
+                {"points" in cardPreview && (
+                  <div style={{ marginTop: 10, fontWeight: 900 }}>{cardPreview.points || 0} pts</div>
+                )}
+
+                <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="btn" onClick={() => setCardPreview(null)}>
                     Close
                   </button>
-                  {cardPreview.isLibraryCard && mode === "admin" && (
-                    <button
-                      className="btn primary"
-                      onClick={() => {
-                        const name = window.prompt(
-                          "Give to student (exact name):"
-                        );
-                        if (!name) return;
-                        const st = students.find(
-                          (s) =>
-                            s.name.toLowerCase() === name.toLowerCase()
-                        );
-                        if (!st) {
-                          window.alert(
-                            "Student not found. Use Manage -> Give for picklist."
-                          );
-                          return;
-                        }
-                        giveCardToStudent(
-                          activeClassId,
-                          st.id,
-                          cardPreview.id
-                        );
-                      }}
-                    >
-                      Give to student
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -2476,75 +1123,617 @@ export default function App() {
         </div>
       )}
 
-      {/* Manage student modal */}
+      {/* Profile modal */}
+      {profileStudent && (
+        <ProfileModal
+          mode={mode}
+          student={profileStudent}
+          onClose={() => setProfileStudentId(null)}
+          onSave={(cosmetics) =>
+            saveStudentProfileCosmetics(activeClassId, profileStudent.id, cosmetics)
+          }
+        />
+      )}
+
+      {/* Manage student modal (admin only) */}
       {mode === "admin" && selectedStudent && (
         <ManageStudentModal
-          mode={mode}
           student={selectedStudent}
-          studentsInClass={students}
+          classId={activeClassId}
+          students={students}
           cards={cards}
           rewards={rewards}
-          onClose={() => setSelectedStudent(null)}
-          onUpdate={(updates) =>
-            editStudent(selectedStudent.classId, selectedStudent.id, updates)
-          }
-          onAddQuickPoints={(amt) =>
-            addQuickPoints(selectedStudent.classId, selectedStudent.id, amt)
-          }
-          onChangeMeter={(meter, delta) =>
-            changeMeter(selectedStudent.classId, selectedStudent.id, meter, delta)
-          }
-          onResetStreak={() =>
-            resetStreak(selectedStudent.classId, selectedStudent.id)
-          }
-          onQuickAddStreak={() =>
-            quickAddStreak(selectedStudent.classId, selectedStudent.id)
-          }
-          onResetGhost={() =>
-            resetGhost(selectedStudent.classId, selectedStudent.id)
-          }
-          onQuickAddGhost={() =>
-            quickAddGhost(selectedStudent.classId, selectedStudent.id)
-          }
-          onGiveCard={(cardId) =>
-            giveCardToStudent(
-              selectedStudent.classId,
-              selectedStudent.id,
-              cardId
-            )
-          }
-          onRemoveCard={(ownedId) =>
-            removeOwnedCard(
-              selectedStudent.classId,
-              selectedStudent.id,
-              ownedId
-            )
-          }
-          onRedeemIndividual={(rewardId) =>
-            redeemRewardIndividual(
-              selectedStudent.classId,
-              selectedStudent.id,
-              rewardId
-            )
-          }
-          onRedeemGroup={(rewardId, shares) =>
-            redeemRewardGroup(selectedStudent.classId, rewardId, shares)
-          }
-          onDeleteStudent={() =>
-            deleteStudent(selectedStudent.classId, selectedStudent.id)
-          }
-          onDeleteHistoryEntry={(historyId) =>
-            deleteRewardHistoryEntry(
-              selectedStudent.classId,
-              selectedStudent.id,
-              historyId
-            )
-          }
-          setShowCardPreview={(card) =>
-            setCardPreview({ ...card, isLibraryCard: true })
-          }
+          onClose={() => setSelectedStudentId(null)}
+          onDeleteStudent={() => deleteStudent(activeClassId, selectedStudent.id)}
+          onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
+          onChangeMeter={(meter, delta) => changeMeter(activeClassId, selectedStudent.id, meter, delta)}
+          onResetMeter={(meter) => resetMeter(activeClassId, selectedStudent.id, meter)}
+          onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
+          onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
+          onRedeemIndividual={(rewardId) => redeemRewardIndividual(activeClassId, selectedStudent.id, rewardId)}
+          onRedeemGroup={(rewardId, shares) => redeemRewardGroup(activeClassId, rewardId, shares)}
+          setCardPreview={setCardPreview}
         />
       )}
     </div>
   );
 }
+
+/* ---------------- Components ---------------- */
+
+function LibraryCardRow({ c, mode, onPreview, onDelete }) {
+  const showURL = c.lockedImageURL || c.imageURL; // library shows locked
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "center", border: "1px solid #eee", padding: 10, borderRadius: 10 }}>
+      <div style={{ width: 68, height: 86, background: "#fafafa", cursor: "pointer", borderRadius: 8, overflow: "hidden" }} onClick={onPreview}>
+        {showURL ? (
+          <img src={showURL} alt={c.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <div style={{ padding: 6 }}>{c.title}</div>
+        )}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 900 }}>{c.title}</div>
+        <div className="muted">{c.description}</div>
+        <div style={{ marginTop: 6, fontWeight: 900 }}>{c.points || 0} pts</div>
+      </div>
+      {mode === "admin" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button className="btn" onClick={onDelete}>
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [points, setPoints] = useState(1);
+  const [category, setCategory] = useState("points");
+  const [lockedFile, setLockedFile] = useState(null);
+  const [unlockedFile, setUnlockedFile] = useState(null);
+
+  function handleCreate() {
+    if (!title.trim()) return alert("Title required");
+    onCreate({ title, description, points, category, lockedFile, unlockedFile });
+    setTitle("");
+    setDescription("");
+    setPoints(1);
+    setCategory("points");
+    setLockedFile(null);
+    setUnlockedFile(null);
+    if (lockedInputRef?.current) lockedInputRef.current.value = "";
+    if (unlockedInputRef?.current) unlockedInputRef.current.value = "";
+  }
+
+  return (
+    <div>
+      <input
+        placeholder="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        style={{ width: "100%", padding: 8, marginBottom: 8, borderRadius: 8, border: "1px solid #ddd" }}
+      />
+      <textarea
+        placeholder="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        style={{ width: "100%", padding: 8, height: 70, borderRadius: 8, border: "1px solid #ddd" }}
+      />
+      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <input
+          type="number"
+          value={points}
+          onChange={(e) => setPoints(e.target.value)}
+          style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+        />
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+        >
+          <option value="points">Points</option>
+          <option value="rewards">Rewards</option>
+          <option value="experience">Experience</option>
+        </select>
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 13 }}>
+        <div style={{ marginBottom: 4 }}>Locked card (grey with lock)</div>
+        <input
+          ref={lockedInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => setLockedFile(e.target.files?.[0] || null)}
+        />
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 13 }}>
+        <div style={{ marginBottom: 4 }}>Unlocked card (original/full colour)</div>
+        <input
+          ref={unlockedInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)}
+        />
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        <button className="btn primary" onClick={handleCreate}>
+          Add card
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RewardCreateForm({ cards, onCreate }) {
+  const [title, setTitle] = useState("");
+  const [cost, setCost] = useState(5);
+  const [cardId, setCardId] = useState(cards?.[0]?.id || "");
+
+  return (
+    <div>
+      <h4 style={{ marginTop: 0 }}>Create shop item</h4>
+      <input
+        placeholder="Reward title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        style={{ width: "100%", padding: 8, marginBottom: 8, borderRadius: 8, border: "1px solid #ddd" }}
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          type="number"
+          value={cost}
+          onChange={(e) => setCost(e.target.value)}
+          style={{ padding: 8, width: 90, borderRadius: 8, border: "1px solid #ddd" }}
+        />
+        <select
+          value={cardId}
+          onChange={(e) => setCardId(e.target.value)}
+          style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+        >
+          <option value="">-- link card (optional) --</option>
+          {cards.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <button
+          className="btn"
+          onClick={() => {
+            if (!title.trim()) return alert("Title required");
+            onCreate({ title, cost, linkedCardId: cardId });
+            setTitle("");
+            setCost(5);
+            setCardId(cards?.[0]?.id || "");
+          }}
+        >
+          Add reward
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ProfileModal({ mode, student, onClose, onSave }) {
+  const [emojis, setEmojis] = useState(student.nameEmojis || "");
+  const [color, setColor] = useState(student.profileColor || "");
+
+  const displayName = `${student.name}${emojis ? " " + emojis : ""}`;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Perfil</h3>
+            <div className="muted">{displayName}</div>
+          </div>
+          <button className="btn" onClick={onClose}>Close</button>
+        </div>
+
+        <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: color || "#f9fafb", border: "1px solid #eee" }}>
+          <div style={{ fontWeight: 900, marginBottom: 6 }}>Preview</div>
+          <div style={{ fontSize: 18, fontWeight: 900 }}>{displayName}</div>
+          <div className="muted" style={{ marginTop: 6 }}>
+            Streak: {student.streak || 0} 🔥 • Ghost: {student.ghost || 0} 👻
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <h4 style={{ marginTop: 0 }}>Personalización</h4>
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="muted" style={{ marginBottom: 6 }}>Emojis para tu nombre (no cambia el nombre)</div>
+            <input
+              value={emojis}
+              onChange={(e) => setEmojis(e.target.value)}
+              placeholder="Ej: ✨😺🔥"
+              style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div className="muted" style={{ marginBottom: 6 }}>Color de fondo (pastel)</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {PASTEL_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  className="btn"
+                  onClick={() => setColor(c.value)}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: c.value,
+                    border: color === c.value ? "2px solid #111" : "1px solid #ddd",
+                  }}
+                  title={c.name}
+                />
+              ))}
+              <button className="btn" onClick={() => setColor("")}>Clear</button>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn" onClick={onClose}>Cancel</button>
+            <button
+              className="btn primary"
+              onClick={() => onSave({ nameEmojis: emojis, profileColor: color })}
+            >
+              Save
+            </button>
+          </div>
+
+          {mode === "reader" && (
+            <div className="muted" style={{ marginTop: 10 }}>
+              Nota: Sin login, cualquiera con acceso podría cambiar perfiles. Si quieres evitarlo, hay que activar Auth.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ManageStudentModal({
+  student,
+  classId,
+  students,
+  cards,
+  rewards,
+  onClose,
+  onDeleteStudent,
+  onGiveCard,
+  onChangeMeter,
+  onResetMeter,
+  onRemoveOne,
+  onRemoveAll,
+  onRedeemIndividual,
+  onRedeemGroup,
+  setCardPreview,
+}) {
+  const [redeemRewardId, setRedeemRewardId] = useState("");
+  const [redeemMode, setRedeemMode] = useState("individual"); // individual | group
+  const [shares, setShares] = useState({});
+
+  useEffect(() => {
+    setShares({});
+  }, [redeemRewardId, redeemMode]);
+
+  const reward = rewards.find((r) => r.id === redeemRewardId) || null;
+  const requiredCost = Number(reward?.cost || 0);
+
+  const selectedSharesTotal = useMemo(() => {
+    return Object.values(shares).reduce((acc, v) => acc + Number(v || 0), 0);
+  }, [shares]);
+
+  // Group owned cards by cardId
+  const groupedOwned = useMemo(() => {
+    const map = new Map(); // cardId -> { cardId, title, imageURL, ownedIds[] }
+    (student.cards || []).forEach((o) => {
+      const key = o.cardId || "unknown";
+      if (!map.has(key)) {
+        map.set(key, {
+          cardId: key,
+          title: o.title || "—",
+          imageURL: o.imageURL || "",
+          ownedIds: [],
+        });
+      }
+      map.get(key).ownedIds.push(o.id);
+    });
+    return Array.from(map.values());
+  }, [student.cards]);
+
+  // Give card list: exclude reward-category cards
+  const giveableCards = useMemo(() => {
+    return (cards || []).filter((c) => (c.category || "points") !== "rewards");
+  }, [cards]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Manage: {student.name}</h3>
+            <div className="muted">
+              Current: <span className="pill">{student.currentPoints || 0} pts</span>{" "}
+              • XP: <span className="pill">{student.xp || 0}</span>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn" onClick={onClose}>Close</button>
+            <button className="btn" onClick={onDeleteStudent}>Delete student</button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 380px", gap: 12 }}>
+          {/* LEFT side */}
+          <div>
+            {/* meters */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>Streak</div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="btn" onClick={() => onChangeMeter("streak", -1)}>-</button>
+                  <div style={{ fontSize: 18 }}>{`🔥`.repeat(student.streak || 0)}</div>
+                  <button className="btn" onClick={() => onChangeMeter("streak", +1)}>+</button>
+                </div>
+                {student.streakLastUpdated && (
+                  <div className="muted" style={{ marginTop: 6 }}>
+                    Last: <span className="pill">{student.streakLastUpdated}</span>
+                  </div>
+                )}
+                <div style={{ marginTop: 8 }}>
+                  <button className="btn" onClick={() => onResetMeter("streak")}>Reset streak</button>
+                </div>
+              </div>
+
+              <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>Ghost assistance</div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="btn" onClick={() => onChangeMeter("ghost", -1)}>-</button>
+                  <div style={{ fontSize: 18 }}>{`👻`.repeat(student.ghost || 0)}</div>
+                  <button className="btn" onClick={() => onChangeMeter("ghost", +1)}>+</button>
+                </div>
+                {student.ghostLastUpdated && (
+                  <div className="muted" style={{ marginTop: 6 }}>
+                    Last: <span className="pill">{student.ghostLastUpdated}</span>
+                  </div>
+                )}
+                <div style={{ marginTop: 8 }}>
+                  <button className="btn" onClick={() => onResetMeter("ghost")}>Reset ghost</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Owned cards (grouped) */}
+            <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+              <h4 style={{ marginTop: 0 }}>Owned cards (grouped)</h4>
+              {!groupedOwned.length ? (
+                <div className="muted">No cards yet</div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+                  {groupedOwned.map((g) => (
+                    <div key={g.cardId} style={{ border: "1px solid #eee", borderRadius: 12, padding: 10 }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <div
+                          className="card-thumb"
+                          style={{ width: 70, height: 92, borderRadius: 10, overflow: "hidden", background: "#fafafa", cursor: "pointer" }}
+                          onClick={() => setCardPreview({ title: g.title, imageURL: g.imageURL, description: "" })}
+                        >
+                          {g.imageURL ? (
+                            <img src={g.imageURL} alt={g.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <div style={{ padding: 6 }}>{g.title}</div>
+                          )}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 900 }}>{g.title}</div>
+                          <div className="muted">
+                            Copies: <span className="pill">×{g.ownedIds.length}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                        <button className="btn" onClick={() => onRemoveOne(g.ownedIds[0])}>
+                          Remove 1
+                        </button>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            if (!window.confirm(`Remove ALL ${g.ownedIds.length} copies of "${g.title}"?`)) return;
+                            onRemoveAll(g.ownedIds);
+                          }}
+                        >
+                          Remove all
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Redeem reward */}
+            <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+              <h4 style={{ marginTop: 0 }}>Redeem reward</h4>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <select
+                  value={redeemRewardId}
+                  onChange={(e) => setRedeemRewardId(e.target.value)}
+                  style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", minWidth: 240 }}
+                >
+                  <option value="">-- choose reward --</option>
+                  {rewards.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.title} (cost {r.cost})
+                    </option>
+                  ))}
+                </select>
+
+                <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="radio"
+                    name="redeemMode"
+                    checked={redeemMode === "individual"}
+                    onChange={() => setRedeemMode("individual")}
+                  />
+                  Individual
+                </label>
+                <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="radio"
+                    name="redeemMode"
+                    checked={redeemMode === "group"}
+                    onChange={() => setRedeemMode("group")}
+                  />
+                  Group
+                </label>
+              </div>
+
+              {redeemMode === "individual" && (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    className="btn primary"
+                    onClick={() => {
+                      if (!redeemRewardId) return alert("Choose a reward first.");
+                      onRedeemIndividual(redeemRewardId);
+                    }}
+                  >
+                    Redeem (individual)
+                  </button>
+                </div>
+              )}
+
+              {redeemMode === "group" && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="muted">
+                    Assign shares so the total equals <span className="pill">{requiredCost} pts</span>.{" "}
+                    Current total:{" "}
+                    <span
+                      className="pill"
+                      style={{ background: selectedSharesTotal === requiredCost ? "#dcfce7" : "#fee2e2" }}
+                    >
+                      {selectedSharesTotal}
+                    </span>
+                  </div>
+
+                  <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+                    {students.map((s) => (
+                      <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <div style={{ flex: 1, fontWeight: 700 }}>
+                          {s.name} <span className="muted">(has {s.currentPoints || 0} pts)</span>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={shares[s.id] ?? ""}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setShares((prev) => ({
+                              ...prev,
+                              [s.id]: raw === "" ? "" : Number(raw),
+                            }));
+                          }}
+                          style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+                          placeholder="0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      className="btn primary"
+                      onClick={() => {
+                        if (!redeemRewardId) return alert("Choose a reward first.");
+                        onRedeemGroup(redeemRewardId, shares);
+                      }}
+                    >
+                      Redeem (group)
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT side: Give card */}
+          <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+            <h4 style={{ marginTop: 0 }}>Give card (not rewards)</h4>
+            <div className="muted" style={{ marginBottom: 8 }}>
+              Reward cards do not appear here. They are only obtained by redeeming rewards.
+            </div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {giveableCards.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    border: "1px solid #eee",
+                    borderRadius: 12,
+                    padding: 10,
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 68,
+                      height: 86,
+                      borderRadius: 10,
+                      overflow: "hidden",
+                      background: "#fafafa",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setCardPreview({ ...c, isLibraryCard: true })}
+                  >
+                    {(c.lockedImageURL || c.imageURL) ? (
+                      <img
+                        src={(c.lockedImageURL || c.imageURL)}
+                        alt={c.title}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div style={{ padding: 6 }}>{c.title}</div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 900 }}>{c.title}</div>
+                    <div className="muted">{c.description}</div>
+                  </div>
+                  <button className="btn primary" onClick={() => onGiveCard(c.id)}>
+                    Give
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Firestore rules note (optional but recommended if you allow guest editing):
+ *
+ * match /classes/{classId}/students/{studentId} {
+ *   allow read: if true;
+ *   // only allow updating profile cosmetics for guests
+ *   allow update: if request.resource.data.diff(resource.data).changedKeys().hasOnly(['nameEmojis','profileColor']);
+ * }
+ *
+ * With Auth later, you can lock this down properly per-student.
+ */
