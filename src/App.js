@@ -1473,6 +1473,12 @@ function ManageStudentModal({
     setEditTotal(student.cumulativePoints || 0);
   }, [student.id, student.name, student.currentPoints, student.xp, student.cumulativePoints]);
 
+  function addQuickPoints(amount) {
+    const next = Number(student.currentPoints || 0) + Number(amount || 0);
+    setEditCurrentPoints(next);
+    onEditStudent({ currentPoints: next });
+  }
+
   function saveEdits() {
     onEditStudent({
       name: editName.trim(),
@@ -1561,6 +1567,11 @@ function ManageStudentModal({
                       onChange={(e) => setEditCurrentPoints(e.target.value)}
                       style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
                     />
+                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button className="btn" onClick={() => addQuickPoints(1)}>+1</button>
+                      <button className="btn" onClick={() => addQuickPoints(5)}>+5</button>
+                      <button className="btn" onClick={() => addQuickPoints(10)}>+10</button>
+                    </div>
                   </div>
 
                   <div>
