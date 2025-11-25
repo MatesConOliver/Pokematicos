@@ -1144,6 +1144,7 @@ export default function App() {
           students={students}
           cards={cards}
           rewards={rewards}
+          onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
           onDeleteStudent={() => deleteStudent(activeClassId, selectedStudent.id)}
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
@@ -1410,6 +1411,7 @@ function ManageStudentModal({
   students,
   cards,
   rewards,
+  onEditStudent,
   onClose,
   onDeleteStudent,
   onGiveCard,
@@ -1458,6 +1460,27 @@ function ManageStudentModal({
   const giveableCards = useMemo(() => {
     return (cards || []).filter((c) => (c.category || "points") !== "rewards");
   }, [cards]);
+
+  const [editName, setEditName] = useState(student.name || "");
+  const [editCurrentPoints, setEditCurrentPoints] = useState(student.currentPoints || 0);
+  const [editXP, setEditXP] = useState(student.xp || 0);
+  const [editTotal, setEditTotal] = useState(student.cumulativePoints || 0);
+
+  useEffect(() => {
+    setEditName(student.name || "");
+    setEditCurrentPoints(student.currentPoints || 0);
+    setEditXP(student.xp || 0);
+    setEditTotal(student.cumulativePoints || 0);
+  }, [student.id, student.name, student.currentPoints, student.xp, student.cumulativePoints]);
+
+  function saveEdits() {
+    onEditStudent({
+      name: editName.trim(),
+      currentPoints: Number(editCurrentPoints || 0),
+      xp: Number(editXP || 0),
+      cumulativePoints: Number(editTotal || 0),
+    });
+  }
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -1512,6 +1535,68 @@ function ManageStudentModal({
                 )}
                 <div style={{ marginTop: 8 }}>
                   <button className="btn" onClick={() => onResetMeter("ghost")}>Reset ghost</button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+              <h4 style={{ marginTop: 0 }}>Editar alumno</h4>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Nombre</div>
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>Puntos actuales</div>
+                    <input
+                      type="number"
+                      value={editCurrentPoints}
+                      onChange={(e) => setEditCurrentPoints(e.target.value)}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>XP</div>
+                    <input
+                      type="number"
+                      value={editXP}
+                      onChange={(e) => setEditXP(e.target.value)}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Total acumulado</div>
+                  <input
+                    type="number"
+                    value={editTotal}
+                    onChange={(e) => setEditTotal(e.target.value)}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="btn primary" onClick={saveEdits}>Guardar</button>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      setEditName(student.name || "");
+                      setEditCurrentPoints(student.currentPoints || 0);
+                      setEditXP(student.xp || 0);
+                      setEditTotal(student.cumulativePoints || 0);
+                    }}
+                  >
+                    Deshacer
+                  </button>
                 </div>
               </div>
             </div>
@@ -1725,6 +1810,7 @@ function ManageStudentModal({
       </div>
     </div>
   );
+
 }
 
 /**
