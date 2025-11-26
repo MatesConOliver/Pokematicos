@@ -729,12 +729,63 @@ export default function App() {
       <style>{`
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
         .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
+
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
         .modal { background: white; border-radius: 10px; padding: 12px; max-width: 980px; width: 92%; max-height: 90vh; overflow:auto; }
-        .muted { color: #666; font-size: 13px; }
-        .btn { padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor:pointer; }
-        .btn.primary { background: #2563eb; color: white; border: none; }
+
+        .muted { color:#6b7280; font-size:13px; }
+
+        .btn{
+          padding: 9px 12px;
+          border-radius: 10px;
+          border: 1px solid #e5e7eb;
+          background: white;
+          cursor: pointer;
+          font-weight: 600;
+        }
+        .btn:hover{ background:#f9fafb; }
+        .btn.primary{
+          background:#2563eb;
+          color:white;
+          border:none;
+          box-shadow: 0 6px 16px rgba(37,99,235,.22);
+        }
+        .btn.primary:hover{ filter: brightness(0.98); }
+
         .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; border: 1px solid #e5e7eb; }
+
+        .input, .select, textarea{
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
+          outline: none;
+        }
+        .input:focus, .select:focus, textarea:focus{
+          border-color: #93c5fd;
+          box-shadow: 0 0 0 4px rgba(147,197,253,.35);
+        }
+
+        .panel{
+          border: 1px solid #eee;
+          background: white;
+          border-radius: 14px;
+          padding: 12px;
+        }
+
+        .chip{
+          display:inline-flex;
+          align-items:center;
+          gap:6px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background:#f3f4f6;
+          font-size: 12px;
+          font-weight: 700;
+          color:#111827;
+        }
+
         input, textarea, select { font-family: inherit; }
       `}</style>
 
@@ -809,7 +860,7 @@ export default function App() {
             <div style={{ marginTop: 16 }}>
               <h4 style={{ margin: "10px 0" }}>Add class</h4>
               <div style={{ display: "flex", gap: 8 }}>
-                <input
+                <input className="input"
                   ref={newClassNameRef}
                   placeholder="Class name"
                   style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
@@ -833,7 +884,10 @@ export default function App() {
         {/* MIDDLE: Students */}
         <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-            <h3 style={{ margin: 0 }}>{activeClass?.name || "Select a class"}</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <h3 style={{ margin: 0 }}>{activeClass?.name || "Select a class"}</h3>
+              {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
+            </div>
 
             <input
               placeholder="Filter students..."
@@ -859,6 +913,10 @@ export default function App() {
                 {filteredStudents.map((s) => {
                   const bg = s.profileColor || "white";
                   const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
+                  const classTotalPoints = students.reduce(
+                    (sum, s) => sum + Number(s.currentPoints || 0),
+                    0
+                  );
 
                   return (
                     <div key={s.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 10, background: bg }}>
@@ -1035,7 +1093,7 @@ export default function App() {
         </main>
 
         {/* RIGHT: Library */}
-        <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
+        <aside className="panel">
           <h3 style={{ marginTop: 0 }}>Library (class)</h3>
           {!activeClassId ? (
             <div className="muted">Select a class first</div>
@@ -1545,6 +1603,8 @@ function ManageStudentModal({
       cumulativePoints: Number(editTotal || 0),
     });
   }
+
+  const classTotalPoints = students.reduce((sum, s) => sum + Number(s.currentPoints || 0), 0);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
