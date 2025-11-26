@@ -723,6 +723,10 @@ export default function App() {
     return students.filter((s) => safeLower(s.name).includes(q));
   })();
 
+  const classTotalPoints = students.reduce(
+    (sum, s) => sum + Number(s.currentPoints || 0),
+    0
+  );
 
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 12 }}>
@@ -913,10 +917,6 @@ export default function App() {
                 {filteredStudents.map((s) => {
                   const bg = s.profileColor || "white";
                   const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
-                  const classTotalPoints = students.reduce(
-                    (sum, s) => sum + Number(s.currentPoints || 0),
-                    0
-                  );
 
                   return (
                     <div key={s.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 10, background: bg }}>
