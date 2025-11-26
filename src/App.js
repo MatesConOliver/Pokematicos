@@ -67,6 +67,10 @@ function safeLower(s) {
   return (s || "").toString().toLowerCase();
 }
 
+function round2(x) {
+  return Math.round((Number(x) || 0) * 100) / 100;
+}
+
 const PASTEL_COLORS = [
   { name: "Mint", value: "#D1FAE5" },
   { name: "Sky", value: "#DBEAFE" },
@@ -293,6 +297,7 @@ export default function App() {
         currentPoints: 0,
         cumulativePoints: 0,
         xp: 0,
+        multiplier: 1,
         // meters
         streak: 0,
         streakLastUpdated: "",
@@ -471,12 +476,23 @@ export default function App() {
       if (!cardSnap.exists()) return alert("Card not found");
       const cardData = cardSnap.data();
 
-      if ((cardData.category || "points") === "rewards") return; // not eligible
+      const category = cardData.category || "points";
+      if (category === "rewards") return; // not eligible to give directly
 
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const studentSnap = await getDoc(studentRef);
       if (!studentSnap.exists()) return alert("Student not found");
       const sdata = studentSnap.data();
+
+      const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+
+      // Only points-cards give base points. Experience cards are purely cosmetic.
+      let basePoints = 0;
+      if (category === "points") {
+        basePoints = Number(cardData.points || 0);
+      }
+
+      const effectivePoints = round2(basePoints * multiplier);
 
       const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
       cardsArr.push({
@@ -485,18 +501,18 @@ export default function App() {
         title: cardData.title,
         imageURL: cardData.imageURL || "",
         grantedAt: new Date().toISOString(),
-        pointsGranted: cardData.points || 0,
+        pointsGranted: effectivePoints,
       });
 
-      const currentPoints = (sdata.currentPoints || 0) + (cardData.points || 0);
-      const cumulativePoints = (sdata.cumulativePoints || 0) + (cardData.points || 0);
+      const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
+      const cumulativePoints = round2((sdata.cumulativePoints || 0) + effectivePoints);
 
       await updateDoc(studentRef, {
         cards: cardsArr,
         currentPoints,
         cumulativePoints,
       });
-      // ✅ no success alert
+      // no success alert on purpose
     } catch (err) {
       console.error(err);
       alert("Failed to give card.");
@@ -1581,19 +1597,28 @@ function ManageStudentModal({
   const [editCurrentPoints, setEditCurrentPoints] = useState(student.currentPoints || 0);
   const [editXP, setEditXP] = useState(student.xp || 0);
   const [editTotal, setEditTotal] = useState(student.cumulativePoints || 0);
+  const [editMultiplier, setEditMultiplier] = useState(
+    typeof student.multiplier === "number" ? student.multiplier : 1
+  );
 
   useEffect(() => {
     setEditName(student.name || "");
     setEditCurrentPoints(student.currentPoints || 0);
     setEditXP(student.xp || 0);
     setEditTotal(student.cumulativePoints || 0);
-  }, [student.id, student.name, student.currentPoints, student.xp, student.cumulativePoints]);
+    setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
+  }, [
+    student.id, student.name, student.currentPoints, student.xp, student.cumulativePoints
+  ]);
 
   function addQuickPoints(amount) {
-    const next = Number(student.currentPoints || 0) + Number(amount || 0);
+    const m = typeof student.multiplier === "number" ? student.multiplier : 1;
+    const effective = round2(Number(amount || 0) * m);
+    const next = round2(Number(student.currentPoints || 0) + effective);
     setEditCurrentPoints(next);
     onEditStudent({ currentPoints: next });
   }
+
 
   function saveEdits() {
     onEditStudent({
@@ -1601,6 +1626,7 @@ function ManageStudentModal({
       currentPoints: Number(editCurrentPoints || 0),
       xp: Number(editXP || 0),
       cumulativePoints: Number(editTotal || 0),
+      multiplier: Number(parseFloat(editMultiplier) || 1),
     });
   }
 
@@ -1701,6 +1727,18 @@ function ManageStudentModal({
                       style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Multiplier (x)</div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editMultiplier}
+                    onChange={(e) => setEditMultiplier(e.target.value)}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                  />
+                  <div className="muted">Default is 1. Example: 1.25, 2, etc.</div>
                 </div>
 
                 <div>
@@ -1879,6 +1917,32 @@ function ManageStudentModal({
                       Redeem (group)
                     </button>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Rewards history */}
+            <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+              <h4 style={{ marginTop: 0 }}>Rewards history</h4>
+              {!student.rewardsHistory?.length ? (
+                <div className="muted">No rewards yet</div>
+              ) : (
+                <div style={{ display: "grid", gap: 6 }}>
+                  {student.rewardsHistory
+                    .slice()
+                    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+                    .map((rh) => (
+                      <div
+                        key={rh.id}
+                        style={{ border: "1px solid #eee", borderRadius: 10, padding: 8 }}
+                      >
+                        <div style={{ fontWeight: 700 }}>{rh.title}</div>
+                        <div className="muted">
+                          {rh.cost} pts • {rh.mode === "group" ? "Group" : "Individual"} •{" "}
+                          {rh.date ? new Date(rh.date).toLocaleString() : ""}
+                        </div>
+                      </div>
+                    ))}
                 </div>
               )}
             </div>
