@@ -867,32 +867,36 @@ export default function App() {
                           <div style={{ fontWeight: 800 }}>{displayName}</div>
 
                           {/* Visible for guests too */}
-                          <div className="muted">
-                            Streak: {s.streak || 0} 🔥
-                            {s.streakLastUpdated && (
-                              <span
-                                style={{
-                                  marginLeft: 4,
-                                  fontWeight: 700,
-                                  color: s.streakLastUpdated === todayISODate() ? "#0a0" : "#c00",
-                                }}
-                              >
-                                ({s.streakLastUpdated})
-                              </span>
-                            )}
-                            {" • "}
-                            Ghost: {s.ghost || 0} 👻
-                            {s.ghostLastUpdated && (
-                              <span
-                                style={{
-                                  marginLeft: 4,
-                                  fontWeight: 700,
-                                  color: s.ghostLastUpdated === todayISODate() ? "#00f" : "#c00",
-                                }}
-                              >
-                                ({s.ghostLastUpdated})
-                              </span>
-                            )}
+                          <div className="muted" style={{ lineHeight: 1.35 }}>
+                            <div>
+                              Streak: {(s.streak || 0) ? "🔥".repeat(s.streak || 0) : "—"}
+                              {s.streakLastUpdated && (
+                                <span
+                                  style={{
+                                    marginLeft: 8,
+                                    color: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? "#0a0" : "#f00",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  ({s.streakLastUpdated})
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              Ghost: {(s.ghost || 0) ? "👻".repeat(s.ghost || 0) : "—"}
+                              {s.ghostLastUpdated && (
+                                <span
+                                  style={{
+                                    marginLeft: 8,
+                                    color: s.ghostLastUpdated === new Date().toISOString().slice(0, 10) ? "#00f" : "#f00",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  ({s.ghostLastUpdated})
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
