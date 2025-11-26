@@ -971,6 +971,13 @@ export default function App() {
                                 </span>
                               )}
                             </div>
+
+                            {s.multiplier && s.multiplier !== 1 && (
+                              <div>
+                                <span className="muted">Multiplier:</span>
+                                <strong> x{s.multiplier}</strong>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1596,7 +1603,6 @@ function ManageStudentModal({
   const [editName, setEditName] = useState(student.name || "");
   const [editCurrentPoints, setEditCurrentPoints] = useState(student.currentPoints || 0);
   const [editXP, setEditXP] = useState(student.xp || 0);
-  const [editTotal, setEditTotal] = useState(student.cumulativePoints || 0);
   const [editMultiplier, setEditMultiplier] = useState(
     typeof student.multiplier === "number" ? student.multiplier : 1
   );
@@ -1605,10 +1611,9 @@ function ManageStudentModal({
     setEditName(student.name || "");
     setEditCurrentPoints(student.currentPoints || 0);
     setEditXP(student.xp || 0);
-    setEditTotal(student.cumulativePoints || 0);
     setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
   }, [
-    student.id, student.name, student.currentPoints, student.xp, student.cumulativePoints
+    student.id, student.name, student.currentPoints, student.xp
   ]);
 
   function addQuickPoints(amount) {
@@ -1687,6 +1692,13 @@ function ManageStudentModal({
                   <button className="btn" onClick={() => onResetMeter("ghost")}>Reset ghost</button>
                 </div>
               </div>
+
+              {student.multiplier && student.multiplier !== 1 && (
+                <div style={{ marginTop: 8 }}>
+                  <div className="muted">Multiplier</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>x{student.multiplier}</div>
+                </div>
+              )}
             </div>
 
             <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
@@ -1731,24 +1743,18 @@ function ManageStudentModal({
 
                 <div>
                   <div className="muted" style={{ marginBottom: 6 }}>Multiplier (x)</div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editMultiplier}
-                    onChange={(e) => setEditMultiplier(e.target.value)}
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
-                  />
+                  {mode === "admin" ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editMultiplier}
+                      onChange={(e) => setEditMultiplier(e.target.value)}
+                      className="input"
+                    />
+                  ) : (
+                    <div style={{ fontWeight: 700 }}>x{student.multiplier}</div>
+                  )}
                   <div className="muted">Default is 1. Example: 1.25, 2, etc.</div>
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>Total acumulado</div>
-                  <input
-                    type="number"
-                    value={editTotal}
-                    onChange={(e) => setEditTotal(e.target.value)}
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
-                  />
                 </div>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1759,7 +1765,6 @@ function ManageStudentModal({
                       setEditName(student.name || "");
                       setEditCurrentPoints(student.currentPoints || 0);
                       setEditXP(student.xp || 0);
-                      setEditTotal(student.cumulativePoints || 0);
                     }}
                   >
                     Deshacer
