@@ -915,33 +915,87 @@ export default function App() {
 
                       <div style={{ marginTop: 10 }}>
                         <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                          {(s.cards || []).slice(-6).map((o) => (
-                            <div
-                              key={o.id}
-                              className="card-thumb"
-                              style={{
-                                width: 80,
-                                height: 110,
-                                border: "1px solid #eee",
-                                borderRadius: 10,
-                                overflow: "hidden",
-                                cursor: "pointer",
-                                background: "white",
-                              }}
-                              onClick={() => setCardPreview(o)}
-                            >
-                              {o.imageURL ? (
-                                <img
-                                  src={o.imageURL}
-                                  alt={o.title}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                />
-                              ) : (
-                                <div style={{ padding: 6 }}>{o.title}</div>
-                              )}
-                            </div>
-                          ))}
+
+                        {/* Scroll container so you can see all cards */}
+                        <div
+                          style={{
+                            marginTop: 8,
+                            maxHeight: 260,        // adjust if you want taller/shorter
+                            overflowY: "auto",
+                            paddingRight: 6,
+                            display: "flex",
+                            gap: 8,
+                            flexWrap: "wrap",
+                            alignContent: "flex-start",
+                          }}
+                        >
+                          {(() => {
+                            // Group by cardId so duplicates show as ×N
+                            const groups = new Map(); // cardId -> { title, imageURL, count }
+                            (s.cards || []).forEach((o) => {
+                              const key = o.cardId || "unknown";
+                              if (!groups.has(key)) {
+                                groups.set(key, { title: o.title || "—", imageURL: o.imageURL || "", count: 0 });
+                              }
+                              groups.get(key).count += 1;
+                            });
+
+                            // Convert to array (optional: newest groups last/first — keep as-is for now)
+                            const arr = Array.from(groups.entries()).map(([cardId, g]) => ({ cardId, ...g }));
+
+                            return arr.map((g) => (
+                              <div
+                                key={g.cardId}
+                                className="card-thumb"
+                                style={{
+                                  width: 80,
+                                  height: 110,
+                                  border: "1px solid #eee",
+                                  borderRadius: 10,
+                                  overflow: "hidden",
+                                  cursor: "pointer",
+                                  position: "relative",
+                                  background: "white",
+                                }}
+                                onClick={() =>
+                                  setCardPreview({
+                                    title: g.title,
+                                    imageURL: g.imageURL,
+                                    description: "",
+                                  })
+                                }
+                              >
+                                {g.imageURL ? (
+                                  <img
+                                    src={g.imageURL}
+                                    alt={g.title}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                ) : (
+                                  <div style={{ padding: 6, fontSize: 11 }}>{g.title}</div>
+                                )}
+
+                                {/* ×N badge */}
+                                {g.count > 1 && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      top: 6,
+                                      right: 6,
+                                      background: "rgba(0,0,0,0.75)",
+                                      color: "white",
+                                      borderRadius: 999,
+                                      padding: "2px 7px",
+                                      fontSize: 11,
+                                      fontWeight: 900,
+                                    }}
+                                  >
+                                    ×{g.count}
+                                  </div>
+                                )}
+                              </div>
+                            ));
+                          })()}
                         </div>
                       </div>
                     </div>
