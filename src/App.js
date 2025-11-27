@@ -2066,7 +2066,6 @@ function ManageStudentModal({
                       background: "#fafafa",
                       cursor: "pointer",
                     }}
-                    onClick={() => setCardPreview({ ...c, isLibraryCard: true })}
                   >
                     {(c.lockedImageURL || c.imageURL) ? (
                       <img
