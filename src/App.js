@@ -126,6 +126,9 @@ export default function App() {
   const lockedFileInputRef = useRef(null);
   const unlockedFileInputRef = useRef(null);
 
+  const [backgroundUrl, setBackgroundUrl] = useState("");
+  const bgInputRef = useRef(null);
+
   const activeClass = useMemo(
     () => classesList.find((c) => c.id === activeClassId) || null,
     [classesList, activeClassId]
@@ -162,6 +165,25 @@ export default function App() {
     );
     return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+    // Load background image (global config)
+  useEffect(() => {
+    const bgDocRef = doc(db, "config", "background");
+    const unsub = onSnapshot(
+      bgDocRef,
+      (snap) => {
+        if (snap.exists()) {
+          setBackgroundUrl(snap.data().url || "");
+        } else {
+          setBackgroundUrl("");
+        }
+      },
+      (err) => {
+        console.error("Error loading background:", err);
+      }
+    );
+    return () => unsub();
   }, []);
 
   // ----- Subscribe: class subcollections -----
@@ -279,6 +301,27 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert("Failed to delete class.");
+    }
+  }
+
+    // Upload and set background image
+  async function uploadBackgroundImage(file) {
+    if (!file) return;
+    try {
+      const safeName = file.name.replace(/\s+/g, "_");
+      const key = `bg_${Date.now()}_${safeName}`;
+      const ref = storageRef(storage, `backgrounds/${key}`);
+      const snapshot = await uploadBytes(ref, file);
+      const url = await getDownloadURL(snapshot.ref);
+
+      // Save to Firestore config/background
+      await setDoc(doc(db, "config", "background"), { url });
+
+      alert("Background updated!");
+      // onSnapshot will update backgroundUrl automatically
+    } catch (err) {
+      console.error("uploadBackgroundImage error:", err);
+      alert("Failed to upload background image.");
     }
   }
 
@@ -745,7 +788,18 @@ export default function App() {
   );
 
   return (
-    <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 12 }}>
+    <div
+      style={{
+        fontFamily: "Inter, system-ui, sans-serif",
+        minHeight: "100vh",
+        padding: 12,
+        backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : "none",
+        backgroundSize: "cover",
+        backgroundAttachment: "fixed",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       <style>{`
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
         .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
@@ -824,6 +878,31 @@ export default function App() {
             {mode === "admin" ? "Admin mode" : "Guest mode"}
           </div>
         </div>
+
+        {mode === "admin" && (
+          <>
+            <input
+              type="file"
+              accept="image/*"
+              ref={bgInputRef}
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  uploadBackgroundImage(file);
+                  // reset so picking the same file again still triggers change
+                  e.target.value = "";
+                }
+              }}
+            />
+            <button
+              className="btn"
+              onClick={() => bgInputRef.current?.click()}
+            >
+              Background
+            </button>
+          </>
+        )}
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button className="btn" onClick={() => setMode(null)}>
