@@ -1299,13 +1299,18 @@ export default function App() {
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                maxWidth: "90vw",
-                maxHeight: "80vh",
-                borderRadius: 12,
+                maxWidth: "min(80vw, 700px)",
+                width: "80vw",
+                height: "min(60vh, 450px)",
+                maxHeight: "60vh",
+                borderRadius: 16,
                 overflow: "hidden",
                 background: "#000",
                 position: "relative",
                 boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               {cardPreview.imageURL ? (
@@ -1313,11 +1318,10 @@ export default function App() {
                   src={cardPreview.imageURL}
                   alt=""
                   style={{
-                    display: "block",
                     width: "100%",
                     height: "100%",
                     objectFit: "contain",
-                    background: "#000",
+                    display: "block",
                   }}
                 />
               ) : (
@@ -1326,7 +1330,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* Small close button for phones */}
               <button
                 onClick={() => setCardPreview(null)}
                 style={{
