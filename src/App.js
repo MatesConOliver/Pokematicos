@@ -1829,17 +1829,13 @@ function ManageStudentModal({
 
                 <div>
                   <div className="muted" style={{ marginBottom: 6 }}>Multiplier (x)</div>
-                  {mode === "admin" ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editMultiplier}
-                      onChange={(e) => setEditMultiplier(e.target.value)}
-                      className="input"
-                    />
-                  ) : (
-                    <div style={{ fontWeight: 700 }}>x{student.multiplier}</div>
-                  )}
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editMultiplier}
+                    onChange={(e) => setEditMultiplier(e.target.value)}
+                    className="input"
+                  />
                   <div className="muted">Default is 1. Example: 1.25, 2, etc.</div>
                 </div>
 
