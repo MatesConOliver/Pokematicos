@@ -1158,7 +1158,7 @@ export default function App() {
                             key={c.id}
                             c={c}
                             mode={mode}
-                            onPreview={() => setCardPreview({ ...c, isLibraryCard: true })}
+                            onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
                             onDelete={() => deleteCard(c.id)}
                           />
                         ))
@@ -1179,7 +1179,7 @@ export default function App() {
                               key={c.id}
                               c={c}
                               mode={mode}
-                              onPreview={() => setCardPreview({ ...c, isLibraryCard: true })}
+                              onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
                               onDelete={() => deleteCard(c.id)}
                             />
                           ))
