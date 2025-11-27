@@ -305,25 +305,38 @@ export default function App() {
   }
 
     // Upload and set background image
-  async function uploadBackgroundImage(file) {
-    if (!file) return;
+    async function uploadBackgroundImage(file) {
+      if (!file) return;
+      try {
+        const safeName = file.name.replace(/\s+/g, "_");
+        const key = `bg_${Date.now()}_${safeName}`;
+        const ref = storageRef(storage, `backgrounds/${key}`);
+        const snapshot = await uploadBytes(ref, file);
+        const url = await getDownloadURL(snapshot.ref);
+
+        // Save to Firestore config/background
+        await setDoc(doc(db, "config", "background"), { url });
+
+        alert("Background updated!");
+        // onSnapshot will update backgroundUrl automatically
+      } catch (err) {
+        console.error("uploadBackgroundImage error:", err);
+        alert("Failed to upload background image.");
+      }
+    }
+
+  // Remove background image (set to none)
+  async function clearBackgroundImage() {
     try {
-      const safeName = file.name.replace(/\s+/g, "_");
-      const key = `bg_${Date.now()}_${safeName}`;
-      const ref = storageRef(storage, `backgrounds/${key}`);
-      const snapshot = await uploadBytes(ref, file);
-      const url = await getDownloadURL(snapshot.ref);
-
-      // Save to Firestore config/background
-      await setDoc(doc(db, "config", "background"), { url });
-
-      alert("Background updated!");
-      // onSnapshot will update backgroundUrl automatically
+      await setDoc(doc(db, "config", "background"), { url: "" });
+      alert("Background removed!");
+      // onSnapshot will set backgroundUrl to "" automatically
     } catch (err) {
-      console.error("uploadBackgroundImage error:", err);
-      alert("Failed to upload background image.");
+      console.error("clearBackgroundImage error:", err);
+      alert("Failed to remove background.");
     }
   }
+
 
   // ----- Student actions -----
   async function addStudent(name) {
@@ -901,6 +914,15 @@ export default function App() {
             >
               Background
             </button>
+
+            {backgroundUrl && (
+              <button
+                className="btn"
+                onClick={clearBackgroundImage}
+              >
+                Remove bg
+              </button>
+            )}
           </>
         )}
 
