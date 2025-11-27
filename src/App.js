@@ -1229,37 +1229,123 @@ export default function App() {
 
       {/* Card preview modal */}
       {cardPreview && (
-        <div className="modal-backdrop" onClick={() => setCardPreview(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ width: 360, height: 500, background: "#f6f6f6", borderRadius: 10, overflow: "hidden" }}>
-                {(() => {
-                  const previewUrl = cardPreview.isLibraryCard
-                    ? (cardPreview.lockedImageURL || cardPreview.imageURL)
-                    : cardPreview.imageURL;
-
-                  return previewUrl ? (
-                    <img src={previewUrl} alt={cardPreview.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+        <div
+          className="modal-backdrop"
+          onClick={() => setCardPreview(null)}
+        >
+          {/* If it comes from the library (locked card) -> show full info modal */}
+          {cardPreview.isLibraryCard ? (
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    width: 360,
+                    maxWidth: "100%",
+                    height: 500,
+                    maxHeight: "70vh",
+                    background: "#f6f6f6",
+                    borderRadius: 8,
+                    overflow: "hidden",
+                  }}
+                >
+                  {cardPreview.imageURL ? (
+                    <img
+                      src={cardPreview.imageURL}
+                      alt={cardPreview.title}
+                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                    />
                   ) : (
                     <div style={{ padding: 12 }}>{cardPreview.title}</div>
-                  );
-                })()}
-              </div>
-              <div style={{ flex: 1, minWidth: 260 }}>
-                <h3 style={{ marginTop: 0 }}>{cardPreview.title}</h3>
-                <div className="muted">{cardPreview.description}</div>
-                {"points" in cardPreview && (
-                  <div style={{ marginTop: 10, fontWeight: 900 }}>{cardPreview.points || 0} pts</div>
-                )}
+                  )}
+                </div>
 
-                <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button className="btn" onClick={() => setCardPreview(null)}>
-                    Close
-                  </button>
+                <div style={{ flex: 1, minWidth: 220 }}>
+                  <h3 style={{ marginTop: 0 }}>{cardPreview.title}</h3>
+                  <div className="muted">{cardPreview.description}</div>
+                  <div style={{ marginTop: 8, fontWeight: 700 }}>
+                    {cardPreview.points || 0} pts
+                  </div>
+
+                  <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button className="btn" onClick={() => setCardPreview(null)}>
+                      Close
+                    </button>
+                    {mode === "admin" && (
+                      <button
+                        className="btn primary"
+                        onClick={() => {
+                          const studentName = prompt("Give to student (exact name):");
+                          if (!studentName) return;
+                          const st = students.find(
+                            (s) => safeLower(s.name) === safeLower(studentName)
+                          );
+                          if (!st) {
+                            alert("Student not found. Use Manage → Give for picklist.");
+                            return;
+                          }
+                          giveCardToStudent(activeClassId, st.id, cardPreview.id);
+                          setCardPreview(null);
+                        }}
+                      >
+                        Give to student
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* Owned card (unlocked) -> image only */
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: "90vw",
+                maxHeight: "80vh",
+                borderRadius: 12,
+                overflow: "hidden",
+                background: "#000",
+                position: "relative",
+                boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
+              }}
+            >
+              {cardPreview.imageURL ? (
+                <img
+                  src={cardPreview.imageURL}
+                  alt=""
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    background: "#000",
+                  }}
+                />
+              ) : (
+                <div style={{ padding: 16, color: "white", textAlign: "center" }}>
+                  {cardPreview.title || "Card"}
+                </div>
+              )}
+
+              {/* Small close button for phones */}
+              <button
+                onClick={() => setCardPreview(null)}
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  borderRadius: "999px",
+                  border: "none",
+                  padding: "4px 8px",
+                  fontSize: 14,
+                  cursor: "pointer",
+                  background: "rgba(0,0,0,0.6)",
+                  color: "white",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
       )}
 
