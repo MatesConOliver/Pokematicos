@@ -1299,13 +1299,13 @@ export default function App() {
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                maxWidth: "min(80vw, 700px)",
-                width: "80vw",
-                height: "min(60vh, 450px)",
-                maxHeight: "60vh",
+                maxWidth: "min(85vw, 720px)",
+                width: "85vw",
+                height: "min(70vh, 520px)",
+                maxHeight: "70vh",
                 borderRadius: 16,
                 overflow: "hidden",
-                background: "#000",
+                background: "#transparent",
                 position: "relative",
                 boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
                 display: "flex",
