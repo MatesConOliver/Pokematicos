@@ -1898,8 +1898,8 @@ function ManageStudentModal({
   cards,
   rewards,
   streakConfigs,
-  changeStudentStreakValue
-  resetStudentStreak
+  changeStudentStreakValue,
+  resetStudentStreak,
   mode,
   onEditStudent,
   onClose,
