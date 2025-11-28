@@ -1307,7 +1307,7 @@ export default function App() {
                             rewards.map((r) => {
                               const cardMeta = cards.find((c) => c.id === r.cardId) || null;
                               return (
-                                <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10 }}>
+                                <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa" }}>
                                   <div style={{ fontWeight: 900 }}>{r.title}</div>
                                   <div className="muted">
                                     Cost: <span className="pill">{r.cost} pts</span>{" "}
@@ -1508,7 +1508,7 @@ export default function App() {
 function LibraryCardRow({ c, mode, onPreview, onDelete }) {
   const showURL = c.lockedImageURL || c.imageURL; // library shows locked
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "center", border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa" }}>
+    <div style={{ display: "flex", gap: 10, alignItems: "center", border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa"}}>
       <div style={{ width: 68, height: 86, background: "#fafafa", cursor: "pointer", borderRadius: 8, overflow: "hidden" }} onClick={onPreview}>
         {showURL ? (
           <img src={showURL} alt={c.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
