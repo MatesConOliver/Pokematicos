@@ -923,6 +923,20 @@ export default function App() {
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
         .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
 
+        .floating-emoji {
+          position: absolute;
+          opacity: 0.14;
+          font-size: 48px;
+          animation: drift 22s linear infinite;
+          pointer-events: none;
+        }
+
+        @keyframes drift {
+          0%   { transform: translate(-20%, -10%) rotate(0deg); }
+          50%  { transform: translate(130%, 10%) rotate(20deg); }
+          100% { transform: translate(-20%, -10%) rotate(0deg); }
+        }
+
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
         .modal { background: white; border-radius: 10px; padding: 12px; max-width: 980px; width: 92%; max-height: 90vh; overflow:auto; }
 
@@ -1597,6 +1611,7 @@ export default function App() {
           students={students}
           cards={cards}
           rewards={rewards}
+          streakConfigs={activeClass?.streakConfigs || []}
           onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
           onDeleteStudent={() => deleteStudent(activeClassId, selectedStudent.id)}
@@ -1879,6 +1894,7 @@ function ManageStudentModal({
   students,
   cards,
   rewards,
+  streakConfigs,
   onEditStudent,
   onClose,
   onDeleteStudent,
@@ -2052,14 +2068,16 @@ function ManageStudentModal({
             </div>
 
             {/* NEW: generic streaks for this class */}
-            {activeClass?.streakConfigs && activeClass.streakConfigs.length > 0 && (
+            {streakConfigs && streakConfigs.length > 0 && (
               <div style={{ marginTop: 16 }}>
                 <h4 style={{ marginTop: 0 }}>Streaks</h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {activeClass.streakConfigs.map((cfg) => {
+                  {streakConfigs.map((cfg) => {
                     const stObj =
-                      (selectedStudent.streaks && selectedStudent.streaks[cfg.id]) ||
-                      { value: 0, lastUpdated: "" };
+                      (student.streaks && student.streaks[cfg.id]) || {
+                        value: 0,
+                        lastUpdated: "",
+                      };
                     const emojiLine =
                       (cfg.emoji || "").repeat(stObj.value || 0) || cfg.emoji;
                     const date = stObj.lastUpdated || "";
@@ -2112,8 +2130,8 @@ function ManageStudentModal({
                                 className="btn"
                                 onClick={() =>
                                   changeStudentStreakValue(
-                                    selectedStudent.classId,
-                                    selectedStudent.id,
+                                    classId,
+                                    student.id,
                                     cfg.id,
                                     -1,
                                     cfg.max
@@ -2127,8 +2145,8 @@ function ManageStudentModal({
                                 style={{ marginLeft: 4 }}
                                 onClick={() =>
                                   changeStudentStreakValue(
-                                    selectedStudent.classId,
-                                    selectedStudent.id,
+                                    classId,
+                                    student.id,
                                     cfg.id,
                                     +1,
                                     cfg.max
@@ -2142,11 +2160,7 @@ function ManageStudentModal({
                               className="btn"
                               style={{ fontSize: 11 }}
                               onClick={() =>
-                                resetStudentStreak(
-                                  selectedStudent.classId,
-                                  selectedStudent.id,
-                                  cfg.id
-                                )
+                                resetStudentStreak(classId, student.id, cfg.id)
                               }
                             >
                               Reset
