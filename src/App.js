@@ -840,6 +840,14 @@ export default function App() {
         .btn.primary:hover{ filter: brightness(0.98); }
 
         .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; border: 1px solid #e5e7eb; }
+        .column-title-pill {
+          display: inline-block;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+          font-size: 14px;
+        }
 
         .input, .select, textarea{
           width: 100%;
@@ -940,7 +948,7 @@ export default function App() {
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 360px", gap: 14 }}>
         {/* LEFT: Classes */}
         <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-          <h3 style={{ marginTop: 0 }}>Classes</h3>
+          <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Classes</span></h3>
 
           {loadingClasses ? (
             <div className="muted">Loading classes...</div>
@@ -1009,7 +1017,7 @@ export default function App() {
             <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <h3 style={{ margin: 0 }}>{activeClass?.name || "Select a class"}</h3>
+                  <h3 style={{ margin: 0 }}><span className="column-title-pill"> {activeClass?.name || "Select a class"} </span></h3>
                   {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
                 </div>
 
@@ -1221,7 +1229,7 @@ export default function App() {
 
             {/* RIGHT: Library */}
             <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-              <h3 style={{ marginTop: 0 }}>Library (class)</h3>
+              <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Library (class)</span></h3>
               {!activeClassId ? (
                 <div className="muted">Select a class first</div>
               ) : (
@@ -1500,7 +1508,7 @@ export default function App() {
 function LibraryCardRow({ c, mode, onPreview, onDelete }) {
   const showURL = c.lockedImageURL || c.imageURL; // library shows locked
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "center", border: "1px solid #eee", padding: 10, borderRadius: 10 }}>
+    <div style={{ display: "flex", gap: 10, alignItems: "center", border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa" }}>
       <div style={{ width: 68, height: 86, background: "#fafafa", cursor: "pointer", borderRadius: 8, overflow: "hidden" }} onClick={onPreview}>
         {showURL ? (
           <img src={showURL} alt={c.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
