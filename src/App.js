@@ -1601,8 +1601,6 @@ export default function App() {
           onClose={() => setSelectedStudentId(null)}
           onDeleteStudent={() => deleteStudent(activeClassId, selectedStudent.id)}
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
-          onChangeMeter={(meter, delta) => changeMeter(activeClassId, selectedStudent.id, meter, delta)}
-          onResetMeter={(meter) => resetMeter(activeClassId, selectedStudent.id, meter)}
           onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
           onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
           onRedeemIndividual={(rewardId) => redeemRewardIndividual(activeClassId, selectedStudent.id, rewardId)}
@@ -1885,8 +1883,6 @@ function ManageStudentModal({
   onClose,
   onDeleteStudent,
   onGiveCard,
-  onChangeMeter,
-  onResetMeter,
   onRemoveOne,
   onRemoveAll,
   onRedeemIndividual,
