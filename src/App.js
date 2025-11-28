@@ -304,6 +304,77 @@ export default function App() {
     }
   }
 
+    // --- CLASS STREAK TYPES (per class) ---
+
+  async function addStreakTypeForClass(classId) {
+    if (!classId) {
+      alert("Select a class first");
+      return;
+    }
+
+    // 1) Emoji
+    const emoji = prompt("Emoji for this streak (for example 🔥, 👻, ⭐):");
+    if (!emoji || !emoji.trim()) return;
+
+    // 2) Maximum value
+    const maxStr = prompt("Maximum value for this streak (for example 5):");
+    const max = Number(maxStr || "0");
+    if (!Number.isFinite(max) || max <= 0) {
+      alert("Maximum must be a number greater than 0.");
+      return;
+    }
+
+    // 3) Floating emoji?
+    const floatAns = prompt(
+      "When a student reaches this maximum streak, should this emoji float faintly in their card background? (yes/no)"
+    );
+    let float = false;
+    let floatStart = "";
+    let floatEnd = "";
+
+    if (floatAns && floatAns.toLowerCase().startsWith("y")) {
+      float = true;
+
+      const start = prompt(
+        "Floating start date (YYYY-MM-DD, leave empty for today):"
+      );
+      floatStart = (start && start.trim()) || todayISODate();
+
+      const end = prompt(
+        "Floating end date (YYYY-MM-DD, leave empty for no end date):"
+      );
+      floatEnd = (end && end.trim()) || "";
+    }
+
+    const id = uid("streak");
+    const newCfg = {
+      id,
+      emoji,
+      max,
+      float,
+      floatStart,
+      floatEnd,
+    };
+
+    try {
+      const clsRef = doc(db, `classes/${classId}`);
+
+      // take current streakConfigs from the in-memory classesList
+      const current =
+        classesList.find((c) => c.id === classId)?.streakConfigs || [];
+
+      await updateDoc(clsRef, {
+        streakConfigs: [...current, newCfg],
+      });
+
+      alert("New streak type created for this class.");
+    } catch (err) {
+      console.error(err);
+      alert("Could not create streak type. See console for details.");
+    }
+  }
+
+
     // Upload and set background image
     async function uploadBackgroundImage(file) {
       if (!file) return;
@@ -358,6 +429,7 @@ export default function App() {
         streakLastUpdated: "",
         ghost: 0,
         ghostLastUpdated: "",
+        streaks: {}
         // inventory / history
         cards: [],
         rewardsHistory: [],
@@ -1018,18 +1090,24 @@ export default function App() {
                   {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
                 </div>
 
-                <input
-                  placeholder="Filter students..."
-                  value={studentFilter}
-                  onChange={(e) => setStudentFilter(e.target.value)}
-                  style={{
-                    padding: 8,
-                    fontSize: 13,
-                    borderRadius: 8,
-                    border: "1px solid #ddd",
-                    minWidth: 170,
-                  }}
-                />
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {mode === "admin" && activeClassId && (
+                    <button className="btn" onClick={() => addStreakTypeForClass(activeClassId)}>New streak</button>
+                  )}
+
+                  <input
+                    placeholder="Filter students..."
+                    value={studentFilter}
+                    onChange={(e) => setStudentFilter(e.target.value)}
+                    style={{
+                      padding: 8,
+                      fontSize: 13,
+                      borderRadius: 8,
+                      border: "1px solid #ddd",
+                      minWidth: 170,
+                    }}
+                  />
+                </div>
               </div>
 
               <div style={{ marginTop: 12 }}>
