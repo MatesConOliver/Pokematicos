@@ -1229,7 +1229,7 @@ export default function App() {
 
             {/* RIGHT: Library */}
             <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-              <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Library (class)</span></h3>
+              <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Library</span></h3>
               {!activeClassId ? (
                 <div className="muted">Select a class first</div>
               ) : (
@@ -1259,7 +1259,7 @@ export default function App() {
 
                   <div style={{ maxHeight: 560, overflow: "auto" }}>
                     {libraryTab !== "rewards" ? (
-                      <div style={{ display: "grid", gap: 10 }}>
+                      <div style={{ display: "grid" }}>
                         {loadingCards ? (
                           <div className="muted">Loading cards...</div>
                         ) : (
@@ -1307,7 +1307,7 @@ export default function App() {
                             rewards.map((r) => {
                               const cardMeta = cards.find((c) => c.id === r.cardId) || null;
                               return (
-                                <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa" }}>
+                                <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa", marginBottom: 10 }}>
                                   <div style={{ fontWeight: 900 }}>{r.title}</div>
                                   <div className="muted">
                                     Cost: <span className="pill">{r.cost} pts</span>{" "}
@@ -1508,10 +1508,35 @@ export default function App() {
 function LibraryCardRow({ c, mode, onPreview, onDelete }) {
   const showURL = c.lockedImageURL || c.imageURL; // library shows locked
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "center", border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa"}}>
-      <div style={{ width: 68, height: 86, background: "#fafafa", cursor: "pointer", borderRadius: 8, overflow: "hidden" }} onClick={onPreview}>
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "center",
+        border: "1px solid #eee",
+        padding: 10,
+        borderRadius: 10,
+        background: "#ffffff",
+        marginBottom: 10,          // 👈 this creates the separation
+      }}
+    >
+      <div
+        style={{
+          width: 68,
+          height: 86,
+          background: "#fafafa",
+          cursor: "pointer",
+          borderRadius: 8,
+          overflow: "hidden",
+        }}
+        onClick={onPreview}
+      >
         {showURL ? (
-          <img src={showURL} alt={c.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img
+            src={showURL}
+            alt={c.title}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
         ) : (
           <div style={{ padding: 6 }}>{c.title}</div>
         )}
