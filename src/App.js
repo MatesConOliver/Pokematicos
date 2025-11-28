@@ -375,7 +375,7 @@ export default function App() {
 
   // --- STUDENT STREAKS (generic) ---
 
-  async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValue) {
+    async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValue) {
     try {
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const snap = await getDoc(studentRef);
@@ -383,6 +383,7 @@ export default function App() {
       const data = snap.data();
       const streaks = data.streaks || {};
       const current = streaks[streakId]?.value || 0;
+
       let next = current + delta;
       if (next < 0) next = 0;
       if (typeof maxValue === "number" && maxValue > 0 && next > maxValue) {
@@ -400,20 +401,14 @@ export default function App() {
       };
 
       await updateDoc(studentRef, { streaks: updatedStreaks });
-
-      // keep Manage modal in sync
-      setSelectedStudent((prev) =>
-        prev && prev.id === studentId
-          ? { ...prev, streaks: updatedStreaks }
-          : prev
-      );
+      // No setSelectedStudent here – Firestore snapshot will refresh students list
     } catch (err) {
       console.error("changeStudentStreakValue error", err);
       alert("Could not update streak. See console.");
     }
   }
 
-  async function resetStudentStreak(classId, studentId, streakId) {
+    async function resetStudentStreak(classId, studentId, streakId) {
     try {
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const snap = await getDoc(studentRef);
@@ -432,18 +427,12 @@ export default function App() {
       };
 
       await updateDoc(studentRef, { streaks: updatedStreaks });
-
-      setSelectedStudent((prev) =>
-        prev && prev.id === studentId
-          ? { ...prev, streaks: updatedStreaks }
-          : prev
-      );
+      // Again, no setSelectedStudent – snapshot will handle UI refresh
     } catch (err) {
       console.error("resetStudentStreak error", err);
       alert("Could not reset streak.");
     }
   }
-
 
   // Upload and set background image
   async function uploadBackgroundImage(file) {
