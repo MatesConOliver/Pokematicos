@@ -1612,6 +1612,7 @@ export default function App() {
           cards={cards}
           rewards={rewards}
           streakConfigs={activeClass?.streakConfigs || []}
+          mode={mode}
           onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
           onDeleteStudent={() => deleteStudent(activeClassId, selectedStudent.id)}
@@ -1895,6 +1896,7 @@ function ManageStudentModal({
   cards,
   rewards,
   streakConfigs,
+  mode,
   onEditStudent,
   onClose,
   onDeleteStudent,
