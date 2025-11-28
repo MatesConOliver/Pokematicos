@@ -28,7 +28,6 @@ import {
  * What this version adds back (from your old localStorage version) + fixes:
  * - Guest vs Admin mode (guests cannot Manage; they can only view cards and open a Profile modal)
  * - Student filter
- * - Streak + Ghost + last-updated dates shown on student tiles (visible for guests)
  * - Rewards redeem: choose Individual or Group BEFORE redeeming
  *   - Group redeem lets you assign shares across students that MUST sum exactly to reward cost
  * - Owned cards are grouped (×N). Remove all uses ONE confirm and ONE database update (no spam)
@@ -304,7 +303,7 @@ export default function App() {
     }
   }
 
-    // --- CLASS STREAK TYPES (per class) ---
+  // --- CLASS STREAK TYPES (per class) ---
 
   async function addStreakTypeForClass(classId) {
     if (!classId) {
@@ -374,27 +373,98 @@ export default function App() {
     }
   }
 
+  // --- STUDENT STREAKS (generic) ---
 
-    // Upload and set background image
-    async function uploadBackgroundImage(file) {
-      if (!file) return;
-      try {
-        const safeName = file.name.replace(/\s+/g, "_");
-        const key = `bg_${Date.now()}_${safeName}`;
-        const ref = storageRef(storage, `backgrounds/${key}`);
-        const snapshot = await uploadBytes(ref, file);
-        const url = await getDownloadURL(snapshot.ref);
-
-        // Save to Firestore config/background
-        await setDoc(doc(db, "config", "background"), { url });
-
-        alert("Background updated!");
-        // onSnapshot will update backgroundUrl automatically
-      } catch (err) {
-        console.error("uploadBackgroundImage error:", err);
-        alert("Failed to upload background image.");
+  async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValue) {
+    try {
+      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+      const snap = await getDoc(studentRef);
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const streaks = data.streaks || {};
+      const current = streaks[streakId]?.value || 0;
+      let next = current + delta;
+      if (next < 0) next = 0;
+      if (typeof maxValue === "number" && maxValue > 0 && next > maxValue) {
+        next = maxValue;
       }
+
+      const updatedEntry = {
+        value: next,
+        lastUpdated: delta > 0 ? todayISODate() : (streaks[streakId]?.lastUpdated || ""),
+      };
+
+      const updatedStreaks = {
+        ...streaks,
+        [streakId]: updatedEntry,
+      };
+
+      await updateDoc(studentRef, { streaks: updatedStreaks });
+
+      // keep Manage modal in sync
+      setSelectedStudent((prev) =>
+        prev && prev.id === studentId
+          ? { ...prev, streaks: updatedStreaks }
+          : prev
+      );
+    } catch (err) {
+      console.error("changeStudentStreakValue error", err);
+      alert("Could not update streak. See console.");
     }
+  }
+
+  async function resetStudentStreak(classId, studentId, streakId) {
+    try {
+      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+      const snap = await getDoc(studentRef);
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const streaks = data.streaks || {};
+
+      const updatedEntry = {
+        value: 0,
+        lastUpdated: "",
+      };
+
+      const updatedStreaks = {
+        ...streaks,
+        [streakId]: updatedEntry,
+      };
+
+      await updateDoc(studentRef, { streaks: updatedStreaks });
+
+      setSelectedStudent((prev) =>
+        prev && prev.id === studentId
+          ? { ...prev, streaks: updatedStreaks }
+          : prev
+      );
+    } catch (err) {
+      console.error("resetStudentStreak error", err);
+      alert("Could not reset streak.");
+    }
+  }
+
+
+  // Upload and set background image
+  async function uploadBackgroundImage(file) {
+    if (!file) return;
+    try {
+      const safeName = file.name.replace(/\s+/g, "_");
+      const key = `bg_${Date.now()}_${safeName}`;
+      const ref = storageRef(storage, `backgrounds/${key}`);
+      const snapshot = await uploadBytes(ref, file);
+      const url = await getDownloadURL(snapshot.ref);
+
+      // Save to Firestore config/background
+      await setDoc(doc(db, "config", "background"), { url });
+
+      alert("Background updated!");
+      // onSnapshot will update backgroundUrl automatically
+    } catch (err) {
+      console.error("uploadBackgroundImage error:", err);
+      alert("Failed to upload background image.");
+    }
+  }
 
   // Remove background image (set to none)
   async function clearBackgroundImage() {
@@ -424,11 +494,6 @@ export default function App() {
         currentPoints: 0,
         xp: 0,
         multiplier: 1,
-        // meters
-        streak: 0,
-        streakLastUpdated: "",
-        ghost: 0,
-        ghostLastUpdated: "",
         streaks: {},
         // inventory / history
         cards: [],
@@ -484,34 +549,6 @@ export default function App() {
       console.error(err);
       alert("Could not save profile. (Check Firestore rules)");
     }
-  }
-
-  // meters
-  async function changeMeter(classId, studentId, meter, delta) {
-    const st = students.find((s) => s.id === studentId);
-    if (!st) return;
-    const before = Number(st[meter] || 0);
-    let after = before + delta;
-    if (after < 0) after = 0;
-    if (after > 5) after = 5;
-
-    const updates = { [meter]: after };
-
-    // update date only when increased
-    if (delta > 0) {
-      if (meter === "streak") updates.streakLastUpdated = todayISODate();
-      if (meter === "ghost") updates.ghostLastUpdated = todayISODate();
-    }
-
-    await editStudent(classId, studentId, updates);
-  }
-
-  async function resetMeter(classId, studentId, meter) {
-    if (!window.confirm(`Reset ${meter} to 0?`)) return;
-    const updates = { [meter]: 0 };
-    if (meter === "streak") updates.streakLastUpdated = "";
-    if (meter === "ghost") updates.ghostLastUpdated = "";
-    await editStudent(classId, studentId, updates);
   }
 
   // ----- Cards: locked + unlocked -----
@@ -1129,33 +1166,34 @@ export default function App() {
 
                               {/* Visible for guests too */}
                               <div className="muted" style={{ lineHeight: 1.35 }}>
-                                <div>
-                                  Streak: {(s.streak || 0) ? "🔥".repeat(s.streak || 0) : "—"}
-                                  {s.streakLastUpdated && (
-                                    <span
-                                      style={{
-                                        marginLeft: 8,
-                                        color: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? "#0a0" : "#f00",
-                                        fontWeight: 700,
-                                      }}
-                                    >
-                                      ({s.streakLastUpdated})
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div>
-                                  Ghost: {(s.ghost || 0) ? "👻".repeat(s.ghost || 0) : "—"}
-                                  {s.ghostLastUpdated && (
-                                    <span
-                                      style={{
-                                        marginLeft: 8,
-                                        color: s.ghostLastUpdated === new Date().toISOString().slice(0, 10) ? "#00f" : "#f00",
-                                        fontWeight: 700,
-                                      }}
-                                    >
-                                      ({s.ghostLastUpdated})
-                                    </span>
+                                <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
+                                  {activeClass?.streakConfigs && activeClass.streakConfigs.length > 0 ? (
+                                    activeClass.streakConfigs.map((cfg) => {
+                                      const stObj =
+                                        (s.streaks && s.streaks[cfg.id]) || { value: 0, lastUpdated: "" };
+                                      const emojiLine =
+                                        (cfg.emoji || "").repeat(stObj.value || 0) || cfg.emoji;
+                                      const date = stObj.lastUpdated || "";
+                                      const isToday = date && date === todayISODate();
+                                      return (
+                                        <div key={cfg.id}>
+                                          {emojiLine}
+                                          {date && (
+                                            <span
+                                              style={{
+                                                marginLeft: 4,
+                                                color: isToday ? "#16a34a" : "#dc2626",
+                                                fontWeight: 600,
+                                              }}
+                                            >
+                                              {date}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })
+                                  ) : (
+                                    <span className="muted">No streaks defined for this class.</span>
                                   )}
                                 </div>
 
@@ -1781,14 +1819,6 @@ function ProfileModal({ mode, student, onClose, onSave }) {
           <button className="btn" onClick={onClose}>Close</button>
         </div>
 
-        <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: color || "#f9fafb", border: "1px solid #eee" }}>
-          <div style={{ fontWeight: 900, marginBottom: 6 }}>Preview</div>
-          <div style={{ fontSize: 18, fontWeight: 900 }}>{displayName}</div>
-          <div className="muted" style={{ marginTop: 6 }}>
-            Streak: {student.streak || 0} 🔥 • Ghost: {student.ghost || 0} 👻
-          </div>
-        </div>
-
         <div style={{ marginTop: 14 }}>
           <h4 style={{ marginTop: 0 }}>Personalización</h4>
 
@@ -1957,50 +1987,6 @@ function ManageStudentModal({
         <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 380px", gap: 12 }}>
           {/* LEFT side */}
           <div>
-            {/* meters */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>Streak</div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <button className="btn" onClick={() => onChangeMeter("streak", -1)}>-</button>
-                  <div style={{ fontSize: 18 }}>{`🔥`.repeat(student.streak || 0)}</div>
-                  <button className="btn" onClick={() => onChangeMeter("streak", +1)}>+</button>
-                </div>
-                {student.streakLastUpdated && (
-                  <div className="muted" style={{ marginTop: 6 }}>
-                    Last: <span className="pill">{student.streakLastUpdated}</span>
-                  </div>
-                )}
-                <div style={{ marginTop: 8 }}>
-                  <button className="btn" onClick={() => onResetMeter("streak")}>Reset streak</button>
-                </div>
-              </div>
-
-              <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>Ghost assistance</div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <button className="btn" onClick={() => onChangeMeter("ghost", -1)}>-</button>
-                  <div style={{ fontSize: 18 }}>{`👻`.repeat(student.ghost || 0)}</div>
-                  <button className="btn" onClick={() => onChangeMeter("ghost", +1)}>+</button>
-                </div>
-                {student.ghostLastUpdated && (
-                  <div className="muted" style={{ marginTop: 6 }}>
-                    Last: <span className="pill">{student.ghostLastUpdated}</span>
-                  </div>
-                )}
-                <div style={{ marginTop: 8 }}>
-                  <button className="btn" onClick={() => onResetMeter("ghost")}>Reset ghost</button>
-                </div>
-              </div>
-
-              {student.multiplier && student.multiplier !== 1 && (
-                <div style={{ marginTop: 8 }}>
-                  <div className="muted">Multiplier</div>
-                  <div style={{ fontWeight: 700, fontSize: 16 }}>x{student.multiplier}</div>
-                </div>
-              )}
-            </div>
-
             <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
               <h4 style={{ marginTop: 0 }}>Editar alumno</h4>
 
@@ -2068,6 +2054,115 @@ function ManageStudentModal({
                 </div>
               </div>
             </div>
+
+            {/* NEW: generic streaks for this class */}
+            {activeClass?.streakConfigs && activeClass.streakConfigs.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <h4 style={{ marginTop: 0 }}>Streaks</h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {activeClass.streakConfigs.map((cfg) => {
+                    const stObj =
+                      (selectedStudent.streaks && selectedStudent.streaks[cfg.id]) ||
+                      { value: 0, lastUpdated: "" };
+                    const emojiLine =
+                      (cfg.emoji || "").repeat(stObj.value || 0) || cfg.emoji;
+                    const date = stObj.lastUpdated || "";
+                    const isToday = date && date === todayISODate();
+
+                    return (
+                      <div
+                        key={cfg.id}
+                        style={{
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 8,
+                          padding: 8,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 8,
+                          background: "#ffffff",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>
+                            {cfg.emoji} streak (max {cfg.max})
+                          </div>
+                          <div style={{ fontSize: 13 }}>{emojiLine}</div>
+                          {date && (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                marginTop: 2,
+                                color: isToday ? "#16a34a" : "#dc2626",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Last: {date}
+                            </div>
+                          )}
+                        </div>
+
+                        {mode === "admin" && (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                              alignItems: "flex-end",
+                            }}
+                          >
+                            <div>
+                              <button
+                                className="btn"
+                                onClick={() =>
+                                  changeStudentStreakValue(
+                                    selectedStudent.classId,
+                                    selectedStudent.id,
+                                    cfg.id,
+                                    -1,
+                                    cfg.max
+                                  )
+                                }
+                              >
+                                -1
+                              </button>
+                              <button
+                                className="btn"
+                                style={{ marginLeft: 4 }}
+                                onClick={() =>
+                                  changeStudentStreakValue(
+                                    selectedStudent.classId,
+                                    selectedStudent.id,
+                                    cfg.id,
+                                    +1,
+                                    cfg.max
+                                  )
+                                }
+                              >
+                                +1
+                              </button>
+                            </div>
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11 }}
+                              onClick={() =>
+                                resetStudentStreak(
+                                  selectedStudent.classId,
+                                  selectedStudent.id,
+                                  cfg.id
+                                )
+                              }
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Owned cards (grouped) */}
             <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
