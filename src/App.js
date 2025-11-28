@@ -1220,7 +1220,7 @@ export default function App() {
             </main>
 
             {/* RIGHT: Library */}
-            <aside className="panel">
+            <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
               <h3 style={{ marginTop: 0 }}>Library (class)</h3>
               {!activeClassId ? (
                 <div className="muted">Select a class first</div>
