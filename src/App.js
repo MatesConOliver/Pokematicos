@@ -156,7 +156,6 @@ export default function App() {
         snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
         setClassesList(arr);
         setLoadingClasses(false);
-        if (!activeClassId && arr.length) setActiveClassId(arr[0].id);
       },
       (err) => {
         console.error("Failed loading classes:", err);
@@ -956,7 +955,7 @@ export default function App() {
                       textAlign: "left",
                       background: c.id === activeClassId ? "#eef" : "white",
                     }}
-                    onClick={() => setActiveClassId(c.id)}
+                    onClick={() => setActiveClassId((prev) => (prev === c.id ? null : c.id))}
                   >
                     {c.name}
                   </button>
@@ -1003,330 +1002,335 @@ export default function App() {
           )}
         </aside>
 
-        {/* MIDDLE: Students */}
-        <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h3 style={{ margin: 0 }}>{activeClass?.name || "Select a class"}</h3>
-              {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
-            </div>
+        {/* Only show these if a class is selected */}
+        {activeClassId && (
+          <>
+            {/* MIDDLE: Students */}
+            <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <h3 style={{ margin: 0 }}>{activeClass?.name || "Select a class"}</h3>
+                  {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
+                </div>
 
-            <input
-              placeholder="Filter students..."
-              value={studentFilter}
-              onChange={(e) => setStudentFilter(e.target.value)}
-              style={{
-                padding: 8,
-                fontSize: 13,
-                borderRadius: 8,
-                border: "1px solid #ddd",
-                minWidth: 170,
-              }}
-            />
-          </div>
+                <input
+                  placeholder="Filter students..."
+                  value={studentFilter}
+                  onChange={(e) => setStudentFilter(e.target.value)}
+                  style={{
+                    padding: 8,
+                    fontSize: 13,
+                    borderRadius: 8,
+                    border: "1px solid #ddd",
+                    minWidth: 170,
+                  }}
+                />
+              </div>
 
-          <div style={{ marginTop: 12 }}>
-            {!activeClassId ? (
-              <div className="muted">Select a class first.</div>
-            ) : loadingStudents ? (
-              <div className="muted">Loading students...</div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-                {filteredStudents.map((s) => {
-                  const bg = s.profileColor || "white";
-                  const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
+              <div style={{ marginTop: 12 }}>
+                {!activeClassId ? (
+                  <div className="muted">Select a class first.</div>
+                ) : loadingStudents ? (
+                  <div className="muted">Loading students...</div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+                    {filteredStudents.map((s) => {
+                      const bg = s.profileColor || "white";
+                      const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
 
-                  return (
-                    <div key={s.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 10, background: bg }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <div>
-                          <div style={{ fontWeight: 800 }}>{displayName}</div>
-
-                          {/* Visible for guests too */}
-                          <div className="muted" style={{ lineHeight: 1.35 }}>
+                      return (
+                        <div key={s.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 10, background: bg }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                             <div>
-                              Streak: {(s.streak || 0) ? "🔥".repeat(s.streak || 0) : "—"}
-                              {s.streakLastUpdated && (
-                                <span
-                                  style={{
-                                    marginLeft: 8,
-                                    color: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? "#0a0" : "#f00",
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  ({s.streakLastUpdated})
-                                </span>
-                              )}
-                            </div>
+                              <div style={{ fontWeight: 800 }}>{displayName}</div>
 
-                            <div>
-                              Ghost: {(s.ghost || 0) ? "👻".repeat(s.ghost || 0) : "—"}
-                              {s.ghostLastUpdated && (
-                                <span
-                                  style={{
-                                    marginLeft: 8,
-                                    color: s.ghostLastUpdated === new Date().toISOString().slice(0, 10) ? "#00f" : "#f00",
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  ({s.ghostLastUpdated})
-                                </span>
-                              )}
-                            </div>
+                              {/* Visible for guests too */}
+                              <div className="muted" style={{ lineHeight: 1.35 }}>
+                                <div>
+                                  Streak: {(s.streak || 0) ? "🔥".repeat(s.streak || 0) : "—"}
+                                  {s.streakLastUpdated && (
+                                    <span
+                                      style={{
+                                        marginLeft: 8,
+                                        color: s.streakLastUpdated === new Date().toISOString().slice(0, 10) ? "#0a0" : "#f00",
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      ({s.streakLastUpdated})
+                                    </span>
+                                  )}
+                                </div>
 
-                            {s.multiplier && s.multiplier !== 1 && (
-                              <div>
-                                <span className="muted">Multiplier:</span>
-                                <strong> x{s.multiplier}</strong>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                                <div>
+                                  Ghost: {(s.ghost || 0) ? "👻".repeat(s.ghost || 0) : "—"}
+                                  {s.ghostLastUpdated && (
+                                    <span
+                                      style={{
+                                        marginLeft: 8,
+                                        color: s.ghostLastUpdated === new Date().toISOString().slice(0, 10) ? "#00f" : "#f00",
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      ({s.ghostLastUpdated})
+                                    </span>
+                                  )}
+                                </div>
 
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontWeight: 800 }}>{s.currentPoints || 0} pts</div>
-                          <div className="muted">XP: {s.xp || 0}</div>
-                        </div>
-                      </div>
-
-                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {mode === "admin" && (
-                          <button className="btn" onClick={() => setSelectedStudentId(s.id)}>
-                            Manage
-                          </button>
-                        )}
-                        <button className="btn" onClick={() => setProfileStudentId(s.id)}>
-                          Perfil
-                        </button>
-                      </div>
-
-                      <div style={{ marginTop: 10 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
-
-                        {/* Scroll container so you can see all cards */}
-                        <div
-                          style={{
-                            marginTop: 8,
-                            maxHeight: 260,        // adjust if you want taller/shorter
-                            overflowY: "auto",
-                            paddingRight: 6,
-                            display: "flex",
-                            gap: 8,
-                            flexWrap: "wrap",
-                            alignContent: "flex-start",
-                          }}
-                        >
-                          {(() => {
-                            // Group by cardId so duplicates show as ×N
-                            const groups = new Map(); // cardId -> { title, imageURL, count }
-                            (s.cards || []).forEach((o) => {
-                              const key = o.cardId || "unknown";
-                              if (!groups.has(key)) {
-                                groups.set(key, { title: o.title || "—", imageURL: o.imageURL || "", count: 0 });
-                              }
-                              groups.get(key).count += 1;
-                            });
-
-                            // Convert to array (optional: newest groups last/first — keep as-is for now)
-                            const arr = Array.from(groups.entries()).map(([cardId, g]) => ({ cardId, ...g }));
-
-                            return arr.map((g) => (
-                              <div
-                                key={g.cardId}
-                                className="card-thumb"
-                                style={{
-                                  width: 80,
-                                  height: 110,
-                                  border: "1px solid #eee",
-                                  borderRadius: 10,
-                                  overflow: "hidden",
-                                  cursor: "pointer",
-                                  position: "relative",
-                                  background: "white",
-                                }}
-                                onClick={() =>
-                                  setCardPreview({
-                                    title: g.title,
-                                    imageURL: g.imageURL,
-                                    description: "",
-                                  })
-                                }
-                              >
-                                {g.imageURL ? (
-                                  <img
-                                    src={g.imageURL}
-                                    alt={g.title}
-                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                  />
-                                ) : (
-                                  <div style={{ padding: 6, fontSize: 11 }}>{g.title}</div>
-                                )}
-
-                                {/* ×N badge */}
-                                {g.count > 1 && (
-                                  <div
-                                    style={{
-                                      position: "absolute",
-                                      top: 6,
-                                      right: 6,
-                                      background: "rgba(0,0,0,0.75)",
-                                      color: "white",
-                                      borderRadius: 999,
-                                      padding: "2px 7px",
-                                      fontSize: 11,
-                                      fontWeight: 900,
-                                    }}
-                                  >
-                                    ×{g.count}
+                                {s.multiplier && s.multiplier !== 1 && (
+                                  <div>
+                                    <span className="muted">Multiplier:</span>
+                                    <strong> x{s.multiplier}</strong>
                                   </div>
                                 )}
                               </div>
-                            ));
-                          })()}
+                            </div>
+
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontWeight: 800 }}>{s.currentPoints || 0} pts</div>
+                              <div className="muted">XP: {s.xp || 0}</div>
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {mode === "admin" && (
+                              <button className="btn" onClick={() => setSelectedStudentId(s.id)}>
+                                Manage
+                              </button>
+                            )}
+                            <button className="btn" onClick={() => setProfileStudentId(s.id)}>
+                              Perfil
+                            </button>
+                          </div>
+
+                          <div style={{ marginTop: 10 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
+
+                            {/* Scroll container so you can see all cards */}
+                            <div
+                              style={{
+                                marginTop: 8,
+                                maxHeight: 260,        // adjust if you want taller/shorter
+                                overflowY: "auto",
+                                paddingRight: 6,
+                                display: "flex",
+                                gap: 8,
+                                flexWrap: "wrap",
+                                alignContent: "flex-start",
+                              }}
+                            >
+                              {(() => {
+                                // Group by cardId so duplicates show as ×N
+                                const groups = new Map(); // cardId -> { title, imageURL, count }
+                                (s.cards || []).forEach((o) => {
+                                  const key = o.cardId || "unknown";
+                                  if (!groups.has(key)) {
+                                    groups.set(key, { title: o.title || "—", imageURL: o.imageURL || "", count: 0 });
+                                  }
+                                  groups.get(key).count += 1;
+                                });
+
+                                // Convert to array (optional: newest groups last/first — keep as-is for now)
+                                const arr = Array.from(groups.entries()).map(([cardId, g]) => ({ cardId, ...g }));
+
+                                return arr.map((g) => (
+                                  <div
+                                    key={g.cardId}
+                                    className="card-thumb"
+                                    style={{
+                                      width: 80,
+                                      height: 110,
+                                      border: "1px solid #eee",
+                                      borderRadius: 10,
+                                      overflow: "hidden",
+                                      cursor: "pointer",
+                                      position: "relative",
+                                      background: "white",
+                                    }}
+                                    onClick={() =>
+                                      setCardPreview({
+                                        title: g.title,
+                                        imageURL: g.imageURL,
+                                        description: "",
+                                      })
+                                    }
+                                  >
+                                    {g.imageURL ? (
+                                      <img
+                                        src={g.imageURL}
+                                        alt={g.title}
+                                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                      />
+                                    ) : (
+                                      <div style={{ padding: 6, fontSize: 11 }}>{g.title}</div>
+                                    )}
+
+                                    {/* ×N badge */}
+                                    {g.count > 1 && (
+                                      <div
+                                        style={{
+                                          position: "absolute",
+                                          top: 6,
+                                          right: 6,
+                                          background: "rgba(0,0,0,0.75)",
+                                          color: "white",
+                                          borderRadius: 999,
+                                          padding: "2px 7px",
+                                          fontSize: 11,
+                                          fontWeight: 900,
+                                        }}
+                                      >
+                                        ×{g.count}
+                                      </div>
+                                    )}
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {mode === "admin" && (
+                      <div style={{ border: "1px dashed #ccc", padding: 12, borderRadius: 10 }}>
+                        <h4 style={{ marginTop: 0 }}>Add student</h4>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input
+                            ref={newStudentRef}
+                            placeholder="Student name"
+                            style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+                          />
+                          <button
+                            className="btn primary"
+                            onClick={() => {
+                              const name = newStudentRef.current?.value?.trim();
+                              if (!name) return alert("Enter name");
+                              addStudent(name);
+                              if (newStudentRef.current) newStudentRef.current.value = "";
+                            }}
+                          >
+                            Add
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-
-                {mode === "admin" && (
-                  <div style={{ border: "1px dashed #ccc", padding: 12, borderRadius: 10 }}>
-                    <h4 style={{ marginTop: 0 }}>Add student</h4>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input
-                        ref={newStudentRef}
-                        placeholder="Student name"
-                        style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
-                      />
-                      <button
-                        className="btn primary"
-                        onClick={() => {
-                          const name = newStudentRef.current?.value?.trim();
-                          if (!name) return alert("Enter name");
-                          addStudent(name);
-                          if (newStudentRef.current) newStudentRef.current.value = "";
-                        }}
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </main>
-
-        {/* RIGHT: Library */}
-        <aside className="panel">
-          <h3 style={{ marginTop: 0 }}>Library (class)</h3>
-          {!activeClassId ? (
-            <div className="muted">Select a class first</div>
-          ) : (
-            <>
-              <div style={{ display: "flex", gap: 6, margin: "8px 0 12px" }}>
-                <button className="btn" onClick={() => setLibraryTab("points")} style={{ background: libraryTab === "points" ? "#def" : "white" }}>
-                  Points
-                </button>
-                <button className="btn" onClick={() => setLibraryTab("rewards")} style={{ background: libraryTab === "rewards" ? "#def" : "white" }}>
-                  Rewards
-                </button>
-                <button className="btn" onClick={() => setLibraryTab("experience")} style={{ background: libraryTab === "experience" ? "#def" : "white" }}>
-                  Experience
-                </button>
-              </div>
-
-              {mode === "admin" && (
-                <div style={{ border: "1px dashed #ddd", padding: 10, borderRadius: 10, marginBottom: 12 }}>
-                  <h4 style={{ marginTop: 0 }}>Create new card</h4>
-                  <CardCreateForm
-                    onCreate={createCard}
-                    lockedInputRef={lockedFileInputRef}
-                    unlockedInputRef={unlockedFileInputRef}
-                  />
-                </div>
-              )}
-
-              <div style={{ maxHeight: 560, overflow: "auto" }}>
-                {libraryTab !== "rewards" ? (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {loadingCards ? (
-                      <div className="muted">Loading cards...</div>
-                    ) : (
-                      cards
-                        .filter((c) => (c.category || "points") === libraryTab)
-                        .map((c) => (
-                          <LibraryCardRow
-                            key={c.id}
-                            c={c}
-                            mode={mode}
-                            onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
-                            onDelete={() => deleteCard(c.id)}
-                          />
-                        ))
                     )}
                   </div>
-                ) : (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {/* Reward cards (library) */}
-                    <div>
-                      <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Reward cards (library)</h4>
-                      {loadingCards ? (
-                        <div className="muted">Loading cards...</div>
-                      ) : (
-                        cards
-                          .filter((c) => (c.category || "points") === "rewards")
-                          .map((c) => (
-                            <LibraryCardRow
-                              key={c.id}
-                              c={c}
-                              mode={mode}
-                              onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
-                              onDelete={() => deleteCard(c.id)}
-                            />
-                          ))
-                      )}
-                    </div>
-
-                    {/* Shop items */}
-                    <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
-                      <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Shop items (purchasable)</h4>
-                      {loadingRewards ? (
-                        <div className="muted">Loading rewards...</div>
-                      ) : (
-                        rewards.map((r) => {
-                          const cardMeta = cards.find((c) => c.id === r.cardId) || null;
-                          return (
-                            <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10 }}>
-                              <div style={{ fontWeight: 900 }}>{r.title}</div>
-                              <div className="muted">
-                                Cost: <span className="pill">{r.cost} pts</span>{" "}
-                                • Linked card: <span className="pill">{cardMeta ? cardMeta.title : "—"}</span>
-                              </div>
-                              {mode === "admin" && (
-                                <div style={{ marginTop: 8 }}>
-                                  <button className="btn" onClick={() => deleteReward(r.id)}>
-                                    Delete reward
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-
-                      {mode === "admin" && (
-                        <div style={{ borderTop: "1px dashed #eee", paddingTop: 10, marginTop: 10 }}>
-                          <RewardCreateForm cards={cards} onCreate={createReward} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 )}
               </div>
-            </>
-          )}
-        </aside>
+            </main>
+
+            {/* RIGHT: Library */}
+            <aside className="panel">
+              <h3 style={{ marginTop: 0 }}>Library (class)</h3>
+              {!activeClassId ? (
+                <div className="muted">Select a class first</div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 6, margin: "8px 0 12px" }}>
+                    <button className="btn" onClick={() => setLibraryTab("points")} style={{ background: libraryTab === "points" ? "#def" : "white" }}>
+                      Points
+                    </button>
+                    <button className="btn" onClick={() => setLibraryTab("rewards")} style={{ background: libraryTab === "rewards" ? "#def" : "white" }}>
+                      Rewards
+                    </button>
+                    <button className="btn" onClick={() => setLibraryTab("experience")} style={{ background: libraryTab === "experience" ? "#def" : "white" }}>
+                      Experience
+                    </button>
+                  </div>
+
+                  {mode === "admin" && (
+                    <div style={{ border: "1px dashed #ddd", padding: 10, borderRadius: 10, marginBottom: 12 }}>
+                      <h4 style={{ marginTop: 0 }}>Create new card</h4>
+                      <CardCreateForm
+                        onCreate={createCard}
+                        lockedInputRef={lockedFileInputRef}
+                        unlockedInputRef={unlockedFileInputRef}
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ maxHeight: 560, overflow: "auto" }}>
+                    {libraryTab !== "rewards" ? (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {loadingCards ? (
+                          <div className="muted">Loading cards...</div>
+                        ) : (
+                          cards
+                            .filter((c) => (c.category || "points") === libraryTab)
+                            .map((c) => (
+                              <LibraryCardRow
+                                key={c.id}
+                                c={c}
+                                mode={mode}
+                                onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
+                                onDelete={() => deleteCard(c.id)}
+                              />
+                            ))
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {/* Reward cards (library) */}
+                        <div>
+                          <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Reward cards (library)</h4>
+                          {loadingCards ? (
+                            <div className="muted">Loading cards...</div>
+                          ) : (
+                            cards
+                              .filter((c) => (c.category || "points") === "rewards")
+                              .map((c) => (
+                                <LibraryCardRow
+                                  key={c.id}
+                                  c={c}
+                                  mode={mode}
+                                  onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
+                                  onDelete={() => deleteCard(c.id)}
+                                />
+                              ))
+                          )}
+                        </div>
+
+                        {/* Shop items */}
+                        <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
+                          <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Shop items (purchasable)</h4>
+                          {loadingRewards ? (
+                            <div className="muted">Loading rewards...</div>
+                          ) : (
+                            rewards.map((r) => {
+                              const cardMeta = cards.find((c) => c.id === r.cardId) || null;
+                              return (
+                                <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10 }}>
+                                  <div style={{ fontWeight: 900 }}>{r.title}</div>
+                                  <div className="muted">
+                                    Cost: <span className="pill">{r.cost} pts</span>{" "}
+                                    • Linked card: <span className="pill">{cardMeta ? cardMeta.title : "—"}</span>
+                                  </div>
+                                  {mode === "admin" && (
+                                    <div style={{ marginTop: 8 }}>
+                                      <button className="btn" onClick={() => deleteReward(r.id)}>
+                                        Delete reward
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+
+                          {mode === "admin" && (
+                            <div style={{ borderTop: "1px dashed #eee", paddingTop: 10, marginTop: 10 }}>
+                              <RewardCreateForm cards={cards} onCreate={createReward} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </aside>
+          </>
+        )}
       </div>
 
       {/* Card preview modal */}
