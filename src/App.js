@@ -1832,12 +1832,14 @@ function ManageStudentModal({
   const [editMultiplier, setEditMultiplier] = useState(
     typeof student.multiplier === "number" ? student.multiplier : 1
   );
+  const [editCumulativePoints, setEditCumulativePoints] = useState(student.cumulativePoints || 0);
 
   useEffect(() => {
     setEditName(student.name || "");
     setEditCurrentPoints(student.currentPoints || 0);
     setEditXP(student.xp || 0);
     setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
+    setEditCumulativePoints(student.cumulativePoints ?? 0);
   }, [
     student.id, student.name, student.currentPoints, student.xp
   ]);
@@ -1856,7 +1858,7 @@ function ManageStudentModal({
       name: editName.trim(),
       currentPoints: Number(editCurrentPoints || 0),
       xp: Number(editXP || 0),
-      cumulativePoints: Number(editTotal || 0),
+      cumulativePoints: Number(editCumulativePoints || 0),
       multiplier: Number(parseFloat(editMultiplier) || 1),
     });
   }
@@ -1954,6 +1956,16 @@ function ManageStudentModal({
                       <button className="btn" onClick={() => addQuickPoints(5)}>+5</button>
                       <button className="btn" onClick={() => addQuickPoints(10)}>+10</button>
                     </div>
+                  </div>
+
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>Puntos acumulados (total)</div>
+                    <input
+                      type="number"
+                      value={editCumulativePoints}
+                      onChange={(e) => setEditCumulativePoints(e.target.value)}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    />
                   </div>
 
                   <div>
