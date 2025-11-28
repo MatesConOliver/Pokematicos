@@ -429,7 +429,7 @@ export default function App() {
         streakLastUpdated: "",
         ghost: 0,
         ghostLastUpdated: "",
-        streaks: {}
+        streaks: {},
         // inventory / history
         cards: [],
         rewardsHistory: [],
