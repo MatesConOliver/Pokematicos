@@ -1280,7 +1280,6 @@ export default function App() {
                       <div style={{ display: "grid", gap: 10 }}>
                         {/* Reward cards (library) */}
                         <div>
-                          <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Reward cards (library)</h4>
                           {loadingCards ? (
                             <div className="muted">Loading cards...</div>
                           ) : (
@@ -1300,7 +1299,6 @@ export default function App() {
 
                         {/* Shop items */}
                         <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
-                          <h4 style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>Shop items (purchasable)</h4>
                           {loadingRewards ? (
                             <div className="muted">Loading rewards...</div>
                           ) : (
