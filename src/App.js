@@ -94,6 +94,12 @@ export default function App() {
     setMode("reader");
   }
 
+  const isCfgActiveToday = (cfg, today) => {
+    if (cfg.floatStart && today < cfg.floatStart) return false;
+    if (cfg.floatEnd && cfg.floatEnd !== "" && today > cfg.floatEnd) return false;
+    return true;
+  };
+
   // ----- Data -----
   const [classesList, setClassesList] = useState([]);
   const [activeClassId, setActiveClassId] = useState(null);
@@ -390,9 +396,21 @@ export default function App() {
       next = maxValue;
     }
 
+    const today = todayISODate();
+    const prevMaxAchievedOn = streaks[streakId]?.maxAchievedOn || "";
+
     const updatedEntry = {
       value: next,
-      lastUpdated: delta > 0 ? todayISODate() : (streaks[streakId]?.lastUpdated || ""),
+      lastUpdated: delta > 0 ? today : (streaks[streakId]?.lastUpdated || ""),
+      // If we hit max today (even if we were already at max and pressed +1) -> mark today.
+      // Otherwise keep whatever date was recorded.
+      maxAchievedOn:
+        delta > 0 &&
+        typeof maxValue === "number" &&
+        maxValue > 0 &&
+        next === maxValue
+          ? today
+          : prevMaxAchievedOn,
     };
 
     const updatedStreaks = {
@@ -419,6 +437,7 @@ export default function App() {
       const updatedEntry = {
         value: 0,
         lastUpdated: "",
+        maxAchievedOn: streaks[streakId]?.maxAchievedOn || "",
       };
 
       const updatedStreaks = {
@@ -982,6 +1001,30 @@ export default function App() {
           100% { transform: scale(0.95); opacity: 0.55; }
         }
 
+        /* Emoji party for reaching maximum streak */
+        .emoji-party-layer{
+          position:absolute;
+          inset:0;
+          pointer-events:none;
+          z-index: 20;
+        }
+
+        .emoji-party-particle{
+          position:absolute;
+          bottom:-24px;
+          will-change: transform, opacity;
+          animation-name: partyUp;
+          animation-timing-function: ease-out;
+          animation-iteration-count: infinite;
+        }
+
+        @keyframes partyUp{
+          0%   { transform: translate(-50%, 0) scale(0.85); opacity: 0; }
+          12%  { opacity: 1; }
+          70%  { opacity: 0.9; }
+          100% { transform: translate(-50%, -160px) scale(1.15); opacity: 0; }
+        }
+
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
         .modal { background: white; border-radius: 10px; padding: 12px; max-width: 980px; width: 92%; max-height: 90vh; overflow:auto; }
 
@@ -1220,15 +1263,15 @@ export default function App() {
                       // --- FLOATING EMOJI LOGIC ---
                       const cfgs = activeClass?.streakConfigs || [];
 
+                      const today = todayISODate();
+
                       const floatingEmojis = cfgs.filter((cfg) => {
                         if (!cfg.float) return false;
 
                         const stObj = (s.streaks && s.streaks[cfg.id]) || { value: 0 };
                         if (stObj.value < cfg.max) return false;
 
-                        const today = todayISODate();
-                        if (cfg.floatStart && today < cfg.floatStart) return false;
-                        if (cfg.floatEnd && cfg.floatEnd !== "" && today > cfg.floatEnd) return false;
+                        if (!isCfgActiveToday(cfg, today)) return false;
 
                         return true;
                       });
@@ -1994,6 +2037,57 @@ function ProfileModal({ mode, student, onClose, onSave }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function hashStrToInt(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function mulberry32(seed) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function EmojiParty({ emoji, seedKey, count = 18 }) {
+  const particles = useMemo(() => {
+    const rnd = mulberry32(hashStrToInt(seedKey));
+    return Array.from({ length: count }).map((_, i) => {
+      const left = rnd() * 100;
+      const delay = rnd() * 1.4;
+      const dur = 1.2 + rnd() * 1.2;
+      const size = 18 + rnd() * 22;
+      const drift = (rnd() - 0.5) * 60; // sideways wiggle
+      return { i, left, delay, dur, size, drift };
+    });
+  }, [seedKey, count]);
+
+  return (
+    <div className="emoji-party-layer" aria-hidden="true">
+      {particles.map((p) => (
+        <span
+          key={p.i}
+          className="emoji-party-particle"
+          style={{
+            left: `${p.left}%`,
+            fontSize: p.size,
+            animationDuration: `${p.dur}s`,
+            animationDelay: `${p.delay}s`,
+            transform: `translate(-50%, 0) translateX(${p.drift}px)`,
+          }}
+        >
+          {emoji}
+        </span>
+      ))}
     </div>
   );
 }
