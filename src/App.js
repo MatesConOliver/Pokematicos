@@ -969,9 +969,9 @@ export default function App() {
         /* Movimiento bien grande por toda la tarjeta */
         @keyframes drift {
           0% { transform: translate(-30%, -30%) rotate(0deg); }
-          25% { transform: translate(110%, -10%) rotate(8deg); }
-          50% { transform: translate(130%, 110%) rotate(16deg); }
-          75% { transform: translate(-10%, 120%) rotate(8deg); }
+          25% { transform: translate(200%, -10%) rotate(8deg); }
+          50% { transform: translate(250%, 80%) rotate(16deg); }
+          75% { transform: translate(-10%, 70%) rotate(8deg); }
           100% { transform: translate(-30%, -30%) rotate(0deg); }
         }
 
