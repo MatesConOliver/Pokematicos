@@ -351,6 +351,12 @@ export default function App() {
       floatEnd = (end && end.trim()) || "";
     }
 
+    // 4) Sticky celebration after reset?
+    const stickyAns = prompt(
+      "If you Reset this streak later, should the celebration (party + floating) keep showing for the rest of the day when max was reached? (yes/no)"
+    );
+    const stickyCelebrate = !!(stickyAns && stickyAns.toLowerCase().startsWith("y"));
+
     const id = uid("streak");
     const newCfg = {
       id,
@@ -359,7 +365,9 @@ export default function App() {
       float,
       floatStart,
       floatEnd,
+      stickyCelebrate,
     };
+
 
     try {
       const clsRef = doc(db, `classes/${classId}`);
@@ -376,6 +384,26 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert("Could not create streak type. See console for details.");
+    }
+  }
+
+  async function setStickyCelebrateForClass(classId, streakId, stickyCelebrate) {
+    try {
+      const classRef = doc(db, `classes/${classId}`);
+      const snap = await getDoc(classRef);
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      const list = data.streakConfigs || [];
+
+      const updated = list.map((cfg) =>
+        cfg.id === streakId ? { ...cfg, stickyCelebrate: !!stickyCelebrate } : cfg
+      );
+
+      await updateDoc(classRef, { streakConfigs: updated });
+    } catch (err) {
+      console.error("setStickyCelebrateForClass error", err);
+      alert("Could not update sticky celebration.");
     }
   }
 
@@ -468,6 +496,47 @@ export default function App() {
     } catch (err) {
       console.error("deleteStreakTypeForClass error", err);
       alert("Could not delete streak. See console.");
+    }
+  }
+
+  async function editFloatingDatesForStreakType(classId, streakId) {
+    try {
+      const classRef = doc(db, `classes/${classId}`);
+      const snap = await getDoc(classRef);
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      const list = data.streakConfigs || [];
+      const cfg = list.find((c) => c.id === streakId);
+      if (!cfg) return;
+
+      const currentStart = (cfg.floatStart || "").trim();
+      const currentEnd = (cfg.floatEnd || "").trim();
+
+      const start = prompt(
+        `Floating START date (YYYY-MM-DD). Leave empty for no start limit.\nCurrent: ${currentStart || "—"}`,
+        currentStart
+      );
+      if (start === null) return; // cancel
+
+      const end = prompt(
+        `Floating END date (YYYY-MM-DD). Leave empty for no end date.\nCurrent: ${currentEnd || "—"}`,
+        currentEnd
+      );
+      if (end === null) return; // cancel
+
+      const newStart = (start || "").trim(); // empty string = no start limit
+      const newEnd = (end || "").trim();     // empty string = no end limit
+
+      const updated = list.map((c) =>
+        c.id === streakId ? { ...c, floatStart: newStart, floatEnd: newEnd } : c
+      );
+
+      await updateDoc(classRef, { streakConfigs: updated });
+      alert("Floating dates updated.");
+    } catch (err) {
+      console.error("editFloatingDatesForStreakType error", err);
+      alert("Could not update floating dates.");
     }
   }
 
@@ -1265,11 +1334,32 @@ export default function App() {
 
                       const today = todayISODate();
 
+                      const cfgs = activeClass?.streakConfigs || [];
+                      const today = todayISODate();
+
+                      const isCelebratingToday = (cfg, stObj) => {
+                        const hitToday = (stObj?.maxAchievedOn || "") === today;
+                        if (!hitToday) return false;
+
+                        // If sticky: keep celebrating even after Reset
+                        if (cfg.stickyCelebrate) return true;
+
+                        // If NOT sticky: only celebrate while still at max (Reset stops it)
+                        return (stObj?.value || 0) >= (cfg.max || 0);
+                      };
+
+                      // Party streaks (emoji burst)
+                      const partyStreaks = cfgs.filter((cfg) => {
+                        const stObj = (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
+                        return isCelebratingToday(cfg, stObj);
+                      });
+
+                      // Floating emojis (only for streak types with float: true)
                       const floatingEmojis = cfgs.filter((cfg) => {
                         if (!cfg.float) return false;
 
-                        const stObj = (s.streaks && s.streaks[cfg.id]) || { value: 0 };
-                        if (stObj.value < cfg.max) return false;
+                        const stObj = (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
+                        if (!isCelebratingToday(cfg, stObj)) return false;
 
                         if (!isCfgActiveToday(cfg, today)) return false;
 
@@ -1314,6 +1404,15 @@ export default function App() {
                                 {cfg.emoji}
                               </div>
                             </div>
+                          ))}
+
+                          {/* EMOJI PARTY (max achieved today) */}
+                          {partyStreaks.map((cfg) => (
+                            <EmojiParty
+                              key={`party_${s.id}_${cfg.id}_${today}`}
+                              emoji={cfg.emoji}
+                              seedKey={`party_${s.id}_${cfg.id}_${today}`}
+                            />
                           ))}
 
                           {/* ✅ EMOJI PARTY (when max is achieved today) */}
@@ -1790,6 +1889,8 @@ export default function App() {
           changeStudentStreakValue={changeStudentStreakValue}
           resetStudentStreak={resetStudentStreak}
           deleteStreakTypeForClass={deleteStreakTypeForClass}
+          editFloatingDatesForStreakType={editFloatingDatesForStreakType}
+          setStickyCelebrateForClass={setStickyCelebrateForClass}
           mode={mode}
           onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
@@ -2128,6 +2229,8 @@ function ManageStudentModal({
   changeStudentStreakValue,
   resetStudentStreak,
   deleteStreakTypeForClass,
+  editFloatingDatesForStreakType,
+  setStickyCelebrateForClass,
   mode,
   onEditStudent,
   onClose,
@@ -2398,6 +2501,26 @@ function ManageStudentModal({
                               }
                             >
                               Reset
+                            </button>
+
+                            {cfg.float && (
+                              <button
+                                className="btn"
+                                style={{ fontSize: 11 }}
+                                onClick={() => editFloatingDatesForStreakType(classId, cfg.id)}
+                              >
+                                Edit floating dates
+                              </button>
+                            )}
+
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11, marginTop: 4 }}
+                              onClick={() =>
+                                setStickyCelebrateForClass(classId, cfg.id, !cfg.stickyCelebrate)
+                              }
+                            >
+                              Sticky celebration: {cfg.stickyCelebrate ? "ON" : "OFF"}
                             </button>
 
                             <button
