@@ -1276,6 +1276,22 @@ export default function App() {
                         return true;
                       });
 
+                      // ✅ emoji party logic (does NOT require cfg.float)
+                      const partyStreaks = cfgs.filter((cfg) => {
+                        const stObj =
+                          (s.streaks && s.streaks[cfg.id]) || { value: 0, lastUpdated: "", maxAchievedOn: "" };
+
+                        const atMax = (stObj.value || 0) >= (cfg.max || 0);
+                        if (!atMax) return false;
+
+                        // show for the rest of the day max was achieved
+                        const hitToday =
+                          (stObj.maxAchievedOn || "") === today ||
+                          ((stObj.lastUpdated || "") === today && (stObj.value || 0) >= (cfg.max || 0)); // fallback
+
+                        return hitToday;
+                      });
+
                       // --- END FLOATING EMOJI LOGIC ---
 
                       return (
@@ -1298,6 +1314,16 @@ export default function App() {
                                 {cfg.emoji}
                               </div>
                             </div>
+                          ))}
+
+                          {/* ✅ EMOJI PARTY (when max is achieved today) */}
+                          {partyStreaks.map((cfg) => (
+                            <EmojiParty
+                              key={`party_${s.id}_${cfg.id}_${today}`}
+                              emoji={cfg.emoji}
+                              seedKey={`${s.id}_${cfg.id}_${today}`}
+                              count={22}
+                            />
                           ))}
 
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
