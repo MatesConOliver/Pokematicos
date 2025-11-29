@@ -944,7 +944,7 @@ export default function App() {
         .floating-emoji-glow {
           width: 90px;
           height: 90px;
-          border-radius: 750px;
+          border-radius: 100px;
           display: flex;
           align-items: center;
           justify-content: center;
