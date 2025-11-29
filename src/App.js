@@ -1459,34 +1459,23 @@ export default function App() {
 
                                           {/* ✅ Tiny quick +1, +5, +10 (ADMIN ONLY) */}
                                           {mode === "admin" && (
-                                            <div style={{ display: "flex", gap: 6 }}>
-                                              <button
-                                                className="btn"
-                                                style={{ padding: "4px 8px", fontSize: 12, lineHeight: "12px", borderRadius: 10 }}
-                                                title="Add +1 to this streak"
-                                                onClick={() => changeStudentStreakValue(activeClassId, s.id, cfg.id, +1, cfg.max)}
-                                              >
-                                                +1
-                                              </button>
+                                            <button
+                                              className="btn"
+                                              style={{
+                                                padding: "4px 8px",
+                                                fontSize: 12,
+                                                lineHeight: "12px",
+                                                borderRadius: 10,
+                                              }}
+                                              title="Add +1 to this streak"
+                                              onClick={() =>
+                                                changeStudentStreakValue(activeClassId, s.id, cfg.id, +1, cfg.max)
+                                              }
+                                            >
+                                              +1
+                                            </button>
 
-                                              <button
-                                                className="btn"
-                                                style={{ padding: "4px 8px", fontSize: 12, lineHeight: "12px", borderRadius: 10 }}
-                                                title="Add +5 to this streak"
-                                                onClick={() => changeStudentStreakValue(activeClassId, s.id, cfg.id, +5, cfg.max)}
-                                              >
-                                                +5
-                                              </button>
-
-                                              <button
-                                                className="btn"
-                                                style={{ padding: "4px 8px", fontSize: 12, lineHeight: "12px", borderRadius: 10 }}
-                                                title="Add +10 to this streak"
-                                                onClick={() => changeStudentStreakValue(activeClassId, s.id, cfg.id, +10, cfg.max)}
-                                              >
-                                                +10
-                                              </button>
-                                            </div>
+                                            
                                           )}
                                         </div>
                                       );
@@ -1511,15 +1500,31 @@ export default function App() {
                             </div>
                           </div>
 
-                          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", }}>
                             {mode === "admin" && (
                               <button className="btn" onClick={() => setSelectedStudentId(s.id)}>
                                 Manage
                               </button>
                             )}
+
                             <button className="btn" onClick={() => setProfileStudentId(s.id)}>
                               Perfil
                             </button>
+
+                            {mode === "admin" && (
+                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                <span className="pill">Points</span>
+                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 1)}>
+                                  +1
+                                </button>
+                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 5)}>
+                                  +5
+                                </button>
+                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 10)}>
+                                  +10
+                                </button>
+                              </div>
+                            )}
                           </div>
 
                           <div style={{ marginTop: 10 }}>
