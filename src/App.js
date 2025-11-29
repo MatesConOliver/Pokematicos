@@ -1329,11 +1329,7 @@ export default function App() {
                       const bg = s.profileColor || "white";
                       const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
 
-                      // --- FLOATING EMOJI LOGIC ---
-                      const cfgs = activeClass?.streakConfigs || [];
-
-                      const today = todayISODate();
-
+                      // --- FLOATING + PARTY LOGIC (CLEAN) ---
                       const cfgs = activeClass?.streakConfigs || [];
                       const today = todayISODate();
 
@@ -1341,48 +1337,34 @@ export default function App() {
                         const hitToday = (stObj?.maxAchievedOn || "") === today;
                         if (!hitToday) return false;
 
-                        // If sticky: keep celebrating even after Reset
+                        // Sticky = keep effects even after Reset (for the rest of the day)
                         if (cfg.stickyCelebrate) return true;
 
-                        // If NOT sticky: only celebrate while still at max (Reset stops it)
+                        // Not sticky = only show while value is still at max
                         return (stObj?.value || 0) >= (cfg.max || 0);
                       };
 
-                      // Party streaks (emoji burst)
+                      // Party (emoji shower)
                       const partyStreaks = cfgs.filter((cfg) => {
-                        const stObj = (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
+                        const stObj =
+                          (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
                         return isCelebratingToday(cfg, stObj);
                       });
 
-                      // Floating emojis (only for streak types with float: true)
+                      // Floating (only if cfg.float is true)
                       const floatingEmojis = cfgs.filter((cfg) => {
                         if (!cfg.float) return false;
 
-                        const stObj = (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
-                        if (!isCelebratingToday(cfg, stObj)) return false;
+                        const stObj =
+                          (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
 
+                        if (!isCelebratingToday(cfg, stObj)) return false;
                         if (!isCfgActiveToday(cfg, today)) return false;
 
                         return true;
                       });
 
-                      // ✅ emoji party logic (does NOT require cfg.float)
-                      const partyStreaks = cfgs.filter((cfg) => {
-                        const stObj =
-                          (s.streaks && s.streaks[cfg.id]) || { value: 0, lastUpdated: "", maxAchievedOn: "" };
-
-                        const atMax = (stObj.value || 0) >= (cfg.max || 0);
-                        if (!atMax) return false;
-
-                        // show for the rest of the day max was achieved
-                        const hitToday =
-                          (stObj.maxAchievedOn || "") === today ||
-                          ((stObj.lastUpdated || "") === today && (stObj.value || 0) >= (cfg.max || 0)); // fallback
-
-                        return hitToday;
-                      });
-
-                      // --- END FLOATING EMOJI LOGIC ---
+                      // --- END FLOATING + PARTY LOGIC ---
 
                       return (
                         <div
@@ -1404,15 +1386,6 @@ export default function App() {
                                 {cfg.emoji}
                               </div>
                             </div>
-                          ))}
-
-                          {/* EMOJI PARTY (max achieved today) */}
-                          {partyStreaks.map((cfg) => (
-                            <EmojiParty
-                              key={`party_${s.id}_${cfg.id}_${today}`}
-                              emoji={cfg.emoji}
-                              seedKey={`party_${s.id}_${cfg.id}_${today}`}
-                            />
                           ))}
 
                           {/* ✅ EMOJI PARTY (when max is achieved today) */}
