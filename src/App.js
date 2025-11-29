@@ -931,6 +931,15 @@ export default function App() {
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
         .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
 
+        /* Contenedor que se mueve por toda la tarjeta */
+        .floating-emoji {
+          position: absolute;
+          top: 0;               /* punto de partida */
+          left: 0;
+          pointer-events: none;
+          animation: drift 16s linear infinite;
+        }
+
         /* Círculo brillante + emoji dentro */
         .floating-emoji-glow {
           width: 110px;
@@ -957,10 +966,13 @@ export default function App() {
           animation: glowPulse 2.6s ease-in-out infinite;
         }
 
+        /* Movimiento bien grande por toda la tarjeta */
         @keyframes drift {
-          0%   { top: -20%; left: -20%; transform: rotate(0deg); }
-          50%  { top: 70%; left: 80%; transform: rotate(18deg); }
-          100% { top: -20%; left: -20%; transform: rotate(0deg); }
+          0% { transform: translate(-30%, -30%) rotate(0deg); }
+          25% { transform: translate(110%, -10%) rotate(8deg); }
+          50% { transform: translate(130%, 110%) rotate(16deg); }
+          75% { transform: translate(-10%, 120%) rotate(8deg); }
+          100% { transform: translate(-30%, -30%) rotate(0deg); }
         }
 
         /* Soft breathing glow */
@@ -1231,8 +1243,8 @@ export default function App() {
                             padding: 10,
                             borderRadius: 10,
                             background: bg,
-                            position: "relative",    // needed for floating emoji
-                            overflow: "hidden",      // needed for floating emoji
+                            position: "relative",   
+                            overflow: "hidden",
                           }}
                         >
 
