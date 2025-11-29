@@ -934,15 +934,15 @@ export default function App() {
         .floating-emoji {
           position: absolute;
           opacity: 0.14;
-          font-size: 48px;
-          animation: drift 22s linear infinite;
+          font-size: 56px;
+          animation: drift 18s linear infinite;
           pointer-events: none;
         }
 
         @keyframes drift {
-          0%   { transform: translate(-20%, -10%) rotate(0deg); }
-          50%  { transform: translate(130%, 10%) rotate(20deg); }
-          100% { transform: translate(-20%, -10%) rotate(0deg); }
+          0%   { top: -20%; left: -20%; transform: rotate(0deg); }
+          50%  { top: 70%; left: 80%; transform: rotate(18deg); }
+          100% { top: -20%; left: -20%; transform: rotate(0deg); }
         }
 
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
@@ -1229,8 +1229,18 @@ export default function App() {
                                     activeClass.streakConfigs.map((cfg) => {
                                       const stObj =
                                         (s.streaks && s.streaks[cfg.id]) || { value: 0, lastUpdated: "" };
-                                      const emojiLine =
-                                        (cfg.emoji || "").repeat(stObj.value || 0) || cfg.emoji;
+                                      let emojiLine = "";
+                                      if (stObj.value > 0) {
+                                        // active streak
+                                        emojiLine = (cfg.emoji || "").repeat(stObj.value);
+                                      } else {
+                                        // zero streak → crossed out emoji
+                                        emojiLine = (
+                                          <span style={{ textDecoration: "line-through", opacity: 0.5 }}>
+                                            {cfg.emoji}
+                                          </span>
+                                        );
+                                      }
                                       const date = stObj.lastUpdated || "";
                                       const isToday = date && date === todayISODate();
                                       return (
