@@ -14,6 +14,7 @@ import {
   query,
   orderBy,
   writeBatch,
+  increment,
 } from "firebase/firestore";
 import {
   getStorage,
@@ -625,6 +626,19 @@ export default function App() {
     } catch (err) {
       console.error(err);
       alert("Failed to delete student.");
+    }
+  }
+
+  async function quickAddPoints(classId, studentId, amount) {
+    const n = Number(amount || 0);
+    if (!Number.isFinite(n) || n === 0) return;
+
+    try {
+      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+      await updateDoc(studentRef, { currentPoints: increment(n) });
+    } catch (err) {
+      console.error("quickAddPoints error", err);
+      alert("Could not add points.");
     }
   }
 
@@ -1424,18 +1438,55 @@ export default function App() {
                                       const date = stObj.lastUpdated || "";
                                       const isToday = date && date === todayISODate();
                                       return (
-                                        <div key={cfg.id}>
-                                          {emojiLine}
-                                          {date && (
-                                            <span
-                                              style={{
-                                                marginLeft: 4,
-                                                color: isToday ? "#16a34a" : "#dc2626",
-                                                fontWeight: 600,
-                                              }}
-                                            >
-                                              {date}
-                                            </span>
+                                        <div
+                                          key={cfg.id}
+                                          style={{ display: "flex", alignItems: "center", gap: 8 }}
+                                        >
+                                          <div style={{ flex: 1 }}>
+                                            {emojiLine}
+                                            {date && (
+                                              <span
+                                                style={{
+                                                  marginLeft: 4,
+                                                  color: isToday ? "#16a34a" : "#dc2626",
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                {date}
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {/* ✅ Tiny quick +1, +5, +10 (ADMIN ONLY) */}
+                                          {mode === "admin" && (
+                                            <div style={{ display: "flex", gap: 6 }}>
+                                              <button
+                                                className="btn"
+                                                style={{ padding: "4px 8px", fontSize: 12, lineHeight: "12px", borderRadius: 10 }}
+                                                title="Add +1 to this streak"
+                                                onClick={() => changeStudentStreakValue(activeClassId, s.id, cfg.id, +1, cfg.max)}
+                                              >
+                                                +1
+                                              </button>
+
+                                              <button
+                                                className="btn"
+                                                style={{ padding: "4px 8px", fontSize: 12, lineHeight: "12px", borderRadius: 10 }}
+                                                title="Add +5 to this streak"
+                                                onClick={() => changeStudentStreakValue(activeClassId, s.id, cfg.id, +5, cfg.max)}
+                                              >
+                                                +5
+                                              </button>
+
+                                              <button
+                                                className="btn"
+                                                style={{ padding: "4px 8px", fontSize: 12, lineHeight: "12px", borderRadius: 10 }}
+                                                title="Add +10 to this streak"
+                                                onClick={() => changeStudentStreakValue(activeClassId, s.id, cfg.id, +10, cfg.max)}
+                                              >
+                                                +10
+                                              </button>
+                                            </div>
                                           )}
                                         </div>
                                       );
