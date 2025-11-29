@@ -931,18 +931,30 @@ export default function App() {
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
         .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
 
-        .floating-emoji {
-          position: absolute;
-          opacity: 0.28;
-          font-size: 56px;
-          animation: drift 18s linear infinite;
-          pointer-events: none;
-          color: #ffffff; /* bright base color */
-          animation: drift 18s linear infinite, glowPulse 3s ease-in-out infinite;
-          text-shadow:
-            0 0 6px rgba(255, 255, 255, 0.9),
-            0 0 16px rgba(255, 255, 255, 0.9),
-            0 0 24px rgba(255, 255, 255, 0.8); 
+        /* Círculo brillante + emoji dentro */
+        .floating-emoji-glow {
+          width: 110px;
+          height: 110px;
+          border-radius: 999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          /* círculo de luz */
+          background: radial-gradient(
+            circle,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(255, 255, 255, 0.6) 35%,
+            rgba(255, 255, 255, 0.0) 75%
+          );
+
+          box-shadow:
+            0 0 25px rgba(255, 255, 255, 0.95),
+            0 0 55px rgba(255, 255, 255, 0.9),
+            0 0 95px rgba(255, 255, 255, 0.8);
+
+          font-size: 60px;     /* tamaño del emoji */
+          animation: glowPulse 2.6s ease-in-out infinite;
         }
 
         @keyframes drift {
@@ -953,9 +965,9 @@ export default function App() {
 
         /* Soft breathing glow */
         @keyframes glowPulse {
-          0% { opacity: 0.15; }
-          50% { opacity: 0.35; }
-          100% { opacity: 0.15; }
+          0% { transform: scale(0.95); opacity: 0.55; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.55; }
         }
 
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
@@ -1227,7 +1239,9 @@ export default function App() {
                           {/* FLOATING EMOJIS */}
                           {floatingEmojis.map((cfg) => (
                             <div key={cfg.id} className="floating-emoji">
-                              {cfg.emoji}
+                              <div className="floating-emoji-glow">
+                                {cfg.emoji}
+                              </div>
                             </div>
                           ))}
 
