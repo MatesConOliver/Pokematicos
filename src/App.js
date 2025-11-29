@@ -1180,8 +1180,44 @@ export default function App() {
                       const bg = s.profileColor || "white";
                       const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
 
+                      // --- FLOATING EMOJI LOGIC ---
+                      const cfgs = activeClass?.streakConfigs || [];
+
+                      const floatingEmojis = cfgs.filter((cfg) => {
+                        if (!cfg.float) return false;
+
+                        const stObj = (s.streaks && s.streaks[cfg.id]) || { value: 0 };
+                        if (stObj.value < cfg.max) return false;
+
+                        const today = todayISODate();
+                        if (cfg.floatStart && today < cfg.floatStart) return false;
+                        if (cfg.floatEnd && cfg.floatEnd !== "" && today > cfg.floatEnd) return false;
+
+                        return true;
+                      });
+
+                      // --- END FLOATING EMOJI LOGIC ---
+
                       return (
-                        <div key={s.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 10, background: bg }}>
+                        <div
+                          key={s.id}
+                          style={{
+                            border: "1px solid #ddd",
+                            padding: 10,
+                            borderRadius: 10,
+                            background: bg,
+                            position: "relative",    // needed for floating emoji
+                            overflow: "hidden",      // needed for floating emoji
+                          }}
+                        >
+
+                          {/* FLOATING EMOJIS */}
+                          {floatingEmojis.map((cfg) => (
+                            <div key={cfg.id} className="floating-emoji">
+                              {cfg.emoji}
+                            </div>
+                          ))}
+
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                             <div>
                               <div style={{ fontWeight: 800 }}>{displayName}</div>
@@ -1252,7 +1288,7 @@ export default function App() {
                             <div
                               style={{
                                 marginTop: 8,
-                                maxHeight: 260,        // adjust if you want taller/shorter
+                                maxHeight: 260,
                                 overflowY: "auto",
                                 paddingRight: 6,
                                 display: "flex",
@@ -1262,18 +1298,23 @@ export default function App() {
                               }}
                             >
                               {(() => {
-                                // Group by cardId so duplicates show as ×N
-                                const groups = new Map(); // cardId -> { title, imageURL, count }
+                                const groups = new Map();
                                 (s.cards || []).forEach((o) => {
                                   const key = o.cardId || "unknown";
                                   if (!groups.has(key)) {
-                                    groups.set(key, { title: o.title || "—", imageURL: o.imageURL || "", count: 0 });
+                                    groups.set(key, {
+                                      title: o.title || "—",
+                                      imageURL: o.imageURL || "",
+                                      count: 0,
+                                    });
                                   }
                                   groups.get(key).count += 1;
                                 });
 
-                                // Convert to array (optional: newest groups last/first — keep as-is for now)
-                                const arr = Array.from(groups.entries()).map(([cardId, g]) => ({ cardId, ...g }));
+                                const arr = Array.from(groups.entries()).map(([cardId, g]) => ({
+                                  cardId,
+                                  ...g,
+                                }));
 
                                 return arr.map((g) => (
                                   <div
@@ -1301,13 +1342,16 @@ export default function App() {
                                       <img
                                         src={g.imageURL}
                                         alt={g.title}
-                                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                        style={{
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover",
+                                        }}
                                       />
                                     ) : (
                                       <div style={{ padding: 6, fontSize: 11 }}>{g.title}</div>
                                     )}
 
-                                    {/* ×N badge */}
                                     {g.count > 1 && (
                                       <div
                                         style={{
@@ -1341,7 +1385,12 @@ export default function App() {
                           <input
                             ref={newStudentRef}
                             placeholder="Student name"
-                            style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+                            style={{
+                              flex: 1,
+                              padding: 8,
+                              borderRadius: 8,
+                              border: "1px solid #ddd",
+                            }}
                           />
                           <button
                             className="btn primary"
