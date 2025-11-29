@@ -933,12 +933,16 @@ export default function App() {
 
         .floating-emoji {
           position: absolute;
-          opacity: 0.22;
+          opacity: 0.28;
           font-size: 56px;
           animation: drift 18s linear infinite;
           pointer-events: none;
+          color: #ffffff; /* bright base color */
           animation: drift 18s linear infinite, glowPulse 3s ease-in-out infinite;
-          filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.7));
+          text-shadow:
+            0 0 6px rgba(255, 255, 255, 0.9),
+            0 0 16px rgba(255, 255, 255, 0.9),
+            0 0 24px rgba(255, 255, 255, 0.8); 
         }
 
         @keyframes drift {
@@ -949,15 +953,9 @@ export default function App() {
 
         /* Soft breathing glow */
         @keyframes glowPulse {
-          0% {
-            filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.4));
-          }
-          50% {
-            filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.9));
-          }
-          100% {
-            filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.4));
-          }
+          0% { opacity: 0.15; }
+          50% { opacity: 0.35; }
+          100% { opacity: 0.15; }
         }
 
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
