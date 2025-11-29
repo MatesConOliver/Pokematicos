@@ -942,8 +942,8 @@ export default function App() {
 
         /* Círculo brillante + emoji dentro */
         .floating-emoji-glow {
-          width: 110px;
-          height: 110px;
+          width: 90px;
+          height: 90px;
           border-radius: 999px;
           display: flex;
           align-items: center;
