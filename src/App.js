@@ -373,34 +373,34 @@ export default function App() {
     }
   }
 
-  // --- STUDENT STREAKS (generic) ---
+  // --- STUDENT STREAKS edit (generic) ---
 
-    async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValue) {
+  async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValue) {
     try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const streaks = data.streaks || {};
-      const current = streaks[streakId]?.value || 0;
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const snap = await getDoc(studentRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const streaks = data.streaks || {};
+    const current = streaks[streakId]?.value || 0;
 
-      let next = current + delta;
-      if (next < 0) next = 0;
-      if (typeof maxValue === "number" && maxValue > 0 && next > maxValue) {
-        next = maxValue;
-      }
+    let next = current + delta;
+    if (next < 0) next = 0;
+    if (typeof maxValue === "number" && maxValue > 0 && next > maxValue) {
+      next = maxValue;
+    }
 
-      const updatedEntry = {
-        value: next,
-        lastUpdated: delta > 0 ? todayISODate() : (streaks[streakId]?.lastUpdated || ""),
-      };
+    const updatedEntry = {
+      value: next,
+      lastUpdated: delta > 0 ? todayISODate() : (streaks[streakId]?.lastUpdated || ""),
+    };
 
-      const updatedStreaks = {
-        ...streaks,
-        [streakId]: updatedEntry,
-      };
+    const updatedStreaks = {
+      ...streaks,
+      [streakId]: updatedEntry,
+    };
 
-      await updateDoc(studentRef, { streaks: updatedStreaks });
+    await updateDoc(studentRef, { streaks: updatedStreaks });
       // No setSelectedStudent here – Firestore snapshot will refresh students list
     } catch (err) {
       console.error("changeStudentStreakValue error", err);
@@ -408,7 +408,7 @@ export default function App() {
     }
   }
 
-    async function resetStudentStreak(classId, studentId, streakId) {
+  async function resetStudentStreak(classId, studentId, streakId) {
     try {
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const snap = await getDoc(studentRef);
@@ -433,6 +433,25 @@ export default function App() {
       alert("Could not reset streak.");
     }
   }
+
+    async function deleteStreakTypeForClass(classId, streakId) {
+    if (!window.confirm("Delete this streak type for the whole class? This cannot be undone.")) {
+      return;
+    }
+    try {
+      const classRef = doc(db, `classes/${classId}`);
+      const snap = await getDoc(classRef);
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const list = data.streakConfigs || [];
+      const updated = list.filter((cfg) => cfg.id !== streakId);
+      await updateDoc(classRef, { streakConfigs: updated });
+    } catch (err) {
+      console.error("deleteStreakTypeForClass error", err);
+      alert("Could not delete streak. See console.");
+    }
+  }
+
 
   // Upload and set background image
   async function uploadBackgroundImage(file) {
@@ -1603,6 +1622,7 @@ export default function App() {
           streakConfigs={activeClass?.streakConfigs || []}
           changeStudentStreakValue={changeStudentStreakValue}
           resetStudentStreak={resetStudentStreak}
+          deleteStreakTypeForClass={deleteStreakTypeForClass}
           mode={mode}
           onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
@@ -1889,6 +1909,7 @@ function ManageStudentModal({
   streakConfigs,
   changeStudentStreakValue,
   resetStudentStreak,
+  deleteStreakTypeForClass,
   mode,
   onEditStudent,
   onClose,
@@ -2160,6 +2181,14 @@ function ManageStudentModal({
                             >
                               Reset
                             </button>
+
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11, marginTop: 4, color: "#b91c1c", borderColor: "#fecaca" }}
+                              onClick={() => deleteStreakTypeForClass(classId, cfg.id)}
+                            >
+                              Delete streak type
+                            </button>
                           </div>
                         )}
                       </div>
@@ -2285,7 +2314,7 @@ function ManageStudentModal({
 
                   <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
                     {students.map((s) => (
-                      <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", background: s.cosmetics?.color || "white", position: "relative", overflow: "hidden", }}>
                         <div style={{ flex: 1, fontWeight: 700 }}>
                           {s.name} <span className="muted">(has {s.currentPoints || 0} pts)</span>
                         </div>
