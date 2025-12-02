@@ -10,12 +10,12 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   orderBy,
   writeBatch,
   increment,
-  deleteField,
 } from "firebase/firestore";
 import {
   getStorage,
@@ -64,58 +64,47 @@ function uid(prefix = "id") {
 function todayISODate() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
+
 function isoToUTCDate(iso) {
-  // iso = "YYYY-MM-DD"
-  return new Date(`${iso}T00:00:00Z`);
+  // iso: YYYY-MM-DD
+  const [y, m, d] = (iso || "").split("-").map((x) => Number(x));
+  if (!y || !m || !d) return new Date(NaN);
+  return new Date(Date.UTC(y, m - 1, d));
 }
 
 function addDaysISO(iso, days) {
-  const d = isoToUTCDate(iso);
-  d.setUTCDate(d.getUTCDate() + Number(days || 0));
-  return d.toISOString().slice(0, 10);
+  const dt = isoToUTCDate(iso);
+  if (Number.isNaN(dt.getTime())) return "";
+  dt.setUTCDate(dt.getUTCDate() + (Number(days) || 0));
+  return dt.toISOString().slice(0, 10);
 }
 
-function isISODateInWindow(dateISO, win) {
-  if (!win || !win.start) return false;
-  const start = String(win.start);
-  const end = win.end ? String(win.end) : "";
-  if (dateISO < start) return false;
-  if (end && dateISO > end) return false;
-  return true;
-}
-
-function mergeAndPruneWindows(windows, todayISO) {
-  const list = Array.isArray(windows) ? windows.filter(Boolean) : [];
-  // keep only valid windows
+function normalizeAndPruneWindows(windows, today) {
+  const t = today || todayISODate();
+  const list = Array.isArray(windows) ? windows : [];
+  // Keep only valid windows, and prune those fully in the past.
   const cleaned = list
     .map((w) => ({
-      start: (w.start || "").slice(0, 10),
-      end: (w.end || "").slice(0, 10),
+      start: (w?.start || "").slice(0, 10),
+      end: (w?.end || "").slice(0, 10),
     }))
-    .filter((w) => w.start && (!w.end || w.end >= w.start));
+    .filter((w) => w.start && w.end && w.end >= w.start && w.end >= t);
 
-  // Drop old windows (end before today)
-  const futureOrCurrent = cleaned.filter((w) => !w.end || w.end >= todayISO);
+  cleaned.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
 
-  // Sort by start date
-  futureOrCurrent.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
-
-  // Merge overlaps + adjacent windows
+  // Merge overlapping/adjacent windows so the list stays small.
   const merged = [];
-  for (const w of futureOrCurrent) {
-    const last = merged[merged.length - 1];
-    if (!last) {
+  for (const w of cleaned) {
+    if (merged.length === 0) {
       merged.push({ ...w });
       continue;
     }
-
-    const lastEnd = last.end || last.start;
-    const lastEndPlus1 = addDaysISO(lastEnd, 1);
-
-    // overlap or adjacent?
+    const last = merged[merged.length - 1];
+    // Adjacent means next.start <= last.end + 1 day
+    const lastEndPlus1 = addDaysISO(last.end, 1);
     if (w.start <= lastEndPlus1) {
-      const nextEnd = !last.end ? w.end : !w.end ? last.end : (w.end > last.end ? w.end : last.end);
-      last.end = nextEnd || last.end;
+      // extend
+      if (w.end > last.end) last.end = w.end;
     } else {
       merged.push({ ...w });
     }
@@ -123,11 +112,16 @@ function mergeAndPruneWindows(windows, todayISO) {
   return merged;
 }
 
-function isFloatingEmojiShownToday(cfg, stObj, todayISO) {
-  if (!cfg?.float) return false;
-  const windows = stObj?.floatWindows;
-  if (!Array.isArray(windows) || windows.length === 0) return false;
-  return windows.some((w) => isISODateInWindow(todayISO, w));
+function isDateInAnyWindow(dateISO, windows) {
+  const d = (dateISO || "").slice(0, 10);
+  if (!d) return false;
+  const list = Array.isArray(windows) ? windows : [];
+  return list.some((w) => {
+    const start = (w?.start || "").slice(0, 10);
+    const end = (w?.end || "").slice(0, 10);
+    if (!start || !end) return false;
+    return start <= d && d <= end;
+  });
 }
 
 
@@ -401,48 +395,16 @@ export default function App() {
     const floatAns = prompt(
       "When a student reaches this maximum streak, should this emoji float faintly in their card background? (yes/no)"
     );
-
     let float = false;
-    let floatDelayDays = 0;     // when it starts (relative to the day MAX is reached)
-    let floatDurationDays = 0;  // how long it lasts
-
-    // Optional: limit floating to a specific calendar window (leave empty = always allowed)
-    let floatStart = "";
-    let floatEnd = "";
 
     if (floatAns && floatAns.toLowerCase().startsWith("y")) {
       float = true;
-
-      const delayStr = prompt(
-        "How many DAYS after reaching MAX should the floating start? (Example: 7 = next week)",
-        "7"
-      );
-      const delay = Number(delayStr || "0");
-      floatDelayDays = Number.isFinite(delay) && delay >= 0 ? delay : 0;
-
-      const durationStr = prompt(
-        "How many DAYS should it float? (Example: 7 = one week)",
-        "7"
-      );
-      const duration = Number(durationStr || "0");
-      floatDurationDays = Number.isFinite(duration) && duration > 0 ? duration : 0;
-
-      const limitAns = prompt(
-        "Optional: limit floating to a calendar period (start/end dates)? (yes/no)"
-      );
-
-      if (limitAns && limitAns.toLowerCase().startsWith("y")) {
-        const start = prompt(
-          "Floating allowed START date (YYYY-MM-DD). Leave empty for no start limit:"
-        );
-        floatStart = (start && start.trim()) || "";
-
-        const end = prompt(
-          "Floating allowed END date (YYYY-MM-DD). Leave empty for no end limit:"
-        );
-        floatEnd = (end && end.trim()) || "";
-      }
     }
+
+    // NOTE: We do NOT ask for dates here anymore.
+    // Floating timing is now chosen individually each time a student reaches max.
+    let floatStart = "";
+    let floatEnd = "";
 
     // 4) Sticky celebration after reset?
     const stickyAns = prompt(
@@ -456,8 +418,6 @@ export default function App() {
       emoji,
       max,
       float,
-      floatDelayDays,
-      floatDurationDays,
       floatStart,
       floatEnd,
       stickyCelebrate,
@@ -504,80 +464,74 @@ export default function App() {
 
   // --- STUDENT STREAKS edit (generic) ---
 
-  async function changeStudentStreakValue(classId, studentId, cfg, delta) {
+    async function changeStudentStreakValue(classId, studentId, cfg, delta, studentName = "") {
     try {
-      const streakId = cfg?.id;
-      if (!streakId) return;
-
-      const maxValue = Number(cfg?.max || 0);
-
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const snap = await getDoc(studentRef);
       if (!snap.exists()) return;
-
       const data = snap.data();
       const streaks = data.streaks || {};
-      const prevEntry = streaks[streakId] || {};
-      const current = Number(prevEntry.value || 0);
 
-      let next = current + delta;
+      const streakId = cfg?.id;
+      const maxValue = Number(cfg?.max || 0);
+
+      const prevEntry = streakId ? (streaks[streakId] || {}) : {};
+      const prevValue = Number(prevEntry?.value || 0);
+      const existingWindows = Array.isArray(prevEntry?.floatWindows) ? prevEntry.floatWindows : [];
+
+      let next = prevValue + delta;
       if (next < 0) next = 0;
       if (Number.isFinite(maxValue) && maxValue > 0 && next > maxValue) {
         next = maxValue;
       }
 
       const today = todayISODate();
-      const prevMaxAchievedOn = prevEntry.maxAchievedOn || "";
-      let maxAchievedOn = prevMaxAchievedOn;
 
-      // Party trigger: any +1 that results in MAX (even if already at max)
-      const hitMaxTodayForParty =
-        delta > 0 &&
-        Number.isFinite(maxValue) &&
-        maxValue > 0 &&
-        next === maxValue;
+      // Only count "reached max" when we CROSS into max (prevents repeated prompts if you press + while already at max)
+      const hitMaxNow =
+        delta > 0 && Number.isFinite(maxValue) && maxValue > 0 && next === maxValue && prevValue < maxValue;
 
-      if (hitMaxTodayForParty) {
-        maxAchievedOn = today;
-      }
+      // Record the day max was hit (for emoji party). We only set it on a real "hit max" event.
+      const prevMaxAchievedOn = prevEntry?.maxAchievedOn || "";
+      const maxAchievedOn = hitMaxNow ? today : prevMaxAchievedOn;
 
-      // Floating-window reward: ONLY when we *transition into* MAX (from below max)
-      const reachedMaxNow =
-        delta > 0 &&
-        Number.isFinite(maxValue) &&
-        maxValue > 0 &&
-        current < maxValue &&
-        next === maxValue;
+      // Floating windows: chosen individually every time a student hits max (if this streak has floating enabled)
+      let floatWindows = normalizeAndPruneWindows(existingWindows, today);
 
-      // ---- Floating windows (earned rewards) ----
-      let floatWindows = Array.isArray(prevEntry.floatWindows)
-        ? [...prevEntry.floatWindows]
-        : [];
+      if (hitMaxNow && cfg?.float) {
+        const who = studentName ? `\n\nStudent: ${studentName}` : "";
+        const streakLabel = cfg?.emoji ? ` (${cfg.emoji})` : "";
+        const delayStr = prompt(
+          `Floating emoji settings${streakLabel}${who}\n\nHow many DAYS after today should the floating start?\n- 0 = start today\n- 7 = start next week\n\nExample: 7`,
+          "7"
+        );
 
-      if (reachedMaxNow && cfg?.float) {
-        // Defaults for older streak configs (created before floatDelayDays existed)
-        const delay = Number.isFinite(Number(cfg.floatDelayDays))
-          ? Number(cfg.floatDelayDays)
-          : 7;
+        // If teacher cancels, we simply don't add a window.
+        if (delayStr !== null) {
+          const durationStr = prompt(
+            `How many DAYS should it float?\n\nExample: 7`,
+            "7"
+          );
 
-        const duration = Number.isFinite(Number(cfg.floatDurationDays))
-          ? Number(cfg.floatDurationDays)
-          : 7;
+          if (durationStr !== null) {
+            const delayDays = Number(delayStr);
+            const durationDays = Number(durationStr);
 
-        if (duration > 0) {
-          const start = addDaysISO(today, Math.max(0, delay));
-          const end = addDaysISO(start, Math.max(0, duration - 1));
-          floatWindows.push({ start, end });
+            if (Number.isFinite(delayDays) && Number.isFinite(durationDays) && durationDays > 0) {
+              const startISO = addDaysISO(today, delayDays);
+              const endISO = addDaysISO(startISO, durationDays - 1);
+              const nextWindows = [...floatWindows, { start: startISO, end: endISO }];
+              floatWindows = normalizeAndPruneWindows(nextWindows, today);
+            } else {
+              alert("Floating settings not saved (please enter valid numbers).");
+            }
+          }
         }
       }
 
-      // Keep list tidy so it doesn't grow forever
-      floatWindows = mergeAndPruneWindows(floatWindows, today);
-
       const updatedEntry = {
-        ...prevEntry,
         value: next,
-        lastUpdated: delta > 0 ? today : prevEntry.lastUpdated || "",
+        lastUpdated: delta > 0 ? today : (prevEntry?.lastUpdated || ""),
         maxAchievedOn,
         floatWindows,
       };
@@ -600,23 +554,16 @@ export default function App() {
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const snap = await getDoc(studentRef);
       if (!snap.exists()) return;
-
       const data = snap.data();
       const streaks = data.streaks || {};
 
-      const prevEntry = streaks[streakId] || {};
-      const today = todayISODate();
-
-      // ✅ Option A: keep already-earned floating windows, even if the streak is reset
-      const floatWindows = mergeAndPruneWindows(prevEntry.floatWindows || [], today);
-
       const updatedEntry = {
-        ...prevEntry,
         value: 0,
         lastUpdated: "",
-        floatWindows,
-        // keep this (so "sticky celebration" can still work for the rest of the day)
-        maxAchievedOn: prevEntry.maxAchievedOn || "",
+        // Keep maxAchievedOn so "sticky celebrate" can still show for the rest of the day, if enabled
+        maxAchievedOn: streaks[streakId]?.maxAchievedOn || "",
+        // Option A: keep already-earned floating windows even after reset
+        floatWindows: normalizeAndPruneWindows(streaks[streakId]?.floatWindows || [], todayISODate()),
       };
 
       const updatedStreaks = {
@@ -633,40 +580,48 @@ export default function App() {
   }
 
     async function deleteStreakTypeForClass(classId, streakId) {
-    if (
-      !window.confirm(
-        "Delete this streak type for the whole class? This cannot be undone. (It will be removed from every student too.)"
-      )
-    ) {
+    if (!window.confirm("Delete this streak type for the whole class? This cannot be undone.")) {
       return;
     }
-
     try {
-      // 1) Remove from class config
       const classRef = doc(db, `classes/${classId}`);
       const snap = await getDoc(classRef);
       if (!snap.exists()) return;
-
       const data = snap.data();
       const list = data.streakConfigs || [];
       const updated = list.filter((cfg) => cfg.id !== streakId);
       await updateDoc(classRef, { streakConfigs: updated });
 
-      // 2) Remove from EVERY student (including floatWindows, value, etc.)
-      const ids = (students || []).map((s) => s.id).filter(Boolean);
-      const CHUNK = 450; // keep under Firestore batch limits
+      // Also remove this streak from every student's saved streak data (including float windows)
+      const studentsCol = collection(db, `classes/${classId}/students`);
+      const studentsSnap = await getDocs(studentsCol);
 
-      for (let i = 0; i < ids.length; i += CHUNK) {
-        const batch = writeBatch(db);
-        const chunk = ids.slice(i, i + CHUNK);
-        chunk.forEach((sid) => {
-          const studentRef = doc(db, `classes/${classId}/students/${sid}`);
-          batch.update(studentRef, {
-            [`streaks.${streakId}`]: deleteField(),
-          });
-        });
-        await batch.commit();
-      }
+      // Firestore batches are limited (max 500 writes). We'll chunk safely.
+      let batch = writeBatch(db);
+      let writes = 0;
+
+      const commitBatchIfNeeded = async (force = false) => {
+        if (writes === 0) return;
+        if (force || writes >= 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          writes = 0;
+        }
+      };
+
+      studentsSnap.forEach((studentDoc) => {
+        const stData = studentDoc.data() || {};
+        const stStreaks = stData.streaks || {};
+        if (stStreaks && Object.prototype.hasOwnProperty.call(stStreaks, streakId)) {
+          const nextStreaks = { ...stStreaks };
+          delete nextStreaks[streakId];
+          batch.update(studentDoc.ref, { streaks: nextStreaks });
+          writes += 1;
+        }
+      });
+
+      await commitBatchIfNeeded(true);
+
     } catch (err) {
       console.error("deleteStreakTypeForClass error", err);
       alert("Could not delete streak. See console.");
@@ -684,73 +639,33 @@ export default function App() {
       const cfg = list.find((c) => c.id === streakId);
       if (!cfg) return;
 
-      // 1) Rules (delay + duration)
-      const currentDelay = Number.isFinite(Number(cfg.floatDelayDays))
-        ? Number(cfg.floatDelayDays)
-        : 7;
-
-      const currentDuration = Number.isFinite(Number(cfg.floatDurationDays))
-        ? Number(cfg.floatDurationDays)
-        : 7;
-
-      const delayStr = prompt(
-        `Floating START DELAY (days after reaching MAX). Example: 7 = next week.
-Current: ${currentDelay}`,
-        String(currentDelay)
-      );
-      if (delayStr === null) return;
-
-      const durationStr = prompt(
-        `Floating DURATION (days). Example: 7 = one week.
-Current: ${currentDuration}`,
-        String(currentDuration)
-      );
-      if (durationStr === null) return;
-
-      const delay = Number(delayStr || "0");
-      const duration = Number(durationStr || "0");
-
-      const newDelay = Number.isFinite(delay) && delay >= 0 ? delay : 0;
-      const newDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
-
-      // 2) Optional: allowed calendar window (empty = always allowed)
       const currentStart = (cfg.floatStart || "").trim();
       const currentEnd = (cfg.floatEnd || "").trim();
 
       const start = prompt(
-        `Optional: Floating allowed START date (YYYY-MM-DD). Leave empty for no start limit.
-Current: ${currentStart || "—"}`,
+        `Floating START date (YYYY-MM-DD). Leave empty for no start limit.\nCurrent: ${currentStart || "—"}`,
         currentStart
       );
-      if (start === null) return;
+      if (start === null) return; // cancel
 
       const end = prompt(
-        `Optional: Floating allowed END date (YYYY-MM-DD). Leave empty for no end limit.
-Current: ${currentEnd || "—"}`,
+        `Floating END date (YYYY-MM-DD). Leave empty for no end date.\nCurrent: ${currentEnd || "—"}`,
         currentEnd
       );
-      if (end === null) return;
+      if (end === null) return; // cancel
 
-      const newStart = (start || "").trim();
-      const newEnd = (end || "").trim();
+      const newStart = (start || "").trim(); // empty string = no start limit
+      const newEnd = (end || "").trim();     // empty string = no end limit
 
       const updated = list.map((c) =>
-        c.id === streakId
-          ? {
-              ...c,
-              floatDelayDays: newDelay,
-              floatDurationDays: newDuration,
-              floatStart: newStart,
-              floatEnd: newEnd,
-            }
-          : c
+        c.id === streakId ? { ...c, floatStart: newStart, floatEnd: newEnd } : c
       );
 
       await updateDoc(classRef, { streakConfigs: updated });
-      alert("Floating settings updated.");
+      alert("Floating dates updated.");
     } catch (err) {
       console.error("editFloatingDatesForStreakType error", err);
-      alert("Could not update floating settings.");
+      alert("Could not update floating dates.");
     }
   }
 
@@ -1571,201 +1486,24 @@ Current: ${currentEnd || "—"}`,
                         return (stObj?.value || 0) >= (cfg.max || 0);
                       };
 
-                      // Party (emoji shower) → whenever MAX was reached today
+                      // Party (emoji shower)
                       const partyStreaks = cfgs.filter((cfg) => {
                         const stObj =
                           (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
                         return isCelebratingToday(cfg, stObj);
                       });
 
-                      // Floating emojis → shown ONLY if today is inside an *earned* floating window
+                      // Floating (only if cfg.float is true)
                       const floatingEmojis = cfgs.filter((cfg) => {
                         if (!cfg.float) return false;
-
-                        const stObj =
-                          (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
-
-                        // Optional global allowed window (if you configured floatStart/floatEnd)
                         if (!isCfgActiveToday(cfg, today)) return false;
 
-                        return isFloatingEmojiShownToday(cfg, stObj, today);
+                        const stObj =
+                          (s.streaks && s.streaks[cfg.id]) || { value: 0, floatWindows: [] };
+
+                        // Floating is based on earned windows (independent per student)
+                        return isDateInAnyWindow(today, stObj.floatWindows || []);
                       });
-
-                      // --- END FLOATING + PARTY LOGIC ---
-
-                      return (
-                        <div
-                          key={s.id}
-                          style={{
-                            border: "1px solid #ddd",
-                            padding: 10,
-                            borderRadius: 10,
-                            background: bg,
-                            position: "relative",   
-                            overflow: "hidden",
-                          }}
-                        >
-
-                          {/* FLOATING EMOJIS */}
-                          {floatingEmojis.map((cfg) => (
-                            <div key={cfg.id} className="floating-emoji">
-                              <div className="floating-emoji-glow">
-                                {cfg.emoji}
-                              </div>
-                            </div>
-                          ))}
-
-                          {/* ✅ EMOJI PARTY (when max is achieved today) */}
-                          {partyStreaks.map((cfg) => (
-                            <EmojiParty
-                              key={`party_${s.id}_${cfg.id}_${today}`}
-                              emoji={cfg.emoji}
-                              seedKey={`${s.id}_${cfg.id}_${today}`}
-                              count={22}
-                            />
-                          ))}
-
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                            <div>
-                              <div style={{ fontWeight: 800 }}>{displayName}</div>
-
-                              {/* Visible for guests too */}
-                              <div className="muted" style={{ lineHeight: 1.35 }}>
-                                <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
-                                  {activeClass?.streakConfigs && activeClass.streakConfigs.length > 0 ? (
-                                    activeClass.streakConfigs.map((cfg) => {
-                                      const stObj =
-                                        (s.streaks && s.streaks[cfg.id]) || { value: 0, lastUpdated: "" };
-                                      let emojiLine = "";
-                                      if (stObj.value > 0) {
-                                        // active streak
-                                        emojiLine = (cfg.emoji || "").repeat(stObj.value);
-                                      } else {
-                                        // zero streak → crossed out emoji
-                                        emojiLine = (
-                                          <span style={{ textDecoration: "line-through", opacity: 0.5 }}>
-                                            {cfg.emoji}
-                                          </span>
-                                        );
-                                      }
-                                      const date = stObj.lastUpdated || "";
-                                      const isToday = date && date === todayISODate();
-                                      return (
-                                        <div
-                                          key={cfg.id}
-                                          style={{ display: "flex", alignItems: "center", gap: 8 }}
-                                        >
-                                          <div style={{ flex: 1 }}>
-                                            {emojiLine}
-                                            {date && (
-                                              <span
-                                                style={{
-                                                  marginLeft: 4,
-                                                  color: isToday ? "#16a34a" : "#dc2626",
-                                                  fontWeight: 600,
-                                                }}
-                                              >
-                                                {date}
-                                              </span>
-                                            )}
-                                          </div>
-
-                                          {/* ✅ Tiny quick +1, +5, +10 (ADMIN ONLY) */}
-                                          {mode === "admin" && (
-                                            <button
-                                              className="btn"
-                                              style={{
-                                                padding: "4px 8px",
-                                                fontSize: 12,
-                                                lineHeight: "12px",
-                                                borderRadius: 10,
-                                              }}
-                                              title="Add +1 to this streak"
-                                              onClick={() =>
-                                                changeStudentStreakValue(activeClassId, s.id, cfg, +1)
-                                              }
-                                            >
-                                              +1
-                                            </button>
-
-                                            
-                                          )}
-                                        </div>
-                                      );
-                                    })
-                                  ) : (
-                                    <span className="muted">No streaks defined for this class.</span>
-                                  )}
-                                </div>
-
-                                {s.multiplier && s.multiplier !== 1 && (
-                                  <div>
-                                    <span className="muted">Multiplier:</span>
-                                    <strong> x{s.multiplier}</strong>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div style={{ textAlign: "right" }}>
-                              <div style={{ fontWeight: 800 }}>{s.currentPoints || 0} pts</div>
-                              <div className="muted">XP: {s.xp || 0}</div>
-                            </div>
-                          </div>
-
-                          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", }}>
-                            {mode === "admin" && (
-                              <button className="btn" onClick={() => setSelectedStudentId(s.id)}>
-                                Manage
-                              </button>
-                            )}
-
-                            <button className="btn" onClick={() => setProfileStudentId(s.id)}>
-                              Perfil
-                            </button>
-
-                            {mode === "admin" && (
-                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                <span className="pill">Points</span>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 1)}>
-                                  +1
-                                </button>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 5)}>
-                                  +5
-                                </button>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 10)}>
-                                  +10
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          <div style={{ marginTop: 10 }}>
-                            <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
-
-                            {/* Scroll container so you can see all cards */}
-                            <div
-                              style={{
-                                marginTop: 8,
-                                maxHeight: 260,
-                                overflowY: "auto",
-                                paddingRight: 6,
-                                display: "flex",
-                                gap: 8,
-                                flexWrap: "wrap",
-                                alignContent: "flex-start",
-                              }}
-                            >
-                              {(() => {
-                                const groups = new Map();
-                                (s.cards || []).forEach((o) => {
-                                  const key = o.cardId || "unknown";
-                                  if (!groups.has(key)) {
-                                    groups.set(key, {
-                                      title: o.title || "—",
-                                      imageURL: o.imageURL || "",
-                                      count: 0,
-                                    });
                                   }
                                   groups.get(key).count += 1;
                                 });
@@ -2708,7 +2446,7 @@ function ManageStudentModal({
                               <button
                                 className="btn"
                                 onClick={() =>
-                                  changeStudentStreakValue(classId, student.id, cfg, -1)
+                                  changeStudentStreakValue(classId, student.id, cfg, -1, student.name)
                                 }
                               >
                                 -1
@@ -2717,7 +2455,7 @@ function ManageStudentModal({
                                 className="btn"
                                 style={{ marginLeft: 4 }}
                                 onClick={() =>
-                                  changeStudentStreakValue(classId, student.id, cfg, +1)
+                                  changeStudentStreakValue(classId, student.id, cfg, +1, student.name)
                                 }
                               >
                                 +1
@@ -2739,7 +2477,7 @@ function ManageStudentModal({
                                 style={{ fontSize: 11 }}
                                 onClick={() => editFloatingDatesForStreakType(classId, cfg.id)}
                               >
-                                Edit floating settings
+                                Edit floating dates
                               </button>
                             )}
 
