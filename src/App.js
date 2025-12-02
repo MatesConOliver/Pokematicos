@@ -161,7 +161,10 @@ export default function App() {
   const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience
   const [cardPreview, setCardPreview] = useState(null);
 
-  // Admin manage modal selection (admin-only)
+  
+  const [bulkGiveCard, setBulkGiveCard] = useState(null); // card object
+  const [bulkGiveSelectedIds, setBulkGiveSelectedIds] = useState([]);
+// Admin manage modal selection (admin-only)
   const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   // Profile modal selection (guest + admin)
@@ -847,6 +850,84 @@ Floating emoji: how many DAYS after today should it start?
       console.error(err);
       alert("Failed to give card.");
     }
+  }
+
+
+  // Bulk give: give ONE library card to MANY students (points are multiplied by each student's multiplier).
+  // Uses per-student reads to keep it correct even if points/cards changed elsewhere.
+  async function giveCardToStudentsBulk(classId, cardId, studentIds) {
+    if (!classId) return;
+    if (!Array.isArray(studentIds) || studentIds.length === 0) return;
+
+    try {
+      const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
+      if (!cardSnap.exists()) return alert("Card not found");
+      const cardData = cardSnap.data();
+
+      const category = cardData.category || "points";
+      if (category === "rewards") return alert("Rewards cards can't be given directly.");
+
+      // Only points-cards give base points. Experience cards are cosmetic.
+      const basePoints = category === "points" ? Number(cardData.points || 0) : 0;
+
+      let batch = writeBatch(db);
+      let writes = 0;
+      let given = 0;
+
+      for (const studentId of studentIds) {
+        const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+        const studentSnap = await getDoc(studentRef);
+        if (!studentSnap.exists()) continue;
+        const sdata = studentSnap.data();
+
+        const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+        const effectivePoints = round2(basePoints * multiplier);
+
+        const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
+        cardsArr.push({
+          id: uid("owned"),
+          cardId,
+          title: cardData.title,
+          imageURL: cardData.imageURL || "",
+          grantedAt: new Date().toISOString(),
+          pointsGranted: effectivePoints,
+        });
+
+        const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
+
+        batch.update(studentRef, { cards: cardsArr, currentPoints });
+        writes += 1;
+        given += 1;
+
+        // Firestore batch limit is 500 writes; keep a buffer.
+        if (writes >= 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          writes = 0;
+        }
+      }
+
+      if (writes > 0) await batch.commit();
+      alert(`Card given to ${given} student${given === 1 ? "" : "s"}.`);
+    } catch (err) {
+      console.error("giveCardToStudentsBulk error", err);
+      alert("Failed to give card to students. See console.");
+    }
+  }
+
+  function openBulkGive(card) {
+    setBulkGiveCard(card);
+    setBulkGiveSelectedIds([]);
+  }
+
+  function toggleBulkGiveStudent(studentId) {
+    setBulkGiveSelectedIds((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
+    );
+  }
+
+  function toggleBulkGiveSelectAll() {
+    setBulkGiveSelectedIds((prev) => (prev.length === students.length ? [] : students.map((s) => s.id)));
   }
 
   // Owned cards removal (bulk) - ONE updateDoc
@@ -1754,6 +1835,8 @@ Floating emoji: how many DAYS after today should it start?
                                 c={c}
                                 mode={mode}
                                 onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
+                                onGive={() => openBulkGive(c)}
+
                                 onDelete={() => deleteCard(c.id)}
                               />
                             ))
@@ -1774,6 +1857,8 @@ Floating emoji: how many DAYS after today should it start?
                                   c={c}
                                   mode={mode}
                                   onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
+                                  onGive={() => openBulkGive(c)}
+
                                   onDelete={() => deleteCard(c.id)}
                                 />
                               ))
@@ -1865,26 +1950,7 @@ Floating emoji: how many DAYS after today should it start?
                     <button className="btn" onClick={() => setCardPreview(null)}>
                       Close
                     </button>
-                    {mode === "admin" && (
-                      <button
-                        className="btn primary"
-                        onClick={() => {
-                          const studentName = prompt("Give to student (exact name):");
-                          if (!studentName) return;
-                          const st = students.find(
-                            (s) => safeLower(s.name) === safeLower(studentName)
-                          );
-                          if (!st) {
-                            alert("Student not found. Use Manage → Give for picklist.");
-                            return;
-                          }
-                          giveCardToStudent(activeClassId, st.id, cardPreview.id);
-                          setCardPreview(null);
-                        }}
-                      >
-                        Give to student
-                      </button>
-                    )}
+                    
                   </div>
                 </div>
               </div>
@@ -1984,13 +2050,85 @@ Floating emoji: how many DAYS after today should it start?
           setCardPreview={setCardPreview}
         />
       )}
+
+      {/* Bulk give modal */}
+      {bulkGiveCard && (
+        <div className="modal-backdrop" onClick={() => setBulkGiveCard(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>Give card</h3>
+            <div style={{ fontWeight: 900, marginTop: 6 }}>{bulkGiveCard.title}</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              Select students to receive this card. Points will be multiplied by each student's multiplier.
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button className="btn" onClick={toggleBulkGiveSelectAll}>
+                {bulkGiveSelectedIds.length === students.length ? "Deselect all" : "Select all"}
+              </button>
+              <div className="muted">{bulkGiveSelectedIds.length} selected</div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 12,
+                maxHeight: 320,
+                overflow: "auto",
+                border: "1px solid #eee",
+                borderRadius: 12,
+                padding: 10,
+                background: "#fff",
+              }}
+            >
+              {students.map((s) => (
+                <label
+                  key={s.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 6px",
+                    borderBottom: "1px solid #f2f2f2",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={bulkGiveSelectedIds.includes(s.id)}
+                    onChange={() => toggleBulkGiveStudent(s.id)}
+                  />
+                  <span style={{ fontWeight: 800 }}>{s.name}</span>
+                  <span className="muted" style={{ marginLeft: "auto" }}>
+                    x{typeof s.multiplier === "number" ? s.multiplier : 1}
+                  </span>
+                </label>
+              ))}
+              {students.length === 0 && <div className="muted">No students in this class yet.</div>}
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button className="btn" onClick={() => setBulkGiveCard(null)}>
+                Cancel
+              </button>
+              <button
+                className="btn primary"
+                disabled={bulkGiveSelectedIds.length === 0}
+                onClick={async () => {
+                  await giveCardToStudentsBulk(activeClassId, bulkGiveCard.id, bulkGiveSelectedIds);
+                  setBulkGiveCard(null);
+                }}
+              >
+                Give to selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ---------------- Components ---------------- */
 
-function LibraryCardRow({ c, mode, onPreview, onDelete }) {
+function LibraryCardRow({ c, mode, onPreview, onGive = () => {}, onDelete }) {
   const showURL = c.lockedImageURL || c.imageURL; // library shows locked
   return (
     <div
@@ -2033,6 +2171,11 @@ function LibraryCardRow({ c, mode, onPreview, onDelete }) {
       </div>
       {mode === "admin" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {(c.category || "points") !== "rewards" && (
+            <button className="btn primary" onClick={onGive}>
+              Give card
+            </button>
+          )}
           <button className="btn" onClick={onDelete}>
             Delete
           </button>
