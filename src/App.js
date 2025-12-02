@@ -15,6 +15,7 @@ import {
   orderBy,
   writeBatch,
   increment,
+  deleteField,
 } from "firebase/firestore";
 import {
   getStorage,
@@ -63,6 +64,72 @@ function uid(prefix = "id") {
 function todayISODate() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
+function isoToUTCDate(iso) {
+  // iso = "YYYY-MM-DD"
+  return new Date(`${iso}T00:00:00Z`);
+}
+
+function addDaysISO(iso, days) {
+  const d = isoToUTCDate(iso);
+  d.setUTCDate(d.getUTCDate() + Number(days || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+function isISODateInWindow(dateISO, win) {
+  if (!win || !win.start) return false;
+  const start = String(win.start);
+  const end = win.end ? String(win.end) : "";
+  if (dateISO < start) return false;
+  if (end && dateISO > end) return false;
+  return true;
+}
+
+function mergeAndPruneWindows(windows, todayISO) {
+  const list = Array.isArray(windows) ? windows.filter(Boolean) : [];
+  // keep only valid windows
+  const cleaned = list
+    .map((w) => ({
+      start: (w.start || "").slice(0, 10),
+      end: (w.end || "").slice(0, 10),
+    }))
+    .filter((w) => w.start && (!w.end || w.end >= w.start));
+
+  // Drop old windows (end before today)
+  const futureOrCurrent = cleaned.filter((w) => !w.end || w.end >= todayISO);
+
+  // Sort by start date
+  futureOrCurrent.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+
+  // Merge overlaps + adjacent windows
+  const merged = [];
+  for (const w of futureOrCurrent) {
+    const last = merged[merged.length - 1];
+    if (!last) {
+      merged.push({ ...w });
+      continue;
+    }
+
+    const lastEnd = last.end || last.start;
+    const lastEndPlus1 = addDaysISO(lastEnd, 1);
+
+    // overlap or adjacent?
+    if (w.start <= lastEndPlus1) {
+      const nextEnd = !last.end ? w.end : !w.end ? last.end : (w.end > last.end ? w.end : last.end);
+      last.end = nextEnd || last.end;
+    } else {
+      merged.push({ ...w });
+    }
+  }
+  return merged;
+}
+
+function isFloatingEmojiShownToday(cfg, stObj, todayISO) {
+  if (!cfg?.float) return false;
+  const windows = stObj?.floatWindows;
+  if (!Array.isArray(windows) || windows.length === 0) return false;
+  return windows.some((w) => isISODateInWindow(todayISO, w));
+}
+
 
 function safeLower(s) {
   return (s || "").toString().toLowerCase();
@@ -334,22 +401,47 @@ export default function App() {
     const floatAns = prompt(
       "When a student reaches this maximum streak, should this emoji float faintly in their card background? (yes/no)"
     );
+
     let float = false;
+    let floatDelayDays = 0;     // when it starts (relative to the day MAX is reached)
+    let floatDurationDays = 0;  // how long it lasts
+
+    // Optional: limit floating to a specific calendar window (leave empty = always allowed)
     let floatStart = "";
     let floatEnd = "";
 
     if (floatAns && floatAns.toLowerCase().startsWith("y")) {
       float = true;
 
-      const start = prompt(
-        "Floating start date (YYYY-MM-DD, leave empty for today):"
+      const delayStr = prompt(
+        "How many DAYS after reaching MAX should the floating start? (Example: 7 = next week)",
+        "7"
       );
-      floatStart = (start && start.trim()) || todayISODate();
+      const delay = Number(delayStr || "0");
+      floatDelayDays = Number.isFinite(delay) && delay >= 0 ? delay : 0;
 
-      const end = prompt(
-        "Floating end date (YYYY-MM-DD, leave empty for no end date):"
+      const durationStr = prompt(
+        "How many DAYS should it float? (Example: 7 = one week)",
+        "7"
       );
-      floatEnd = (end && end.trim()) || "";
+      const duration = Number(durationStr || "0");
+      floatDurationDays = Number.isFinite(duration) && duration > 0 ? duration : 0;
+
+      const limitAns = prompt(
+        "Optional: limit floating to a calendar period (start/end dates)? (yes/no)"
+      );
+
+      if (limitAns && limitAns.toLowerCase().startsWith("y")) {
+        const start = prompt(
+          "Floating allowed START date (YYYY-MM-DD). Leave empty for no start limit:"
+        );
+        floatStart = (start && start.trim()) || "";
+
+        const end = prompt(
+          "Floating allowed END date (YYYY-MM-DD). Leave empty for no end limit:"
+        );
+        floatEnd = (end && end.trim()) || "";
+      }
     }
 
     // 4) Sticky celebration after reset?
@@ -364,6 +456,8 @@ export default function App() {
       emoji,
       max,
       float,
+      floatDelayDays,
+      floatDurationDays,
       floatStart,
       floatEnd,
       stickyCelebrate,
@@ -410,44 +504,90 @@ export default function App() {
 
   // --- STUDENT STREAKS edit (generic) ---
 
-  async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValue) {
+  async function changeStudentStreakValue(classId, studentId, cfg, delta) {
     try {
-    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-    const snap = await getDoc(studentRef);
-    if (!snap.exists()) return;
-    const data = snap.data();
-    const streaks = data.streaks || {};
-    const current = streaks[streakId]?.value || 0;
+      const streakId = cfg?.id;
+      if (!streakId) return;
 
-    let next = current + delta;
-    if (next < 0) next = 0;
-    if (typeof maxValue === "number" && maxValue > 0 && next > maxValue) {
-      next = maxValue;
-    }
+      const maxValue = Number(cfg?.max || 0);
 
-    const today = todayISODate();
-    const prevMaxAchievedOn = streaks[streakId]?.maxAchievedOn || "";
+      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+      const snap = await getDoc(studentRef);
+      if (!snap.exists()) return;
 
-    const updatedEntry = {
-      value: next,
-      lastUpdated: delta > 0 ? today : (streaks[streakId]?.lastUpdated || ""),
-      // If we hit max today (even if we were already at max and pressed +1) -> mark today.
-      // Otherwise keep whatever date was recorded.
-      maxAchievedOn:
+      const data = snap.data();
+      const streaks = data.streaks || {};
+      const prevEntry = streaks[streakId] || {};
+      const current = Number(prevEntry.value || 0);
+
+      let next = current + delta;
+      if (next < 0) next = 0;
+      if (Number.isFinite(maxValue) && maxValue > 0 && next > maxValue) {
+        next = maxValue;
+      }
+
+      const today = todayISODate();
+      const prevMaxAchievedOn = prevEntry.maxAchievedOn || "";
+      let maxAchievedOn = prevMaxAchievedOn;
+
+      // Party trigger: any +1 that results in MAX (even if already at max)
+      const hitMaxTodayForParty =
         delta > 0 &&
-        typeof maxValue === "number" &&
+        Number.isFinite(maxValue) &&
         maxValue > 0 &&
-        next === maxValue
-          ? today
-          : prevMaxAchievedOn,
-    };
+        next === maxValue;
 
-    const updatedStreaks = {
-      ...streaks,
-      [streakId]: updatedEntry,
-    };
+      if (hitMaxTodayForParty) {
+        maxAchievedOn = today;
+      }
 
-    await updateDoc(studentRef, { streaks: updatedStreaks });
+      // Floating-window reward: ONLY when we *transition into* MAX (from below max)
+      const reachedMaxNow =
+        delta > 0 &&
+        Number.isFinite(maxValue) &&
+        maxValue > 0 &&
+        current < maxValue &&
+        next === maxValue;
+
+      // ---- Floating windows (earned rewards) ----
+      let floatWindows = Array.isArray(prevEntry.floatWindows)
+        ? [...prevEntry.floatWindows]
+        : [];
+
+      if (reachedMaxNow && cfg?.float) {
+        // Defaults for older streak configs (created before floatDelayDays existed)
+        const delay = Number.isFinite(Number(cfg.floatDelayDays))
+          ? Number(cfg.floatDelayDays)
+          : 7;
+
+        const duration = Number.isFinite(Number(cfg.floatDurationDays))
+          ? Number(cfg.floatDurationDays)
+          : 7;
+
+        if (duration > 0) {
+          const start = addDaysISO(today, Math.max(0, delay));
+          const end = addDaysISO(start, Math.max(0, duration - 1));
+          floatWindows.push({ start, end });
+        }
+      }
+
+      // Keep list tidy so it doesn't grow forever
+      floatWindows = mergeAndPruneWindows(floatWindows, today);
+
+      const updatedEntry = {
+        ...prevEntry,
+        value: next,
+        lastUpdated: delta > 0 ? today : prevEntry.lastUpdated || "",
+        maxAchievedOn,
+        floatWindows,
+      };
+
+      const updatedStreaks = {
+        ...streaks,
+        [streakId]: updatedEntry,
+      };
+
+      await updateDoc(studentRef, { streaks: updatedStreaks });
       // No setSelectedStudent here – Firestore snapshot will refresh students list
     } catch (err) {
       console.error("changeStudentStreakValue error", err);
@@ -460,13 +600,23 @@ export default function App() {
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const snap = await getDoc(studentRef);
       if (!snap.exists()) return;
+
       const data = snap.data();
       const streaks = data.streaks || {};
 
+      const prevEntry = streaks[streakId] || {};
+      const today = todayISODate();
+
+      // ✅ Option A: keep already-earned floating windows, even if the streak is reset
+      const floatWindows = mergeAndPruneWindows(prevEntry.floatWindows || [], today);
+
       const updatedEntry = {
+        ...prevEntry,
         value: 0,
         lastUpdated: "",
-        maxAchievedOn: streaks[streakId]?.maxAchievedOn || "",
+        floatWindows,
+        // keep this (so "sticky celebration" can still work for the rest of the day)
+        maxAchievedOn: prevEntry.maxAchievedOn || "",
       };
 
       const updatedStreaks = {
@@ -483,17 +633,40 @@ export default function App() {
   }
 
     async function deleteStreakTypeForClass(classId, streakId) {
-    if (!window.confirm("Delete this streak type for the whole class? This cannot be undone.")) {
+    if (
+      !window.confirm(
+        "Delete this streak type for the whole class? This cannot be undone. (It will be removed from every student too.)"
+      )
+    ) {
       return;
     }
+
     try {
+      // 1) Remove from class config
       const classRef = doc(db, `classes/${classId}`);
       const snap = await getDoc(classRef);
       if (!snap.exists()) return;
+
       const data = snap.data();
       const list = data.streakConfigs || [];
       const updated = list.filter((cfg) => cfg.id !== streakId);
       await updateDoc(classRef, { streakConfigs: updated });
+
+      // 2) Remove from EVERY student (including floatWindows, value, etc.)
+      const ids = (students || []).map((s) => s.id).filter(Boolean);
+      const CHUNK = 450; // keep under Firestore batch limits
+
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const batch = writeBatch(db);
+        const chunk = ids.slice(i, i + CHUNK);
+        chunk.forEach((sid) => {
+          const studentRef = doc(db, `classes/${classId}/students/${sid}`);
+          batch.update(studentRef, {
+            [`streaks.${streakId}`]: deleteField(),
+          });
+        });
+        await batch.commit();
+      }
     } catch (err) {
       console.error("deleteStreakTypeForClass error", err);
       alert("Could not delete streak. See console.");
@@ -511,33 +684,73 @@ export default function App() {
       const cfg = list.find((c) => c.id === streakId);
       if (!cfg) return;
 
+      // 1) Rules (delay + duration)
+      const currentDelay = Number.isFinite(Number(cfg.floatDelayDays))
+        ? Number(cfg.floatDelayDays)
+        : 7;
+
+      const currentDuration = Number.isFinite(Number(cfg.floatDurationDays))
+        ? Number(cfg.floatDurationDays)
+        : 7;
+
+      const delayStr = prompt(
+        `Floating START DELAY (days after reaching MAX). Example: 7 = next week.
+Current: ${currentDelay}`,
+        String(currentDelay)
+      );
+      if (delayStr === null) return;
+
+      const durationStr = prompt(
+        `Floating DURATION (days). Example: 7 = one week.
+Current: ${currentDuration}`,
+        String(currentDuration)
+      );
+      if (durationStr === null) return;
+
+      const delay = Number(delayStr || "0");
+      const duration = Number(durationStr || "0");
+
+      const newDelay = Number.isFinite(delay) && delay >= 0 ? delay : 0;
+      const newDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
+
+      // 2) Optional: allowed calendar window (empty = always allowed)
       const currentStart = (cfg.floatStart || "").trim();
       const currentEnd = (cfg.floatEnd || "").trim();
 
       const start = prompt(
-        `Floating START date (YYYY-MM-DD). Leave empty for no start limit.\nCurrent: ${currentStart || "—"}`,
+        `Optional: Floating allowed START date (YYYY-MM-DD). Leave empty for no start limit.
+Current: ${currentStart || "—"}`,
         currentStart
       );
-      if (start === null) return; // cancel
+      if (start === null) return;
 
       const end = prompt(
-        `Floating END date (YYYY-MM-DD). Leave empty for no end date.\nCurrent: ${currentEnd || "—"}`,
+        `Optional: Floating allowed END date (YYYY-MM-DD). Leave empty for no end limit.
+Current: ${currentEnd || "—"}`,
         currentEnd
       );
-      if (end === null) return; // cancel
+      if (end === null) return;
 
-      const newStart = (start || "").trim(); // empty string = no start limit
-      const newEnd = (end || "").trim();     // empty string = no end limit
+      const newStart = (start || "").trim();
+      const newEnd = (end || "").trim();
 
       const updated = list.map((c) =>
-        c.id === streakId ? { ...c, floatStart: newStart, floatEnd: newEnd } : c
+        c.id === streakId
+          ? {
+              ...c,
+              floatDelayDays: newDelay,
+              floatDurationDays: newDuration,
+              floatStart: newStart,
+              floatEnd: newEnd,
+            }
+          : c
       );
 
       await updateDoc(classRef, { streakConfigs: updated });
-      alert("Floating dates updated.");
+      alert("Floating settings updated.");
     } catch (err) {
       console.error("editFloatingDatesForStreakType error", err);
-      alert("Could not update floating dates.");
+      alert("Could not update floating settings.");
     }
   }
 
@@ -1358,24 +1571,24 @@ export default function App() {
                         return (stObj?.value || 0) >= (cfg.max || 0);
                       };
 
-                      // Party (emoji shower)
+                      // Party (emoji shower) → whenever MAX was reached today
                       const partyStreaks = cfgs.filter((cfg) => {
                         const stObj =
                           (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
                         return isCelebratingToday(cfg, stObj);
                       });
 
-                      // Floating (only if cfg.float is true)
+                      // Floating emojis → shown ONLY if today is inside an *earned* floating window
                       const floatingEmojis = cfgs.filter((cfg) => {
                         if (!cfg.float) return false;
 
                         const stObj =
                           (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
 
-                        if (!isCelebratingToday(cfg, stObj)) return false;
+                        // Optional global allowed window (if you configured floatStart/floatEnd)
                         if (!isCfgActiveToday(cfg, today)) return false;
 
-                        return true;
+                        return isFloatingEmojiShownToday(cfg, stObj, today);
                       });
 
                       // --- END FLOATING + PARTY LOGIC ---
@@ -1469,7 +1682,7 @@ export default function App() {
                                               }}
                                               title="Add +1 to this streak"
                                               onClick={() =>
-                                                changeStudentStreakValue(activeClassId, s.id, cfg.id, +1, cfg.max)
+                                                changeStudentStreakValue(activeClassId, s.id, cfg, +1)
                                               }
                                             >
                                               +1
@@ -2495,13 +2708,7 @@ function ManageStudentModal({
                               <button
                                 className="btn"
                                 onClick={() =>
-                                  changeStudentStreakValue(
-                                    classId,
-                                    student.id,
-                                    cfg.id,
-                                    -1,
-                                    cfg.max
-                                  )
+                                  changeStudentStreakValue(classId, student.id, cfg, -1)
                                 }
                               >
                                 -1
@@ -2510,13 +2717,7 @@ function ManageStudentModal({
                                 className="btn"
                                 style={{ marginLeft: 4 }}
                                 onClick={() =>
-                                  changeStudentStreakValue(
-                                    classId,
-                                    student.id,
-                                    cfg.id,
-                                    +1,
-                                    cfg.max
-                                  )
+                                  changeStudentStreakValue(classId, student.id, cfg, +1)
                                 }
                               >
                                 +1
@@ -2538,7 +2739,7 @@ function ManageStudentModal({
                                 style={{ fontSize: 11 }}
                                 onClick={() => editFloatingDatesForStreakType(classId, cfg.id)}
                               >
-                                Edit floating dates
+                                Edit floating settings
                               </button>
                             )}
 
