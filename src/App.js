@@ -599,9 +599,6 @@ Floating emoji: how many DAYS after today should it start?
       alert("Could not delete streak. See console.");
     }
   }
-  }
-  
-
 
   // Upload and set background image
   async function uploadBackgroundImage(file) {
