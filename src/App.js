@@ -599,21 +599,8 @@ Floating emoji: how many DAYS after today should it start?
       alert("Could not delete streak. See console.");
     }
   }
-
-    try {
-      const classRef = doc(db, `classes/${classId}`);
-      const snap = await getDoc(classRef);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const list = data.streakConfigs || [];
-      const updated = list.filter((cfg) => cfg.id !== streakId);
-      await updateDoc(classRef, { streakConfigs: updated });
-    } catch (err) {
-      console.error("deleteStreakTypeForClass error", err);
-      alert("Could not delete streak. See console.");
-    }
   }
-  }
+  
 
 
   // Upload and set background image
