@@ -23,6 +23,13 @@ import {
   uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+
 
 /**
  * Pokemáticos — Firestore + Storage (single-file App.js)
@@ -56,6 +63,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
 
 function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -127,13 +135,64 @@ const PASTEL_COLORS = [
 export default function App() {
   // ----- Mode -----
   const [mode, setMode] = useState(null); // null | "admin" | "reader"
-  function enterAdmin() {
-    const p = prompt("Enter admin password:");
-    if (p === "cartas") setMode("admin");
-    else if (p !== null) alert("Wrong password");
-  }
+
+  const [authUser, setAuthUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPass, setAdminPass] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [checkingAdmin, setCheckingAdmin] = useState(false);
+
   function enterReader() {
     setMode("reader");
+  }
+
+  // Watch login/logout
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      setAuthUser(user || null);
+      setAuthChecked(true);
+
+      if (!user) {
+        // logged out: keep chooser screen until user picks guest or logs in
+        setCheckingAdmin(false);
+        return;
+      }
+
+      // logged in: check if this user is in /admins/{uid}
+      try {
+        setCheckingAdmin(true);
+        const adminSnap = await getDoc(doc(db, "admins", user.uid));
+        if (adminSnap.exists()) {
+          setMode("admin");
+        } else {
+          setMode("reader"); // logged in but not admin
+        }
+      } finally {
+        setCheckingAdmin(false);
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
+  // Admin login action
+  async function loginAdminEmailPassword() {
+    setAdminError("");
+    try {
+      await signInWithEmailAndPassword(auth, adminEmail.trim(), adminPass);
+      // onAuthStateChanged will run and set mode to admin if UID is in /admins
+    } catch (e) {
+      console.error(e);
+      setAdminError("Login failed. Check email/password.");
+    }
+  }
+
+  async function logout() {
+    await signOut(auth);
+    setMode(null);
+    setAdminPass("");
   }
 
   const isCfgActiveToday = (cfg, today) => {
@@ -1129,16 +1188,44 @@ Floating emoji: how many DAYS after today should it start?
   // ----- Mode chooser -----
   if (!mode) {
     return (
-      <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 24 }}>
+      <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 24, maxWidth: 520 }}>
         <h1 style={{ marginTop: 0 }}>Mis logros Pokemáticos</h1>
-        <p style={{ marginTop: 8 }}>¿Cómo entras a la app?</p>
-        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-          <button className="btn primary" onClick={enterAdmin}>
-            Soy profe (admin)
-          </button>
-          <button className="btn" onClick={enterReader}>
-            Soy estudiante / invitado
-          </button>
+
+        <div style={{ marginTop: 16, padding: 12, border: "1px solid #eee", borderRadius: 12 }}>
+          <h3 style={{ margin: 0 }}>Soy profe (admin)</h3>
+          <p style={{ marginTop: 8, color: "#555" }}>
+            Entra con Email/Password (Firebase Auth).
+          </p>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <input
+              className="input"
+              placeholder="Email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+            />
+            <input
+              className="input"
+              type="password"
+              placeholder="Password"
+              value={adminPass}
+              onChange={(e) => setAdminPass(e.target.value)}
+            />
+            <button className="btn primary" onClick={loginAdminEmailPassword} disabled={!authChecked || checkingAdmin}>
+              Entrar como profe
+            </button>
+
+            {checkingAdmin && <div style={{ color: "#555" }}>Checking admin…</div>}
+            {adminError && <div style={{ color: "crimson" }}>{adminError}</div>}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <h3 style={{ margin: 0 }}>Soy estudiante / invitado</h3>
+          <p style={{ marginTop: 8, color: "#555" }}>
+            Invitado puede leer y editar solo el perfil (si las reglas lo permiten).
+          </p>
+          <button className="btn" onClick={enterReader}>Entrar como invitado</button>
         </div>
       </div>
     );
@@ -1365,9 +1452,15 @@ Floating emoji: how many DAYS after today should it start?
         )}
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button className="btn" onClick={() => setMode(null)}>
-            Cambiar rol
-          </button>
+          {authUser ? (
+            <button className="btn" onClick={logout}>
+              Cerrar sesión
+            </button>
+          ) : (
+            <button className="btn" onClick={() => setMode(null)}>
+              Cambiar rol
+            </button>
+          )}
         </div>
       </header>
 
