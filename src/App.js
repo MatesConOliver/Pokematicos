@@ -2070,6 +2070,7 @@ Floating emoji: how many DAYS after today should it start?
 
               return (
                 <div
+                 className="ownedCardModal"
                   onClick={(e) => e.stopPropagation()}
                   style={{
                     maxWidth: "min(85vw, 720px)",
@@ -2101,66 +2102,35 @@ Floating emoji: how many DAYS after today should it start?
 
                       {/* Left button */}
                       <button
-                        className="btn"
+                        type="button"
+                        className="cardNavBtn cardNavLeft"
                         disabled={!ownedList || ownedIndex <= 0}
-                        onClick={() => ownedNav(-1)}
-                        style={{
-                          position: "absolute",
-                          left: 10,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          width: 44,
-                          height: 44,
-                          borderRadius: 999,
-                          fontSize: 22,
-                          fontWeight: 900,
-                          background: "rgba(255,255,255,0.9)",
-                          boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          ownedNav(-1);
                         }}
-                        title="Previous card"
+                        aria-label="Previous card"
                       >
-                        ‹
+                        <span className="cardNavIcon" aria-hidden="true">‹</span>
                       </button>
 
                       {/* Right button */}
                       <button
-                        className="btn"
+                        type="button"
+                        className="cardNavBtn cardNavRight"
                         disabled={!ownedList || ownedIndex >= ownedList.length - 1}
-                        onClick={() => ownedNav(+1)}
-                        style={{
-                          position: "absolute",
-                          right: 10,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          width: 44,
-                          height: 44,
-                          borderRadius: 999,
-                          fontSize: 22,
-                          fontWeight: 900,
-                          background: "rgba(255,255,255,0.9)",
-                          boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          ownedNav(+1);
                         }}
-                        title="Next card"
+                        aria-label="Next card"
                       >
-                        ›
+                        <span className="cardNavIcon" aria-hidden="true">›</span>
                       </button>
 
                       {/* Counter (1 / N) */}
                       {ownedList && ownedList.length > 0 && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: 10,
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            background: "rgba(0,0,0,0.55)",
-                            color: "white",
-                            padding: "6px 10px",
-                            borderRadius: 999,
-                            fontWeight: 800,
-                            fontSize: 12,
-                          }}
-                        >
+                        <div className="cardNavCounter">
                           {ownedIndex + 1} / {ownedList.length}
                         </div>
                       )}

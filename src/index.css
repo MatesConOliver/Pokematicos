@@ -4,3 +4,84 @@
 
 /* small helpers you might like */
 html, body, #root { height: 100%; }
+
+/* === Owned card modal navigation (modern) === */
+.ownedCardModal {
+  position: relative;
+}
+
+.cardNavBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(15, 15, 18, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.92);
+
+  display: grid;
+  place-items: center;
+
+  cursor: pointer;
+  user-select: none;
+
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  opacity: 0.9;
+}
+
+.cardNavBtn:hover {
+  transform: translateY(-50%) scale(1.06);
+  background: rgba(15, 15, 18, 0.55);
+}
+
+.cardNavBtn:active {
+  transform: translateY(-50%) scale(0.98);
+}
+
+.cardNavBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.cardNavLeft {
+  left: 14px;
+}
+
+.cardNavRight {
+  right: 14px;
+}
+
+.cardNavIcon {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+.cardNavCounter {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  background: rgba(15, 15, 18, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+  font-size: 12px;
+
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+}
