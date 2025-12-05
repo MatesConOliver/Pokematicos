@@ -797,7 +797,7 @@ Floating emoji: how many DAYS after today should it start?
     description,
     points = 0,
     category = "points",
-    linkedStreakId = "",
+    linkedStreakIds = [],
     lockedFile,
     unlockedFile,
   }) {
@@ -842,12 +842,16 @@ Floating emoji: how many DAYS after today should it start?
       if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
       if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
 
+      const cleanLinked = Array.isArray(linkedStreakIds)
+        ? linkedStreakIds.filter(Boolean)
+        : [];
+      
       const payload = {
         title: title.trim(),
         description: description || "",
         points: Number(points) || 0,
         category: category || "points",
-         linkedStreakId: (category === "points" ? (linkedStreakId || "") : ""),
+        linkedStreakIds: category === "points" ? cleanLinked : [],
         // unlocked in imageURL, locked in lockedImageURL
         imageURL: unlockedImageURL,
         lockedImageURL,
@@ -890,10 +894,15 @@ Floating emoji: how many DAYS after today should it start?
         description,
         points,
         category,
-        linkedStreakId,
+        linkedStreakIds,
         lockedFile,
         unlockedFile,
       } = updates || {};
+
+      const cleanIds =
+        nextCategory === "points" && Array.isArray(linkedStreakIds)
+          ? linkedStreakIds.filter(Boolean)
+          : [];
 
       let lockedImageURL = prev.lockedImageURL || "";
       let unlockedImageURL = prev.imageURL || "";
@@ -925,7 +934,7 @@ Floating emoji: how many DAYS after today should it start?
         description: description || "",
         points: Number(points) || 0,
         category: nextCategory,
-        linkedStreakId: nextCategory === "points" ? (linkedStreakId || "") : "",
+        linkedStreakIds: cleanIds,
         imageURL: unlockedImageURL,
         lockedImageURL,
         updatedAt: Date.now(),
@@ -937,34 +946,44 @@ Floating emoji: how many DAYS after today should it start?
   }
 
   // Cards given increment linked streak automatically (if needed)
-  function incrementLinkedStreakIfNeeded(sdata, linkedStreakId) {
-    const id = (linkedStreakId || "").trim();
-    if (!id) return null;
-
+  function incrementLinkedStreakIfNeeded(sdata, idsOrId) {
     const today = todayISODate();
-    const streaks = sdata.streaks || {};
-    const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
 
-    // already increased today -> do nothing
-    if (prev.lastUpdated === today) return null;
+    const ids = Array.isArray(idsOrId)
+      ? idsOrId.filter(Boolean)
+      : (idsOrId ? [idsOrId] : []);
 
-    const cfg = (activeClass?.streakConfigs || []).find((c) => c.id === id) || null;
-    const max = typeof cfg?.max === "number" ? cfg.max : 0;
+    if (ids.length === 0) return null;
 
-    let nextVal = (prev.value || 0) + 1;
-    if (max > 0 && nextVal > max) nextVal = max;
+    const streaks = { ...(sdata.streaks || {}) };
+    let changed = false;
 
-    const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
+    for (const id of ids) {
+      const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
 
-    const updatedEntry = {
-      ...prev,
-      value: nextVal,
-      lastUpdated: today,
-      maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
-      floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
-    };
+      // only once per day
+      if ((prev.lastUpdated || "") === today) continue;
 
-    return { ...streaks, [id]: updatedEntry };
+      const cfg = (activeClass?.streakConfigs || []).find((c) => c.id === id) || null;
+      const max = typeof cfg?.max === "number" ? cfg.max : 0;
+
+      let nextVal = (prev.value || 0) + 1;
+      if (max > 0 && nextVal > max) nextVal = max;
+
+      const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
+
+      streaks[id] = {
+        ...prev,
+        value: nextVal,
+        lastUpdated: today,
+        maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
+        floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
+      };
+
+      changed = true;
+    }
+
+    return changed ? streaks : null;
   }
 
   // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
@@ -1004,8 +1023,12 @@ Floating emoji: how many DAYS after today should it start?
 
       const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
 
-      const linkedStreakId = category === "points" ? (cardData.linkedStreakId || "") : "";
-      const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedStreakId);
+      const linkedIds =
+        category === "points"
+          ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
+          : [];
+
+      const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIdsCompat);
 
       const payload = { cards: cardsArr, currentPoints };
       if (nextStreaks) payload.streaks = nextStreaks;
@@ -1062,8 +1085,12 @@ Floating emoji: how many DAYS after today should it start?
 
         const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
 
-        const linkedStreakId = category === "points" ? (cardData.linkedStreakId || "") : "";
-        const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedStreakId);
+        const linkedIds =
+          category === "points"
+            ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
+            : [];
+
+        const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIdsCompat);
 
         const payload = { cards: cardsArr, currentPoints };
         if (nextStreaks) payload.streaks = nextStreaks;
@@ -2011,7 +2038,14 @@ Floating emoji: how many DAYS after today should it start?
                 <div className="muted">Select a class first</div>
               ) : (
                 <>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6, margin: "8px 0 12px" }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+                      gap: 6,
+                      margin: "8px 0 12px",
+                    }}
+                  >
                     <button className="btn" onClick={() => setLibraryTab("points")} style={{ width: "100%", background: libraryTab === "points" ? "#def" : "white" }}>
                       Points
                     </button>
@@ -2415,7 +2449,7 @@ async function updateCard(cardId, updates) {
       description,
       points,
       category,
-      linkedStreakId,
+      linkedStreakIds,
       lockedFile,
       unlockedFile,
     } = updates || {};
@@ -2445,12 +2479,27 @@ async function updateCard(cardId, updates) {
 
     const nextCategory = (category || prev.category || "points");
 
+    // clean + unique
+    const cleanIds =
+      nextCategory === "points"
+        ? Array.from(
+            new Set(
+              (Array.isArray(linkedStreakIds) ? linkedStreakIds : [])
+                .filter(Boolean)
+                .map((x) => String(x))
+            )
+          )
+        : [];
+
     await updateDoc(cardRef, {
       title: (title || "").trim(),
       description: description || "",
       points: Number(points) || 0,
       category: nextCategory,
-      linkedStreakId: nextCategory === "points" ? (linkedStreakId || "") : "",
+
+      // ✅ new source of truth (multi)
+      linkedStreakIds: cleanIds,
+
       imageURL: unlockedImageURL,
       lockedImageURL,
       updatedAt: Date.now(),
@@ -2532,23 +2581,35 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConf
   const [category, setCategory] = useState("points");
   const [lockedFile, setLockedFile] = useState(null);
   const [unlockedFile, setUnlockedFile] = useState(null);
-  const [linkedStreakId, setLinkedStreakId] = useState("");
+  const [linkedStreakIds, setLinkedStreakIds] = useState([]);
+  const [streakPick, setStreakPick] = useState("");
   const [streakLookup, setStreakLookup] = useState("");
 
 
   function handleCreate() {
     if (!title.trim()) return alert("Title required");
-    onCreate({ title, description, points, category, linkedStreakId: category === "points" ? linkedStreakId : "", lockedFile, unlockedFile });
+    onCreate({ title, description, points, category, linkedStreakIds: category === "points" ? linkedStreakIds : [], lockedFile, unlockedFile });
     setTitle("");
     setDescription("");
     setPoints(1);
     setCategory("points");
-    setLinkedStreakId("");
+    setLinkedStreakIds([]);
+    setStreakPick("");  
     setStreakLookup("");
     setLockedFile(null);
     setUnlockedFile(null);
     if (lockedInputRef?.current) lockedInputRef.current.value = "";
     if (unlockedInputRef?.current) unlockedInputRef.current.value = "";
+  }
+
+  function addStreakId(id) {
+    if (!id) return;
+    setLinkedStreakIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setStreakPick("");
+  }
+
+  function removeStreakId(id) {
+    setLinkedStreakIds((prev) => prev.filter((x) => x !== id));
   }
 
   function resolveCreateStreakIdFromText(txt) {
@@ -2587,7 +2648,8 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConf
             const next = e.target.value;
             setCategory(next);
             if (next !== "points") {
-              setLinkedStreakId("");
+              setLinkedStreakIds([]);
+              setStreakPick("");
               setStreakLookup("");
             }
           }}
@@ -2602,7 +2664,7 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConf
 
       {category === "points" && (
         <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 10, marginTop: 10 }}>
-          <div style={{ fontWeight: 800 }}>Link to streak (optional)</div>
+          <div style={{ fontWeight: 800 }}>Link to streaks (optional)</div>
 
           {(!streakConfigs || streakConfigs.length === 0) ? (
             <div className="muted" style={{ marginTop: 6 }}>
@@ -2611,41 +2673,63 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConf
           ) : (
             <>
               <div className="muted" style={{ marginTop: 4 }}>
-                Choose by dropdown, emoji, or number order.
+                Add one or more streaks by dropdown, emoji, or number order.
               </div>
 
-              <select
-                value={linkedStreakId}
-                onChange={(e) => setLinkedStreakId(e.target.value)}
-                style={{ marginTop: 8, width: "100%", padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
-              >
-                <option value="">— No streak link —</option>
-                {streakConfigs.map((cfg, idx) => (
-                  <option key={cfg.id} value={cfg.id}>
-                    {idx + 1} — {cfg.emoji} (max {cfg.max})
-                  </option>
-                ))}
-              </select>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+                <select
+                  value={streakPick}
+                  onChange={(e) => setStreakPick(e.target.value)}
+                  style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", minWidth: 180 }}
+                >
+                  <option value="">Choose streak…</option>
+                  {streakConfigs.map((cfg, idx) => (
+                    <option key={cfg.id} value={cfg.id}>
+                      {idx + 1}) {cfg.emoji} (max {cfg.max})
+                    </option>
+                  ))}
+                </select>
 
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button className="btn" type="button" onClick={() => addStreakId(streakPick)} disabled={!streakPick}>
+                  Add
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
                 <input
-                  placeholder="Type emoji (🔥) or number (1)"
                   value={streakLookup}
                   onChange={(e) => setStreakLookup(e.target.value)}
-                  style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+                  placeholder='Type emoji (🔥) or number (1)'
+                  style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", minWidth: 220 }}
                 />
                 <button
                   className="btn"
-                  onClick={() => {
-                    const id = resolveCreateStreakIdFromText(streakLookup);
-                    if (!id) return alert("No streak matches that emoji/number.");
-                    setLinkedStreakId(id);
-                    setStreakLookup("");
-                  }}
+                  type="button"
+                  onClick={() => addStreakId(resolveCreateStreakIdFromText(streakLookup))}
                 >
-                  Use
+                  Add from text
                 </button>
               </div>
+
+              {linkedStreakIds.length > 0 && (
+                <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {linkedStreakIds.map((id) => {
+                    const cfg = streakConfigs.find((s) => s.id === id);
+                    return (
+                      <span
+                        key={id}
+                        className="pill"
+                        style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+                      >
+                        {cfg ? cfg.emoji : "?"}
+                        <button className="btn" type="button" onClick={() => removeStreakId(id)} style={{ padding: "2px 8px" }}>
+                          ✕
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -2852,7 +2936,7 @@ function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
                   description,
                   points,
                   category,
-                  linkedStreakId: category === "points" ? linkedStreakId : "",
+                  linkedStreakIds: category === "points" ? linkedStreakIds : [],
                   lockedFile,
                   unlockedFile,
                 })
