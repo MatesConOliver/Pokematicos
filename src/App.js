@@ -467,15 +467,9 @@ export default function App() {
 
       // clean + unique
       const cleanIds =
-        nextCategory === "points"
-          ? Array.from(
-              new Set(
-                (Array.isArray(linkedStreakIds) ? linkedStreakIds : [])
-                  .filter(Boolean)
-                  .map((x) => String(x))
-              )
-            )
-          : [];
+    nextCategory === "points"
+      ? Array.from(new Set((Array.isArray(linkedStreakIds) ? linkedStreakIds : []).filter(Boolean).map(String)))
+      : [];
 
       await updateDoc(cardRef, {
         title: (title || "").trim(),
@@ -1102,7 +1096,7 @@ Floating emoji: how many DAYS after today should it start?
           ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
           : [];
 
-      const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIdsCompat);
+      const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIds);
 
       const payload = { cards: cardsArr, currentPoints };
       if (nextStreaks) payload.streaks = nextStreaks;
@@ -1164,7 +1158,7 @@ Floating emoji: how many DAYS after today should it start?
             ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
             : [];
 
-        const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIdsCompat);
+        const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIds);
 
         const payload = { cards: cardsArr, currentPoints };
         if (nextStreaks) payload.streaks = nextStreaks;
@@ -2824,10 +2818,9 @@ function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
   const [points, setPoints] = useState(card.points ?? 0);
   const [category, setCategory] = useState(card.category || "points");
 
-  const [linkedStreakIds, setLinkedStreakIds] = useState(() => {
-    const arr = Array.isArray(card.linkedStreakIds) ? card.linkedStreakIds : [];
-    return Array.from(new Set([...arr, ...legacy].filter(Boolean).map(String)));
-  });
+  const [linkedStreakIds, setLinkedStreakIds] = useState(
+    () => (Array.isArray(card.linkedStreakIds) ? card.linkedStreakIds.filter(Boolean).map(String) : [])
+  );
   const [streakPick, setStreakPick] = useState("");
   const [streakLookup, setStreakLookup] = useState("");
 
