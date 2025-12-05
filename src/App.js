@@ -407,6 +407,20 @@ export default function App() {
     }
   }
 
+  // Navigate through owned cards
+  function ownedNav(delta) {
+    setCardPreview((prev) => {
+      if (!prev?.ownedList || prev.ownedList.length === 0) return prev;
+
+      const max = prev.ownedList.length - 1;
+      const currentIndex = Number.isFinite(prev.ownedIndex) ? prev.ownedIndex : 0;
+      const nextIndex = Math.min(max, Math.max(0, currentIndex + delta));
+
+      return { ...prev, ownedIndex: nextIndex };
+    });
+  }
+
+
   // --- CLASS STREAK TYPES (per class) ---
 
   async function addStreakTypeForClass(classId) {
@@ -1783,7 +1797,12 @@ Floating emoji: how many DAYS after today should it start?
                                   ...g,
                                 }));
 
-                                return arr.map((g) => (
+                                const ownedUniqueList = arr.map((x) => ({
+                                  title: x.title,
+                                  imageURL: x.imageURL,
+                                }));
+
+                                return arr.map((g, idx) => (
                                   <div
                                     key={g.cardId}
                                     className="card-thumb"
@@ -1799,9 +1818,9 @@ Floating emoji: how many DAYS after today should it start?
                                     }}
                                     onClick={() =>
                                       setCardPreview({
-                                        title: g.title,
-                                        imageURL: g.imageURL,
-                                        description: "",
+                                        ownedList: ownedUniqueList,
+                                        ownedIndex: idx,
+                                        isLibraryCard: false,
                                       })
                                     }
                                   >
@@ -2043,7 +2062,11 @@ Floating emoji: how many DAYS after today should it start?
               </div>
             </div>
           ) : (
+
             /* Owned card (unlocked) -> image only */
+            const ownedList = cardPreview.ownedList || null;
+            const ownedIndex = Number.isFinite(cardPreview.ownedIndex) ? cardPreview.ownedIndex : 0;
+            const currentOwned = ownedList ? ownedList[ownedIndex] : cardPreview;
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
@@ -2061,17 +2084,85 @@ Floating emoji: how many DAYS after today should it start?
                 justifyContent: "center",
               }}
             >
-              {cardPreview.imageURL ? (
-                <img
-                  src={cardPreview.imageURL}
-                  alt=""
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    display: "block",
-                  }}
-                />
+              {currentOwned?.imageURL ? (
+                <>
+                  <img
+                    src={currentOwned?.imageURL}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      display: "block",
+                    }}
+                  />
+
+                  {/* Left button */}
+                  <button
+                    className="btn"
+                    disabled={!ownedList || ownedIndex <= 0}
+                    onClick={() => ownedNav(-1)}
+                    style={{
+                      position: "absolute",
+                      left: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: 44,
+                      height: 44,
+                      borderRadius: 999,
+                      fontSize: 22,
+                      fontWeight: 900,
+                      background: "rgba(255,255,255,0.9)",
+                      boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
+                    }}
+                    title="Previous card"
+                  >
+                    ‹
+                  </button>
+
+                  {/* Right button */}
+                  <button
+                    className="btn"
+                    disabled={!ownedList || ownedIndex >= ownedList.length - 1}
+                    onClick={() => ownedNav(+1)}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: 44,
+                      height: 44,
+                      borderRadius: 999,
+                      fontSize: 22,
+                      fontWeight: 900,
+                      background: "rgba(255,255,255,0.9)",
+                      boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
+                    }}
+                    title="Next card"
+                  >
+                    ›
+                  </button>
+
+                  {/* Counter (1 / N) */}
+                  {ownedList && ownedList.length > 0 && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 10,
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        background: "rgba(0,0,0,0.55)",
+                        color: "white",
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        fontWeight: 800,
+                        fontSize: 12,
+                      }}
+                    >
+                      {ownedIndex + 1} / {ownedList.length}
+                    </div>
+                  )}
+                </>
               ) : (
                 <div style={{ padding: 16, color: "white", textAlign: "center" }}>
                   {cardPreview.title || "Card"}
