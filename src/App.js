@@ -195,12 +195,6 @@ export default function App() {
     setAdminPass("");
   }
 
-  const isCfgActiveToday = (cfg, today) => {
-    if (cfg.floatStart && today < cfg.floatStart) return false;
-    if (cfg.floatEnd && cfg.floatEnd !== "" && today > cfg.floatEnd) return false;
-    return true;
-  };
-
   // ----- Data -----
   const [classesList, setClassesList] = useState([]);
   const [activeClassId, setActiveClassId] = useState(null);
@@ -223,7 +217,7 @@ export default function App() {
   
   const [bulkGiveCard, setBulkGiveCard] = useState(null); // card object
   const [bulkGiveSelectedIds, setBulkGiveSelectedIds] = useState([]);
-// Admin manage modal selection (admin-only)
+  // Admin manage modal selection (admin-only)
   const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   // Profile modal selection (guest + admin)
@@ -276,7 +270,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-    // Load background image (global config)
+  // Load background image (global config)
   useEffect(() => {
     const bgDocRef = doc(db, "config", "background");
     const unsub = onSnapshot(
@@ -2059,7 +2053,7 @@ Floating emoji: how many DAYS after today should it start?
                 maxHeight: "70vh",
                 borderRadius: 16,
                 overflow: "hidden",
-                background: "#transparent",
+                background: "transparent",
                 position: "relative",
                 boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
                 display: "flex",
