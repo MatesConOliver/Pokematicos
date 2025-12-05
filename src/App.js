@@ -211,7 +211,7 @@ export default function App() {
   // ----- UI -----
   const [errorMsg, setErrorMsg] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
-  const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience
+  const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience | extra
   const [cardPreview, setCardPreview] = useState(null);
 
   
@@ -247,6 +247,8 @@ export default function App() {
     () => students.find((s) => s.id === profileStudentId) || null,
     [students, profileStudentId]
   );
+
+  const [editCard, setEditCard] = useState(null);
 
   // ----- Subscribe: classes -----
   useEffect(() => {
@@ -795,6 +797,7 @@ Floating emoji: how many DAYS after today should it start?
     description,
     points = 0,
     category = "points",
+    linkedStreakId = "",
     lockedFile,
     unlockedFile,
   }) {
@@ -844,6 +847,7 @@ Floating emoji: how many DAYS after today should it start?
         description: description || "",
         points: Number(points) || 0,
         category: category || "points",
+         linkedStreakId: (category === "points" ? (linkedStreakId || "") : ""),
         // unlocked in imageURL, locked in lockedImageURL
         imageURL: unlockedImageURL,
         lockedImageURL,
@@ -868,6 +872,67 @@ Floating emoji: how many DAYS after today should it start?
     } catch (err) {
       console.error(err);
       alert("Failed to delete card.");
+    }
+  }
+
+  async function updateCard(cardId, updates) {
+    if (!ensureClassSelected()) return;
+    if (!cardId) return;
+
+    try {
+      const cardRef = doc(db, `classes/${activeClassId}/cards/${cardId}`);
+      const snap = await getDoc(cardRef);
+      if (!snap.exists()) return alert("Card not found");
+      const prev = snap.data();
+
+      const {
+        title,
+        description,
+        points,
+        category,
+        linkedStreakId,
+        lockedFile,
+        unlockedFile,
+      } = updates || {};
+
+      let lockedImageURL = prev.lockedImageURL || "";
+      let unlockedImageURL = prev.imageURL || "";
+
+      const baseKey = uid(`cardedit_${cardId}`);
+
+      if (lockedFile) {
+        const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
+        const refLocked = storageRef(storage, `classes/${activeClassId}/cards/${keyLocked}`);
+        const up = await uploadBytes(refLocked, lockedFile);
+        lockedImageURL = await getDownloadURL(up.ref);
+      }
+
+      if (unlockedFile) {
+        const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
+        const refUnlocked = storageRef(storage, `classes/${activeClassId}/cards/${keyUnlocked}`);
+        const up = await uploadBytes(refUnlocked, unlockedFile);
+        unlockedImageURL = await getDownloadURL(up.ref);
+      }
+
+      // fallback if only one exists
+      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
+      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+
+      const nextCategory = category || prev.category || "points";
+
+      await updateDoc(cardRef, {
+        title: (title || "").trim(),
+        description: description || "",
+        points: Number(points) || 0,
+        category: nextCategory,
+        linkedStreakId: nextCategory === "points" ? (linkedStreakId || "") : "",
+        imageURL: unlockedImageURL,
+        lockedImageURL,
+        updatedAt: Date.now(),
+      });
+    } catch (err) {
+      console.error("updateCard error", err);
+      alert("Failed to update card. See console.");
     }
   }
 
@@ -996,6 +1061,19 @@ Floating emoji: how many DAYS after today should it start?
   function toggleBulkGiveSelectAll() {
     setBulkGiveSelectedIds((prev) => (prev.length === students.length ? [] : students.map((s) => s.id)));
   }
+
+  {mode === "admin" && editCard && (
+    <CardEditModal
+      card={editCard}
+      streakConfigs={activeClass?.streakConfigs || []}
+      onClose={() => setEditCard(null)}
+      onSave={async (updates) => {
+        await updateCard(editCard.id, updates);
+        setEditCard(null);
+      }}
+    />
+  )}
+
 
   // Owned cards removal (bulk) - ONE updateDoc
   async function removeOwnedCardsBulk(classId, studentId, ownedIds) {
@@ -1914,6 +1992,9 @@ Floating emoji: how many DAYS after today should it start?
                     <button className="btn" onClick={() => setLibraryTab("experience")} style={{ background: libraryTab === "experience" ? "#def" : "white" }}>
                       Experience
                     </button>
+                    <button className="btn" onClick={() => setLibraryTab("extra")}  style={{ background: libraryTab === "extra" ? "#def" : "white" }}>
+                      Extra
+                    </button>
                   </div>
 
                   {mode === "admin" && (
@@ -1923,6 +2004,7 @@ Floating emoji: how many DAYS after today should it start?
                         onCreate={createCard}
                         lockedInputRef={lockedFileInputRef}
                         unlockedInputRef={unlockedFileInputRef}
+                        streakConfigs={activeClass?.streakConfigs || []}
                       />
                     </div>
                   )}
@@ -1942,7 +2024,7 @@ Floating emoji: how many DAYS after today should it start?
                                 mode={mode}
                                 onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
                                 onGive={() => openBulkGive(c)}
-
+                                onEdit={() => setEditCard(c)}
                                 onDelete={() => deleteCard(c.id)}
                               />
                             ))
@@ -2278,9 +2360,68 @@ Floating emoji: how many DAYS after today should it start?
   );
 }
 
+async function updateCard(cardId, updates) {
+  if (!ensureClassSelected()) return;
+  try {
+    const cardRef = doc(db, `classes/${activeClassId}/cards/${cardId}`);
+    const snap = await getDoc(cardRef);
+    if (!snap.exists()) return alert("Card not found");
+    const prev = snap.data();
+
+    const {
+      title,
+      description,
+      points,
+      category,
+      linkedStreakId,
+      lockedFile,
+      unlockedFile,
+    } = updates || {};
+
+    let lockedImageURL = prev.lockedImageURL || "";
+    let unlockedImageURL = prev.imageURL || "";
+
+    const baseKey = uid(`cardedit_${cardId}`);
+
+    if (lockedFile) {
+      const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
+      const refLocked = storageRef(storage, `classes/${activeClassId}/cards/${keyLocked}`);
+      const up = await uploadBytes(refLocked, lockedFile);
+      lockedImageURL = await getDownloadURL(up.ref);
+    }
+
+    if (unlockedFile) {
+      const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
+      const refUnlocked = storageRef(storage, `classes/${activeClassId}/cards/${keyUnlocked}`);
+      const up = await uploadBytes(refUnlocked, unlockedFile);
+      unlockedImageURL = await getDownloadURL(up.ref);
+    }
+
+    // fallback: if only one image exists
+    if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
+    if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+
+    const nextCategory = (category || prev.category || "points");
+
+    await updateDoc(cardRef, {
+      title: (title || "").trim(),
+      description: description || "",
+      points: Number(points) || 0,
+      category: nextCategory,
+      linkedStreakId: nextCategory === "points" ? (linkedStreakId || "") : "",
+      imageURL: unlockedImageURL,
+      lockedImageURL,
+      updatedAt: Date.now(),
+    });
+  } catch (err) {
+    console.error("updateCard error", err);
+    alert("Failed to update card. See console.");
+  }
+}
+
 /* ---------------- Components ---------------- */
 
-function LibraryCardRow({ c, mode, onPreview, onGive = () => {}, onDelete }) {
+function LibraryCardRow({ c, mode, onPreview, onGive = () => {}, onDelete, onEdit = () => {} }) {
   const showURL = c.lockedImageURL || c.imageURL; // library shows locked
   return (
     <div
@@ -2328,7 +2469,12 @@ function LibraryCardRow({ c, mode, onPreview, onGive = () => {}, onDelete }) {
               Give card
             </button>
           )}
-          <button className="btn" onClick={onDelete}>
+
+          <button className="btn" onClick={onEdit}>
+            Edit
+          </button>
+
+           <button className="btn" onClick={onDelete} style={{ color: "#b52121cf", borderColor: "#fecaca" }}>
             Delete
           </button>
         </div>
@@ -2337,7 +2483,7 @@ function LibraryCardRow({ c, mode, onPreview, onGive = () => {}, onDelete }) {
   );
 }
 
-function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef }) {
+function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConfigs = [] }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState(1);
@@ -2347,11 +2493,13 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef }) {
 
   function handleCreate() {
     if (!title.trim()) return alert("Title required");
-    onCreate({ title, description, points, category, lockedFile, unlockedFile });
+    onCreate({ title, description, points, category, linkedStreakId: category === "points" ? linkedStreakId : "", lockedFile, unlockedFile });
     setTitle("");
     setDescription("");
     setPoints(1);
     setCategory("points");
+    setLinkedStreakId("");
+    setStreakLookup("");
     setLockedFile(null);
     setUnlockedFile(null);
     if (lockedInputRef?.current) lockedInputRef.current.value = "";
@@ -2387,6 +2535,7 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef }) {
           <option value="points">Points</option>
           <option value="rewards">Rewards</option>
           <option value="experience">Experience</option>
+          <option value="extra">Extra</option>
         </select>
       </div>
 
@@ -2469,6 +2618,151 @@ function RewardCreateForm({ cards, onCreate }) {
       </div>
     </div>
   );
+}
+
+function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
+  const [title, setTitle] = useState(card.title || "");
+  const [description, setDescription] = useState(card.description || "");
+  const [points, setPoints] = useState(card.points ?? 0);
+  const [category, setCategory] = useState(card.category || "points");
+
+  const [linkedStreakId, setLinkedStreakId] = useState("");
+  const [streakLookup, setStreakLookup] = useState("");
+
+  const [lockedFile, setLockedFile] = useState(null);
+  const [unlockedFile, setUnlockedFile] = useState(null);
+
+  function resolveStreakIdFromText(txt) {
+    const t = (txt || "").trim();
+    if (!t) return "";
+    const n = parseInt(t, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= streakConfigs.length) return streakConfigs[n - 1].id;
+    const byEmoji = streakConfigs.find((cfg) => (cfg.emoji || "").trim() === t);
+    return byEmoji ? byEmoji.id : "";
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <h3 style={{ margin: 0 }}>Edit card</h3>
+          <button className="btn" onClick={onClose}>Close</button>
+        </div>
+
+        <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
+
+          <textarea
+            className="input"
+            style={{ height: 90 }}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description"
+          />
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <input
+              className="input"
+              type="number"
+              value={points}
+              onChange={(e) => setPoints(e.target.value)}
+              style={{ width: 140 }}
+              placeholder="Points"
+            />
+
+            <select className="select" value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 220 }}>
+              <option value="points">Points</option>
+              <option value="rewards">Rewards</option>
+              <option value="experience">Experience</option>
+              <option value="extra">Extra</option>
+            </select>
+          </div>
+
+          {category === "points" && (
+            <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 10 }}>
+              <div style={{ fontWeight: 800 }}>Link to streak (optional)</div>
+              <div className="muted" style={{ marginTop: 4 }}>Choose by dropdown, emoji, or number order.</div>
+
+              <select
+                className="select"
+                value={linkedStreakId}
+                onChange={(e) => setLinkedStreakId(e.target.value)}
+                style={{ marginTop: 8 }}
+              >
+                <option value="">— No streak link —</option>
+                {streakConfigs.map((cfg, idx) => (
+                  <option key={cfg.id} value={cfg.id}>
+                    {idx + 1} — {cfg.emoji} (max {cfg.max})
+                  </option>
+                ))}
+              </select>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <input
+                  className="input"
+                  placeholder="Type emoji (🔥) or number (1)"
+                  value={streakLookup}
+                  onChange={(e) => setStreakLookup(e.target.value)}
+                />
+                <button
+                  className="btn"
+                  onClick={() => {
+                    const id = resolveStreakIdFromText(streakLookup);
+                    if (!id) return alert("No streak matches that emoji/number.");
+                    setLinkedStreakId(id);
+                    setStreakLookup("");
+                  }}
+                >
+                  Use
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>Replace LOCKED image (optional)</div>
+              <input type="file" accept="image/*" onChange={(e) => setLockedFile(e.target.files?.[0] || null)} />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>Replace UNLOCKED image (optional)</div>
+              <input type="file" accept="image/*" onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)} />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+            <button
+              className="btn primary"
+              onClick={() =>
+                onSave({
+                  title,
+                  description,
+                  points,
+                  category,
+                  linkedStreakId: category === "points" ? linkedStreakId : "",
+                  lockedFile,
+                  unlockedFile,
+                })
+              }
+            >
+              Save changes
+            </button>
+            <button className="btn" onClick={onClose}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function resolveStreakIdFromText(txt) {
+  const t = (txt || "").trim();
+  if (!t) return "";
+  const n = parseInt(t, 10);
+  if (Number.isFinite(n) && n >= 1 && n <= streakConfigs.length) return streakConfigs[n - 1].id;
+  const byEmoji = streakConfigs.find((cfg) => (cfg.emoji || "").trim() === t);
+  return byEmoji ? byEmoji.id : "";
 }
 
 function ProfileModal({ mode, student, onClose, onSave }) {
