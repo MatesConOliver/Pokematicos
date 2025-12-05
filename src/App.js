@@ -467,9 +467,9 @@ export default function App() {
 
       // clean + unique
       const cleanIds =
-    nextCategory === "points"
-      ? Array.from(new Set((Array.isArray(linkedStreakIds) ? linkedStreakIds : []).filter(Boolean).map(String)))
-      : [];
+        nextCategory === "points"
+          ? Array.from(new Set((Array.isArray(linkedStreakIds) ? linkedStreakIds : []).filter(Boolean).map(String)))
+          : [];
 
       await updateDoc(cardRef, {
         title: (title || "").trim(),
@@ -946,72 +946,7 @@ Floating emoji: how many DAYS after today should it start?
       alert("Failed to delete card.");
     }
   }
-
-  async function updateCard(cardId, updates) {
-    if (!ensureClassSelected()) return;
-    if (!cardId) return;
-
-    try {
-      const cardRef = doc(db, `classes/${activeClassId}/cards/${cardId}`);
-      const snap = await getDoc(cardRef);
-      if (!snap.exists()) return alert("Card not found");
-      const prev = snap.data();
-
-      const {
-        title,
-        description,
-        points,
-        category,
-        linkedStreakIds,
-        lockedFile,
-        unlockedFile,
-      } = updates || {};
-
-      const cleanIds =
-        nextCategory === "points" && Array.isArray(linkedStreakIds)
-          ? linkedStreakIds.filter(Boolean)
-          : [];
-
-      let lockedImageURL = prev.lockedImageURL || "";
-      let unlockedImageURL = prev.imageURL || "";
-
-      const baseKey = uid(`cardedit_${cardId}`);
-
-      if (lockedFile) {
-        const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
-        const refLocked = storageRef(storage, `classes/${activeClassId}/cards/${keyLocked}`);
-        const up = await uploadBytes(refLocked, lockedFile);
-        lockedImageURL = await getDownloadURL(up.ref);
-      }
-
-      if (unlockedFile) {
-        const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
-        const refUnlocked = storageRef(storage, `classes/${activeClassId}/cards/${keyUnlocked}`);
-        const up = await uploadBytes(refUnlocked, unlockedFile);
-        unlockedImageURL = await getDownloadURL(up.ref);
-      }
-
-      // fallback if only one exists
-      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
-      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
-
-      const nextCategory = category || prev.category || "points";
-
-      await updateDoc(cardRef, {
-        title: (title || "").trim(),
-        description: description || "",
-        points: Number(points) || 0,
-        category: nextCategory,
-        linkedStreakIds: cleanIds,
-        imageURL: unlockedImageURL,
-        lockedImageURL,
-        updatedAt: Date.now(),
-      });
-    } catch (err) {
-      console.error("updateCard error", err);
-      alert("Failed to update card. See console.");
-    }
-  }
+  
 
   // Cards given increment linked streak automatically (if needed)
   function incrementLinkedStreakIfNeeded(sdata, idsOrId) {
