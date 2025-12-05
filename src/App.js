@@ -422,6 +422,80 @@ export default function App() {
     });
   }
 
+  async function updateCard(cardId, updates) {
+    if (!ensureClassSelected()) return;
+    try {
+      const cardRef = doc(db, `classes/${activeClassId}/cards/${cardId}`);
+      const snap = await getDoc(cardRef);
+      if (!snap.exists()) return alert("Card not found");
+      const prev = snap.data();
+
+      const {
+        title,
+        description,
+        points,
+        category,
+        linkedStreakIds,
+        lockedFile,
+        unlockedFile,
+      } = updates || {};
+
+      let lockedImageURL = prev.lockedImageURL || "";
+      let unlockedImageURL = prev.imageURL || "";
+
+      const baseKey = uid(`cardedit_${cardId}`);
+
+      if (lockedFile) {
+        const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
+        const refLocked = storageRef(storage, `classes/${activeClassId}/cards/${keyLocked}`);
+        const up = await uploadBytes(refLocked, lockedFile);
+        lockedImageURL = await getDownloadURL(up.ref);
+      }
+
+      if (unlockedFile) {
+        const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
+        const refUnlocked = storageRef(storage, `classes/${activeClassId}/cards/${keyUnlocked}`);
+        const up = await uploadBytes(refUnlocked, unlockedFile);
+        unlockedImageURL = await getDownloadURL(up.ref);
+      }
+
+      // fallback: if only one image exists
+      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
+      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+
+      const nextCategory = (category || prev.category || "points");
+
+      // clean + unique
+      const cleanIds =
+        nextCategory === "points"
+          ? Array.from(
+              new Set(
+                (Array.isArray(linkedStreakIds) ? linkedStreakIds : [])
+                  .filter(Boolean)
+                  .map((x) => String(x))
+              )
+            )
+          : [];
+
+      await updateDoc(cardRef, {
+        title: (title || "").trim(),
+        description: description || "",
+        points: Number(points) || 0,
+        category: nextCategory,
+
+        // ✅ new source of truth (multi)
+        linkedStreakIds: cleanIds,
+
+        imageURL: unlockedImageURL,
+        lockedImageURL,
+        updatedAt: Date.now(),
+      });
+    } catch (err) {
+      console.error("updateCard error", err);
+      alert("Failed to update card. See console.");
+    }
+  }
+
 
   // --- CLASS STREAK TYPES (per class) ---
 
@@ -2436,79 +2510,7 @@ Floating emoji: how many DAYS after today should it start?
   );
 }
 
-async function updateCard(cardId, updates) {
-  if (!ensureClassSelected()) return;
-  try {
-    const cardRef = doc(db, `classes/${activeClassId}/cards/${cardId}`);
-    const snap = await getDoc(cardRef);
-    if (!snap.exists()) return alert("Card not found");
-    const prev = snap.data();
 
-    const {
-      title,
-      description,
-      points,
-      category,
-      linkedStreakIds,
-      lockedFile,
-      unlockedFile,
-    } = updates || {};
-
-    let lockedImageURL = prev.lockedImageURL || "";
-    let unlockedImageURL = prev.imageURL || "";
-
-    const baseKey = uid(`cardedit_${cardId}`);
-
-    if (lockedFile) {
-      const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
-      const refLocked = storageRef(storage, `classes/${activeClassId}/cards/${keyLocked}`);
-      const up = await uploadBytes(refLocked, lockedFile);
-      lockedImageURL = await getDownloadURL(up.ref);
-    }
-
-    if (unlockedFile) {
-      const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
-      const refUnlocked = storageRef(storage, `classes/${activeClassId}/cards/${keyUnlocked}`);
-      const up = await uploadBytes(refUnlocked, unlockedFile);
-      unlockedImageURL = await getDownloadURL(up.ref);
-    }
-
-    // fallback: if only one image exists
-    if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
-    if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
-
-    const nextCategory = (category || prev.category || "points");
-
-    // clean + unique
-    const cleanIds =
-      nextCategory === "points"
-        ? Array.from(
-            new Set(
-              (Array.isArray(linkedStreakIds) ? linkedStreakIds : [])
-                .filter(Boolean)
-                .map((x) => String(x))
-            )
-          )
-        : [];
-
-    await updateDoc(cardRef, {
-      title: (title || "").trim(),
-      description: description || "",
-      points: Number(points) || 0,
-      category: nextCategory,
-
-      // ✅ new source of truth (multi)
-      linkedStreakIds: cleanIds,
-
-      imageURL: unlockedImageURL,
-      lockedImageURL,
-      updatedAt: Date.now(),
-    });
-  } catch (err) {
-    console.error("updateCard error", err);
-    alert("Failed to update card. See console.");
-  }
-}
 
 /* ---------------- Components ---------------- */
 
@@ -2822,11 +2824,25 @@ function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
   const [points, setPoints] = useState(card.points ?? 0);
   const [category, setCategory] = useState(card.category || "points");
 
-  const [linkedStreakId, setLinkedStreakId] = useState("");
+  const [linkedStreakIds, setLinkedStreakIds] = useState(() => {
+    const arr = Array.isArray(card.linkedStreakIds) ? card.linkedStreakIds : [];
+    return Array.from(new Set([...arr, ...legacy].filter(Boolean).map(String)));
+  });
+  const [streakPick, setStreakPick] = useState("");
   const [streakLookup, setStreakLookup] = useState("");
 
   const [lockedFile, setLockedFile] = useState(null);
   const [unlockedFile, setUnlockedFile] = useState(null);
+
+  function addStreakId(id) {
+    if (!id) return;
+    setLinkedStreakIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setStreakPick("");
+  }
+
+  function removeStreakId(id) {
+    setLinkedStreakIds((prev) => prev.filter((x) => x !== id));
+  }
 
   function resolveStreakIdFromText(txt) {
     const t = (txt || "").trim();
@@ -2835,6 +2851,14 @@ function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
     if (Number.isFinite(n) && n >= 1 && n <= streakConfigs.length) return streakConfigs[n - 1].id;
     const byEmoji = streakConfigs.find((cfg) => (cfg.emoji || "").trim() === t);
     return byEmoji ? byEmoji.id : "";
+  }
+
+  // nice labels in chips
+  function streakLabel(id) {
+    const idx = streakConfigs.findIndex((c) => c.id === id);
+    const cfg = idx >= 0 ? streakConfigs[idx] : null;
+    if (!cfg) return id;
+    return `${idx + 1} — ${cfg.emoji} (max ${cfg.max})`;
   }
 
   return (
@@ -2866,7 +2890,20 @@ function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
               placeholder="Points"
             />
 
-            <select className="select" value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 220 }}>
+            <select
+              className="select"
+              value={category}
+              onChange={(e) => {
+                const next = e.target.value;
+                setCategory(next);
+                if (next !== "points") {
+                  setLinkedStreakIds([]);
+                  setStreakPick("");
+                  setStreakLookup("");
+                }
+              }}
+              style={{ width: 220 }}
+            >
               <option value="points">Points</option>
               <option value="rewards">Rewards</option>
               <option value="experience">Experience</option>
@@ -2876,58 +2913,75 @@ function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
 
           {category === "points" && (
             <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 10 }}>
-              <div style={{ fontWeight: 800 }}>Link to streak (optional)</div>
-              <div className="muted" style={{ marginTop: 4 }}>Choose by dropdown, emoji, or number order.</div>
+              <div style={{ fontWeight: 800 }}>Link to streaks (optional)</div>
+              <div className="muted" style={{ marginTop: 4 }}>Add one or more streaks by dropdown, emoji, or number order.</div>
 
-              <select
-                className="select"
-                value={linkedStreakId}
-                onChange={(e) => setLinkedStreakId(e.target.value)}
-                style={{ marginTop: 8 }}
-              >
-                <option value="">— No streak link —</option>
-                {streakConfigs.map((cfg, idx) => (
-                  <option key={cfg.id} value={cfg.id}>
-                    {idx + 1} — {cfg.emoji} (max {cfg.max})
-                  </option>
-                ))}
-              </select>
+              {/* dropdown + add */}
+              <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+                <select
+                  className="select"
+                  value={streakPick}
+                  onChange={(e) => setStreakPick(e.target.value)}
+                >
+                  <option value="">Choose streak...</option>
+                  {streakConfigs.map((cfg, idx) => (
+                    <option key={cfg.id} value={cfg.id}>
+                      {idx + 1} — {cfg.emoji} (max {cfg.max})
+                    </option>
+                  ))}
+                </select>
+                <button className="btn" type="button" onClick={() => addStreakId(streakPick)} disabled={!streakPick}>
+                  Add
+                </button>
+              </div>
 
+              {/* add from text */}
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <input
                   className="input"
-                  placeholder="Type emoji (🔥) or number (1)"
                   value={streakLookup}
                   onChange={(e) => setStreakLookup(e.target.value)}
+                  placeholder="Type emoji (🔥) or number (1)"
                 />
                 <button
                   className="btn"
+                  type="button"
                   onClick={() => {
                     const id = resolveStreakIdFromText(streakLookup);
-                    if (!id) return alert("No streak matches that emoji/number.");
-                    setLinkedStreakId(id);
+                    if (!id) return alert("No match. Try emoji (🔥) or number (1).");
+                    addStreakId(id);
                     setStreakLookup("");
                   }}
                 >
-                  Use
+                  Add from text
                 </button>
+              </div>
+
+              {/* selected chips */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                {linkedStreakIds.length === 0 ? (
+                  <span className="muted">No streaks linked.</span>
+                ) : (
+                  linkedStreakIds.map((id) => (
+                    <span key={id} className="chip">
+                      {streakLabel(id)}
+                      <button className="btn" style={{ padding: "2px 8px" }} type="button" onClick={() => removeStreakId(id)}>
+                        ✕
+                      </button>
+                    </span>
+                  ))
+                )}
               </div>
             </div>
           )}
 
-          <div style={{ display: "grid", gap: 10 }}>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>Replace LOCKED image (optional)</div>
-              <input type="file" accept="image/*" onChange={(e) => setLockedFile(e.target.files?.[0] || null)} />
-            </div>
+          <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
+          <input type="file" onChange={(e) => setLockedFile(e.target.files?.[0] || null)} />
 
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>Replace UNLOCKED image (optional)</div>
-              <input type="file" accept="image/*" onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)} />
-            </div>
-          </div>
+          <div className="muted" style={{ marginTop: 2 }}>Replace UNLOCKED image (optional)</div>
+          <input type="file" onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)} />
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+          <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
             <button
               className="btn primary"
               onClick={() =>
@@ -2936,6 +2990,7 @@ function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
                   description,
                   points,
                   category,
+                  // ✅ THIS is what updateCard expects
                   linkedStreakIds: category === "points" ? linkedStreakIds : [],
                   lockedFile,
                   unlockedFile,
