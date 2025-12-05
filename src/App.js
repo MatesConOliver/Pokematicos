@@ -936,6 +936,37 @@ Floating emoji: how many DAYS after today should it start?
     }
   }
 
+  // Cards given increment linked streak automatically (if needed)
+  function incrementLinkedStreakIfNeeded(sdata, linkedStreakId) {
+    const id = (linkedStreakId || "").trim();
+    if (!id) return null;
+
+    const today = todayISODate();
+    const streaks = sdata.streaks || {};
+    const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
+
+    // already increased today -> do nothing
+    if (prev.lastUpdated === today) return null;
+
+    const cfg = (activeClass?.streakConfigs || []).find((c) => c.id === id) || null;
+    const max = typeof cfg?.max === "number" ? cfg.max : 0;
+
+    let nextVal = (prev.value || 0) + 1;
+    if (max > 0 && nextVal > max) nextVal = max;
+
+    const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
+
+    const updatedEntry = {
+      ...prev,
+      value: nextVal,
+      lastUpdated: today,
+      maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
+      floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
+    };
+
+    return { ...streaks, [id]: updatedEntry };
+  }
+
   // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
   async function giveCardToStudent(classId, studentId, cardId) {
     try {
@@ -973,10 +1004,14 @@ Floating emoji: how many DAYS after today should it start?
 
       const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
 
-      await updateDoc(studentRef, {
-        cards: cardsArr,
-        currentPoints,
-      });
+      const linkedStreakId = category === "points" ? (cardData.linkedStreakId || "") : "";
+      const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedStreakId);
+
+      const payload = { cards: cardsArr, currentPoints };
+      if (nextStreaks) payload.streaks = nextStreaks;
+
+      await updateDoc(studentRef, payload);
+
       // no success alert on purpose
     } catch (err) {
       console.error(err);
@@ -1027,7 +1062,14 @@ Floating emoji: how many DAYS after today should it start?
 
         const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
 
-        batch.update(studentRef, { cards: cardsArr, currentPoints });
+        const linkedStreakId = category === "points" ? (cardData.linkedStreakId || "") : "";
+        const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedStreakId);
+
+        const payload = { cards: cardsArr, currentPoints };
+        if (nextStreaks) payload.streaks = nextStreaks;
+
+        batch.update(studentRef, payload);
+
         writes += 1;
         given += 1;
 
