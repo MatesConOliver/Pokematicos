@@ -1982,17 +1982,17 @@ Floating emoji: how many DAYS after today should it start?
                 <div className="muted">Select a class first</div>
               ) : (
                 <>
-                  <div style={{ display: "flex", gap: 6, margin: "8px 0 12px" }}>
-                    <button className="btn" onClick={() => setLibraryTab("points")} style={{ background: libraryTab === "points" ? "#def" : "white" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6, margin: "8px 0 12px" }}>
+                    <button className="btn" onClick={() => setLibraryTab("points")} style={{ width: "100%", background: libraryTab === "points" ? "#def" : "white" }}>
                       Points
                     </button>
-                    <button className="btn" onClick={() => setLibraryTab("rewards")} style={{ background: libraryTab === "rewards" ? "#def" : "white" }}>
+                    <button className="btn" onClick={() => setLibraryTab("rewards")} style={{ width: "100%", background: libraryTab === "rewards" ? "#def" : "white" }}>
                       Rewards
                     </button>
-                    <button className="btn" onClick={() => setLibraryTab("experience")} style={{ background: libraryTab === "experience" ? "#def" : "white" }}>
+                    <button className="btn" onClick={() => setLibraryTab("experience")} style={{ width: "100%", background: libraryTab === "experience" ? "#def" : "white" }}>
                       Experience
                     </button>
-                    <button className="btn" onClick={() => setLibraryTab("extra")}  style={{ background: libraryTab === "extra" ? "#def" : "white" }}>
+                    <button className="btn" onClick={() => setLibraryTab("extra")}  style={{ width: "100%", background: libraryTab === "extra" ? "#def" : "white" }}>
                       Extra
                     </button>
                   </div>
@@ -2046,7 +2046,7 @@ Floating emoji: how many DAYS after today should it start?
                                   mode={mode}
                                   onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
                                   onGive={() => openBulkGive(c)}
-
+                                  onEdit={() => setEditCard(c)}
                                   onDelete={() => deleteCard(c.id)}
                                 />
                               ))
@@ -2490,6 +2490,9 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConf
   const [category, setCategory] = useState("points");
   const [lockedFile, setLockedFile] = useState(null);
   const [unlockedFile, setUnlockedFile] = useState(null);
+  const [linkedStreakId, setLinkedStreakId] = useState("");
+  const [streakLookup, setStreakLookup] = useState("");
+
 
   function handleCreate() {
     if (!title.trim()) return alert("Title required");
