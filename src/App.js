@@ -2013,7 +2013,7 @@ Floating emoji: how many DAYS after today should it start?
         )}
       </div>
 
-      {/* Card preview modal */}
+            {/* Card preview modal */}
       {cardPreview && (
         <div
           className="modal-backdrop"
@@ -2062,131 +2062,135 @@ Floating emoji: how many DAYS after today should it start?
               </div>
             </div>
           ) : (
+            (() => {
+              /* Owned card (unlocked) -> image only */
+              const ownedList = cardPreview.ownedList || null;
+              const ownedIndex = Number.isFinite(cardPreview.ownedIndex) ? cardPreview.ownedIndex : 0;
+              const currentOwned = ownedList ? ownedList[ownedIndex] : cardPreview;
 
-            /* Owned card (unlocked) -> image only */
-            const ownedList = cardPreview.ownedList || null;
-            const ownedIndex = Number.isFinite(cardPreview.ownedIndex) ? cardPreview.ownedIndex : 0;
-            const currentOwned = ownedList ? ownedList[ownedIndex] : cardPreview;
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                maxWidth: "min(85vw, 720px)",
-                width: "85vw",
-                height: "min(70vh, 520px)",
-                maxHeight: "70vh",
-                borderRadius: 16,
-                overflow: "hidden",
-                background: "transparent",
-                position: "relative",
-                boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {currentOwned?.imageURL ? (
-                <>
-                  <img
-                    src={currentOwned?.imageURL}
-                    alt=""
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      display: "block",
-                    }}
-                  />
+              return (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    maxWidth: "min(85vw, 720px)",
+                    width: "85vw",
+                    height: "min(70vh, 520px)",
+                    maxHeight: "70vh",
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    background: "transparent",
+                    position: "relative",
+                    boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {currentOwned?.imageURL ? (
+                    <>
+                      <img
+                        src={currentOwned?.imageURL}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          display: "block",
+                        }}
+                      />
 
-                  {/* Left button */}
-                  <button
-                    className="btn"
-                    disabled={!ownedList || ownedIndex <= 0}
-                    onClick={() => ownedNav(-1)}
-                    style={{
-                      position: "absolute",
-                      left: 10,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      width: 44,
-                      height: 44,
-                      borderRadius: 999,
-                      fontSize: 22,
-                      fontWeight: 900,
-                      background: "rgba(255,255,255,0.9)",
-                      boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
-                    }}
-                    title="Previous card"
-                  >
-                    ‹
-                  </button>
+                      {/* Left button */}
+                      <button
+                        className="btn"
+                        disabled={!ownedList || ownedIndex <= 0}
+                        onClick={() => ownedNav(-1)}
+                        style={{
+                          position: "absolute",
+                          left: 10,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          width: 44,
+                          height: 44,
+                          borderRadius: 999,
+                          fontSize: 22,
+                          fontWeight: 900,
+                          background: "rgba(255,255,255,0.9)",
+                          boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
+                        }}
+                        title="Previous card"
+                      >
+                        ‹
+                      </button>
 
-                  {/* Right button */}
-                  <button
-                    className="btn"
-                    disabled={!ownedList || ownedIndex >= ownedList.length - 1}
-                    onClick={() => ownedNav(+1)}
-                    style={{
-                      position: "absolute",
-                      right: 10,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      width: 44,
-                      height: 44,
-                      borderRadius: 999,
-                      fontSize: 22,
-                      fontWeight: 900,
-                      background: "rgba(255,255,255,0.9)",
-                      boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
-                    }}
-                    title="Next card"
-                  >
-                    ›
-                  </button>
+                      {/* Right button */}
+                      <button
+                        className="btn"
+                        disabled={!ownedList || ownedIndex >= ownedList.length - 1}
+                        onClick={() => ownedNav(+1)}
+                        style={{
+                          position: "absolute",
+                          right: 10,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          width: 44,
+                          height: 44,
+                          borderRadius: 999,
+                          fontSize: 22,
+                          fontWeight: 900,
+                          background: "rgba(255,255,255,0.9)",
+                          boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
+                        }}
+                        title="Next card"
+                      >
+                        ›
+                      </button>
 
-                  {/* Counter (1 / N) */}
-                  {ownedList && ownedList.length > 0 && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: 10,
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        background: "rgba(0,0,0,0.55)",
-                        color: "white",
-                        padding: "6px 10px",
-                        borderRadius: 999,
-                        fontWeight: 800,
-                        fontSize: 12,
-                      }}
-                    >
-                      {ownedIndex + 1} / {ownedList.length}
+                      {/* Counter (1 / N) */}
+                      {ownedList && ownedList.length > 0 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: 10,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            background: "rgba(0,0,0,0.55)",
+                            color: "white",
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                            fontWeight: 800,
+                            fontSize: 12,
+                          }}
+                        >
+                          {ownedIndex + 1} / {ownedList.length}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ padding: 16, color: "white", textAlign: "center" }}>
+                      {cardPreview.title || "Card"}
                     </div>
                   )}
-                </>
-              ) : (
-                <div style={{ padding: 16, color: "white", textAlign: "center" }}>
-                  {cardPreview.title || "Card"}
-                </div>
-              )}
 
-              <button
-                onClick={() => setCardPreview(null)}
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  borderRadius: "999px",
-                  border: "none",
-                  padding: "4px 8px",
-                  fontSize: 14,
-                  cursor: "pointer",
-                  background: "rgba(0,0,0,0.6)",
-                  color: "white",
-                }}
-              >
-                ✕
-              </button>
-            </div>
+                  <button
+                    onClick={() => setCardPreview(null)}
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      borderRadius: "999px",
+                      border: "none",
+                      padding: "4px 8px",
+                      fontSize: 14,
+                      cursor: "pointer",
+                      background: "rgba(0,0,0,0.6)",
+                      color: "white",
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })()
           )}
         </div>
       )}
