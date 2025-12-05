@@ -1061,20 +1061,7 @@ Floating emoji: how many DAYS after today should it start?
   function toggleBulkGiveSelectAll() {
     setBulkGiveSelectedIds((prev) => (prev.length === students.length ? [] : students.map((s) => s.id)));
   }
-
-  {mode === "admin" && editCard && (
-    <CardEditModal
-      card={editCard}
-      streakConfigs={activeClass?.streakConfigs || []}
-      onClose={() => setEditCard(null)}
-      onSave={async (updates) => {
-        await updateCard(editCard.id, updates);
-        setEditCard(null);
-      }}
-    />
-  )}
-
-
+  
   // Owned cards removal (bulk) - ONE updateDoc
   async function removeOwnedCardsBulk(classId, studentId, ownedIds) {
     if (!ownedIds?.length) return;
@@ -2095,7 +2082,7 @@ Floating emoji: how many DAYS after today should it start?
         )}
       </div>
 
-            {/* Card preview modal */}
+      {/* Card preview modal */}
       {cardPreview && (
         <div
           className="modal-backdrop"
@@ -2245,6 +2232,19 @@ Floating emoji: how many DAYS after today should it start?
             })()
           )}
         </div>
+      )}
+
+      {/* Card edit modal */}
+      {mode === "admin" && editCard && (
+        <CardEditModal
+          card={editCard}
+          streakConfigs={activeClass?.streakConfigs || []}
+          onClose={() => setEditCard(null)}
+          onSave={async (updates) => {
+            await updateCard(editCard.id, updates);
+            setEditCard(null);
+          }}
+        />
       )}
 
       {/* Profile modal */}
@@ -2474,7 +2474,7 @@ function LibraryCardRow({ c, mode, onPreview, onGive = () => {}, onDelete, onEdi
             Edit
           </button>
 
-           <button className="btn" onClick={onDelete} style={{ color: "#b52121cf", borderColor: "#fecaca" }}>
+           <button className="btn" onClick={onDelete} style={{ color: "#c82424ff", borderColor: "#fecaca" }}>
             Delete
           </button>
         </div>
@@ -2509,6 +2509,15 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConf
     if (unlockedInputRef?.current) unlockedInputRef.current.value = "";
   }
 
+  function resolveCreateStreakIdFromText(txt) {
+    const t = (txt || "").trim();
+    if (!t) return "";
+    const n = parseInt(t, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= streakConfigs.length) return streakConfigs[n - 1].id;
+    const byEmoji = streakConfigs.find((cfg) => (cfg.emoji || "").trim() === t);
+    return byEmoji ? byEmoji.id : "";
+  }
+
   return (
     <div>
       <input
@@ -2532,7 +2541,14 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConf
         />
         <select
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            setCategory(next);
+            if (next !== "points") {
+              setLinkedStreakId("");
+              setStreakLookup("");
+            }
+          }}
           style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
         >
           <option value="points">Points</option>
@@ -2541,6 +2557,57 @@ function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConf
           <option value="extra">Extra</option>
         </select>
       </div>
+
+      {category === "points" && (
+        <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 10, marginTop: 10 }}>
+          <div style={{ fontWeight: 800 }}>Link to streak (optional)</div>
+
+          {(!streakConfigs || streakConfigs.length === 0) ? (
+            <div className="muted" style={{ marginTop: 6 }}>
+              No streak types yet. Click <b>New streak</b> at the top to create one.
+            </div>
+          ) : (
+            <>
+              <div className="muted" style={{ marginTop: 4 }}>
+                Choose by dropdown, emoji, or number order.
+              </div>
+
+              <select
+                value={linkedStreakId}
+                onChange={(e) => setLinkedStreakId(e.target.value)}
+                style={{ marginTop: 8, width: "100%", padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+              >
+                <option value="">— No streak link —</option>
+                {streakConfigs.map((cfg, idx) => (
+                  <option key={cfg.id} value={cfg.id}>
+                    {idx + 1} — {cfg.emoji} (max {cfg.max})
+                  </option>
+                ))}
+              </select>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <input
+                  placeholder="Type emoji (🔥) or number (1)"
+                  value={streakLookup}
+                  onChange={(e) => setStreakLookup(e.target.value)}
+                  style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+                />
+                <button
+                  className="btn"
+                  onClick={() => {
+                    const id = resolveCreateStreakIdFromText(streakLookup);
+                    if (!id) return alert("No streak matches that emoji/number.");
+                    setLinkedStreakId(id);
+                    setStreakLookup("");
+                  }}
+                >
+                  Use
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div style={{ marginTop: 10, fontSize: 13 }}>
         <div style={{ marginBottom: 4 }}>Locked card (grey with lock)</div>
