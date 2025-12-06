@@ -815,10 +815,9 @@ export default function App() {
       if (crossedToMax) {
         const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
         if (rewardIds.length) {
-          const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-
-          const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
-          let currentPoints = Number(sdata.currentPoints || 0);
+          const multiplier = typeof data.multiplier === "number" ? data.multiplier : 1;
+          const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
+          let currentPoints = Number(data.currentPoints || 0);
 
           const dedupe = new Set();
 
