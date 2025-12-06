@@ -1422,12 +1422,13 @@ export default function App() {
 
         let nextStreaks = null;
         let crossedFloatIds = [];
+        let crossedMaxIds = [];
 
         if (linkedIds.length > 0) {
           const res = incrementStreaksNoFloatWindows(sdata, linkedIds, streakConfigs);
           nextStreaks = res.nextStreaks;
           crossedFloatIds = res.crossedFloatIds;
-          const crossedMaxIds = res.crossedMaxIds || [];
+          crossedMaxIds = Array.isArray(res.crossedMaxIds) ? res.crossedMaxIds : [];
         }
 
         const idx = pending.length;
