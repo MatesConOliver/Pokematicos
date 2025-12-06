@@ -1629,6 +1629,44 @@ export default function App() {
     }
   }
 
+  // ✅ Auto-unlock EXPERIENCE cards when XP reaches the card's "points" threshold
+  function unlockExperienceCards({ allCards, cardsArr, xpAfter, nowISO }) {
+    const library = Array.isArray(allCards) ? allCards : [];
+    if (library.length === 0) return cardsArr; // safety: if cards not loaded yet, do nothing
+
+    const ownedCardIds = new Set(
+      (Array.isArray(cardsArr) ? cardsArr : [])
+        .map((o) => o?.cardId)
+        .filter(Boolean)
+    );
+
+    // Experience cards: category === "experience"
+    const eligible = library
+      .filter((c) => (c.category || "points") === "experience")
+      .filter((c) => Number(c.points ?? 0) >= 0) // allow 0+ thresholds
+      .filter((c) => (Number(xpAfter) || 0) >= Number(c.points ?? 0))
+      .filter((c) => c?.id && !ownedCardIds.has(c.id))
+      .sort((a, b) => Number(a.points ?? 0) - Number(b.points ?? 0));
+
+    if (eligible.length === 0) return cardsArr;
+
+    const next = [...(Array.isArray(cardsArr) ? cardsArr : [])];
+
+    for (const c of eligible) {
+      next.push({
+        id: uid("owned"),
+        cardId: c.id,
+        title: c.title || "",
+        imageURL: c.imageURL || "",
+        grantedAt: nowISO,
+        pointsGranted: 0, // purely cosmetic
+        autoFrom: { type: "xpUnlock", xpRequired: Number(c.points ?? 0), xpAt: Number(xpAfter) || 0 },
+      });
+    }
+
+    return next;
+  }
+
   // Redeem: individual
   async function redeemRewardIndividual(classId, studentId, rewardId) {
     try {
@@ -1678,11 +1716,18 @@ export default function App() {
         });
       }
 
+      const newCardsWithXP = unlockExperienceCards({
+        allCards: cards,      // uses the library cards already loaded in state
+        cardsArr: newCards,
+        xpAfter: newXP,
+        nowISO: now,
+      });
+
       await updateDoc(studentRef, {
         currentPoints: newCurrent,
         xp: newXP,
         rewardsHistory: newHistory,
-        cards: newCards,
+        cards: newCardsWithXP,
       });
     } catch (err) {
       console.error(err);
@@ -1755,7 +1800,7 @@ export default function App() {
           },
         ];
 
-        const newCards = [...(st.cards || [])];
+        let newCards = [...(st.cards || [])];
         if (linkedCard) {
           newCards.push({
             id: uid("owned"),
@@ -1765,6 +1810,13 @@ export default function App() {
             grantedAt: now,
           });
         }
+
+        newCards = unlockExperienceCards({
+          allCards: cards,
+          cardsArr: newCards,
+          xpAfter: newXP,
+          nowISO: now,
+        });
 
         batch.update(studentRef, {
           currentPoints: newCurrent,
