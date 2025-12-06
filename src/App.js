@@ -1003,7 +1003,10 @@ Floating emoji: how many DAYS after today should it start?
   // Cards given increment linked streak automatically (if needed)
   function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}) {
     const today = todayISODate();
-    const ids = Array.isArray(idsOrId) ? idsOrId.filter(Boolean) : (idsOrId ? [idsOrId] : []);
+    const ids = Array.isArray(idsOrId)
+      ? idsOrId.filter(Boolean)
+      : (idsOrId ? [idsOrId] : []);
+
     if (ids.length === 0) return null;
 
     const streaks = { ...(sdata.streaks || {}) };
@@ -1011,44 +1014,16 @@ Floating emoji: how many DAYS after today should it start?
 
     const allowPrompts = opts.allowPrompts !== false; // default true
     const studentName = opts.studentName || sdata.name || "Student";
+    const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
+
     const defaultDelay = Number.isFinite(opts.defaultDelayDays) ? opts.defaultDelayDays : 7;
     const defaultDur = Number.isFinite(opts.defaultDurationDays) ? opts.defaultDurationDays : 7;
-
-    const who = opts.studentName ? `for ${opts.studentName}` : "";
-    const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
-    const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
-
-    if (crossedToMax && cfg?.float) {
-      const who = opts.studentName ? `for ${opts.studentName}` : "";
-      const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
-      const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
-
-      const input = prompt(
-        `🎉 Max reached ${who}${progress}!\n\n` +
-          `${streakLabel}: floating emoji schedule\n` +
-          `Type: delay,duration\n` +
-          `Examples:\n` +
-          `  0,7   (start today, 7 days)\n` +
-          `  7,14  (start in 7 days, 14 days)\n` +
-          `  start=3 duration=10\n`,
-        `${defaultDelay},${defaultDur}`
-      );
-
-      const { delayDays, durationDays } = parseFloatScheduleInput(input, {
-        delayDays: defaultDelay,
-        durationDays: defaultDur,
-      });
-
-      const start = addDaysISO(today, delayDays);
-      const end = addDaysISO(start, durationDays - 1);
-      floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
-    }
 
     for (const id of ids) {
       const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
 
       // already increased today -> do nothing
-      if (prev.lastUpdated === today) continue;
+      if ((prev.lastUpdated || "") === today) continue;
 
       const cfg = (activeClass?.streakConfigs || []).find((c) => c.id === id) || null;
       const max = typeof cfg?.max === "number" ? cfg.max : 0;
@@ -1062,29 +1037,32 @@ Floating emoji: how many DAYS after today should it start?
       let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
       floatWindows = normalizeFloatWindows(floatWindows, today);
 
-      // if we just reached max AND this streak is configured for floating
+      // If we just reached max AND this streak is configured for floating:
       if (crossedToMax && cfg?.float) {
         let delayDays = defaultDelay;
         let durationDays = defaultDur;
 
         if (allowPrompts) {
-          const delayStr = prompt(
-            `🎉 ${studentName} reached the maximum for ${cfg.emoji || "this"} streak!\n\n` +
-              `Floating emoji: how many DAYS after today should it start?\n` +
-              `(Example: 0 = today, 7 = next week)`,
-            String(defaultDelay)
+          const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
+
+          const input = prompt(
+            `🎉 Max reached for ${studentName}${progress}!\n\n` +
+              `${streakLabel}: floating emoji schedule\n` +
+              `Type: delay,duration\n` +
+              `Examples:\n` +
+              `  0,7   (start today, 7 days)\n` +
+              `  7,14  (start in 7 days, 14 days)\n` +
+              `  start=3 duration=10\n`,
+            `${defaultDelay},${defaultDur}`
           );
 
-          const durationStr = prompt(
-            `How many DAYS should the floating emoji last?\n(Example: 7 = one full week)`,
-            String(defaultDur)
-          );
+          const parsed = parseFloatScheduleInput(input, {
+            delayDays: defaultDelay,
+            durationDays: defaultDur,
+          });
 
-          delayDays = parseInt(String(delayStr ?? defaultDelay).trim(), 10);
-          if (!Number.isFinite(delayDays) || delayDays < 0) delayDays = defaultDelay;
-
-          durationDays = parseInt(String(durationStr ?? defaultDur).trim(), 10);
-          if (!Number.isFinite(durationDays) || durationDays <= 0) durationDays = defaultDur;
+          delayDays = parsed.delayDays;
+          durationDays = parsed.durationDays;
         }
 
         const start = addDaysISO(today, delayDays);
@@ -1104,6 +1082,48 @@ Floating emoji: how many DAYS after today should it start?
     }
 
     return changed ? streaks : null;
+  }
+
+  function incrementStreaksNoFloatWindows(sdata, ids, streakConfigs) {
+    const today = todayISODate();
+    const streaks = { ...(sdata.streaks || {}) };
+    let changed = false;
+
+    const crossedFloatIds = [];
+
+    for (const id of (Array.isArray(ids) ? ids.filter(Boolean) : [])) {
+      const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
+
+      // already increased today -> do nothing
+      if ((prev.lastUpdated || "") === today) continue;
+
+      const cfg = (streakConfigs || []).find((c) => c.id === id) || null;
+      const max = typeof cfg?.max === "number" ? cfg.max : 0;
+
+      let nextVal = (prev.value || 0) + 1;
+      if (max > 0 && nextVal > max) nextVal = max;
+
+      const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
+
+      // prune old windows but do NOT add new ones yet
+      let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
+      floatWindows = normalizeFloatWindows(floatWindows, today);
+
+      // report: reached max and this streak supports floating
+      if (crossedToMax && cfg?.float) crossedFloatIds.push(id);
+
+      streaks[id] = {
+        ...prev,
+        value: nextVal,
+        lastUpdated: today,
+        maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
+        floatWindows,
+      };
+
+      changed = true;
+    }
+
+    return { nextStreaks: changed ? streaks : null, crossedFloatIds };
   }
 
   // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
@@ -1180,14 +1200,19 @@ Floating emoji: how many DAYS after today should it start?
       const category = cardData.category || "points";
       if (category === "rewards") return alert("Rewards cards can't be given directly.");
 
-      // Only points-cards give base points. Experience cards are cosmetic.
       const basePoints = category === "points" ? Number(cardData.points || 0) : 0;
+      const linkedIds =
+        category === "points" ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : []) : [];
 
-      let batch = writeBatch(db);
-      let writes = 0;
-      let given = 0;
+      const streakConfigs = activeClass?.streakConfigs || [];
+      const today = todayISODate();
 
-      for (const studentId of studentIds) {
+      // Phase 1: read + prepare updates, collect "who hit max" per streak
+      const pending = []; // { studentRef, cardsArr, currentPoints, nextStreaks }
+      const maxHitsByStreak = new Map(); // streakId -> array of { idx, name }
+
+      for (let i = 0; i < studentIds.length; i++) {
+        const studentId = studentIds[i];
         const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
         const studentSnap = await getDoc(studentRef);
         if (!studentSnap.exists()) continue;
@@ -1208,26 +1233,86 @@ Floating emoji: how many DAYS after today should it start?
 
         const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
 
-        const linkedIds =
-          category === "points"
-            ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
-            : [];
+        let nextStreaks = null;
+        let crossedFloatIds = [];
 
-        const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
-          allowPrompts: true,
-          studentName: sdata.name || "",
-          progressLabel: `${i + 1}/${studentIds.length}`,
+        if (linkedIds.length > 0) {
+          const res = incrementStreaksNoFloatWindows(sdata, linkedIds, streakConfigs);
+          nextStreaks = res.nextStreaks;
+          crossedFloatIds = res.crossedFloatIds;
+        }
+
+        const idx = pending.length;
+        pending.push({
+          studentRef,
+          studentName: sdata.name || studentId,
+          cardsArr,
+          currentPoints,
+          nextStreaks,
         });
 
-        const payload = { cards: cardsArr, currentPoints };
-        if (nextStreaks) payload.streaks = nextStreaks;
+        for (const streakId of crossedFloatIds) {
+          if (!maxHitsByStreak.has(streakId)) maxHitsByStreak.set(streakId, []);
+          maxHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
+        }
+      }
 
-        batch.update(studentRef, payload);
+      // Phase 2: ONE prompt per streak that had max hits, then apply to all those students
+      const defaultDelay = 7;
+      const defaultDur = 7;
 
+      for (const [streakId, hits] of maxHitsByStreak.entries()) {
+        const cfg = streakConfigs.find((c) => c.id === streakId) || null;
+        const emoji = cfg?.emoji || "⭐";
+
+        const names = hits.map((h) => h.name);
+        const preview = names.slice(0, 12).join(", ");
+        const more = names.length > 12 ? ` (+${names.length - 12} more)` : "";
+
+        const input = prompt(
+          `🎉 Bulk give: ${emoji} streak reached MAX today by ${names.length} students:\n` +
+            `${preview}${more}\n\n` +
+            `Floating emoji schedule (applies to ALL above students for this streak)\n` +
+            `Type: delay,duration  (examples: 0,7  or  7,14  or  start=3 duration=10)`,
+          `${defaultDelay},${defaultDur}`
+        );
+
+        const { delayDays, durationDays } = parseFloatScheduleInput(input, {
+          delayDays: defaultDelay,
+          durationDays: defaultDur,
+        });
+
+        const start = addDaysISO(today, delayDays);
+        const end = addDaysISO(start, durationDays - 1);
+
+        for (const h of hits) {
+          const item = pending[h.idx];
+          if (!item?.nextStreaks) continue;
+
+          const prevEntry = item.nextStreaks[streakId] || { value: 0, lastUpdated: today, maxAchievedOn: today, floatWindows: [] };
+          let floatWindows = Array.isArray(prevEntry.floatWindows) ? prevEntry.floatWindows : [];
+          floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+
+          item.nextStreaks = {
+            ...item.nextStreaks,
+            [streakId]: { ...prevEntry, floatWindows },
+          };
+        }
+      }
+
+      // Phase 3: write updates in Firestore batches
+      let batch = writeBatch(db);
+      let writes = 0;
+      let given = 0;
+
+      for (const item of pending) {
+        const payload = { cards: item.cardsArr, currentPoints: item.currentPoints };
+        if (item.nextStreaks) payload.streaks = item.nextStreaks;
+
+        batch.update(item.studentRef, payload);
         writes += 1;
         given += 1;
 
-        // Firestore batch limit is 500 writes; keep a buffer.
         if (writes >= 450) {
           await batch.commit();
           batch = writeBatch(db);
