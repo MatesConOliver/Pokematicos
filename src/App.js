@@ -2803,6 +2803,7 @@ export default function App() {
           resetStudentStreak={resetStudentStreak}
           deleteStreakTypeForClass={deleteStreakTypeForClass}
           setStickyCelebrateForClass={setStickyCelebrateForClass}
+          setStreakRewardCardsForClass={setStreakRewardCardsForClass}
           mode={mode}
           onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
@@ -3531,6 +3532,7 @@ function ManageStudentModal({
   resetStudentStreak,
   deleteStreakTypeForClass,
   setStickyCelebrateForClass,
+  setStreakRewardCardsForClass,
   mode,
   onEditStudent,
   onClose,
@@ -3817,7 +3819,7 @@ function ManageStudentModal({
                             <button
                               className="btn"
                               style={{ fontSize: 11, marginTop: 4 }}
-                              onClick={() => setStreakRewardCardsForClass(classId, cfg.id, cfg)}
+                              onClick={() => setStreakRewardCardsForClass?.(classId, cfg.id, cfg)}
                             >
                               Set reward cards
                             </button>
