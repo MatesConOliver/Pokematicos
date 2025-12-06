@@ -73,11 +73,63 @@ function todayISODate() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-
 function addDaysISO(isoDate, days) {
   const d = new Date(`${isoDate}T00:00:00`);
   d.setDate(d.getDate() + Number(days || 0));
   return d.toISOString().slice(0, 10);
+}
+
+function parseFloatScheduleInput(input, defaults = { delayDays: 7, durationDays: 7 }) {
+  const fallback = {
+    delayDays: Number.isFinite(defaults.delayDays) ? defaults.delayDays : 7,
+    durationDays: Number.isFinite(defaults.durationDays) ? defaults.durationDays : 7,
+  };
+
+  if (input == null) return fallback;
+  const s = String(input).trim();
+  if (!s) return fallback;
+
+  // 1) "a,b" format
+  if (s.includes(",")) {
+    const [a, b] = s.split(",").map((x) => x.trim());
+    const delay = parseInt(a, 10);
+    const dur = parseInt(b, 10);
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 2) key=value format: start=7 duration=10 (order doesn't matter)
+  const mStart = s.match(/(?:start|delay)\s*=\s*(-?\d+)/i);
+  const mDur = s.match(/(?:duration|days)\s*=\s*(-?\d+)/i);
+
+  if (mStart || mDur) {
+    const delay = mStart ? parseInt(mStart[1], 10) : fallback.delayDays;
+    const dur = mDur ? parseInt(mDur[1], 10) : fallback.durationDays;
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 3) two numbers: "7 14"
+  const nums = s.match(/-?\d+/g) || [];
+  if (nums.length >= 2) {
+    const delay = parseInt(nums[0], 10);
+    const dur = parseInt(nums[1], 10);
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 4) single number means delay; use default duration
+  const one = parseInt(nums[0], 10);
+  return {
+    delayDays: Number.isFinite(one) && one >= 0 ? one : fallback.delayDays,
+    durationDays: fallback.durationDays,
+  };
 }
 
 function normalizeFloatWindows(windows, today) {
@@ -949,23 +1001,54 @@ Floating emoji: how many DAYS after today should it start?
   
 
   // Cards given increment linked streak automatically (if needed)
-  function incrementLinkedStreakIfNeeded(sdata, idsOrId) {
+  function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}) {
     const today = todayISODate();
-
-    const ids = Array.isArray(idsOrId)
-      ? idsOrId.filter(Boolean)
-      : (idsOrId ? [idsOrId] : []);
-
+    const ids = Array.isArray(idsOrId) ? idsOrId.filter(Boolean) : (idsOrId ? [idsOrId] : []);
     if (ids.length === 0) return null;
 
     const streaks = { ...(sdata.streaks || {}) };
     let changed = false;
 
+    const allowPrompts = opts.allowPrompts !== false; // default true
+    const studentName = opts.studentName || sdata.name || "Student";
+    const defaultDelay = Number.isFinite(opts.defaultDelayDays) ? opts.defaultDelayDays : 7;
+    const defaultDur = Number.isFinite(opts.defaultDurationDays) ? opts.defaultDurationDays : 7;
+
+    const who = opts.studentName ? `for ${opts.studentName}` : "";
+    const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
+    const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
+
+    if (crossedToMax && cfg?.float) {
+      const who = opts.studentName ? `for ${opts.studentName}` : "";
+      const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
+      const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
+
+      const input = prompt(
+        `🎉 Max reached ${who}${progress}!\n\n` +
+          `${streakLabel}: floating emoji schedule\n` +
+          `Type: delay,duration\n` +
+          `Examples:\n` +
+          `  0,7   (start today, 7 days)\n` +
+          `  7,14  (start in 7 days, 14 days)\n` +
+          `  start=3 duration=10\n`,
+        `${defaultDelay},${defaultDur}`
+      );
+
+      const { delayDays, durationDays } = parseFloatScheduleInput(input, {
+        delayDays: defaultDelay,
+        durationDays: defaultDur,
+      });
+
+      const start = addDaysISO(today, delayDays);
+      const end = addDaysISO(start, durationDays - 1);
+      floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+    }
+
     for (const id of ids) {
       const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
 
-      // only once per day
-      if ((prev.lastUpdated || "") === today) continue;
+      // already increased today -> do nothing
+      if (prev.lastUpdated === today) continue;
 
       const cfg = (activeClass?.streakConfigs || []).find((c) => c.id === id) || null;
       const max = typeof cfg?.max === "number" ? cfg.max : 0;
@@ -975,12 +1058,46 @@ Floating emoji: how many DAYS after today should it start?
 
       const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
 
+      // keep/prune existing windows
+      let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
+      floatWindows = normalizeFloatWindows(floatWindows, today);
+
+      // if we just reached max AND this streak is configured for floating
+      if (crossedToMax && cfg?.float) {
+        let delayDays = defaultDelay;
+        let durationDays = defaultDur;
+
+        if (allowPrompts) {
+          const delayStr = prompt(
+            `🎉 ${studentName} reached the maximum for ${cfg.emoji || "this"} streak!\n\n` +
+              `Floating emoji: how many DAYS after today should it start?\n` +
+              `(Example: 0 = today, 7 = next week)`,
+            String(defaultDelay)
+          );
+
+          const durationStr = prompt(
+            `How many DAYS should the floating emoji last?\n(Example: 7 = one full week)`,
+            String(defaultDur)
+          );
+
+          delayDays = parseInt(String(delayStr ?? defaultDelay).trim(), 10);
+          if (!Number.isFinite(delayDays) || delayDays < 0) delayDays = defaultDelay;
+
+          durationDays = parseInt(String(durationStr ?? defaultDur).trim(), 10);
+          if (!Number.isFinite(durationDays) || durationDays <= 0) durationDays = defaultDur;
+        }
+
+        const start = addDaysISO(today, delayDays);
+        const end = addDaysISO(start, durationDays - 1);
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+      }
+
       streaks[id] = {
         ...prev,
         value: nextVal,
         lastUpdated: today,
         maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
-        floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
+        floatWindows,
       };
 
       changed = true;
@@ -1031,7 +1148,10 @@ Floating emoji: how many DAYS after today should it start?
           ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
           : [];
 
-      const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIds);
+      const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
+        allowPrompts: true,
+        studentName: sdata.name || "",
+      });
 
       const payload = { cards: cardsArr, currentPoints };
       if (nextStreaks) payload.streaks = nextStreaks;
@@ -1093,7 +1213,11 @@ Floating emoji: how many DAYS after today should it start?
             ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
             : [];
 
-        const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIds);
+        const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
+          allowPrompts: true,
+          studentName: sdata.name || "",
+          progressLabel: `${i + 1}/${studentIds.length}`,
+        });
 
         const payload = { cards: cardsArr, currentPoints };
         if (nextStreaks) payload.streaks = nextStreaks;
