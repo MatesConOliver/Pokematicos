@@ -584,14 +584,16 @@ export default function App() {
     const stickyCelebrate = !!(stickyAns && stickyAns.toLowerCase().startsWith("y"));
 
     const id = uid("streak");
+    const rewardCardIds = (promptPickRewardCardIds({ defaultIds: [], label: `${emoji} streak` }) ?? []);
+
     const newCfg = {
       id,
       emoji,
       max,
       float,
       stickyCelebrate,
+      rewardCardIds,
     };
-
 
     try {
       const clsRef = doc(db, `classes/${classId}`);
@@ -609,6 +611,28 @@ export default function App() {
       console.error(err);
       alert("Could not create streak type. See console for details.");
     }
+  }
+
+  function pushOwnedCard({ cardsArr, cardId, cardData, pointsGranted, streakId }) {
+    cardsArr.push({
+      id: uid("owned"),
+      cardId,
+      title: cardData.title || "",
+      imageURL: cardData.imageURL || "",
+      imageURL2: cardData.imageURL2 || "",
+      grantedAt: new Date().toISOString(),
+      pointsGranted: round2(pointsGranted || 0),
+      autoFrom: { type: "streakMax", streakId },
+    });
+  }
+
+  async function getCardDataFast(classId, cardId) {
+    const local = (Array.isArray(cards) ? cards : []).find((c) => c.id === cardId);
+    if (local) return local;
+
+    const snap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
+    if (!snap.exists()) return null;
+    return { id: cardId, ...snap.data() };
   }
 
   async function setStickyCelebrateForClass(classId, streakId, stickyCelebrate) {
@@ -630,8 +654,82 @@ export default function App() {
       alert("Could not update sticky celebration.");
     }
   }
-  // --- STUDENT STREAKS edit (generic) ---
 
+  function promptPickRewardCardIds({ defaultIds = [], label = "" } = {}) {
+    // Only points cards make sense as “reward cards” because they add points.
+    const opts = (Array.isArray(cards) ? cards : [])
+      .filter((c) => ((c.category || "points") === "points"))
+      .slice()
+      .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+
+    if (opts.length === 0) {
+      alert("No POINTS cards found in the library. Create a points card first.");
+      return null; // signal: nothing changed / can’t pick
+    }
+
+    const idToNum = new Map(opts.map((c, i) => [c.id, i + 1]));
+    const currentNums = (defaultIds || []).map((id) => idToNum.get(id)).filter(Boolean);
+    const defaultText = currentNums.length ? currentNums.join(",") : "";
+
+    const list = opts
+      .map((c, i) => `${i + 1}) ${c.title || "(untitled)"} — ${Number(c.points || 0)} pts`)
+      .join("\n");
+
+    const input = prompt(
+      `Reward card(s) when ${label || "this"} streak reaches MAX.\n` +
+        `Choose numbers separated by commas (example: 1,3).\n` +
+        `Leave empty for NONE.\n\n${list}`,
+      defaultText
+    );
+
+    if (input == null) return undefined; // cancel => keep existing
+    const s = String(input).trim();
+    if (!s) return []; // empty => clear
+
+    const parts = s.split(",").map((x) => x.trim()).filter(Boolean);
+
+    const picked = [];
+    for (const p of parts) {
+      // allow selecting by number
+      const n = parseInt(p, 10);
+      if (Number.isFinite(n) && n >= 1 && n <= opts.length) {
+        picked.push(opts[n - 1].id);
+        continue;
+      }
+      // allow pasting cardId directly (optional)
+      const byId = opts.find((c) => c.id === p);
+      if (byId) picked.push(byId.id);
+    }
+
+    return Array.from(new Set(picked));
+  }
+
+  async function setStreakRewardCardsForClass(classId, streakId, cfg) {
+    try {
+      const current = classesList.find((c) => c.id === classId)?.streakConfigs || [];
+      const found = current.find((c) => c.id === streakId) || cfg || null;
+      const existing = Array.isArray(found?.rewardCardIds) ? found.rewardCardIds : [];
+
+      const next = promptPickRewardCardIds({
+        defaultIds: existing,
+        label: found?.emoji ? `${found.emoji} streak` : "this streak",
+      });
+
+      if (next === null) return;        // no points cards exist
+      if (next === undefined) return;   // user cancelled
+
+      const nextConfigs = current.map((c) =>
+        c.id === streakId ? { ...c, rewardCardIds: next } : c
+      );
+
+      await updateDoc(doc(db, `classes/${classId}`), { streakConfigs: nextConfigs });
+    } catch (e) {
+      console.error("setStreakRewardCardsForClass error", e);
+      alert("Could not set reward cards. See console.");
+    }
+  }
+
+  // --- STUDENT STREAKS edit (generic) ---
   async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValueOrCfg) {
     try {
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
@@ -673,14 +771,12 @@ export default function App() {
 
         const delayStr = prompt(
           `🎉 ${data.name || "Student"} reached the maximum for ${cfg.emoji || "this"} streak!
-
-Floating emoji: how many DAYS after today should it start?
-(Example: 0 = today, 7 = next week)`,
+          Floating emoji: how many DAYS after today should it start?
+          (Example: 0 = today, 7 = next week)`,
           String(defaultDelay)
         );
         const durationStr = prompt(
-          `How many DAYS should the floating emoji last?
-(Example: 7 = one full week)`,
+          `How many DAYS should the floating emoji last? (Example: 7 = one full week)`,
           String(defaultDur)
         );
 
@@ -714,7 +810,46 @@ Floating emoji: how many DAYS after today should it start?
         [streakId]: updatedEntry,
       };
 
-      await updateDoc(studentRef, { streaks: updatedStreaks });
+      const payload = { streaks: updatedStreaks };
+
+      if (crossedToMax) {
+        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+        if (rewardIds.length) {
+          const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+
+          const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
+          let currentPoints = Number(sdata.currentPoints || 0);
+
+          const dedupe = new Set();
+
+          for (const rewardCardId of rewardIds) {
+            if (!rewardCardId || dedupe.has(rewardCardId)) continue;
+
+            const rewardCard = await getCardDataFast(classId, rewardCardId);
+            if (!rewardCard) continue;
+            if ((rewardCard.category || "points") !== "points") continue;
+
+            const pts = round2(Number(rewardCard.points || 0) * multiplier);
+
+            pushOwnedCard({
+              cardsArr,
+              cardId: rewardCardId,
+              cardData: rewardCard,
+              pointsGranted: pts,
+              streakId,
+            });
+
+            currentPoints = round2(currentPoints + pts);
+            dedupe.add(rewardCardId);
+          }
+
+          payload.cards = cardsArr;
+          payload.currentPoints = currentPoints;
+        }
+      }
+
+      await updateDoc(studentRef, payload);
+      
       // No setSelectedStudent – snapshot will refresh students list
     } catch (err) {
       console.error("changeStudentStreakValue error", err);
@@ -1024,6 +1159,8 @@ Floating emoji: how many DAYS after today should it start?
     const studentName = opts.studentName || sdata.name || "Student";
     const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
 
+    const crossedMaxIds = [];
+
     const defaultDelay = Number.isFinite(opts.defaultDelayDays) ? opts.defaultDelayDays : 7;
     const defaultDur = Number.isFinite(opts.defaultDurationDays) ? opts.defaultDurationDays : 7;
 
@@ -1040,6 +1177,7 @@ Floating emoji: how many DAYS after today should it start?
       if (max > 0 && nextVal > max) nextVal = max;
 
       const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
+      if (crossedToMax) crossedMaxIds.push(id);
 
       // keep/prune existing windows
       let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
@@ -1089,7 +1227,7 @@ Floating emoji: how many DAYS after today should it start?
       changed = true;
     }
 
-    return changed ? streaks : null;
+    return { nextStreaks: changed ? streaks : null, crossedMaxIds };
   }
 
   function incrementStreaksNoFloatWindows(sdata, ids, streakConfigs) {
@@ -1098,6 +1236,7 @@ Floating emoji: how many DAYS after today should it start?
     let changed = false;
 
     const crossedFloatIds = [];
+    const crossedMaxIds = [];
 
     for (const id of (Array.isArray(ids) ? ids.filter(Boolean) : [])) {
       const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
@@ -1117,7 +1256,7 @@ Floating emoji: how many DAYS after today should it start?
       let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
       floatWindows = normalizeFloatWindows(floatWindows, today);
 
-      // report: reached max and this streak supports floating
+      if (crossedToMax) crossedMaxIds.push(id);
       if (crossedToMax && cfg?.float) crossedFloatIds.push(id);
 
       streaks[id] = {
@@ -1131,7 +1270,7 @@ Floating emoji: how many DAYS after today should it start?
       changed = true;
     }
 
-    return { nextStreaks: changed ? streaks : null, crossedFloatIds };
+    return { nextStreaks: changed ? streaks : null, crossedFloatIds, crossedMaxIds };
   }
 
   // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
@@ -1176,10 +1315,48 @@ Floating emoji: how many DAYS after today should it start?
           ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
           : [];
 
-      const nextStreaks = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
+      const res = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
         allowPrompts: true,
         studentName: sdata.name || "",
       });
+
+      const nextStreaks = res?.nextStreaks || null;
+      const crossedMaxIds = Array.isArray(res?.crossedMaxIds) ? res.crossedMaxIds : [];
+
+      // ✅ Auto-give rewards for streaks that just hit MAX
+      if (crossedMaxIds.length) {
+        const streakConfigs = activeClass?.streakConfigs || [];
+        const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+
+        const givenRewardCardIds = new Set(); // prevent duplicates in the same click
+
+        for (const streakId of crossedMaxIds) {
+          const cfg = streakConfigs.find((c) => c.id === streakId);
+          const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+          for (const rewardCardId of rewardIds) {
+            if (!rewardCardId || givenRewardCardIds.has(rewardCardId)) continue;
+
+            const rewardCard = await getCardDataFast(classId, rewardCardId);
+            if (!rewardCard) continue;
+
+            if ((rewardCard.category || "points") !== "points") continue; // only points cards add points
+
+            const base = Number(rewardCard.points || 0);
+            const pts = round2(base * multiplier);
+
+            pushOwnedCard({
+              cardsArr,
+              cardId: rewardCardId,
+              cardData: rewardCard,
+              pointsGranted: pts,
+              streakId,
+            });
+
+            currentPoints = round2(currentPoints + pts);
+            givenRewardCardIds.add(rewardCardId);
+          }
+        }
+      }
 
       const payload = { cards: cardsArr, currentPoints };
       if (nextStreaks) payload.streaks = nextStreaks;
@@ -1199,6 +1376,9 @@ Floating emoji: how many DAYS after today should it start?
   async function giveCardToStudentsBulk(classId, cardId, studentIds) {
     if (!classId) return;
     if (!Array.isArray(studentIds) || studentIds.length === 0) return;
+
+    const floatHitsByStreak = new Map(); // for scheduling float windows
+    const maxHitsByStreak = new Map();   // for rewards (reached MAX even if float disabled)
 
     try {
       const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
@@ -1248,18 +1428,25 @@ Floating emoji: how many DAYS after today should it start?
           const res = incrementStreaksNoFloatWindows(sdata, linkedIds, streakConfigs);
           nextStreaks = res.nextStreaks;
           crossedFloatIds = res.crossedFloatIds;
+          const crossedMaxIds = res.crossedMaxIds || [];
         }
 
         const idx = pending.length;
         pending.push({
           studentRef,
           studentName: sdata.name || studentId,
+          multiplier,
           cardsArr,
           currentPoints,
           nextStreaks,
         });
 
         for (const streakId of crossedFloatIds) {
+          if (!floatHitsByStreak.has(streakId)) floatHitsByStreak.set(streakId, []);
+          floatHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
+        }
+
+        for (const streakId of crossedMaxIds) {
           if (!maxHitsByStreak.has(streakId)) maxHitsByStreak.set(streakId, []);
           maxHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
         }
@@ -1305,6 +1492,54 @@ Floating emoji: how many DAYS after today should it start?
             ...item.nextStreaks,
             [streakId]: { ...prevEntry, floatWindows },
           };
+        }
+      }
+
+      // Phase 2B: award reward cards for everyone who reached MAX (per streak)
+      const rewardCache = new Map(); // cardId -> cardData
+
+      for (const [streakId, hits] of maxHitsByStreak.entries()) {
+        const cfg = streakConfigs.find((c) => c.id === streakId) || null;
+        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+        if (rewardIds.length === 0) continue;
+
+        for (const rewardCardId of rewardIds) {
+          if (!rewardCardId) continue;
+
+          if (!rewardCache.has(rewardCardId)) {
+            const cd = await getCardDataFast(classId, rewardCardId);
+            rewardCache.set(rewardCardId, cd || null);
+          }
+        }
+
+        for (const h of hits) {
+          const item = pending[h.idx];
+          if (!item) continue;
+
+          item._rewardDone = item._rewardDone || new Set(); // per-student dedupe during this bulk click
+
+          for (const rewardCardId of rewardIds) {
+            if (!rewardCardId || item._rewardDone.has(rewardCardId)) continue;
+
+            const rewardCard = rewardCache.get(rewardCardId);
+            if (!rewardCard) continue;
+            if ((rewardCard.category || "points") !== "points") continue;
+
+            const base = Number(rewardCard.points || 0);
+            const mult = typeof item.multiplier === "number" ? item.multiplier : 1;
+            const pts = round2(base * mult);
+
+            pushOwnedCard({
+              cardsArr: item.cardsArr,
+              cardId: rewardCardId,
+              cardData: rewardCard,
+              pointsGranted: pts,
+              streakId,
+            });
+
+            item.currentPoints = round2(item.currentPoints + pts);
+            item._rewardDone.add(rewardCardId);
+          }
         }
       }
 
@@ -3561,6 +3796,7 @@ function ManageStudentModal({
                             >
                               Reset
                             </button>
+
                             <button
                               className="btn"
                               style={{ fontSize: 11, marginTop: 4 }}
@@ -3569,6 +3805,21 @@ function ManageStudentModal({
                               }
                             >
                               Sticky celebration: {cfg.stickyCelebrate ? "ON" : "OFF"}
+                            </button>
+
+                            <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                              Reward on MAX:{" "}
+                              {(cfg.rewardCardIds || [])
+                                .map((id) => (cards.find((c) => c.id === id)?.title || id))
+                                .join(", ") || "None"}
+                            </div>
+
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11, marginTop: 4 }}
+                              onClick={() => setStreakRewardCardsForClass(classId, cfg.id, cfg)}
+                            >
+                              Set reward cards
                             </button>
 
                             <button
