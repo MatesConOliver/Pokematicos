@@ -2923,8 +2923,18 @@ export default function App() {
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
           onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
           onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
-          onRedeemIndividual={(rewardId) => redeemRewardIndividual(activeClassId, selectedStudent.id, rewardId)}
-          onRedeemGroup={(rewardId, shares) => redeemRewardGroup(activeClassId, rewardId, shares)}
+          onRedeemIndividual={(rewardId) => {
+            // Pass classId, studentId, rewardId
+            redeemIndividual(activeClassId, selectedStudentId, rewardId);
+          }}
+          onRedeemGroup={(rewardId, sharesMap) => {
+            // 1. Convert the "Map" {id: 10} into an "Array" [[id, 10]]
+            const participants = Object.entries(sharesMap)
+              .filter(([_, amount]) => Number(amount) > 0); // Only include those who pay
+            
+            // 2. Call the main function with the correct arguments
+            redeemGroup(activeClassId, rewardId, participants);
+          }}
           setCardPreview={setCardPreview}
         />
       )}
