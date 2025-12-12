@@ -3511,6 +3511,28 @@ function ProfileModal({ mode, student, onClose, onSave }) {
             </div>
           </div>
 
+          {/* --- REWARD HISTORY (Visible to Everyone) --- */}
+          <div style={{ marginTop: 20, borderTop: "1px solid #eee", paddingTop: 15 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>Reward History</div>
+            {(!student.rewardsHistory || student.rewardsHistory.length === 0) ? (
+              <div className="muted" style={{ fontSize: 13 }}>No rewards redeemed yet.</div>
+            ) : (
+              <div style={{ maxHeight: 150, overflowY: "auto", background: "#fafafa", border: "1px solid #eee", borderRadius: 8, padding: 4 }}>
+                {[...(student.rewardsHistory || [])]
+                  .sort((a, b) => (b.date || "").localeCompare(a.date || "")) // Show newest first
+                  .map((h) => (
+                    <div key={h.id || Math.random()} style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0", fontSize: 13 }}>
+                      <div style={{ fontWeight: 600, color: "#333" }}>{h.title}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "#888", fontSize: 11, marginTop: 2 }}>
+                        <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                        <span>-{h.cost} pts</span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
           <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn" onClick={onClose}>Cancel</button>
             <button
@@ -4051,32 +4073,6 @@ function ManageStudentModal({
                       Redeem (group)
                     </button>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Rewards history */}
-            <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-              <h4 style={{ marginTop: 0 }}>Rewards history</h4>
-              {!student.rewardsHistory?.length ? (
-                <div className="muted">No rewards yet</div>
-              ) : (
-                <div style={{ display: "grid", gap: 6 }}>
-                  {student.rewardsHistory
-                    .slice()
-                    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
-                    .map((rh) => (
-                      <div
-                        key={rh.id}
-                        style={{ border: "1px solid #eee", borderRadius: 10, padding: 8 }}
-                      >
-                        <div style={{ fontWeight: 700 }}>{rh.title}</div>
-                        <div className="muted">
-                          {rh.cost} pts • {rh.mode === "group" ? "Group" : "Individual"} •{" "}
-                          {rh.date ? new Date(rh.date).toLocaleString() : ""}
-                        </div>
-                      </div>
-                    ))}
                 </div>
               )}
             </div>
