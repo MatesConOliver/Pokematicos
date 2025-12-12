@@ -1776,7 +1776,7 @@ export default function App() {
   }
 
   // Redeem: group (shares sum must equal cost). Applies to all participants: subtract share, add XP share, add history entry, grant linked card.
-  async function redeemGroup(classId, initiatorStudentId, rewardId, participants) {
+  async function redeemGroup(classId, rewardId, participants) {
     if (!participants || participants.length === 0) return;
     const r = rewards.find((x) => x.id === rewardId);
     if (!r) return;
@@ -1787,6 +1787,7 @@ export default function App() {
       const batch = writeBatch(db);
       const now = new Date().toISOString();
 
+      // Create list of names for history
       const contributors = participants.map(([sid, share]) => {
         const sName = students.find(s => s.id === sid)?.name || "Unknown";
         return { name: sName, cost: Number(share) };
@@ -1801,12 +1802,12 @@ export default function App() {
         const studentRef = doc(db, `classes/${classId}/students/${sid}`);
         const costNum = Number(share);
 
-        // 1. Calculate new XP
+        // 1. Calculate new XP (Points Spent -> XP)
         const oldXp = Number(st.xp || 0);
         const newXp = oldXp + costNum;
 
         const historyEntry = {
-          id: uid("rh"),
+          id: uid("rh"), // Make sure you have the uid() helper or use Math.random
           rewardId,
           title: r.title,
           cost: costNum,
@@ -1817,7 +1818,7 @@ export default function App() {
 
         let newCards = [...(st.cards || [])];
 
-        // A) Reward Card
+        // A) Reward Card (if exists)
         if (r.cardId) {
           const linkedCard = cards.find((c) => c.id === r.cardId);
           if (linkedCard) {
@@ -1831,7 +1832,7 @@ export default function App() {
           }
         }
 
-        // B) XP Unlock Check
+        // B) Check for Level Ups (Experience Cards)
         const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
         if (unlockedXpCards.length > 0) anyoneLeveledUp = true;
         
@@ -1845,12 +1846,12 @@ export default function App() {
           });
         });
 
-        // We manually calculate rewardsHistory array
+        // Update Arrays manually for batch
         const nextHistory = [ ...(st.rewardsHistory || []), historyEntry ];
         
         batch.update(studentRef, {
           currentPoints: increment(-costNum),
-          xp: increment(costNum), // Add cost to XP
+          xp: increment(costNum), // ADD XP because they spent points
           rewardsHistory: nextHistory,
           cards: newCards,
         });
@@ -1862,6 +1863,10 @@ export default function App() {
         alert("🎉 Some students leveled up and unlocked Experience Cards!");
       }
       
+      // Close modal
+      setRewardToRedeem(null);
+      setRedeemType("individual");
+
     } catch (err) {
       console.error(err);
       alert("Failed group redeem.");
@@ -1924,6 +1929,27 @@ export default function App() {
     (sum, s) => sum + Number(s.currentPoints || 0),
     0
   );
+
+  const onRedeemConfirm = () => {
+    if (!selectedClass || !rewardToRedeem) return;
+
+    if (redeemType === "individual") {
+      if (!selectedStudentId) return alert("No student selected");
+      // Call the individual function
+      redeemIndividual(selectedClass.id, selectedStudentId, rewardToRedeem.id);
+      
+      // Close modal
+      setRewardToRedeem(null);
+    } else {
+      // Group: Convert the map {id: cost, id2: cost} into an array [[id, cost], [id2, cost]]
+      const participantArray = Object.entries(redemptionMap).filter(([_, cost]) => Number(cost) > 0);
+      
+      if (participantArray.length === 0) return alert("No participants contributing!");
+      
+      // Call the group function
+      redeemGroup(selectedClass.id, rewardToRedeem.id, participantArray);
+    }
+  };
 
   return (
     <div
