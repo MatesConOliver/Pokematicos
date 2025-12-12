@@ -1862,10 +1862,8 @@ export default function App() {
       if (anyoneLeveledUp) {
         alert("🎉 Some students leveled up and unlocked Experience Cards!");
       }
-      
-      // Close modal
-      setRewardToRedeem(null);
-      setRedeemType("individual");
+
+      return true;
 
     } catch (err) {
       console.error(err);
@@ -1930,24 +1928,32 @@ export default function App() {
     0
   );
 
-  const onRedeemConfirm = () => {
+  const onRedeemConfirm = async () => { // <--- Note the "async" keyword here
     if (!selectedClass || !rewardToRedeem) return;
 
     if (redeemType === "individual") {
       if (!selectedStudentId) return alert("No student selected");
-      // Call the individual function
-      redeemIndividual(selectedClass.id, selectedStudentId, rewardToRedeem.id);
       
-      // Close modal
+      // Call Individual
+      await redeemIndividual(selectedClass.id, selectedStudentId, rewardToRedeem.id);
+      
+      // Close Modal
       setRewardToRedeem(null);
+      
     } else {
-      // Group: Convert the map {id: cost, id2: cost} into an array [[id, cost], [id2, cost]]
+      // Group: Convert Map to Array
       const participantArray = Object.entries(redemptionMap).filter(([_, cost]) => Number(cost) > 0);
       
       if (participantArray.length === 0) return alert("No participants contributing!");
       
-      // Call the group function
-      redeemGroup(selectedClass.id, rewardToRedeem.id, participantArray);
+      // Call Group
+      const success = await redeemGroup(selectedClass.id, rewardToRedeem.id, participantArray);
+      
+      // Close Modal (ONLY if success)
+      if (success) {
+        setRewardToRedeem(null);
+        setRedeemType("individual"); // Reset type back to default
+      }
     }
   };
 
