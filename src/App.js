@@ -1022,12 +1022,22 @@ export default function App() {
   }
 
   async function quickAddPoints(classId, studentId, amount) {
-    const n = Number(amount || 0);
-    if (!Number.isFinite(n) || n === 0) return;
+    const rawAmount = Number(amount || 0);
+    if (!Number.isFinite(rawAmount) || rawAmount === 0) return;
 
     try {
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      await updateDoc(studentRef, { currentPoints: increment(n) });
+      // 1. Get current multiplier
+      const snap = await getDoc(studentRef);
+      if (!snap.exists()) return;
+      const sdata = snap.data();
+      const mult = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+
+      // 2. Apply multiplier
+      const effective = round2(rawAmount * mult);
+
+      // 3. Update (using increment for safety, or direct set if you prefer exact calc)
+      await updateDoc(studentRef, { currentPoints: increment(effective) });
     } catch (err) {
       console.error("quickAddPoints error", err);
       alert("Could not add points.");
