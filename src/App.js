@@ -613,6 +613,22 @@ export default function App() {
     }
   }
 
+  function getNewExperienceCards(currentCards, currentXp, allCards) {
+    // 1. Find all cards that are category "experience"
+    const xpCards = allCards.filter(c => c.category === "experience");
+    
+    // 2. Filter for ones we have reached the threshold for (card.points = threshold)
+    const unlocked = xpCards.filter(c => currentXp >= (c.points || 0));
+
+    // 3. Filter out ones the student ALREADY has
+    // We check if the student's owned list contains a card with this source ID
+    const newUnlocks = unlocked.filter(c => 
+      !currentCards.some(owned => owned.cardId === c.id)
+    );
+
+    return newUnlocks;
+  }
+
   function pushOwnedCard({ cardsArr, cardId, cardData, pointsGranted, streakId }) {
     cardsArr.push({
       id: uid("owned"),
@@ -1679,165 +1695,173 @@ export default function App() {
   }
 
   // Redeem: individual
-  async function redeemRewardIndividual(classId, studentId, rewardId) {
+  async function redeemIndividual(classId, studentId, rewardId) {
+    if (!classId || !studentId || !rewardId) return;
+    const r = rewards.find((x) => x.id === rewardId);
+    if (!r) return alert("Reward not found");
+
+    const cost = Number(r.cost || 0);
+    const s = students.find((x) => x.id === studentId);
+    if (!s) return;
+
+    if ((s.currentPoints || 0) < cost) {
+      return alert("Not enough points!");
+    }
+
+    if (!window.confirm(`Redeem "${r.title}" for ${cost} points?`)) return;
+
     try {
-      const rewardSnap = await getDoc(doc(db, `classes/${classId}/rewards/${rewardId}`));
-      if (!rewardSnap.exists()) return alert("Reward not found");
-      const r = rewardSnap.data();
-
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const sSnap = await getDoc(studentRef);
-      if (!sSnap.exists()) return alert("Student not found");
-      const s = sSnap.data();
-
-      if ((s.currentPoints || 0) < r.cost) return alert("Not enough points");
-
-      // optional linked card grant (unlocked image used)
-      let linkedCard = null;
-      if (r.cardId) {
-        const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${r.cardId}`));
-        if (cardSnap.exists()) linkedCard = { id: r.cardId, ...cardSnap.data() };
-      }
-
-      const newCurrent = (s.currentPoints || 0) - r.cost;
-      const newXP = (s.xp || 0) + r.cost;
       const now = new Date().toISOString();
 
-      const newHistory = [
-        ...(s.rewardsHistory || []),
-        {
-          id: uid("rh"),
-          rewardId,
-          title: r.title,
-          cost: r.cost,
-          date: now,
-          students: [studentId],
-          mode: "individual",
-        },
-      ];
+      // 1. Calculate new XP (Points Spent -> XP)
+      const oldXp = Number(s.xp || 0);
+      const newXp = oldXp + cost;
 
-      const newCards = [...(s.cards || [])];
-      if (linkedCard) {
-        newCards.push({
-          id: uid("owned"),
-          cardId: r.cardId,
-          title: linkedCard.title,
-          imageURL: linkedCard.imageURL || "",
-          grantedAt: now,
-        });
+      // 2. Create history entry
+      const historyEntry = {
+        id: uid("rh"),
+        rewardId,
+        title: r.title,
+        cost: cost,
+        date: now,
+        type: "individual",
+      };
+
+      // 3. Handle Cards (Reward Card + Potential XP Cards)
+      let newCards = [...(s.cards || [])];
+
+      // A) Reward Card (if the reward itself is a card)
+      if (r.cardId) {
+        const linkedCard = cards.find((c) => c.id === r.cardId);
+        if (linkedCard) {
+          pushOwnedCard({
+            cardsArr: newCards,
+            cardId: r.cardId,
+            cardData: linkedCard,
+            pointsGranted: 0,
+            streakId: "reward",
+          });
+        }
       }
 
-      const newCardsWithXP = unlockExperienceCards({
-        allCards: cards,      // uses the library cards already loaded in state
-        cardsArr: newCards,
-        xpAfter: newXP,
-        nowISO: now,
+      // B) XP Unlock Check (The fix!)
+      const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
+      unlockedXpCards.forEach(c => {
+        pushOwnedCard({
+          cardsArr: newCards,
+          cardId: c.id,
+          cardData: c,
+          pointsGranted: 0, // Experience cards usually don't give points themselves, they are the prize
+          streakId: "xp_unlock",
+        });
       });
 
+      // 4. Update Database
       await updateDoc(studentRef, {
-        currentPoints: newCurrent,
-        xp: newXP,
-        rewardsHistory: newHistory,
-        cards: newCardsWithXP,
+        currentPoints: increment(-cost),
+        xp: newXp, // Save the new XP
+        rewardsHistory: [ ...(s.rewardsHistory || []), historyEntry ],
+        cards: newCards,
       });
+
+      if (unlockedXpCards.length > 0) {
+        alert(`🎉 Level Up! Unlocked ${unlockedXpCards.length} new Experience Card(s)!`);
+      }
+
     } catch (err) {
       console.error(err);
-      alert("Failed to redeem reward.");
+      alert("Failed to redeem.");
     }
   }
 
   // Redeem: group (shares sum must equal cost). Applies to all participants: subtract share, add XP share, add history entry, grant linked card.
-  async function redeemRewardGroup(classId, rewardId, sharesMap) {
+  async function redeemGroup(classId, initiatorStudentId, rewardId, participants) {
+    if (!participants || participants.length === 0) return;
+    const r = rewards.find((x) => x.id === rewardId);
+    if (!r) return;
+
+    if (!window.confirm(`Redeem "${r.title}" for group?`)) return;
+
     try {
-      const rewardSnap = await getDoc(doc(db, `classes/${classId}/rewards/${rewardId}`));
-      if (!rewardSnap.exists()) return alert("Reward not found");
-      const r = rewardSnap.data();
-
-      const entries = Object.entries(sharesMap || {}).map(([sid, val]) => [sid, Number(val || 0)]);
-      const participants = entries.filter(([, val]) => val > 0);
-
-      const sum = participants.reduce((acc, [, val]) => acc + val, 0);
-      if (sum !== Number(r.cost || 0)) {
-        alert(`The total is ${sum} but must be exactly ${r.cost}.`);
-        return;
-      }
-      if (!participants.length) {
-        alert("Add at least one student with a share > 0.");
-        return;
-      }
-
-      // validate points (using current local snapshot values)
-      const lacking = [];
-      for (const [sid, share] of participants) {
-        const st = students.find((s) => s.id === sid);
-        if (!st) continue;
-        if ((st.currentPoints || 0) < share) lacking.push(st.name);
-      }
-      if (lacking.length) {
-        alert(`These students do not have enough points: ${lacking.join(", ")}`);
-        return;
-      }
-
-      // optional linked card grant
-      let linkedCard = null;
-      if (r.cardId) {
-        const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${r.cardId}`));
-        if (cardSnap.exists()) linkedCard = { id: r.cardId, ...cardSnap.data() };
-      }
-
       const batch = writeBatch(db);
       const now = new Date().toISOString();
-      const participantIds = participants.map(([sid]) => sid);
+
+      const contributors = participants.map(([sid, share]) => {
+        const sName = students.find(s => s.id === sid)?.name || "Unknown";
+        return { name: sName, cost: Number(share) };
+      });
+
+      let anyoneLeveledUp = false;
 
       for (const [sid, share] of participants) {
         const st = students.find((s) => s.id === sid);
         if (!st) continue;
 
         const studentRef = doc(db, `classes/${classId}/students/${sid}`);
+        const costNum = Number(share);
 
-        const newCurrent = (st.currentPoints || 0) - share;
-        const newXP = (st.xp || 0) + share;
+        // 1. Calculate new XP
+        const oldXp = Number(st.xp || 0);
+        const newXp = oldXp + costNum;
 
-        const newHistory = [
-          ...(st.rewardsHistory || []),
-          {
-            id: uid("rh"),
-            rewardId,
-            title: r.title,
-            cost: share,
-            date: now,
-            students: participantIds,
-            mode: "group",
-          },
-        ];
+        const historyEntry = {
+          id: uid("rh"),
+          rewardId,
+          title: r.title,
+          cost: costNum,
+          date: now,
+          type: "group",
+          contributors: contributors,
+        };
 
         let newCards = [...(st.cards || [])];
-        if (linkedCard) {
-          newCards.push({
-            id: uid("owned"),
-            cardId: r.cardId,
-            title: linkedCard.title,
-            imageURL: linkedCard.imageURL || "",
-            grantedAt: now,
-          });
+
+        // A) Reward Card
+        if (r.cardId) {
+          const linkedCard = cards.find((c) => c.id === r.cardId);
+          if (linkedCard) {
+            pushOwnedCard({
+              cardsArr: newCards,
+              cardId: r.cardId,
+              cardData: linkedCard,
+              pointsGranted: 0,
+              streakId: "reward_group",
+            });
+          }
         }
 
-        newCards = unlockExperienceCards({
-          allCards: cards,
-          cardsArr: newCards,
-          xpAfter: newXP,
-          nowISO: now,
+        // B) XP Unlock Check
+        const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
+        if (unlockedXpCards.length > 0) anyoneLeveledUp = true;
+        
+        unlockedXpCards.forEach(c => {
+          pushOwnedCard({
+            cardsArr: newCards,
+            cardId: c.id,
+            cardData: c,
+            pointsGranted: 0,
+            streakId: "xp_unlock",
+          });
         });
 
+        // We manually calculate rewardsHistory array
+        const nextHistory = [ ...(st.rewardsHistory || []), historyEntry ];
+        
         batch.update(studentRef, {
-          currentPoints: newCurrent,
-          xp: newXP,
-          rewardsHistory: newHistory,
+          currentPoints: increment(-costNum),
+          xp: increment(costNum), // Add cost to XP
+          rewardsHistory: nextHistory,
           cards: newCards,
         });
       }
 
       await batch.commit();
+      
+      if (anyoneLeveledUp) {
+        alert("🎉 Some students leveled up and unlocked Experience Cards!");
+      }
+      
     } catch (err) {
       console.error(err);
       alert("Failed group redeem.");
@@ -3511,24 +3535,94 @@ function ProfileModal({ mode, student, onClose, onSave }) {
             </div>
           </div>
 
-          {/* --- REWARD HISTORY (Visible to Everyone) --- */}
-          <div style={{ marginTop: 20, borderTop: "1px solid #eee", paddingTop: 15 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>Reward History</div>
+          {/* --- REWARD HISTORY (Stylish Cards) --- */}
+          <div style={{ marginTop: 24, borderTop: "1px dashed #e0e0e0", paddingTop: 16 }}>
+            <div style={{ 
+              fontSize: 12, 
+              textTransform: "uppercase", 
+              letterSpacing: "1px", 
+              color: "#999", 
+              fontWeight: 700, 
+              marginBottom: 12 
+            }}>
+              Reward History
+            </div>
+
             {(!student.rewardsHistory || student.rewardsHistory.length === 0) ? (
-              <div className="muted" style={{ fontSize: 13 }}>No rewards redeemed yet.</div>
+              <div style={{ textAlign: "center", padding: "20px", color: "#ccc", fontStyle: "italic", fontSize: 13 }}>
+                No rewards redeemed yet.
+              </div>
             ) : (
-              <div style={{ maxHeight: 150, overflowY: "auto", background: "#fafafa", border: "1px solid #eee", borderRadius: 8, padding: 4 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[...(student.rewardsHistory || [])]
-                  .sort((a, b) => (b.date || "").localeCompare(a.date || "")) // Show newest first
-                  .map((h) => (
-                    <div key={h.id || Math.random()} style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0", fontSize: 13 }}>
-                      <div style={{ fontWeight: 600, color: "#333" }}>{h.title}</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", color: "#888", fontSize: 11, marginTop: 2 }}>
-                        <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
-                        <span>-{h.cost} pts</span>
+                  .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                  .map((h) => {
+                    const isGroup = h.type === "group" || h.mode === "group"; // Handle new and old data
+                    return (
+                      <div key={h.id || Math.random()} style={{
+                        background: "#fff",
+                        border: "1px solid #eee",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        boxShadow: "0 2px 5px rgba(0,0,0,0.02)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 4
+                      }}>
+                        {/* Title and Cost */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ fontWeight: 700, color: "#333", fontSize: 14 }}>
+                            {h.title}
+                          </div>
+                          <div style={{ 
+                            background: "#ffebee", 
+                            color: "#c62828", 
+                            fontWeight: 800, 
+                            fontSize: 12, 
+                            padding: "2px 8px", 
+                            borderRadius: 12 
+                          }}>
+                            -{h.cost}
+                          </div>
+                        </div>
+
+                        {/* Info Row */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#888" }}>
+                          <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                          {isGroup && (
+                            <span style={{ 
+                              background: "#e3f2fd", 
+                              color: "#1565c0", 
+                              padding: "1px 6px", 
+                              borderRadius: 4, 
+                              fontWeight: 600,
+                              fontSize: 10 
+                            }}>
+                              👥 GROUP
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Group Contributors List */}
+                        {isGroup && h.contributors && (
+                          <div style={{ 
+                            marginTop: 6, 
+                            paddingTop: 6, 
+                            borderTop: "1px dashed #eee", 
+                            fontSize: 11, 
+                            color: "#666",
+                            lineHeight: "1.4em" 
+                          }}>
+                            <span style={{ fontWeight: 600 }}>Splitting with: </span>
+                            {h.contributors
+                              .filter(c => c.name !== student.name) // Hide self
+                              .map(c => `${c.name} (${c.cost})`)
+                              .join(", ")}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             )}
           </div>
