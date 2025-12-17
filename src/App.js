@@ -2476,7 +2476,7 @@ export default function App() {
                             <div
                               style={{
                                 marginTop: 8,
-                                maxHeight: 260,
+                                maxHeight: 150,
                                 overflowY: "auto",
                                 paddingRight: 6,
                                 display: "flex",
@@ -2515,7 +2515,7 @@ export default function App() {
                                     className="card-thumb"
                                     style={{
                                       width: 80,
-                                      height: 60,
+                                      height: 110,
                                       border: "1px solid #eee",
                                       borderRadius: 10,
                                       overflow: "hidden",
