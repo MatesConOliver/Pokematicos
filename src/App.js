@@ -2515,7 +2515,7 @@ export default function App() {
                                     className="card-thumb"
                                     style={{
                                       width: 80,
-                                      height: 110,
+                                      height: 60,
                                       border: "1px solid #eee",
                                       borderRadius: 10,
                                       overflow: "hidden",
