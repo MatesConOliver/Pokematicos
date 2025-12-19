@@ -1875,7 +1875,7 @@ export default function App() {
   if (!mode) {
     return (
       <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 24, maxWidth: 520 }}>
-        <h1 style={{ marginTop: 0 }}>Mis logros Pokemáticos</h1>
+        <h1 style={{ marginTop: 0 }}>CBA card system</h1>
 
         <div style={{ marginTop: 16, padding: 12, border: "1px solid #eee", borderRadius: 12 }}>
           <h3 style={{ margin: 0 }}>Soy profe (admin)</h3>
@@ -2126,7 +2126,7 @@ export default function App() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0 }}>Mis logros Pokemáticos — Manager</h1>
+          <h1 style={{ margin: 0 }}>CBA card system</h1>
           <div style={{ color: "#555" }}>
             {mode === "admin" ? "Admin mode" : "Guest mode"}
           </div>
