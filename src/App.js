@@ -2202,40 +2202,6 @@ export default function App() {
           </div>
         </div>
 
-        {mode === "admin" && (
-          <>
-            <input
-              type="file"
-              accept="image/*"
-              ref={bgInputRef}
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  uploadBackgroundImage(file);
-                  // reset so picking the same file again still triggers change
-                  e.target.value = "";
-                }
-              }}
-            />
-            <button
-              className="btn"
-              onClick={() => bgInputRef.current?.click()}
-            >
-              Background
-            </button>
-
-            {((activeClassId && activeClass?.backgroundUrl) || (!activeClassId && globalBackgroundUrl)) && (
-              <button
-                className="btn"
-                onClick={clearBackgroundImage}
-              >
-                {activeClassId ? "Revert to Global" : "Remove Global Bg"}
-              </button>
-            )}
-          </>
-        )}
-
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {authUser ? (
             <button className="btn" onClick={logout}>
