@@ -345,7 +345,31 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  const currentBackgroundUrl = activeClass?.backgroundUrl || globalBackgroundUrl;
+  // 1. State for the "Sticky" background
+  const [stickyBackground, setStickyBackground] = useState("");
+  
+  // 2. Ref to ensure we only load the global background ONCE (on startup)
+  const hasLoadedInitialGlobal = useRef(false);
+
+  // 3. Effect: Load Global Background ONLY on first load
+  useEffect(() => {
+    if (!hasLoadedInitialGlobal.current && globalBackgroundUrl) {
+      setStickyBackground(globalBackgroundUrl);
+      hasLoadedInitialGlobal.current = true;
+    }
+  }, [globalBackgroundUrl]);
+
+  // 4. Effect: When a class is selected, set the background (Image or Blank)
+  useEffect(() => {
+    if (activeClassId) {
+      // If class has a URL, use it. If not, use "" (Blank).
+      // We do NOT fall back to globalBackgroundUrl here.
+      const nextBg = activeClass?.backgroundUrl || ""; 
+      setStickyBackground(nextBg);
+    }
+    // If activeClassId is null (unselected), we do NOTHING.
+    // This preserves whatever background was last shown.
+  }, [activeClassId, activeClass]);
 
   // ----- Subscribe: class subcollections -----
   useEffect(() => {
@@ -1991,12 +2015,12 @@ export default function App() {
         fontFamily: "Inter, system-ui, sans-serif",
         minHeight: "100vh",
         padding: 12,
-        backgroundImage: currentBackgroundUrl ? `url(${currentBackgroundUrl})` : "none",
+        backgroundImage: stickyBackground ? `url(${stickyBackground})` : "none",
         backgroundSize: "cover",
         backgroundAttachment: "fixed",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-        transition: "background-image 0.5s ease-in-out" // Optional: makes the switch smooth
+        transition: "background-image 1s ease-in-out" // Optional: makes the switch smooth
       }}
     >
       {mode === "admin" && (
