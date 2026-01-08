@@ -198,6 +198,7 @@ export default function App() {
 
   const [authUser, setAuthUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [showAdminForm, setShowAdminForm] = useState(false);
 
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPass, setAdminPass] = useState("");
@@ -1923,47 +1924,168 @@ export default function App() {
     }
   }
 
-  // ----- Mode chooser -----
+  // --- NEW STYLES ---
+  const loginStyles = {
+    container: {
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      fontFamily: "'Inter', sans-serif",
+      padding: 20,
+    },
+    card: {
+      background: "white",
+      padding: "40px",
+      borderRadius: "16px",
+      boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+      width: "100%",
+      maxWidth: "400px",
+      textAlign: "center",
+    },
+    title: {
+      margin: "0 0 10px 0",
+      color: "#333",
+      fontSize: "2rem",
+      fontWeight: "800",
+    },
+    subtitle: {
+      color: "#666",
+      marginBottom: "30px",
+      fontSize: "0.95rem",
+    },
+    studentBtn: {
+      width: "100%",
+      padding: "16px",
+      fontSize: "1.1rem",
+      fontWeight: "600",
+      color: "white",
+      background: "#10B981", // Bright Green
+      border: "none",
+      borderRadius: "12px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "10px",
+      marginBottom: "16px",
+      boxShadow: "0 4px 6px rgba(16, 185, 129, 0.3)",
+      transition: "transform 0.1s",
+    },
+    teacherBtn: {
+      width: "100%",
+      padding: "12px",
+      fontSize: "0.95rem",
+      color: "#555",
+      background: "#f3f4f6",
+      border: "1px solid #e5e7eb",
+      borderRadius: "12px",
+      cursor: "pointer",
+      fontWeight: "500",
+    },
+    input: {
+      width: "100%",
+      padding: "12px",
+      marginBottom: "12px",
+      borderRadius: "8px",
+      border: "1px solid #ddd",
+      fontSize: "1rem",
+      boxSizing: "border-box", 
+    }
+  };
+
+  // ----- IMPROVED LOGIN SCREEN -----
   if (!mode) {
     return (
-      <div style={{ fontFamily: "Inter, system-ui, sans-serif", padding: 24, maxWidth: 520 }}>
-        <h1 style={{ marginTop: 0 }}>CBA card system</h1>
+      <div style={loginStyles.container}>
+        <div style={loginStyles.card}>
+          <h1 style={loginStyles.title}>CBA Card System</h1>
 
-        <div style={{ marginTop: 16, padding: 12, border: "1px solid #eee", borderRadius: 12 }}>
-          <h3 style={{ margin: 0 }}>Soy profe (admin)</h3>
-          <p style={{ marginTop: 8, color: "#555" }}>
-            Entra con Email/Password (Firebase Auth).
-          </p>
+          {/* 1. LOADING SPINNER (If Auth isn't ready) */}
+          {(!authChecked || checkingAdmin) ? (
+             <div style={{ color: "#666", padding: 20 }}>Cargando...</div>
+          ) : !showAdminForm ? (
+            
+            // 2. CHOICE SCREEN (Student vs Teacher)
+            <>
+              <p style={loginStyles.subtitle}>Selecciona cómo quieres entrar</p>
+              
+              <button 
+                style={loginStyles.studentBtn}
+                onClick={enterReader}
+                onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.02)"}
+                onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
+              >
+                🎒 Soy Alumno (Invitado)
+              </button>
 
-          <div style={{ display: "grid", gap: 8 }}>
-            <input
-              className="input"
-              placeholder="Email"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-            />
-            <input
-              className="input"
-              type="password"
-              placeholder="Password"
-              value={adminPass}
-              onChange={(e) => setAdminPass(e.target.value)}
-            />
-            <button className="btn primary" onClick={loginAdminEmailPassword} disabled={!authChecked || checkingAdmin}>
-              Entrar como profe
-            </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0", opacity: 0.5 }}>
+                <div style={{ height: 1, background: "#ccc", flex: 1 }}></div>
+                <span style={{ fontSize: 12 }}>O</span>
+                <div style={{ height: 1, background: "#ccc", flex: 1 }}></div>
+              </div>
 
-            {checkingAdmin && <div style={{ color: "#555" }}>Checking admin…</div>}
-            {adminError && <div style={{ color: "crimson" }}>{adminError}</div>}
-          </div>
-        </div>
+              <button 
+                style={loginStyles.teacherBtn}
+                onClick={() => setShowAdminForm(true)}
+              >
+                👨‍🏫 Soy Profe (Admin)
+              </button>
+            </>
 
-        <div style={{ marginTop: 16 }}>
-          <h3 style={{ margin: 0 }}>Soy estudiante / invitado</h3>
-          <p style={{ marginTop: 8, color: "#555" }}>
-            Invitado puede leer y editar solo el perfil (si las reglas lo permiten).
-          </p>
-          <button className="btn" onClick={enterReader}>Entrar como invitado</button>
+          ) : (
+            
+            // 3. ADMIN LOGIN FORM (Only visible after clicking "Soy Profe")
+            <>
+              <p style={loginStyles.subtitle}>Acceso para profesores</p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  loginAdminEmailPassword();
+                }}
+              >
+                <input
+                  style={loginStyles.input}
+                  type="email"
+                  placeholder="Email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  autoFocus
+                />
+                <input
+                  style={loginStyles.input}
+                  type="password"
+                  placeholder="Password"
+                  value={adminPass}
+                  onChange={(e) => setAdminPass(e.target.value)}
+                />
+                
+                {adminError && (
+                  <div style={{ color: "crimson", fontSize: "0.9rem", marginBottom: 12 }}>
+                    {adminError}
+                  </div>
+                )}
+
+                <button 
+                  type="submit" 
+                  style={{ ...loginStyles.studentBtn, background: "#4F46E5", boxShadow: "0 4px 6px rgba(79, 70, 229, 0.3)" }}
+                >
+                  Entrar
+                </button>
+              </form>
+
+              <button
+                style={{ background: "none", border: "none", color: "#666", cursor: "pointer", textDecoration: "underline", marginTop: 10 }}
+                onClick={() => {
+                  setShowAdminForm(false); // Go back to choice screen
+                  setAdminError("");
+                }}
+              >
+                ← Volver atrás
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
