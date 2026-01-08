@@ -2225,12 +2225,12 @@ export default function App() {
               Background
             </button>
 
-            {backgroundUrl && (
+            {((activeClassId && activeClass?.backgroundUrl) || (!activeClassId && globalBackgroundUrl)) && (
               <button
                 className="btn"
                 onClick={clearBackgroundImage}
               >
-                Remove bg
+                {activeClassId ? "Revert to Global" : "Remove Global Bg"}
               </button>
             )}
           </>
