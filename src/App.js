@@ -290,7 +290,7 @@ export default function App() {
   const lockedFileInputRef = useRef(null);
   const unlockedFileInputRef = useRef(null);
 
-  const [backgroundUrl, setBackgroundUrl] = useState("");
+  const [globalBackgroundUrl, setGlobalBackgroundUrl] = useState(""); // Renamed from backgroundUrl
   const bgInputRef = useRef(null);
 
   const activeClass = useMemo(
@@ -332,24 +332,20 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load background image (global config)
+  // Keep listening to the global default background
   useEffect(() => {
     const bgDocRef = doc(db, "config", "background");
-    const unsub = onSnapshot(
-      bgDocRef,
-      (snap) => {
-        if (snap.exists()) {
-          setBackgroundUrl(snap.data().url || "");
-        } else {
-          setBackgroundUrl("");
-        }
-      },
-      (err) => {
-        console.error("Error loading background:", err);
+    const unsub = onSnapshot(bgDocRef, (snap) => {
+      if (snap.exists()) {
+        setGlobalBackgroundUrl(snap.data().url || "");
+      } else {
+        setGlobalBackgroundUrl("");
       }
-    );
+    });
     return () => unsub();
   }, []);
+
+  const currentBackgroundUrl = activeClass?.backgroundUrl || globalBackgroundUrl;
 
   // ----- Subscribe: class subcollections -----
   useEffect(() => {
@@ -953,30 +949,62 @@ export default function App() {
   // Upload and set background image
   async function uploadBackgroundImage(file) {
     if (!file) return;
+  
     try {
       const safeName = file.name.replace(/\s+/g, "_");
-      const key = `bg_${Date.now()}_${safeName}`;
-      const ref = storageRef(storage, `backgrounds/${key}`);
+      const timestamp = Date.now();
+      
+      // DECISION: Are we uploading for a specific class or the global default?
+      let storagePath;
+      let firestoreRef;
+      
+      if (activeClassId) {
+        // 1. Class Specific
+        // We store it in a subfolder so your bucket stays clean
+        storagePath = `classes/${activeClassId}/backgrounds/bg_${timestamp}_${safeName}`;
+        firestoreRef = doc(db, "classes", activeClassId);
+      } else {
+        // 2. Global Default (Your existing logic)
+        storagePath = `backgrounds/bg_${timestamp}_${safeName}`;
+        firestoreRef = doc(db, "config", "background");
+      }
+  
+      // A. Upload the file to Firebase Storage
+      const ref = storageRef(storage, storagePath);
       const snapshot = await uploadBytes(ref, file);
       const url = await getDownloadURL(snapshot.ref);
-
-      // Save to Firestore config/background
-      await setDoc(doc(db, "config", "background"), { url });
-
-      alert("Background updated!");
-      // onSnapshot will update backgroundUrl automatically
+  
+      // B. Save the URL to the correct Firestore document
+      if (activeClassId) {
+        // Update the CLASS document
+        await updateDoc(firestoreRef, { backgroundUrl: url });
+        alert(`Background updated for ${activeClass.name}!`);
+      } else {
+        // Update the CONFIG document
+        await setDoc(firestoreRef, { url });
+        alert("Global default background updated!");
+      }
+  
     } catch (err) {
       console.error("uploadBackgroundImage error:", err);
       alert("Failed to upload background image.");
     }
   }
 
-  // Remove background image (set to none)
+  // Remove background image (for active class, and set to none)
   async function clearBackgroundImage() {
     try {
-      await setDoc(doc(db, "config", "background"), { url: "" });
-      alert("Background removed!");
-      // onSnapshot will set backgroundUrl to "" automatically
+      if (activeClassId) {
+        // Remove ONLY the class background (reverting it to the global default)
+        await updateDoc(doc(db, "classes", activeClassId), { 
+          backgroundUrl: "" 
+        });
+        alert(`Removed background for ${activeClass.name}. Now using default.`);
+      } else {
+        // Remove the global background
+        await setDoc(doc(db, "config", "background"), { url: "" });
+        alert("Global background removed!");
+      }
     } catch (err) {
       console.error("clearBackgroundImage error:", err);
       alert("Failed to remove background.");
@@ -1963,13 +1991,55 @@ export default function App() {
         fontFamily: "Inter, system-ui, sans-serif",
         minHeight: "100vh",
         padding: 12,
-        backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : "none",
+        backgroundImage: currentBackgroundUrl ? `url(${currentBackgroundUrl})` : "none",
         backgroundSize: "cover",
         backgroundAttachment: "fixed",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
+        transition: "background-image 0.5s ease-in-out" // Optional: makes the switch smooth
       }}
     >
+      {mode === "admin" && (
+      <>
+        <input
+          type="file"
+          accept="image/*"
+          ref={bgInputRef}
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              uploadBackgroundImage(file);
+              e.target.value = "";
+            }
+          }}
+        />
+        
+        {/* Visual cue for the admin */}
+        <div style={{ marginBottom: 5, fontSize: "0.8rem", opacity: 0.7 }}>
+          {activeClassId 
+            ? `Editing Background for: ${activeClass.name}` 
+            : "Editing Global Background"}
+        </div>
+  
+        <button
+          className="btn"
+          onClick={() => bgInputRef.current?.click()}
+        >
+          {activeClassId ? "Set Class Background" : "Set Global Background"}
+        </button>
+  
+        {/* Show "Remove" if the CURRENT context has a background set */}
+        {((activeClassId && activeClass?.backgroundUrl) || (!activeClassId && globalBackgroundUrl)) && (
+          <button
+            className="btn"
+            onClick={clearBackgroundImage}
+          >
+            {activeClassId ? "Revert to Global" : "Remove Global Bg"}
+          </button>
+        )}
+      </>
+    )}
       <style>{`
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
         .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
