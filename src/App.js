@@ -1066,7 +1066,7 @@ export default function App() {
     studentId,
     { nameEmojis, profileColor }
   ) {
-    const safeEmojis = (nameEmojis || "").toString().slice(0, 12);
+    const safeEmojis = (nameEmojis || "").toString().slice(0, 1);
     const safeColor = (profileColor || "").toString();
     try {
       await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
