@@ -1931,7 +1931,7 @@ export default function App() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("https://firebasestorage.googleapis.com/v0/b/pokematicos.firebasestorage.app/o/backgrounds%2FBackground%20panoramic.jpg?alt=media&token=5a895072-4079-4db9-91f4-e010ebf4dc2a")',
+      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("https://firebasestorage.googleapis.com/v0/b/pokematicos.firebasestorage.app/o/backgrounds%2FBackground%20panoramic.jpg?alt=media&token=33b4b912-6e8f-4bf4-8b67-94e250310150")',
       backgroundSize: "cover",     
       backgroundPosition: "center", 
       backgroundRepeat: "no-repeat",
