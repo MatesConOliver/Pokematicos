@@ -36,6 +36,7 @@ import RewardCreateForm from "./components/rewards/RewardCreateForm";
 import ProfileModal from "./components/profile/ProfileModal";
 import EmojiParty from "./components/common/EmojiParty";
 import ManageStudentModal from "./components/students/ManageStudentModal";
+import { uid, round2, safeLower, PASTEL_COLORS } from "./utils/helpers";
 
 
 /**
@@ -71,10 +72,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
-
-function uid(prefix = "id") {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
-}
 
 function todayISODate() {
   const d = new Date();
@@ -178,26 +175,6 @@ function isTodayInFloatWindows(today, windows) {
   const list = Array.isArray(windows) ? windows : [];
   return list.some((w) => w && w.start <= today && today <= w.end);
 }
-
-
-function safeLower(s) {
-  return (s || "").toString().toLowerCase();
-}
-
-function round2(x) {
-  return Math.round((Number(x) || 0) * 100) / 100;
-}
-
-const PASTEL_COLORS = [
-  { name: "Mint", value: "#D1FAE5" },
-  { name: "Sky", value: "#DBEAFE" },
-  { name: "Lavender", value: "#EDE9FE" },
-  { name: "Peach", value: "#FFEDD5" },
-  { name: "Rose", value: "#FFE4E6" },
-  { name: "Lemon", value: "#FEF9C3" },
-  { name: "Aqua", value: "#CFFAFE" },
-  { name: "Sand", value: "#F5F5DC" },
-];
 
 export default function App() {
   // ----- Mode -----
