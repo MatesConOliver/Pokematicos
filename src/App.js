@@ -37,6 +37,7 @@ import ProfileModal from "./components/profile/ProfileModal";
 import EmojiParty from "./components/common/EmojiParty";
 import ManageStudentModal from "./components/students/ManageStudentModal";
 import { uid, round2, safeLower, PASTEL_COLORS } from "./utils/helpers";
+import { todayISODate, addDaysISO } from "./utils/dateUtils";
 
 
 /**
@@ -73,23 +74,6 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
-function todayISODate() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`; // local YYYY-MM-DD
-}
-
-function addDaysISO(isoDate, days) {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  const dt = new Date(y, m - 1, d); // local date
-  dt.setDate(dt.getDate() + Number(days || 0));
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}`;
-}
 
 function parseFloatScheduleInput(input, defaults = { delayDays: 7, durationDays: 7 }) {
   const fallback = {
