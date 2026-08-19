@@ -36,6 +36,7 @@ import RewardCreateForm from "./components/rewards/RewardCreateForm";
 import ProfileModal from "./components/profile/ProfileModal";
 import EmojiParty from "./components/common/EmojiParty";
 import ManageStudentModal from "./components/students/ManageStudentModal";
+import { createClass, editClassName, removeClass } from "./services/classService";
 
 
 /**
@@ -454,47 +455,7 @@ export default function App() {
     return true;
   }
 
-  // ----- Class actions -----
-  async function createClass(name) {
-    if (!name?.trim()) return;
-    try {
-      const payload = { name: name.trim(), createdAt: Date.now() };
-      const ref = await addDoc(collection(db, "classes"), payload);
-      setActiveClassId(ref.id);
-    } catch (err) {
-      console.error("createClass err:", err);
-      alert("Failed to create class.");
-    }
-  }
-
-  async function editClassName(classId) {
-    const cls = classesList.find((c) => c.id === classId);
-    if (!cls) return;
-    const newName = prompt("New class name:", cls.name || "");
-    if (!newName?.trim()) return;
-    try {
-      await updateDoc(doc(db, `classes/${classId}`), { name: newName.trim() });
-    } catch (err) {
-      console.error(err);
-      alert("Could not rename class.");
-    }
-  }
-
-  async function removeClass(classId) {
-    if (
-      !window.confirm(
-        "Delete this class? (Subcollections won't be deleted automatically)"
-      )
-    )
-      return;
-    try {
-      await deleteDoc(doc(db, `classes/${classId}`));
-      if (activeClassId === classId) setActiveClassId(null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete class.");
-    }
-  }
+  // ----- Class actions (extracted to services/classService.js) -----
 
   // Navigate through owned cards
   function ownedNav(delta) {
@@ -2399,10 +2360,10 @@ export default function App() {
 
                   {mode === "admin" && (
                     <>
-                      <button className="btn" onClick={() => editClassName(c.id)}>
+                      <button className="btn" onClick={() => editClassName(db, c.id, classesList)}>
                         Edit
                       </button>
-                      <button className="btn" onClick={() => removeClass(c.id)}>
+                      <button className="btn" onClick={() => removeClass(db, c.id, activeClassId, setActiveClassId)}>
                         Delete
                       </button>
                     </>
@@ -2428,7 +2389,7 @@ export default function App() {
                   onClick={() => {
                     const name = newClassNameRef.current?.value?.trim();
                     if (!name) return alert("Enter class name");
-                    createClass(name);
+                    createClass(db, name, setActiveClassId);
                     if (newClassNameRef.current) newClassNameRef.current.value = "";
                   }}
                 >
