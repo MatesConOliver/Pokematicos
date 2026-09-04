@@ -40,6 +40,7 @@ import { createClass, editClassName, removeClass } from "./services/classService
 import { addStudent, editStudent, deleteStudent } from "./services/studentService";
 import { uid, round2, safeLower, PASTEL_COLORS } from "./utils/helpers";
 import { todayISODate, addDaysISO } from "./utils/dateUtils";
+import useBackgroundManager from "./hooks/useBackgroundManager";
 import {
   parseFloatScheduleInput,
   normalizeFloatWindows,
@@ -180,9 +181,6 @@ export default function App() {
   const lockedFileInputRef = useRef(null);
   const unlockedFileInputRef = useRef(null);
 
-  const [globalBackgroundUrl, setGlobalBackgroundUrl] = useState(""); // Renamed from backgroundUrl
-  const bgInputRef = useRef(null);
-
   const activeClass = useMemo(
     () => classesList.find((c) => c.id === activeClassId) || null,
     [classesList, activeClassId]
@@ -197,6 +195,19 @@ export default function App() {
     () => students.find((s) => s.id === profileStudentId) || null,
     [students, profileStudentId]
   );
+
+  const {
+    stickyBackground,
+    globalBackgroundUrl,
+    bgInputRef,
+    uploadBackgroundImage,
+    clearBackgroundImage,
+  } = useBackgroundManager({
+    db,
+    storage,
+    activeClassId,
+    activeClass,
+  });
 
   const [editCard, setEditCard] = useState(null);
 
@@ -220,45 +231,6 @@ export default function App() {
     );
     return () => unsub();
   }, []);
-
-  // Keep listening to the global default background
-  useEffect(() => {
-    const bgDocRef = doc(db, "config", "background");
-    const unsub = onSnapshot(bgDocRef, (snap) => {
-      if (snap.exists()) {
-        setGlobalBackgroundUrl(snap.data().url || "");
-      } else {
-        setGlobalBackgroundUrl("");
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  // 1. State for the "Sticky" background
-  const [stickyBackground, setStickyBackground] = useState("");
-  
-  // 2. Ref to ensure we only load the global background ONCE (on startup)
-  const hasLoadedInitialGlobal = useRef(false);
-
-  // 3. Effect: Load Global Background ONLY on first load
-  useEffect(() => {
-    if (!hasLoadedInitialGlobal.current && globalBackgroundUrl) {
-      setStickyBackground(globalBackgroundUrl);
-      hasLoadedInitialGlobal.current = true;
-    }
-  }, [globalBackgroundUrl]);
-
-  // 4. Effect: When a class is selected, set the background (Image or Blank)
-  useEffect(() => {
-    if (activeClassId) {
-      // If class has a URL, use it. If not, use "" (Blank).
-      // We do NOT fall back to globalBackgroundUrl here.
-      const nextBg = activeClass?.backgroundUrl || ""; 
-      setStickyBackground(nextBg);
-    }
-    // If activeClassId is null (unselected), we do NOTHING.
-    // This preserves whatever background was last shown.
-  }, [activeClassId, activeClass]);
 
   // ----- Subscribe: class subcollections -----
   useEffect(() => {
@@ -818,72 +790,6 @@ export default function App() {
       alert("Could not delete streak. See console.");
     }
   }
-
-  // Upload and set background image
-  async function uploadBackgroundImage(file) {
-    if (!file) return;
-  
-    try {
-      const safeName = file.name.replace(/\s+/g, "_");
-      const timestamp = Date.now();
-      
-      // DECISION: Are we uploading for a specific class or the global default?
-      let storagePath;
-      let firestoreRef;
-      
-      if (activeClassId) {
-        // 1. Class Specific
-        // We store it in a subfolder so your bucket stays clean
-        storagePath = `classes/${activeClassId}/backgrounds/bg_${timestamp}_${safeName}`;
-        firestoreRef = doc(db, "classes", activeClassId);
-      } else {
-        // 2. Global Default (Your existing logic)
-        storagePath = `backgrounds/bg_${timestamp}_${safeName}`;
-        firestoreRef = doc(db, "config", "background");
-      }
-  
-      // A. Upload the file to Firebase Storage
-      const ref = storageRef(storage, storagePath);
-      const snapshot = await uploadBytes(ref, file);
-      const url = await getDownloadURL(snapshot.ref);
-  
-      // B. Save the URL to the correct Firestore document
-      if (activeClassId) {
-        // Update the CLASS document
-        await updateDoc(firestoreRef, { backgroundUrl: url });
-        alert(`Background updated for ${activeClass.name}!`);
-      } else {
-        // Update the CONFIG document
-        await setDoc(firestoreRef, { url });
-        alert("Global default background updated!");
-      }
-  
-    } catch (err) {
-      console.error("uploadBackgroundImage error:", err);
-      alert("Failed to upload background image.");
-    }
-  }
-
-  // Remove background image (for active class, and set to none)
-  async function clearBackgroundImage() {
-    try {
-      if (activeClassId) {
-        // Remove ONLY the class background (reverting it to the global default)
-        await updateDoc(doc(db, "classes", activeClassId), { 
-          backgroundUrl: "" 
-        });
-        alert(`Removed background for ${activeClass.name}. Now using default.`);
-      } else {
-        // Remove the global background
-        await setDoc(doc(db, "config", "background"), { url: "" });
-        alert("Global background removed!");
-      }
-    } catch (err) {
-      console.error("clearBackgroundImage error:", err);
-      alert("Failed to remove background.");
-    }
-  }
-
 
   async function quickAddPoints(classId, studentId, amount) {
     const rawAmount = Number(amount || 0);
