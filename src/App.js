@@ -37,6 +37,7 @@ import ProfileModal from "./components/profile/ProfileModal";
 import EmojiParty from "./components/common/EmojiParty";
 import ManageStudentModal from "./components/students/ManageStudentModal";
 import { createClass, editClassName, removeClass } from "./services/classService";
+import { addStudent, editStudent, deleteStudent } from "./services/studentService";
 
 
 /**
@@ -1003,59 +1004,6 @@ export default function App() {
     }
   }
 
-
-  // ----- Student actions -----
-  async function addStudent(name) {
-    if (!ensureClassSelected()) return;
-    if (!name?.trim()) return;
-
-    try {
-      const payload = {
-        name: name.trim(),
-        // profile cosmetics
-        nameEmojis: "",
-        profileColor: "",
-        // points / xp
-        currentPoints: 0,
-        xp: 0,
-        multiplier: 1,
-        streaks: {},
-        // inventory / history
-        cards: [],
-        rewardsHistory: [],
-        createdAt: Date.now(),
-      };
-      await addDoc(collection(db, `classes/${activeClassId}/students`), payload);
-      if (newStudentRef.current) newStudentRef.current.value = "";
-    } catch (err) {
-      console.error(err);
-      alert("Failed to add student.");
-    }
-  }
-
-  async function editStudent(classId, studentId, updates) {
-    try {
-      await updateDoc(
-        doc(db, `classes/${classId}/students/${studentId}`),
-        updates
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Failed saving student changes.");
-    }
-  }
-
-  async function deleteStudent(classId, studentId) {
-    if (!window.confirm("Delete this student?")) return;
-    try {
-      await deleteDoc(doc(db, `classes/${classId}/students/${studentId}`));
-      setSelectedStudentId(null);
-      setProfileStudentId(null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete student.");
-    }
-  }
 
   async function quickAddPoints(classId, studentId, amount) {
     const rawAmount = Number(amount || 0);
@@ -2742,7 +2690,7 @@ export default function App() {
                             onClick={() => {
                               const name = newStudentRef.current?.value?.trim();
                               if (!name) return alert("Enter name");
-                              addStudent(name);
+                              addStudent(db, activeClassId, name, ensureClassSelected, newStudentRef);
                               if (newStudentRef.current) newStudentRef.current.value = "";
                             }}
                           >
@@ -3076,9 +3024,9 @@ export default function App() {
           setStickyCelebrateForClass={setStickyCelebrateForClass}
           setStreakRewardCardsForClass={setStreakRewardCardsForClass}
           mode={mode}
-          onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
+          onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
-          onDeleteStudent={() => deleteStudent(activeClassId, selectedStudent.id)}
+          onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId)}
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
           onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
           onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
