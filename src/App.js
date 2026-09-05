@@ -23,12 +23,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import LibraryCardRow from "./components/cards/LibraryCardRow";
 import CardCreateForm from "./components/cards/CardCreateForm";
 import CardEditModal from "./components/cards/CardEditModal";
@@ -42,6 +37,7 @@ import { uid, round2, safeLower, PASTEL_COLORS } from "./utils/helpers";
 import { todayISODate, addDaysISO } from "./utils/dateUtils";
 import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
+import useAuthMode from "./hooks/useAuthMode";
 import {
   parseFloatScheduleInput,
   normalizeFloatWindows,
@@ -85,67 +81,24 @@ const auth = getAuth(app);
 
 export default function App() {
   // ----- Mode -----
-  const [mode, setMode] = useState(null); // null | "admin" | "reader"
-
-  const [authUser, setAuthUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [showAdminForm, setShowAdminForm] = useState(false);
-
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPass, setAdminPass] = useState("");
-  const [adminError, setAdminError] = useState("");
-  const [checkingAdmin, setCheckingAdmin] = useState(false);
-
-  function enterReader() {
-    setMode("reader");
-  }
-
-  // Watch login/logout
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setAuthUser(user || null);
-      setAuthChecked(true);
-
-      if (!user) {
-        // logged out: keep chooser screen until user picks guest or logs in
-        setCheckingAdmin(false);
-        return;
-      }
-
-      // logged in: check if this user is in /admins/{uid}
-      try {
-        setCheckingAdmin(true);
-        const adminSnap = await getDoc(doc(db, "admins", user.uid));
-        if (adminSnap.exists()) {
-          setMode("admin");
-        } else {
-          setMode("reader"); // logged in but not admin
-        }
-      } finally {
-        setCheckingAdmin(false);
-      }
-    });
-
-    return () => unsub();
-  }, []);
-
-  // Admin login action
-  async function loginAdminEmailPassword() {
-    setAdminError("");
-    try {
-      await signInWithEmailAndPassword(auth, adminEmail.trim(), adminPass);
-      // onAuthStateChanged will run and set mode to admin if UID is in /admins
-    } catch (e) {
-      console.error(e);
-      setAdminError("Login failed. Check email/password.");
-    }
-  }
-
-  async function logout() {
-    await signOut(auth);
-    setMode(null);
-    setAdminPass("");
-  }
+  const {
+    mode,
+    setMode,
+    authUser,
+    authChecked,
+    showAdminForm,
+    setShowAdminForm,
+    adminEmail,
+    setAdminEmail,
+    adminPass,
+    setAdminPass,
+    adminError,
+    setAdminError,
+    checkingAdmin,
+    enterReader,
+    loginAdminEmailPassword,
+    logout,
+  } = useAuthMode({ auth, db });
 
   // ----- Data -----
   const [activeClassId, setActiveClassId] = useState(null);
