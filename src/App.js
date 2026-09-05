@@ -1782,7 +1782,7 @@ export default function App() {
         {/* Visual cue for the admin */}
         <div style={{ marginBottom: 5, fontSize: "0.8rem", opacity: 0.7 }}>
           {activeClassId 
-            ? `Editing Background for: ${activeClass.name}` 
+            ? `Editing Background for: ${activeClass?.name || "selected class"}` 
             : "Editing Global Background"}
         </div>
   
