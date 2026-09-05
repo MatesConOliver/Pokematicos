@@ -41,6 +41,7 @@ import { addStudent, editStudent, deleteStudent } from "./services/studentServic
 import { uid, round2, safeLower, PASTEL_COLORS } from "./utils/helpers";
 import { todayISODate, addDaysISO } from "./utils/dateUtils";
 import useBackgroundManager from "./hooks/useBackgroundManager";
+import useClassData from "./hooks/useClassData";
 import {
   parseFloatScheduleInput,
   normalizeFloatWindows,
@@ -147,20 +148,21 @@ export default function App() {
   }
 
   // ----- Data -----
-  const [classesList, setClassesList] = useState([]);
   const [activeClassId, setActiveClassId] = useState(null);
 
-  const [students, setStudents] = useState([]);
-  const [cards, setCards] = useState([]);
-  const [rewards, setRewards] = useState([]);
-
-  const [loadingClasses, setLoadingClasses] = useState(true);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-  const [loadingCards, setLoadingCards] = useState(false);
-  const [loadingRewards, setLoadingRewards] = useState(false);
+  const {
+    classesList,
+    students,
+    cards,
+    rewards,
+    loadingClasses,
+    loadingStudents,
+    loadingCards,
+    loadingRewards,
+    errorMsg,
+  } = useClassData({ db, activeClassId });
 
   // ----- UI -----
-  const [errorMsg, setErrorMsg] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
   const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience | extra
   const [cardPreview, setCardPreview] = useState(null);
@@ -210,94 +212,6 @@ export default function App() {
   });
 
   const [editCard, setEditCard] = useState(null);
-
-  // ----- Subscribe: classes -----
-  useEffect(() => {
-    setLoadingClasses(true);
-    const q = query(collection(db, "classes"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setClassesList(arr);
-        setLoadingClasses(false);
-      },
-      (err) => {
-        console.error("Failed loading classes:", err);
-        setErrorMsg("Failed to load classes. Check console.");
-        setLoadingClasses(false);
-      }
-    );
-    return () => unsub();
-  }, []);
-
-  // ----- Subscribe: class subcollections -----
-  useEffect(() => {
-    if (!activeClassId) {
-      setStudents([]);
-      setCards([]);
-      setRewards([]);
-      return;
-    }
-
-    setErrorMsg("");
-
-    setLoadingStudents(true);
-    const unsubStudents = onSnapshot(
-      query(collection(db, `classes/${activeClassId}/students`), orderBy("name")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setStudents(arr);
-        setLoadingStudents(false);
-      },
-      (err) => {
-        console.error("students snapshot err", err);
-        setErrorMsg("Error loading students.");
-        setLoadingStudents(false);
-      }
-    );
-
-    setLoadingCards(true);
-    const unsubCards = onSnapshot(
-      // Oldest -> newest (as you asked): top to bottom = old to new
-      query(collection(db, `classes/${activeClassId}/cards`), orderBy("createdAt", "asc")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setCards(arr);
-        setLoadingCards(false);
-      },
-      (err) => {
-        console.error("cards snapshot err", err);
-        setErrorMsg("Error loading cards.");
-        setLoadingCards(false);
-      }
-    );
-
-    setLoadingRewards(true);
-    const unsubRewards = onSnapshot(
-      query(collection(db, `classes/${activeClassId}/rewards`), orderBy("title")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setRewards(arr);
-        setLoadingRewards(false);
-      },
-      (err) => {
-        console.error("rewards snapshot err", err);
-        setErrorMsg("Error loading rewards.");
-        setLoadingRewards(false);
-      }
-    );
-
-    return () => {
-      unsubStudents();
-      unsubCards();
-      unsubRewards();
-    };
-  }, [activeClassId]);
 
   // ----- Guards -----
   function ensureClassSelected() {
