@@ -1,4 +1,4 @@
-// src/App.js
+src/App.js
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
@@ -23,21 +23,26 @@ import {
   uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import LibraryCardRow from "./components/cards/LibraryCardRow";
 import CardCreateForm from "./components/cards/CardCreateForm";
 import CardEditModal from "./components/cards/CardEditModal";
 import RewardCreateForm from "./components/rewards/RewardCreateForm";
 import ProfileModal from "./components/profile/ProfileModal";
-import EmojiParty from "./components/common/EmojiParty";
 import ManageStudentModal from "./components/students/ManageStudentModal";
+import LoginScreen from "./components/auth/LoginScreen";
+import ClassesPanel from "./components/classes/ClassesPanel";
+import StudentsPanel from "./components/students/StudentsPanel";
+import { addStudent, editStudent, deleteStudent } from "./services/studentService";
 import { uid, round2, safeLower, PASTEL_COLORS } from "./utils/helpers";
 import { todayISODate, addDaysISO } from "./utils/dateUtils";
+import useBackgroundManager from "./hooks/useBackgroundManager";
+import useClassData from "./hooks/useClassData";
+import useAuthMode from "./hooks/useAuthMode";
+import {
+  parseFloatScheduleInput,
+  normalizeFloatWindows,
+} from "./utils/floatWindowUtils";
 
 
 /**
@@ -74,171 +79,43 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
-
-function parseFloatScheduleInput(input, defaults = { delayDays: 7, durationDays: 7 }) {
-  const fallback = {
-    delayDays: Number.isFinite(defaults.delayDays) ? defaults.delayDays : 7,
-    durationDays: Number.isFinite(defaults.durationDays) ? defaults.durationDays : 7,
-  };
-
-  if (input == null) return fallback;
-  const s = String(input).trim();
-  if (!s) return fallback;
-
-  // 1) "a,b" format
-  if (s.includes(",")) {
-    const [a, b] = s.split(",").map((x) => x.trim());
-    const delay = parseInt(a, 10);
-    const dur = parseInt(b, 10);
-    return {
-      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
-      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
-    };
-  }
-
-  // 2) key=value format: start=7 duration=10 (order doesn't matter)
-  const mStart = s.match(/(?:start|delay)\s*=\s*(-?\d+)/i);
-  const mDur = s.match(/(?:duration|days)\s*=\s*(-?\d+)/i);
-
-  if (mStart || mDur) {
-    const delay = mStart ? parseInt(mStart[1], 10) : fallback.delayDays;
-    const dur = mDur ? parseInt(mDur[1], 10) : fallback.durationDays;
-    return {
-      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
-      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
-    };
-  }
-
-  // 3) two numbers: "7 14"
-  const nums = s.match(/-?\d+/g) || [];
-  if (nums.length >= 2) {
-    const delay = parseInt(nums[0], 10);
-    const dur = parseInt(nums[1], 10);
-    return {
-      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
-      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
-    };
-  }
-
-  // 4) single number means delay; use default duration
-  const one = parseInt(nums[0], 10);
-  return {
-    delayDays: Number.isFinite(one) && one >= 0 ? one : fallback.delayDays,
-    durationDays: fallback.durationDays,
-  };
-}
-
-function normalizeFloatWindows(windows, today) {
-  const list = Array.isArray(windows) ? windows : [];
-  const cleaned = list
-    .filter((w) => w && typeof w.start === "string" && typeof w.end === "string" && w.start && w.end)
-    // prune windows fully in the past
-    .filter((w) => !today || w.end >= today)
-    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
-
-  const merged = [];
-  for (const w of cleaned) {
-    if (merged.length === 0) {
-      merged.push({ start: w.start, end: w.end });
-      continue;
-    }
-    const last = merged[merged.length - 1];
-    // merge if overlaps OR is adjacent (end + 1 day >= next.start)
-    const lastEndPlus1 = addDaysISO(last.end, 1);
-    if (w.start <= lastEndPlus1) {
-      if (w.end > last.end) last.end = w.end;
-    } else {
-      merged.push({ start: w.start, end: w.end });
-    }
-  }
-  return merged;
-}
-
-function isTodayInFloatWindows(today, windows) {
-  if (!today) return false;
-  const list = Array.isArray(windows) ? windows : [];
-  return list.some((w) => w && w.start <= today && today <= w.end);
-}
-
 export default function App() {
   // ----- Mode -----
-  const [mode, setMode] = useState(null); // null | "admin" | "reader"
-
-  const [authUser, setAuthUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [showAdminForm, setShowAdminForm] = useState(false);
-
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPass, setAdminPass] = useState("");
-  const [adminError, setAdminError] = useState("");
-  const [checkingAdmin, setCheckingAdmin] = useState(false);
-
-  function enterReader() {
-    setMode("reader");
-  }
-
-  // Watch login/logout
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setAuthUser(user || null);
-      setAuthChecked(true);
-
-      if (!user) {
-        // logged out: keep chooser screen until user picks guest or logs in
-        setCheckingAdmin(false);
-        return;
-      }
-
-      // logged in: check if this user is in /admins/{uid}
-      try {
-        setCheckingAdmin(true);
-        const adminSnap = await getDoc(doc(db, "admins", user.uid));
-        if (adminSnap.exists()) {
-          setMode("admin");
-        } else {
-          setMode("reader"); // logged in but not admin
-        }
-      } finally {
-        setCheckingAdmin(false);
-      }
-    });
-
-    return () => unsub();
-  }, []);
-
-  // Admin login action
-  async function loginAdminEmailPassword() {
-    setAdminError("");
-    try {
-      await signInWithEmailAndPassword(auth, adminEmail.trim(), adminPass);
-      // onAuthStateChanged will run and set mode to admin if UID is in /admins
-    } catch (e) {
-      console.error(e);
-      setAdminError("Login failed. Check email/password.");
-    }
-  }
-
-  async function logout() {
-    await signOut(auth);
-    setMode(null);
-    setAdminPass("");
-  }
+  const {
+    mode,
+    setMode,
+    authUser,
+    authChecked,
+    showAdminForm,
+    setShowAdminForm,
+    adminEmail,
+    setAdminEmail,
+    adminPass,
+    setAdminPass,
+    adminError,
+    setAdminError,
+    checkingAdmin,
+    enterReader,
+    loginAdminEmailPassword,
+    logout,
+  } = useAuthMode({ auth, db });
 
   // ----- Data -----
-  const [classesList, setClassesList] = useState([]);
   const [activeClassId, setActiveClassId] = useState(null);
 
-  const [students, setStudents] = useState([]);
-  const [cards, setCards] = useState([]);
-  const [rewards, setRewards] = useState([]);
-
-  const [loadingClasses, setLoadingClasses] = useState(true);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-  const [loadingCards, setLoadingCards] = useState(false);
-  const [loadingRewards, setLoadingRewards] = useState(false);
+  const {
+    classesList,
+    students,
+    cards,
+    rewards,
+    loadingClasses,
+    loadingStudents,
+    loadingCards,
+    loadingRewards,
+    errorMsg,
+  } = useClassData({ db, activeClassId });
 
   // ----- UI -----
-  const [errorMsg, setErrorMsg] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
   const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience | extra
   const [cardPreview, setCardPreview] = useState(null);
@@ -259,9 +136,6 @@ export default function App() {
   const lockedFileInputRef = useRef(null);
   const unlockedFileInputRef = useRef(null);
 
-  const [globalBackgroundUrl, setGlobalBackgroundUrl] = useState(""); // Renamed from backgroundUrl
-  const bgInputRef = useRef(null);
-
   const activeClass = useMemo(
     () => classesList.find((c) => c.id === activeClassId) || null,
     [classesList, activeClassId]
@@ -277,135 +151,20 @@ export default function App() {
     [students, profileStudentId]
   );
 
+  const {
+    stickyBackground,
+    globalBackgroundUrl,
+    bgInputRef,
+    uploadBackgroundImage,
+    clearBackgroundImage,
+  } = useBackgroundManager({
+    db,
+    storage,
+    activeClassId,
+    activeClass,
+  });
+
   const [editCard, setEditCard] = useState(null);
-
-  // ----- Subscribe: classes -----
-  useEffect(() => {
-    setLoadingClasses(true);
-    const q = query(collection(db, "classes"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setClassesList(arr);
-        setLoadingClasses(false);
-      },
-      (err) => {
-        console.error("Failed loading classes:", err);
-        setErrorMsg("Failed to load classes. Check console.");
-        setLoadingClasses(false);
-      }
-    );
-    return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Keep listening to the global default background
-  useEffect(() => {
-    const bgDocRef = doc(db, "config", "background");
-    const unsub = onSnapshot(bgDocRef, (snap) => {
-      if (snap.exists()) {
-        setGlobalBackgroundUrl(snap.data().url || "");
-      } else {
-        setGlobalBackgroundUrl("");
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  // 1. State for the "Sticky" background
-  const [stickyBackground, setStickyBackground] = useState("");
-  
-  // 2. Ref to ensure we only load the global background ONCE (on startup)
-  const hasLoadedInitialGlobal = useRef(false);
-
-  // 3. Effect: Load Global Background ONLY on first load
-  useEffect(() => {
-    if (!hasLoadedInitialGlobal.current && globalBackgroundUrl) {
-      setStickyBackground(globalBackgroundUrl);
-      hasLoadedInitialGlobal.current = true;
-    }
-  }, [globalBackgroundUrl]);
-
-  // 4. Effect: When a class is selected, set the background (Image or Blank)
-  useEffect(() => {
-    if (activeClassId) {
-      // If class has a URL, use it. If not, use "" (Blank).
-      // We do NOT fall back to globalBackgroundUrl here.
-      const nextBg = activeClass?.backgroundUrl || ""; 
-      setStickyBackground(nextBg);
-    }
-    // If activeClassId is null (unselected), we do NOTHING.
-    // This preserves whatever background was last shown.
-  }, [activeClassId, activeClass]);
-
-  // ----- Subscribe: class subcollections -----
-  useEffect(() => {
-    if (!activeClassId) {
-      setStudents([]);
-      setCards([]);
-      setRewards([]);
-      return;
-    }
-
-    setErrorMsg("");
-
-    setLoadingStudents(true);
-    const unsubStudents = onSnapshot(
-      query(collection(db, `classes/${activeClassId}/students`), orderBy("name")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setStudents(arr);
-        setLoadingStudents(false);
-      },
-      (err) => {
-        console.error("students snapshot err", err);
-        setErrorMsg("Error loading students.");
-        setLoadingStudents(false);
-      }
-    );
-
-    setLoadingCards(true);
-    const unsubCards = onSnapshot(
-      // Oldest -> newest (as you asked): top to bottom = old to new
-      query(collection(db, `classes/${activeClassId}/cards`), orderBy("createdAt", "asc")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setCards(arr);
-        setLoadingCards(false);
-      },
-      (err) => {
-        console.error("cards snapshot err", err);
-        setErrorMsg("Error loading cards.");
-        setLoadingCards(false);
-      }
-    );
-
-    setLoadingRewards(true);
-    const unsubRewards = onSnapshot(
-      query(collection(db, `classes/${activeClassId}/rewards`), orderBy("title")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setRewards(arr);
-        setLoadingRewards(false);
-      },
-      (err) => {
-        console.error("rewards snapshot err", err);
-        setErrorMsg("Error loading rewards.");
-        setLoadingRewards(false);
-      }
-    );
-
-    return () => {
-      unsubStudents();
-      unsubCards();
-      unsubRewards();
-    };
-  }, [activeClassId]);
 
   // ----- Guards -----
   function ensureClassSelected() {
@@ -416,47 +175,7 @@ export default function App() {
     return true;
   }
 
-  // ----- Class actions -----
-  async function createClass(name) {
-    if (!name?.trim()) return;
-    try {
-      const payload = { name: name.trim(), createdAt: Date.now() };
-      const ref = await addDoc(collection(db, "classes"), payload);
-      setActiveClassId(ref.id);
-    } catch (err) {
-      console.error("createClass err:", err);
-      alert("Failed to create class.");
-    }
-  }
-
-  async function editClassName(classId) {
-    const cls = classesList.find((c) => c.id === classId);
-    if (!cls) return;
-    const newName = prompt("New class name:", cls.name || "");
-    if (!newName?.trim()) return;
-    try {
-      await updateDoc(doc(db, `classes/${classId}`), { name: newName.trim() });
-    } catch (err) {
-      console.error(err);
-      alert("Could not rename class.");
-    }
-  }
-
-  async function removeClass(classId) {
-    if (
-      !window.confirm(
-        "Delete this class? (Subcollections won't be deleted automatically)"
-      )
-    )
-      return;
-    try {
-      await deleteDoc(doc(db, `classes/${classId}`));
-      if (activeClassId === classId) setActiveClassId(null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete class.");
-    }
-  }
+  // ----- Class actions (extracted to services/classService.js) -----
 
   // Navigate through owned cards
   function ownedNav(delta) {
@@ -936,125 +655,6 @@ export default function App() {
     } catch (err) {
       console.error("deleteStreakTypeForClass error", err);
       alert("Could not delete streak. See console.");
-    }
-  }
-
-  // Upload and set background image
-  async function uploadBackgroundImage(file) {
-    if (!file) return;
-  
-    try {
-      const safeName = file.name.replace(/\s+/g, "_");
-      const timestamp = Date.now();
-      
-      // DECISION: Are we uploading for a specific class or the global default?
-      let storagePath;
-      let firestoreRef;
-      
-      if (activeClassId) {
-        // 1. Class Specific
-        // We store it in a subfolder so your bucket stays clean
-        storagePath = `classes/${activeClassId}/backgrounds/bg_${timestamp}_${safeName}`;
-        firestoreRef = doc(db, "classes", activeClassId);
-      } else {
-        // 2. Global Default (Your existing logic)
-        storagePath = `backgrounds/bg_${timestamp}_${safeName}`;
-        firestoreRef = doc(db, "config", "background");
-      }
-  
-      // A. Upload the file to Firebase Storage
-      const ref = storageRef(storage, storagePath);
-      const snapshot = await uploadBytes(ref, file);
-      const url = await getDownloadURL(snapshot.ref);
-  
-      // B. Save the URL to the correct Firestore document
-      if (activeClassId) {
-        // Update the CLASS document
-        await updateDoc(firestoreRef, { backgroundUrl: url });
-        alert(`Background updated for ${activeClass.name}!`);
-      } else {
-        // Update the CONFIG document
-        await setDoc(firestoreRef, { url });
-        alert("Global default background updated!");
-      }
-  
-    } catch (err) {
-      console.error("uploadBackgroundImage error:", err);
-      alert("Failed to upload background image.");
-    }
-  }
-
-  // Remove background image (for active class, and set to none)
-  async function clearBackgroundImage() {
-    try {
-      if (activeClassId) {
-        // Remove ONLY the class background (reverting it to the global default)
-        await updateDoc(doc(db, "classes", activeClassId), { 
-          backgroundUrl: "" 
-        });
-        alert(`Removed background for ${activeClass.name}. Now using default.`);
-      } else {
-        // Remove the global background
-        await setDoc(doc(db, "config", "background"), { url: "" });
-        alert("Global background removed!");
-      }
-    } catch (err) {
-      console.error("clearBackgroundImage error:", err);
-      alert("Failed to remove background.");
-    }
-  }
-
-
-  // ----- Student actions -----
-  async function addStudent(name) {
-    if (!ensureClassSelected()) return;
-    if (!name?.trim()) return;
-
-    try {
-      const payload = {
-        name: name.trim(),
-        // profile cosmetics
-        nameEmojis: "",
-        profileColor: "",
-        // points / xp
-        currentPoints: 0,
-        xp: 0,
-        multiplier: 1,
-        streaks: {},
-        // inventory / history
-        cards: [],
-        rewardsHistory: [],
-        createdAt: Date.now(),
-      };
-      await addDoc(collection(db, `classes/${activeClassId}/students`), payload);
-      if (newStudentRef.current) newStudentRef.current.value = "";
-    } catch (err) {
-      console.error(err);
-      alert("Failed to add student.");
-    }
-  }
-
-  async function editStudent(classId, studentId, updates) {
-    try {
-      await updateDoc(
-        doc(db, `classes/${classId}/students/${studentId}`),
-        updates
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Failed saving student changes.");
-    }
-  }
-
-  async function deleteStudent(classId, studentId) {
-    if (!window.confirm("Delete this student?")) return;
-    try {
-      await deleteDoc(doc(db, `classes/${classId}/students/${studentId}`));
-      setSelectedStudentId(null);
-      setProfileStudentId(null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete student.");
     }
   }
 
@@ -1892,174 +1492,22 @@ export default function App() {
     }
   }
 
-  // --- NEW STYLES ---
-  const loginStyles = {
-    container: {
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("https://firebasestorage.googleapis.com/v0/b/pokematicos.firebasestorage.app/o/backgrounds%2FBackground%20panoramic.jpg?alt=media&token=33b4b912-6e8f-4bf4-8b67-94e250310150")',
-      backgroundSize: "cover",     
-      backgroundPosition: "center", 
-      backgroundRepeat: "no-repeat",
-      fontFamily: "'Inter', sans-serif",
-      padding: 20,
-    },
-    card: {
-      background: "white",
-      padding: "40px",
-      borderRadius: "16px",
-      boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-      width: "100%",
-      maxWidth: "400px",
-      textAlign: "center",
-    },
-    title: {
-      margin: "0 0 10px 0",
-      color: "#333",
-      fontSize: "2rem",
-      fontWeight: "800",
-    },
-    subtitle: {
-      color: "#666",
-      marginBottom: "30px",
-      fontSize: "0.95rem",
-    },
-    studentBtn: {
-      width: "100%",
-      padding: "16px",
-      fontSize: "1.1rem",
-      fontWeight: "600",
-      color: "white",
-      background: "#10B981", // Bright Green
-      border: "none",
-      borderRadius: "12px",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      marginBottom: "16px",
-      boxShadow: "0 4px 6px rgba(16, 185, 129, 0.3)",
-      transition: "transform 0.1s",
-    },
-    teacherBtn: {
-      width: "100%",
-      padding: "12px",
-      fontSize: "0.95rem",
-      color: "#555",
-      background: "#f3f4f6",
-      border: "1px solid #e5e7eb",
-      borderRadius: "12px",
-      cursor: "pointer",
-      fontWeight: "500",
-    },
-    input: {
-      width: "100%",
-      padding: "12px",
-      marginBottom: "12px",
-      borderRadius: "8px",
-      border: "1px solid #ddd",
-      fontSize: "1rem",
-      boxSizing: "border-box", 
-    }
-  };
-
   // ----- IMPROVED LOGIN SCREEN -----
   if (!mode) {
-    return (
-      <div style={loginStyles.container}>
-        <div style={loginStyles.card}>
-          <h1 style={loginStyles.title}>CBA Card System</h1>
-
-          {/* 1. LOADING SPINNER (If Auth isn't ready) */}
-          {(!authChecked || checkingAdmin) ? (
-             <div style={{ color: "#666", padding: 20 }}>Cargando...</div>
-          ) : !showAdminForm ? (
-            
-            // 2. CHOICE SCREEN (Student vs Teacher)
-            <>
-              <p style={loginStyles.subtitle}>Selecciona cómo quieres entrar</p>
-              
-              <button 
-                style={loginStyles.studentBtn}
-                onClick={enterReader}
-                onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.02)"}
-                onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
-              >
-                🎒 Soy Alumno (Invitado)
-              </button>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0", opacity: 0.5 }}>
-                <div style={{ height: 1, background: "#ccc", flex: 1 }}></div>
-                <span style={{ fontSize: 12 }}>O</span>
-                <div style={{ height: 1, background: "#ccc", flex: 1 }}></div>
-              </div>
-
-              <button 
-                style={loginStyles.teacherBtn}
-                onClick={() => setShowAdminForm(true)}
-              >
-                👨‍🏫 Soy Profe (Admin)
-              </button>
-            </>
-
-          ) : (
-            
-            // 3. ADMIN LOGIN FORM (Only visible after clicking "Soy Profe")
-            <>
-              <p style={loginStyles.subtitle}>Acceso para profesores</p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  loginAdminEmailPassword();
-                }}
-              >
-                <input
-                  style={loginStyles.input}
-                  type="email"
-                  placeholder="Email"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                  autoFocus
-                />
-                <input
-                  style={loginStyles.input}
-                  type="password"
-                  placeholder="Password"
-                  value={adminPass}
-                  onChange={(e) => setAdminPass(e.target.value)}
-                />
-                
-                {adminError && (
-                  <div style={{ color: "crimson", fontSize: "0.9rem", marginBottom: 12 }}>
-                    {adminError}
-                  </div>
-                )}
-
-                <button 
-                  type="submit" 
-                  style={{ ...loginStyles.studentBtn, background: "#4F46E5", boxShadow: "0 4px 6px rgba(79, 70, 229, 0.3)" }}
-                >
-                  Entrar
-                </button>
-              </form>
-
-              <button
-                style={{ background: "none", border: "none", color: "#666", cursor: "pointer", textDecoration: "underline", marginTop: 10 }}
-                onClick={() => {
-                  setShowAdminForm(false); // Go back to choice screen
-                  setAdminError("");
-                }}
-              >
-                ← Volver atrás
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
+    return <LoginScreen
+      authChecked={authChecked}
+      checkingAdmin={checkingAdmin}
+      showAdminForm={showAdminForm}
+      setShowAdminForm={setShowAdminForm}
+      adminEmail={adminEmail}
+      setAdminEmail={setAdminEmail}
+      adminPass={adminPass}
+      setAdminPass={setAdminPass}
+      adminError={adminError}
+      setAdminError={setAdminError}
+      enterReader={enterReader}
+      loginAdminEmailPassword={loginAdminEmailPassword}
+    />;
   }
 
   const filteredStudents = (() => {
@@ -2135,7 +1583,7 @@ export default function App() {
         {/* Visual cue for the admin */}
         <div style={{ marginBottom: 5, fontSize: "0.8rem", opacity: 0.7 }}>
           {activeClassId 
-            ? `Editing Background for: ${activeClass.name}` 
+            ? `Editing Background for: ${activeClass?.name || "selected class"}` 
             : "Editing Global Background"}
         </div>
   
@@ -2338,424 +1786,42 @@ export default function App() {
 
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 360px", gap: 14 }}>
         {/* LEFT: Classes */}
-        <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-          <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Classes</span></h3>
-
-          {loadingClasses ? (
-            <div className="muted">Loading classes...</div>
-          ) : classesList.length ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {classesList.map((c) => (
-                <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <button
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      textAlign: "left",
-                      background: c.id === activeClassId ? "#eef" : "white",
-                    }}
-                    onClick={() => setActiveClassId((prev) => (prev === c.id ? null : c.id))}
-                  >
-                    {c.name}
-                  </button>
-
-                  {mode === "admin" && (
-                    <>
-                      <button className="btn" onClick={() => editClassName(c.id)}>
-                        Edit
-                      </button>
-                      <button className="btn" onClick={() => removeClass(c.id)}>
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="muted">No classes yet</div>
-          )}
-
-          {mode === "admin" && (
-            <div style={{ marginTop: 16 }}>
-              <h4 style={{ margin: "10px 0" }}>Add class</h4>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input className="input"
-                  ref={newClassNameRef}
-                  placeholder="Class name"
-                  style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
-                />
-                <button
-                  className="btn primary"
-                  onClick={() => {
-                    const name = newClassNameRef.current?.value?.trim();
-                    if (!name) return alert("Enter class name");
-                    createClass(name);
-                    if (newClassNameRef.current) newClassNameRef.current.value = "";
-                  }}
-                >
-                  Create
-                </button>
-              </div>
-            </div>
-          )}
-        </aside>
+        <ClassesPanel
+          loadingClasses={loadingClasses}
+          classesList={classesList}
+          activeClassId={activeClassId}
+          setActiveClassId={setActiveClassId}
+          mode={mode}
+          db={db}
+          newClassNameRef={newClassNameRef}
+        />
 
         {/* Only show these if a class is selected */}
         {activeClassId && (
           <>
-            {/* MIDDLE: Students */}
-            <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <h3 style={{ margin: 0 }}><span className="column-title-pill"> {activeClass?.name || "Select a class"} </span></h3>
-                  {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {mode === "admin" && activeClassId && (
-                    <button className="btn" onClick={() => addStreakTypeForClass(activeClassId)}>New streak</button>
-                  )}
-
-                  <input
-                    placeholder="Filter students..."
-                    value={studentFilter}
-                    onChange={(e) => setStudentFilter(e.target.value)}
-                    style={{
-                      padding: 8,
-                      fontSize: 13,
-                      borderRadius: 8,
-                      border: "1px solid #ddd",
-                      minWidth: 170,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginTop: 12 }}>
-                {!activeClassId ? (
-                  <div className="muted">Select a class first.</div>
-                ) : loadingStudents ? (
-                  <div className="muted">Loading students...</div>
-                ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-                    {filteredStudents.map((s) => {
-                      const bg = s.profileColor || "white";
-                      const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
-
-                      // --- FLOATING + PARTY LOGIC (CLEAN) ---
-                      const cfgs = activeClass?.streakConfigs || [];
-                      const today = todayISODate();
-
-                      const isCelebratingToday = (cfg, stObj) => {
-                        const hitToday = (stObj?.maxAchievedOn || "") === today;
-                        if (!hitToday) return false;
-
-                        // Sticky = keep effects even after Reset (for the rest of the day)
-                        if (cfg.stickyCelebrate) return true;
-
-                        // Not sticky = only show while value is still at max
-                        return (stObj?.value || 0) >= (cfg.max || 0);
-                      };
-
-                      // Party (emoji shower)
-                      const partyStreaks = cfgs.filter((cfg) => {
-                        const stObj =
-                          (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
-                        return isCelebratingToday(cfg, stObj);
-                      });
-
-                      // Floating (earned per-student windows)
-                      const floatingEmojis = cfgs.filter((cfg) => {
-                        if (!cfg.float) return false;
-                        const stObj =
-                          (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "", floatWindows: [] };
-                        return isTodayInFloatWindows(today, stObj.floatWindows);
-                      });
-
-                      // --- END FLOATING + PARTY LOGIC ---
-
-                      return (
-                        <div
-                          key={s.id}
-                          style={{
-                            border: "1px solid #ddd",
-                            padding: 10,
-                            borderRadius: 10,
-                            background: bg,
-                            position: "relative",   
-                            overflow: "hidden",
-                          }}
-                        >
-
-                          {/* FLOATING EMOJIS */}
-                          {floatingEmojis.map((cfg) => (
-                            <div key={cfg.id} className="floating-emoji">
-                              <div className="floating-emoji-glow">
-                                {cfg.emoji}
-                              </div>
-                            </div>
-                          ))}
-
-                          {/* ✅ EMOJI PARTY (when max is achieved today) */}
-                          {partyStreaks.map((cfg) => (
-                            <EmojiParty
-                              key={`party_${s.id}_${cfg.id}_${today}`}
-                              emoji={cfg.emoji}
-                              seedKey={`${s.id}_${cfg.id}_${today}`}
-                              count={22}
-                            />
-                          ))}
-
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                            <div>
-                              <div style={{ fontWeight: 800 }}>{displayName}</div>
-
-                              {/* Visible for guests too */}
-                              <div className="muted" style={{ lineHeight: 1.35 }}>
-                                <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
-                                  {activeClass?.streakConfigs && activeClass.streakConfigs.length > 0 ? (
-                                    activeClass.streakConfigs.map((cfg) => {
-                                      const stObj =
-                                        (s.streaks && s.streaks[cfg.id]) || { value: 0, lastUpdated: "" };
-                                      let emojiLine = "";
-                                      if (stObj.value > 0) {
-                                        // active streak
-                                        emojiLine = (cfg.emoji || "").repeat(stObj.value);
-                                      } else {
-                                        // zero streak → crossed out emoji
-                                        emojiLine = (
-                                          <span style={{ textDecoration: "line-through", opacity: 0.5 }}>
-                                            {cfg.emoji}
-                                          </span>
-                                        );
-                                      }
-                                      const date = stObj.lastUpdated || "";
-                                      const isToday = date && date === todayISODate();
-                                      return (
-                                        <div
-                                          key={cfg.id}
-                                          style={{ display: "flex", alignItems: "center", gap: 8 }}
-                                        >
-                                          <div style={{ flex: 1 }}>
-                                            {emojiLine}
-                                            {date && (
-                                              <span
-                                                style={{
-                                                  marginLeft: 4,
-                                                  color: isToday ? "#16a34a" : "#dc2626",
-                                                  fontWeight: 600,
-                                                }}
-                                              >
-                                                {date}
-                                              </span>
-                                            )}
-                                          </div>
-
-                                          {/* ✅ Tiny quick +1, +5, +10 (ADMIN ONLY) */}
-                                          {mode === "admin" && (
-                                            <button
-                                              className="btn"
-                                              style={{
-                                                padding: "4px 8px",
-                                                fontSize: 12,
-                                                lineHeight: "12px",
-                                                borderRadius: 10,
-                                              }}
-                                              title="Add +1 to this streak"
-                                              onClick={() =>
-                                                changeStudentStreakValue(activeClassId, s.id, cfg.id, +1, cfg)
-                                              }
-                                            >
-                                              +1
-                                            </button>
-
-                                            
-                                          )}
-                                        </div>
-                                      );
-                                    })
-                                  ) : (
-                                    <span className="muted">No streaks defined for this class.</span>
-                                  )}
-                                </div>
-
-                                {s.multiplier && s.multiplier !== 1 && (
-                                  <div>
-                                    <span className="muted">Multiplier:</span>
-                                    <strong> x{s.multiplier}</strong>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div style={{ textAlign: "right" }}>
-                              <div style={{ fontWeight: 800 }}>{s.currentPoints || 0} pts</div>
-                              <div className="muted">XP: {s.xp || 0}</div>
-                            </div>
-                          </div>
-
-                          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", }}>
-                            {mode === "admin" && (
-                              <button className="btn" onClick={() => setSelectedStudentId(s.id)}>
-                                Manage
-                              </button>
-                            )}
-
-                            <button className="btn" onClick={() => setProfileStudentId(s.id)}>
-                              Perfil
-                            </button>
-
-                            {mode === "admin" && (
-                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                <span className="pill">Points</span>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 1)}>
-                                  +1
-                                </button>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 5)}>
-                                  +5
-                                </button>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 10)}>
-                                  +10
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          <div style={{ marginTop: 10 }}>
-                            <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
-
-                            {/* Scroll container so you can see all cards */}
-                            <div
-                              style={{
-                                marginTop: 8,
-                                maxHeight: 150,
-                                overflowY: "auto",
-                                paddingRight: 6,
-                                display: "flex",
-                                gap: 8,
-                                flexWrap: "wrap",
-                                alignContent: "flex-start",
-                              }}
-                            >
-                              {(() => {
-                                const groups = new Map();
-                                (s.cards || []).forEach((o) => {
-                                  const key = o.cardId || "unknown";
-                                  if (!groups.has(key)) {
-                                    groups.set(key, {
-                                      title: o.title || "—",
-                                      imageURL: o.imageURL || "",
-                                      count: 0,
-                                    });
-                                  }
-                                  groups.get(key).count += 1;
-                                });
-
-                                const arr = Array.from(groups.entries()).map(([cardId, g]) => ({
-                                  cardId,
-                                  ...g,
-                                }));
-
-                                const ownedUniqueList = arr.map((x) => ({
-                                  title: x.title,
-                                  imageURL: x.imageURL,
-                                }));
-
-                                return arr.map((g, idx) => (
-                                  <div
-                                    key={g.cardId}
-                                    className="card-thumb"
-                                    style={{
-                                      width: 80,
-                                      height: 110,
-                                      border: "1px solid #eee",
-                                      borderRadius: 10,
-                                      overflow: "hidden",
-                                      cursor: "pointer",
-                                      position: "relative",
-                                      background: "white",
-                                    }}
-                                    onClick={() =>
-                                      setCardPreview({
-                                        ownedList: ownedUniqueList,
-                                        ownedIndex: idx,
-                                        isLibraryCard: false,
-                                      })
-                                    }
-                                  >
-                                    {g.imageURL ? (
-                                      <img
-                                        src={g.imageURL}
-                                        alt={g.title}
-                                        style={{
-                                          width: "100%",
-                                          height: "100%",
-                                          objectFit: "cover",
-                                        }}
-                                      />
-                                    ) : (
-                                      <div style={{ padding: 6, fontSize: 11 }}>{g.title}</div>
-                                    )}
-
-                                    {g.count > 1 && (
-                                      <div
-                                        style={{
-                                          position: "absolute",
-                                          top: 6,
-                                          right: 6,
-                                          background: "rgba(0,0,0,0.75)",
-                                          color: "white",
-                                          borderRadius: 999,
-                                          padding: "2px 7px",
-                                          fontSize: 11,
-                                          fontWeight: 900,
-                                        }}
-                                      >
-                                        ×{g.count}
-                                      </div>
-                                    )}
-                                  </div>
-                                ));
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {mode === "admin" && (
-                      <div style={{ border: "1px dashed #ccc", padding: 12, borderRadius: 10 }}>
-                        <h4 style={{ marginTop: 0 }}>Add student</h4>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input
-                            ref={newStudentRef}
-                            placeholder="Student name"
-                            style={{
-                              flex: 1,
-                              padding: 8,
-                              borderRadius: 8,
-                              border: "1px solid #ddd",
-                            }}
-                          />
-                          <button
-                            className="btn primary"
-                            onClick={() => {
-                              const name = newStudentRef.current?.value?.trim();
-                              if (!name) return alert("Enter name");
-                              addStudent(name);
-                              if (newStudentRef.current) newStudentRef.current.value = "";
-                            }}
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </main>
+            <StudentsPanel
+              activeClass={activeClass}
+              activeClassId={activeClassId}
+              classTotalPoints={classTotalPoints}
+              filteredStudents={filteredStudents}
+              loadingStudents={loadingStudents}
+              mode={mode}
+              studentFilter={studentFilter}
+              setStudentFilter={setStudentFilter}
+              onAddStreak={addStreakTypeForClass}
+              onManageStudent={setSelectedStudentId}
+              onProfileStudent={setProfileStudentId}
+              onChangeStudentStreak={changeStudentStreakValue}
+              onQuickAddPoints={quickAddPoints}
+              onPreviewCard={setCardPreview}
+              onAddStudent={() => {
+                const name = newStudentRef.current?.value?.trim();
+                if (!name) return alert("Enter name");
+                addStudent(db, activeClassId, name, ensureClassSelected, newStudentRef);
+                if (newStudentRef.current) newStudentRef.current.value = "";
+              }}
+              newStudentRef={newStudentRef}
+            />
 
             {/* RIGHT: Library */}
             <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
@@ -3077,9 +2143,9 @@ export default function App() {
           setStickyCelebrateForClass={setStickyCelebrateForClass}
           setStreakRewardCardsForClass={setStreakRewardCardsForClass}
           mode={mode}
-          onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
+          onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
-          onDeleteStudent={() => deleteStudent(activeClassId, selectedStudent.id)}
+          onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId)}
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
           onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
           onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
