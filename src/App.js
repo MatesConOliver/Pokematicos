@@ -1,5 +1,3 @@
-src/App.js
-import React, { useEffect, useMemo, useRef, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -24,10 +22,8 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import { getAuth } from "firebase/auth";
-import LibraryCardRow from "./components/cards/LibraryCardRow";
-import CardCreateForm from "./components/cards/CardCreateForm";
+import LibrarySection from "./components/cards/LibrarySection";
 import CardEditModal from "./components/cards/CardEditModal";
-import RewardCreateForm from "./components/rewards/RewardCreateForm";
 import ProfileModal from "./components/profile/ProfileModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
 import LoginScreen from "./components/auth/LoginScreen";
@@ -117,7 +113,6 @@ export default function App() {
 
   // ----- UI -----
   const [studentFilter, setStudentFilter] = useState("");
-  const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience | extra
   const [cardPreview, setCardPreview] = useState(null);
 
   
@@ -1823,129 +1818,23 @@ export default function App() {
               newStudentRef={newStudentRef}
             />
 
-            {/* RIGHT: Library */}
-            <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-              <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Library</span></h3>
-              {!activeClassId ? (
-                <div className="muted">Select a class first</div>
-              ) : (
-                <>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
-                      gap: 6,
-                      margin: "8px 0 12px",
-                    }}
-                  >
-                    <button className="btn" onClick={() => setLibraryTab("points")} style={{ width: "100%", background: libraryTab === "points" ? "#def" : "white" }}>
-                      Points
-                    </button>
-                    <button className="btn" onClick={() => setLibraryTab("rewards")} style={{ width: "100%", background: libraryTab === "rewards" ? "#def" : "white" }}>
-                      Rewards
-                    </button>
-                    <button className="btn" onClick={() => setLibraryTab("experience")} style={{ width: "100%", background: libraryTab === "experience" ? "#def" : "white" }}>
-                      Experience
-                    </button>
-                    <button className="btn" onClick={() => setLibraryTab("extra")}  style={{ width: "100%", background: libraryTab === "extra" ? "#def" : "white" }}>
-                      Extra
-                    </button>
-                  </div>
-
-                  {mode === "admin" && (
-                    <div style={{ border: "1px dashed #ddd", padding: 10, borderRadius: 10, marginBottom: 12 }}>
-                      <h4 style={{ marginTop: 0 }}>Create new card</h4>
-                      <CardCreateForm
-                        onCreate={createCard}
-                        lockedInputRef={lockedFileInputRef}
-                        unlockedInputRef={unlockedFileInputRef}
-                        streakConfigs={activeClass?.streakConfigs || []}
-                      />
-                    </div>
-                  )}
-
-                  <div style={{ maxHeight: 560, overflow: "auto" }}>
-                    {libraryTab !== "rewards" ? (
-                      <div style={{ display: "grid" }}>
-                        {loadingCards ? (
-                          <div className="muted">Loading cards...</div>
-                        ) : (
-                          cards
-                            .filter((c) => (c.category || "points") === libraryTab)
-                            .map((c) => (
-                              <LibraryCardRow
-                                key={c.id}
-                                c={c}
-                                mode={mode}
-                                onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
-                                onGive={() => openBulkGive(c)}
-                                onEdit={() => setEditCard(c)}
-                                onDelete={() => deleteCard(c.id)}
-                              />
-                            ))
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {/* Reward cards (library) */}
-                        <div>
-                          {loadingCards ? (
-                            <div className="muted">Loading cards...</div>
-                          ) : (
-                            cards
-                              .filter((c) => (c.category || "points") === "rewards")
-                              .map((c) => (
-                                <LibraryCardRow
-                                  key={c.id}
-                                  c={c}
-                                  mode={mode}
-                                  onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
-                                  onGive={() => openBulkGive(c)}
-                                  onEdit={() => setEditCard(c)}
-                                  onDelete={() => deleteCard(c.id)}
-                                />
-                              ))
-                          )}
-                        </div>
-
-                        {/* Shop items */}
-                        <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
-                          {loadingRewards ? (
-                            <div className="muted">Loading rewards...</div>
-                          ) : (
-                            rewards.map((r) => {
-                              const cardMeta = cards.find((c) => c.id === r.cardId) || null;
-                              return (
-                                <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa", marginBottom: 10 }}>
-                                  <div style={{ fontWeight: 900 }}>{r.title}</div>
-                                  <div className="muted">
-                                    Cost: <span className="pill">{r.cost} pts</span>{" "}
-                                    • Linked card: <span className="pill">{cardMeta ? cardMeta.title : "—"}</span>
-                                  </div>
-                                  {mode === "admin" && (
-                                    <div style={{ marginTop: 8 }}>
-                                      <button className="btn" onClick={() => deleteReward(r.id)}>
-                                        Delete reward
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })
-                          )}
-
-                          {mode === "admin" && (
-                            <div style={{ borderTop: "1px dashed #eee", paddingTop: 10, marginTop: 10 }}>
-                              <RewardCreateForm cards={cards} onCreate={createReward} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </aside>
+            <LibrarySection
+              mode={mode}
+              cards={cards}
+              rewards={rewards}
+              loadingCards={loadingCards}
+              loadingRewards={loadingRewards}
+              streakConfigs={activeClass?.streakConfigs || []}
+              lockedInputRef={lockedFileInputRef}
+              unlockedInputRef={unlockedFileInputRef}
+              onCreateCard={createCard}
+              onPreviewCard={setCardPreview}
+              onOpenBulkGive={openBulkGive}
+              onEditCard={setEditCard}
+              onDeleteCard={deleteCard}
+              onCreateReward={createReward}
+              onDeleteReward={deleteReward}
+            />
           </>
         )}
       </div>
