@@ -220,7 +220,7 @@ export async function giveCardToStudent({
       pointsGranted: effectivePoints,
     });
 
-    const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
+    let currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
     const linkedIds =
       category === "points"
         ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
