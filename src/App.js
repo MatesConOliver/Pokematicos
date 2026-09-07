@@ -1517,35 +1517,6 @@ export default function App() {
     0
   );
 
-  const onRedeemConfirm = async () => { // <--- Note the "async" keyword here
-    if (!selectedClass || !rewardToRedeem) return;
-
-    if (redeemType === "individual") {
-      if (!selectedStudentId) return alert("No student selected");
-      
-      // Call Individual
-      await redeemIndividual(selectedClass.id, selectedStudentId, rewardToRedeem.id);
-      
-      // Close Modal
-      setRewardToRedeem(null);
-      
-    } else {
-      // Group: Convert Map to Array
-      const participantArray = Object.entries(redemptionMap).filter(([_, cost]) => Number(cost) > 0);
-      
-      if (participantArray.length === 0) return alert("No participants contributing!");
-      
-      // Call Group
-      const success = await redeemGroup(selectedClass.id, rewardToRedeem.id, participantArray);
-      
-      // Close Modal (ONLY if success)
-      if (success) {
-        setRewardToRedeem(null);
-        setRedeemType("individual"); // Reset type back to default
-      }
-    }
-  };
-
   return (
     <div
       style={{
