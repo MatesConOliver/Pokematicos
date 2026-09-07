@@ -1,28 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  orderBy,
-  writeBatch,
-  increment,
-} from "firebase/firestore";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import { getAuth } from "firebase/auth";
+import React, { useMemo, useRef, useState } from "react";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { db, storage, auth } from "./firebase";
 import LibrarySection from "./components/cards/LibrarySection";
 import CardEditModal from "./components/cards/CardEditModal";
 import ProfileModal from "./components/profile/ProfileModal";
@@ -31,17 +9,34 @@ import LoginScreen from "./components/auth/LoginScreen";
 import ClassesPanel from "./components/classes/ClassesPanel";
 import StudentsPanel from "./components/students/StudentsPanel";
 import { addStudent, editStudent, deleteStudent } from "./services/studentService";
-import { uid, round2, safeLower, PASTEL_COLORS } from "./utils/helpers";
-import { todayISODate, addDaysISO } from "./utils/dateUtils";
+import {
+  addStreakTypeForClass,
+  changeStudentStreakValue,
+  deleteStreakTypeForClass,
+  resetStudentStreak,
+  setStreakRewardCardsForClass,
+} from "./services/streakService";
+import {
+  createReward as createRewardService,
+  deleteReward as deleteRewardService,
+} from "./services/rewardService";
+import {
+  quickAddPoints as quickAddPointsService,
+  removeOwnedCardsBulk as removeOwnedCardsBulkService,
+  redeemIndividual as redeemIndividualService,
+  redeemGroup as redeemGroupService,
+} from "./services/studentRewardService";
+import {
+  createCard as createCardService,
+  updateCard as updateCardService,
+  deleteCard as deleteCardService,
+  giveCardToStudent as giveCardToStudentService,
+  giveCardToStudentsBulk as giveCardToStudentsBulkService,
+} from "./services/cardService";
+import { safeLower, PASTEL_COLORS } from "./utils/helpers";
 import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
 import useAuthMode from "./hooks/useAuthMode";
-import {
-  parseFloatScheduleInput,
-  normalizeFloatWindows,
-} from "./utils/floatWindowUtils";
-
-
 /**
  * Pokemáticos — Firestore + Storage (single-file App.js)
  *
@@ -59,22 +54,6 @@ import {
  * That requires Firestore rules to allow updating ONLY those fields,
  * otherwise saving will fail. See rule note at the bottom.
  */
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
-  authDomain: "pokematicos.firebaseapp.com",
-  databaseURL:
-    "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pokematicos",
-  storageBucket: "pokematicos.firebasestorage.app",
-  messagingSenderId: "101415606738",
-  appId: "1:101415606738:web:c009f17005904490e9d00b",
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-const auth = getAuth(app);
 
 export default function App() {
   // ----- Mode -----
@@ -187,164 +166,18 @@ export default function App() {
   }
 
   async function updateCard(cardId, updates) {
-    if (!ensureClassSelected()) return;
-    try {
-      const cardRef = doc(db, `classes/${activeClassId}/cards/${cardId}`);
-      const snap = await getDoc(cardRef);
-      if (!snap.exists()) return alert("Card not found");
-      const prev = snap.data();
-
-      const {
-        title,
-        description,
-        points,
-        category,
-        linkedStreakIds,
-        lockedFile,
-        unlockedFile,
-      } = updates || {};
-
-      let lockedImageURL = prev.lockedImageURL || "";
-      let unlockedImageURL = prev.imageURL || "";
-
-      const baseKey = uid(`cardedit_${cardId}`);
-
-      if (lockedFile) {
-        const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
-        const refLocked = storageRef(storage, `classes/${activeClassId}/cards/${keyLocked}`);
-        const up = await uploadBytes(refLocked, lockedFile);
-        lockedImageURL = await getDownloadURL(up.ref);
-      }
-
-      if (unlockedFile) {
-        const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
-        const refUnlocked = storageRef(storage, `classes/${activeClassId}/cards/${keyUnlocked}`);
-        const up = await uploadBytes(refUnlocked, unlockedFile);
-        unlockedImageURL = await getDownloadURL(up.ref);
-      }
-
-      // fallback: if only one image exists
-      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
-      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
-
-      const nextCategory = (category || prev.category || "points");
-
-      // clean + unique
-      const cleanIds =
-        nextCategory === "points"
-          ? Array.from(new Set((Array.isArray(linkedStreakIds) ? linkedStreakIds : []).filter(Boolean).map(String)))
-          : [];
-
-      await updateDoc(cardRef, {
-        title: (title || "").trim(),
-        description: description || "",
-        points: Number(points) || 0,
-        category: nextCategory,
-
-        // ✅ new source of truth (multi)
-        linkedStreakIds: cleanIds,
-
-        imageURL: unlockedImageURL,
-        lockedImageURL,
-        updatedAt: Date.now(),
-      });
-    } catch (err) {
-      console.error("updateCard error", err);
-      alert("Failed to update card. See console.");
-    }
+    await updateCardService({
+      db,
+      storage,
+      classId: activeClassId,
+      cardId,
+      updates,
+      alertFn: alert,
+    });
   }
 
 
   // --- CLASS STREAK TYPES (per class) ---
-
-  async function addStreakTypeForClass(classId) {
-    if (!classId) {
-      alert("Select a class first");
-      return;
-    }
-
-    // 1) Emoji
-    const emoji = prompt("Emoji for this streak (for example 🔥, 👻, ⭐):");
-    if (!emoji || !emoji.trim()) return;
-
-    // 2) Maximum value
-    const maxStr = prompt("Maximum value for this streak (for example 5):");
-    const max = Number(maxStr || "0");
-    if (!Number.isFinite(max) || max <= 0) {
-      alert("Maximum must be a number greater than 0.");
-      return;
-    }
-
-    // 3) Floating emoji?
-    const floatAns = prompt(
-      "When a student reaches this maximum streak, should this emoji float faintly in their card background? (yes/no)"
-    );
-    const float = !!(floatAns && floatAns.toLowerCase().startsWith("y"));
-
-    // 4) Sticky celebration after reset?
-    const stickyAns = prompt(
-      "If you Reset this streak later, should the celebration (party + floating) keep showing for the rest of the day when max was reached? (yes/no)"
-    );
-    const stickyCelebrate = !!(stickyAns && stickyAns.toLowerCase().startsWith("y"));
-
-    const id = uid("streak");
-    const rewardCardIds = (promptPickRewardCardIds({ defaultIds: [], label: `${emoji} streak` }) ?? []);
-
-    const newCfg = {
-      id,
-      emoji,
-      max,
-      float,
-      stickyCelebrate,
-      rewardCardIds,
-    };
-
-    try {
-      const clsRef = doc(db, `classes/${classId}`);
-
-      // take current streakConfigs from the in-memory classesList
-      const current =
-        classesList.find((c) => c.id === classId)?.streakConfigs || [];
-
-      await updateDoc(clsRef, {
-        streakConfigs: [...current, newCfg],
-      });
-
-      alert("New streak type created for this class.");
-    } catch (err) {
-      console.error(err);
-      alert("Could not create streak type. See console for details.");
-    }
-  }
-
-  function getNewExperienceCards(currentCards, currentXp, allCards) {
-    // 1. Find all cards that are category "experience"
-    const xpCards = allCards.filter(c => c.category === "experience");
-    
-    // 2. Filter for ones we have reached the threshold for (card.points = threshold)
-    const unlocked = xpCards.filter(c => currentXp >= (c.points || 0));
-
-    // 3. Filter out ones the student ALREADY has
-    // We check if the student's owned list contains a card with this source ID
-    const newUnlocks = unlocked.filter(c => 
-      !currentCards.some(owned => owned.cardId === c.id)
-    );
-
-    return newUnlocks;
-  }
-
-  function pushOwnedCard({ cardsArr, cardId, cardData, pointsGranted, streakId }) {
-    cardsArr.push({
-      id: uid("owned"),
-      cardId,
-      title: cardData.title || "",
-      imageURL: cardData.imageURL || "",
-      imageURL2: cardData.imageURL2 || "",
-      grantedAt: new Date().toISOString(),
-      pointsGranted: round2(pointsGranted || 0),
-      autoFrom: { type: "streakMax", streakId },
-    });
-  }
 
   async function getCardDataFast(classId, cardId) {
     const local = (Array.isArray(cards) ? cards : []).find((c) => c.id === cardId);
@@ -355,326 +188,14 @@ export default function App() {
     return { id: cardId, ...snap.data() };
   }
 
-  async function setStickyCelebrateForClass(classId, streakId, stickyCelebrate) {
-    try {
-      const classRef = doc(db, `classes/${classId}`);
-      const snap = await getDoc(classRef);
-      if (!snap.exists()) return;
-
-      const data = snap.data();
-      const list = data.streakConfigs || [];
-
-      const updated = list.map((cfg) =>
-        cfg.id === streakId ? { ...cfg, stickyCelebrate: !!stickyCelebrate } : cfg
-      );
-
-      await updateDoc(classRef, { streakConfigs: updated });
-    } catch (err) {
-      console.error("setStickyCelebrateForClass error", err);
-      alert("Could not update sticky celebration.");
-    }
-  }
-
-  function promptPickRewardCardIds({ defaultIds = [], label = "" } = {}) {
-    // Only points cards make sense as “reward cards” because they add points.
-    const opts = (Array.isArray(cards) ? cards : [])
-      .filter((c) => ((c.category || "points") === "points"))
-      .slice()
-      .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
-
-    if (opts.length === 0) {
-      alert("No POINTS cards found in the library. Create a points card first.");
-      return null; // signal: nothing changed / can’t pick
-    }
-
-    const idToNum = new Map(opts.map((c, i) => [c.id, i + 1]));
-    const currentNums = (defaultIds || []).map((id) => idToNum.get(id)).filter(Boolean);
-    const defaultText = currentNums.length ? currentNums.join(",") : "";
-
-    const list = opts
-      .map((c, i) => `${i + 1}) ${c.title || "(untitled)"} — ${Number(c.points || 0)} pts`)
-      .join("\n");
-
-    const input = prompt(
-      `Reward card(s) when ${label || "this"} streak reaches MAX.\n` +
-        `Choose numbers separated by commas (example: 1,3).\n` +
-        `Leave empty for NONE.\n\n${list}`,
-      defaultText
-    );
-
-    if (input == null) return undefined; // cancel => keep existing
-    const s = String(input).trim();
-    if (!s) return []; // empty => clear
-
-    const parts = s.split(",").map((x) => x.trim()).filter(Boolean);
-
-    const picked = [];
-    for (const p of parts) {
-      // allow selecting by number
-      const n = parseInt(p, 10);
-      if (Number.isFinite(n) && n >= 1 && n <= opts.length) {
-        picked.push(opts[n - 1].id);
-        continue;
-      }
-      // allow pasting cardId directly (optional)
-      const byId = opts.find((c) => c.id === p);
-      if (byId) picked.push(byId.id);
-    }
-
-    return Array.from(new Set(picked));
-  }
-
-  async function setStreakRewardCardsForClass(classId, streakId, cfg) {
-    try {
-      const current = classesList.find((c) => c.id === classId)?.streakConfigs || [];
-      const found = current.find((c) => c.id === streakId) || cfg || null;
-      const existing = Array.isArray(found?.rewardCardIds) ? found.rewardCardIds : [];
-
-      const next = promptPickRewardCardIds({
-        defaultIds: existing,
-        label: found?.emoji ? `${found.emoji} streak` : "this streak",
-      });
-
-      if (next === null) return;        // no points cards exist
-      if (next === undefined) return;   // user cancelled
-
-      const nextConfigs = current.map((c) =>
-        c.id === streakId ? { ...c, rewardCardIds: next } : c
-      );
-
-      await updateDoc(doc(db, `classes/${classId}`), { streakConfigs: nextConfigs });
-    } catch (e) {
-      console.error("setStreakRewardCardsForClass error", e);
-      alert("Could not set reward cards. See console.");
-    }
-  }
-
-  // --- STUDENT STREAKS edit (generic) ---
-  async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValueOrCfg) {
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const data = snap.data();
-
-      const streaks = data.streaks || {};
-      const existingEntry = streaks[streakId] || {};
-      const current = existingEntry.value || 0;
-
-      // Accept either a number maxValue OR the full cfg object
-      const cfg = maxValueOrCfg && typeof maxValueOrCfg === "object" ? maxValueOrCfg : null;
-      const maxValue =
-        typeof maxValueOrCfg === "number"
-          ? maxValueOrCfg
-          : typeof cfg?.max === "number"
-          ? cfg.max
-          : 0;
-
-      let next = current + delta;
-      if (next < 0) next = 0;
-      if (typeof maxValue === "number" && maxValue > 0 && next > maxValue) {
-        next = maxValue;
-      }
-
-      const today = todayISODate();
-      const prevMaxAchievedOn = existingEntry.maxAchievedOn || "";
-
-      const reachedMaxNow = delta > 0 && typeof maxValue === "number" && maxValue > 0 && next === maxValue;
-      const crossedToMax = reachedMaxNow && current < maxValue;
-
-      // Keep existing float windows; add new one only when we CROSS into max
-      let floatWindows = Array.isArray(existingEntry.floatWindows) ? existingEntry.floatWindows : [];
-
-      if (crossedToMax && cfg?.float) {
-        const defaultDelay = 7;
-        const defaultDur = 7;
-
-        const delayStr = prompt(
-          `🎉 ${data.name || "Student"} reached the maximum for ${cfg.emoji || "this"} streak!
-          Floating emoji: how many DAYS after today should it start?
-          (Example: 0 = today, 7 = next week)`,
-          String(defaultDelay)
-        );
-        const durationStr = prompt(
-          `How many DAYS should the floating emoji last? (Example: 7 = one full week)`,
-          String(defaultDur)
-        );
-
-        let delayDays = parseInt((delayStr ?? String(defaultDelay)).trim(), 10);
-        if (!Number.isFinite(delayDays) || delayDays < 0) delayDays = defaultDelay;
-
-        let durationDays = parseInt((durationStr ?? String(defaultDur)).trim(), 10);
-        if (!Number.isFinite(durationDays) || durationDays <= 0) durationDays = defaultDur;
-
-        const start = addDaysISO(today, delayDays);
-        const end = addDaysISO(start, durationDays - 1);
-
-        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
-      } else {
-        // still prune old windows to keep data light
-        floatWindows = normalizeFloatWindows(floatWindows, today);
-      }
-
-      const updatedEntry = {
-        ...existingEntry,
-        value: next,
-        lastUpdated: delta > 0 ? today : (existingEntry.lastUpdated || ""),
-        // If we hit max today (even if we were already at max and pressed +1) -> mark today.
-        // Otherwise keep whatever date was recorded.
-        maxAchievedOn: reachedMaxNow ? today : prevMaxAchievedOn,
-        floatWindows,
-      };
-
-      const updatedStreaks = {
-        ...streaks,
-        [streakId]: updatedEntry,
-      };
-
-      const payload = { streaks: updatedStreaks };
-
-      if (crossedToMax) {
-        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
-        if (rewardIds.length) {
-          const multiplier = typeof data.multiplier === "number" ? data.multiplier : 1;
-          const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
-          let currentPoints = Number(data.currentPoints || 0);
-
-          const dedupe = new Set();
-
-          for (const rewardCardId of rewardIds) {
-            if (!rewardCardId || dedupe.has(rewardCardId)) continue;
-
-            const rewardCard = await getCardDataFast(classId, rewardCardId);
-            if (!rewardCard) continue;
-            if ((rewardCard.category || "points") !== "points") continue;
-
-            const pts = round2(Number(rewardCard.points || 0) * multiplier);
-
-            pushOwnedCard({
-              cardsArr,
-              cardId: rewardCardId,
-              cardData: rewardCard,
-              pointsGranted: pts,
-              streakId,
-            });
-
-            currentPoints = round2(currentPoints + pts);
-            dedupe.add(rewardCardId);
-          }
-
-          payload.cards = cardsArr;
-          payload.currentPoints = currentPoints;
-        }
-      }
-
-      await updateDoc(studentRef, payload);
-      
-      // No setSelectedStudent – snapshot will refresh students list
-    } catch (err) {
-      console.error("changeStudentStreakValue error", err);
-      alert("Could not update streak. See console.");
-    }
-  }
-
-  async function resetStudentStreak(classId, studentId, streakId) {
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const streaks = data.streaks || {};
-
-      const prev = streaks[streakId] || {};
-      const updatedEntry = {
-        value: 0,
-        lastUpdated: "",
-        maxAchievedOn: prev.maxAchievedOn || "",
-        floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
-      };
-
-      const updatedStreaks = {
-        ...streaks,
-        [streakId]: updatedEntry,
-      };
-
-      await updateDoc(studentRef, { streaks: updatedStreaks });
-      // Again, no setSelectedStudent – snapshot will handle UI refresh
-    } catch (err) {
-      console.error("resetStudentStreak error", err);
-      alert("Could not reset streak.");
-    }
-  }
-
-  async function deleteStreakTypeForClass(classId, streakId) {
-    if (
-      !window.confirm(
-        "Delete this streak type for the whole class? This cannot be undone.\n\nThis will also remove it (and any floating windows) from every student."
-      )
-    ) {
-      return;
-    }
-
-    try {
-      // 1) Remove from class config
-      const classRef = doc(db, `classes/${classId}`);
-      const snap = await getDoc(classRef);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const list = data.streakConfigs || [];
-      const updated = list.filter((cfg) => cfg.id !== streakId);
-      await updateDoc(classRef, { streakConfigs: updated });
-
-      // 2) Remove from every student (including floatWindows)
-      const studentsSnap = await getDocs(collection(db, `classes/${classId}/students`));
-      let batch = writeBatch(db);
-      let writes = 0;
-
-      for (const sdoc of studentsSnap.docs) {
-        const sdata = sdoc.data();
-        const streaks = sdata.streaks || {};
-        if (!streaks[streakId]) continue;
-
-        const nextStreaks = { ...streaks };
-        delete nextStreaks[streakId];
-
-        batch.update(sdoc.ref, { streaks: nextStreaks });
-        writes++;
-
-        // Firestore batch limit safety
-        if (writes >= 450) {
-          await batch.commit();
-          batch = writeBatch(db);
-          writes = 0;
-        }
-      }
-      if (writes > 0) await batch.commit();
-    } catch (err) {
-      console.error("deleteStreakTypeForClass error", err);
-      alert("Could not delete streak. See console.");
-    }
-  }
-
   async function quickAddPoints(classId, studentId, amount) {
-    const rawAmount = Number(amount || 0);
-    if (!Number.isFinite(rawAmount) || rawAmount === 0) return;
-
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      // 1. Get current multiplier
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const sdata = snap.data();
-      const mult = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-
-      // 2. Apply multiplier
-      const effective = round2(rawAmount * mult);
-
-      // 3. Update (using increment for safety, or direct set if you prefer exact calc)
-      await updateDoc(studentRef, { currentPoints: increment(effective) });
-    } catch (err) {
-      console.error("quickAddPoints error", err);
-      alert("Could not add points.");
-    }
+    await quickAddPointsService({
+      db,
+      classId,
+      studentId,
+      amount,
+      alertFn: alert,
+    });
   }
 
   // Profile cosmetics (guest allowed if rules permit)
@@ -707,511 +228,58 @@ export default function App() {
     unlockedFile,
   }) {
     if (!ensureClassSelected()) return;
-    if (!title?.trim()) {
-      alert("Card title required");
-      return;
-    }
 
-    try {
-      const baseKey = uid("card");
-      let lockedImageURL = "";
-      let unlockedImageURL = "";
-
-      if (lockedFile) {
-        const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(
-          /\s+/g,
-          "_"
-        )}`;
-        const refLocked = storageRef(
-          storage,
-          `classes/${activeClassId}/cards/${keyLocked}`
-        );
-        const snapLocked = await uploadBytes(refLocked, lockedFile);
-        lockedImageURL = await getDownloadURL(snapLocked.ref);
-      }
-
-      if (unlockedFile) {
-        const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(
-          /\s+/g,
-          "_"
-        )}`;
-        const refUnlocked = storageRef(
-          storage,
-          `classes/${activeClassId}/cards/${keyUnlocked}`
-        );
-        const snapUnlocked = await uploadBytes(refUnlocked, unlockedFile);
-        unlockedImageURL = await getDownloadURL(snapUnlocked.ref);
-      }
-
-      // fallback: if only one image provided
-      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
-      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
-
-      const cleanLinked = Array.isArray(linkedStreakIds)
-        ? linkedStreakIds.filter(Boolean)
-        : [];
-      
-      const payload = {
-        title: title.trim(),
-        description: description || "",
-        points: Number(points) || 0,
-        category: category || "points",
-        linkedStreakIds: category === "points" ? cleanLinked : [],
-        // unlocked in imageURL, locked in lockedImageURL
-        imageURL: unlockedImageURL,
-        lockedImageURL,
-        createdAt: Date.now(),
-      };
-
-      await addDoc(collection(db, `classes/${activeClassId}/cards`), payload);
-
-      // clear file inputs
-      if (lockedFileInputRef.current) lockedFileInputRef.current.value = "";
-      if (unlockedFileInputRef.current) unlockedFileInputRef.current.value = "";
-    } catch (err) {
-      console.error("createCard err:", err);
-      alert("Failed to add card. Check Storage permissions or console.");
-    }
+    await createCardService({
+      db,
+      storage,
+      classId: activeClassId,
+      title,
+      description,
+      points,
+      category,
+      linkedStreakIds,
+      lockedFile,
+      unlockedFile,
+      lockedFileInputRef,
+      unlockedFileInputRef,
+      alertFn: alert,
+    });
   }
 
   async function deleteCard(cardId) {
-    if (!window.confirm("Delete this library card?")) return;
-    try {
-      await deleteDoc(doc(db, `classes/${activeClassId}/cards/${cardId}`));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete card.");
-    }
-  }
-  
-
-  // Cards given increment linked streak automatically (if needed)
-  function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}) {
-    const today = todayISODate();
-    const ids = Array.isArray(idsOrId)
-      ? idsOrId.filter(Boolean)
-      : (idsOrId ? [idsOrId] : []);
-
-    if (ids.length === 0) return null;
-
-    const streaks = { ...(sdata.streaks || {}) };
-    let changed = false;
-
-    const allowPrompts = opts.allowPrompts !== false; // default true
-    const studentName = opts.studentName || sdata.name || "Student";
-    const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
-
-    const crossedMaxIds = [];
-
-    const defaultDelay = Number.isFinite(opts.defaultDelayDays) ? opts.defaultDelayDays : 7;
-    const defaultDur = Number.isFinite(opts.defaultDurationDays) ? opts.defaultDurationDays : 7;
-
-    for (const id of ids) {
-      const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
-
-      // already increased today -> do nothing
-      if ((prev.lastUpdated || "") === today) continue;
-
-      const cfg = (activeClass?.streakConfigs || []).find((c) => c.id === id) || null;
-      const max = typeof cfg?.max === "number" ? cfg.max : 0;
-
-      let nextVal = (prev.value || 0) + 1;
-      if (max > 0 && nextVal > max) nextVal = max;
-
-      const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
-      if (crossedToMax) crossedMaxIds.push(id);
-
-      // keep/prune existing windows
-      let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
-      floatWindows = normalizeFloatWindows(floatWindows, today);
-
-      // If we just reached max AND this streak is configured for floating:
-      if (crossedToMax && cfg?.float) {
-        let delayDays = defaultDelay;
-        let durationDays = defaultDur;
-
-        if (allowPrompts) {
-          const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
-
-          const input = prompt(
-            `🎉 Max reached for ${studentName}${progress}!\n\n` +
-              `${streakLabel}: floating emoji schedule\n` +
-              `Type: delay,duration\n` +
-              `Examples:\n` +
-              `  0,7   (start today, 7 days)\n` +
-              `  7,14  (start in 7 days, 14 days)\n` +
-              `  start=3 duration=10\n`,
-            `${defaultDelay},${defaultDur}`
-          );
-
-          const parsed = parseFloatScheduleInput(input, {
-            delayDays: defaultDelay,
-            durationDays: defaultDur,
-          });
-
-          delayDays = parsed.delayDays;
-          durationDays = parsed.durationDays;
-        }
-
-        const start = addDaysISO(today, delayDays);
-        const end = addDaysISO(start, durationDays - 1);
-        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
-      }
-
-      streaks[id] = {
-        ...prev,
-        value: nextVal,
-        lastUpdated: today,
-        maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
-        floatWindows,
-      };
-
-      changed = true;
-    }
-
-    return { nextStreaks: changed ? streaks : null, crossedMaxIds };
-  }
-
-  function incrementStreaksNoFloatWindows(sdata, ids, streakConfigs) {
-    const today = todayISODate();
-    const streaks = { ...(sdata.streaks || {}) };
-    let changed = false;
-
-    const crossedFloatIds = [];
-    const crossedMaxIds = [];
-
-    for (const id of (Array.isArray(ids) ? ids.filter(Boolean) : [])) {
-      const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
-
-      // already increased today -> do nothing
-      if ((prev.lastUpdated || "") === today) continue;
-
-      const cfg = (streakConfigs || []).find((c) => c.id === id) || null;
-      const max = typeof cfg?.max === "number" ? cfg.max : 0;
-
-      let nextVal = (prev.value || 0) + 1;
-      if (max > 0 && nextVal > max) nextVal = max;
-
-      const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
-
-      // prune old windows but do NOT add new ones yet
-      let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
-      floatWindows = normalizeFloatWindows(floatWindows, today);
-
-      if (crossedToMax) crossedMaxIds.push(id);
-      if (crossedToMax && cfg?.float) crossedFloatIds.push(id);
-
-      streaks[id] = {
-        ...prev,
-        value: nextVal,
-        lastUpdated: today,
-        maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
-        floatWindows,
-      };
-
-      changed = true;
-    }
-
-    return { nextStreaks: changed ? streaks : null, crossedFloatIds, crossedMaxIds };
+    await deleteCardService({
+      db,
+      classId: activeClassId,
+      cardId,
+      alertFn: alert,
+    });
   }
 
   // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
   async function giveCardToStudent(classId, studentId, cardId) {
-    try {
-      const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
-      if (!cardSnap.exists()) return alert("Card not found");
-      const cardData = cardSnap.data();
-
-      const category = cardData.category || "points";
-      if (category === "rewards") return; // not eligible to give directly
-
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const studentSnap = await getDoc(studentRef);
-      if (!studentSnap.exists()) return alert("Student not found");
-      const sdata = studentSnap.data();
-
-      const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-
-      // Only points-cards give base points. Experience cards are purely cosmetic.
-      let basePoints = 0;
-      if (category === "points") {
-        basePoints = Number(cardData.points || 0);
-      }
-
-      const effectivePoints = round2(basePoints * multiplier);
-
-      const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
-      cardsArr.push({
-        id: uid("owned"),
-        cardId,
-        title: cardData.title,
-        imageURL: cardData.imageURL || "",
-        grantedAt: new Date().toISOString(),
-        pointsGranted: effectivePoints,
-      });
-
-      const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
-
-      const linkedIds =
-        category === "points"
-          ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
-          : [];
-
-      const res = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
-        allowPrompts: true,
-        studentName: sdata.name || "",
-      });
-
-      const nextStreaks = res?.nextStreaks || null;
-      const crossedMaxIds = Array.isArray(res?.crossedMaxIds) ? res.crossedMaxIds : [];
-
-      // ✅ Auto-give rewards for streaks that just hit MAX
-      if (crossedMaxIds.length) {
-        const streakConfigs = activeClass?.streakConfigs || [];
-        const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-
-        const givenRewardCardIds = new Set(); // prevent duplicates in the same click
-
-        for (const streakId of crossedMaxIds) {
-          const cfg = streakConfigs.find((c) => c.id === streakId);
-          const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
-          for (const rewardCardId of rewardIds) {
-            if (!rewardCardId || givenRewardCardIds.has(rewardCardId)) continue;
-
-            const rewardCard = await getCardDataFast(classId, rewardCardId);
-            if (!rewardCard) continue;
-
-            if ((rewardCard.category || "points") !== "points") continue; // only points cards add points
-
-            const base = Number(rewardCard.points || 0);
-            const pts = round2(base * multiplier);
-
-            pushOwnedCard({
-              cardsArr,
-              cardId: rewardCardId,
-              cardData: rewardCard,
-              pointsGranted: pts,
-              streakId,
-            });
-
-            currentPoints = round2(currentPoints + pts);
-            givenRewardCardIds.add(rewardCardId);
-          }
-        }
-      }
-
-      const payload = { cards: cardsArr, currentPoints };
-      if (nextStreaks) payload.streaks = nextStreaks;
-
-      await updateDoc(studentRef, payload);
-
-      // no success alert on purpose
-    } catch (err) {
-      console.error(err);
-      alert("Failed to give card.");
-    }
+    await giveCardToStudentService({
+      db,
+      classId,
+      studentId,
+      cardId,
+      activeClass,
+      getCardDataFast,
+      alertFn: alert,
+    });
   }
-
 
   // Bulk give: give ONE library card to MANY students (points are multiplied by each student's multiplier).
   // Uses per-student reads to keep it correct even if points/cards changed elsewhere.
   async function giveCardToStudentsBulk(classId, cardId, studentIds) {
-    if (!classId) return;
-    if (!Array.isArray(studentIds) || studentIds.length === 0) return;
-
-    const floatHitsByStreak = new Map(); // for scheduling float windows
-    const maxHitsByStreak = new Map();   // for rewards (reached MAX even if float disabled)
-
-    try {
-      const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
-      if (!cardSnap.exists()) return alert("Card not found");
-      const cardData = cardSnap.data();
-
-      const category = cardData.category || "points";
-      if (category === "rewards") return alert("Rewards cards can't be given directly.");
-
-      const basePoints = category === "points" ? Number(cardData.points || 0) : 0;
-      const linkedIds =
-        category === "points" ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : []) : [];
-
-      const streakConfigs = activeClass?.streakConfigs || [];
-      const today = todayISODate();
-
-      // Phase 1: read + prepare updates, collect "who hit max" per streak
-      const pending = []; // { studentRef, cardsArr, currentPoints, nextStreaks }
-      const maxHitsByStreak = new Map(); // streakId -> array of { idx, name }
-
-      for (let i = 0; i < studentIds.length; i++) {
-        const studentId = studentIds[i];
-        const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-        const studentSnap = await getDoc(studentRef);
-        if (!studentSnap.exists()) continue;
-        const sdata = studentSnap.data();
-
-        const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-        const effectivePoints = round2(basePoints * multiplier);
-
-        const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
-        cardsArr.push({
-          id: uid("owned"),
-          cardId,
-          title: cardData.title,
-          imageURL: cardData.imageURL || "",
-          grantedAt: new Date().toISOString(),
-          pointsGranted: effectivePoints,
-        });
-
-        const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
-
-        let nextStreaks = null;
-        let crossedFloatIds = [];
-        let crossedMaxIds = [];
-
-        if (linkedIds.length > 0) {
-          const res = incrementStreaksNoFloatWindows(sdata, linkedIds, streakConfigs);
-          nextStreaks = res.nextStreaks;
-          crossedFloatIds = res.crossedFloatIds;
-          crossedMaxIds = Array.isArray(res.crossedMaxIds) ? res.crossedMaxIds : [];
-        }
-
-        const idx = pending.length;
-        pending.push({
-          studentRef,
-          studentName: sdata.name || studentId,
-          multiplier,
-          cardsArr,
-          currentPoints,
-          nextStreaks,
-        });
-
-        for (const streakId of crossedFloatIds) {
-          if (!floatHitsByStreak.has(streakId)) floatHitsByStreak.set(streakId, []);
-          floatHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
-        }
-
-        for (const streakId of crossedMaxIds) {
-          if (!maxHitsByStreak.has(streakId)) maxHitsByStreak.set(streakId, []);
-          maxHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
-        }
-      }
-
-      // Phase 2: ONE prompt per streak that had max hits, then apply to all those students
-      const defaultDelay = 7;
-      const defaultDur = 7;
-
-      for (const [streakId, hits] of maxHitsByStreak.entries()) {
-        const cfg = streakConfigs.find((c) => c.id === streakId) || null;
-        const emoji = cfg?.emoji || "⭐";
-
-        const names = hits.map((h) => h.name);
-        const preview = names.slice(0, 12).join(", ");
-        const more = names.length > 12 ? ` (+${names.length - 12} more)` : "";
-
-        const input = prompt(
-          `🎉 Bulk give: ${emoji} streak reached MAX today by ${names.length} students:\n` +
-            `${preview}${more}\n\n` +
-            `Floating emoji schedule (applies to ALL above students for this streak)\n` +
-            `Type: delay,duration  (examples: 0,7  or  7,14  or  start=3 duration=10)`,
-          `${defaultDelay},${defaultDur}`
-        );
-
-        const { delayDays, durationDays } = parseFloatScheduleInput(input, {
-          delayDays: defaultDelay,
-          durationDays: defaultDur,
-        });
-
-        const start = addDaysISO(today, delayDays);
-        const end = addDaysISO(start, durationDays - 1);
-
-        for (const h of hits) {
-          const item = pending[h.idx];
-          if (!item?.nextStreaks) continue;
-
-          const prevEntry = item.nextStreaks[streakId] || { value: 0, lastUpdated: today, maxAchievedOn: today, floatWindows: [] };
-          let floatWindows = Array.isArray(prevEntry.floatWindows) ? prevEntry.floatWindows : [];
-          floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
-
-          item.nextStreaks = {
-            ...item.nextStreaks,
-            [streakId]: { ...prevEntry, floatWindows },
-          };
-        }
-      }
-
-      // Phase 2B: award reward cards for everyone who reached MAX (per streak)
-      const rewardCache = new Map(); // cardId -> cardData
-
-      for (const [streakId, hits] of maxHitsByStreak.entries()) {
-        const cfg = streakConfigs.find((c) => c.id === streakId) || null;
-        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
-        if (rewardIds.length === 0) continue;
-
-        for (const rewardCardId of rewardIds) {
-          if (!rewardCardId) continue;
-
-          if (!rewardCache.has(rewardCardId)) {
-            const cd = await getCardDataFast(classId, rewardCardId);
-            rewardCache.set(rewardCardId, cd || null);
-          }
-        }
-
-        for (const h of hits) {
-          const item = pending[h.idx];
-          if (!item) continue;
-
-          item._rewardDone = item._rewardDone || new Set(); // per-student dedupe during this bulk click
-
-          for (const rewardCardId of rewardIds) {
-            if (!rewardCardId || item._rewardDone.has(rewardCardId)) continue;
-
-            const rewardCard = rewardCache.get(rewardCardId);
-            if (!rewardCard) continue;
-            if ((rewardCard.category || "points") !== "points") continue;
-
-            const base = Number(rewardCard.points || 0);
-            const mult = typeof item.multiplier === "number" ? item.multiplier : 1;
-            const pts = round2(base * mult);
-
-            pushOwnedCard({
-              cardsArr: item.cardsArr,
-              cardId: rewardCardId,
-              cardData: rewardCard,
-              pointsGranted: pts,
-              streakId,
-            });
-
-            item.currentPoints = round2(item.currentPoints + pts);
-            item._rewardDone.add(rewardCardId);
-          }
-        }
-      }
-
-      // Phase 3: write updates in Firestore batches
-      let batch = writeBatch(db);
-      let writes = 0;
-      let given = 0;
-
-      for (const item of pending) {
-        const payload = { cards: item.cardsArr, currentPoints: item.currentPoints };
-        if (item.nextStreaks) payload.streaks = item.nextStreaks;
-
-        batch.update(item.studentRef, payload);
-        writes += 1;
-        given += 1;
-
-        if (writes >= 450) {
-          await batch.commit();
-          batch = writeBatch(db);
-          writes = 0;
-        }
-      }
-
-      if (writes > 0) await batch.commit();
-      alert(`Card given to ${given} student${given === 1 ? "" : "s"}.`);
-    } catch (err) {
-      console.error("giveCardToStudentsBulk error", err);
-      alert("Failed to give card to students. See console.");
-    }
+    await giveCardToStudentsBulkService({
+      db,
+      classId,
+      cardId,
+      studentIds,
+      activeClass,
+      getCardDataFast,
+      alertFn: alert,
+    });
   }
 
   function openBulkGive(card) {
@@ -1231,261 +299,61 @@ export default function App() {
   
   // Owned cards removal (bulk) - ONE updateDoc
   async function removeOwnedCardsBulk(classId, studentId, ownedIds) {
-    if (!ownedIds?.length) return;
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const sdata = snap.data();
-      const nextCards = (sdata.cards || []).filter((c) => !ownedIds.includes(c.id));
-      await updateDoc(studentRef, { cards: nextCards });
-    } catch (err) {
-      console.error(err);
-      alert("Failed to remove cards.");
-    }
+    await removeOwnedCardsBulkService({
+      db,
+      classId,
+      studentId,
+      ownedIds,
+      alertFn: alert,
+    });
   }
 
   // ----- Rewards -----
   async function createReward({ title, cost, linkedCardId }) {
     if (!ensureClassSelected()) return;
-    if (!title?.trim()) return;
-    try {
-      const payload = {
-        title: title.trim(),
-        cost: Number(cost || 0),
-        cardId: linkedCardId || null,
-        createdAt: Date.now(),
-      };
-      await addDoc(collection(db, `classes/${activeClassId}/rewards`), payload);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to create reward.");
-    }
+    await createRewardService({
+      db,
+      classId: activeClassId,
+      title,
+      cost,
+      linkedCardId,
+      alertFn: alert,
+    });
   }
 
   async function deleteReward(rewardId) {
-    if (!window.confirm("Delete this reward?")) return;
-    try {
-      await deleteDoc(doc(db, `classes/${activeClassId}/rewards/${rewardId}`));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete reward.");
-    }
+    await deleteRewardService({
+      db,
+      classId: activeClassId,
+      rewardId,
+      alertFn: alert,
+    });
   }
 
-  // ✅ Auto-unlock EXPERIENCE cards when XP reaches the card's "points" threshold
-  function unlockExperienceCards({ allCards, cardsArr, xpAfter, nowISO }) {
-    const library = Array.isArray(allCards) ? allCards : [];
-    if (library.length === 0) return cardsArr; // safety: if cards not loaded yet, do nothing
-
-    const ownedCardIds = new Set(
-      (Array.isArray(cardsArr) ? cardsArr : [])
-        .map((o) => o?.cardId)
-        .filter(Boolean)
-    );
-
-    // Experience cards: category === "experience"
-    const eligible = library
-      .filter((c) => (c.category || "points") === "experience")
-      .filter((c) => Number(c.points ?? 0) >= 0) // allow 0+ thresholds
-      .filter((c) => (Number(xpAfter) || 0) >= Number(c.points ?? 0))
-      .filter((c) => c?.id && !ownedCardIds.has(c.id))
-      .sort((a, b) => Number(a.points ?? 0) - Number(b.points ?? 0));
-
-    if (eligible.length === 0) return cardsArr;
-
-    const next = [...(Array.isArray(cardsArr) ? cardsArr : [])];
-
-    for (const c of eligible) {
-      next.push({
-        id: uid("owned"),
-        cardId: c.id,
-        title: c.title || "",
-        imageURL: c.imageURL || "",
-        grantedAt: nowISO,
-        pointsGranted: 0, // purely cosmetic
-        autoFrom: { type: "xpUnlock", xpRequired: Number(c.points ?? 0), xpAt: Number(xpAfter) || 0 },
-      });
-    }
-
-    return next;
-  }
-
-  // Redeem: individual
   async function redeemIndividual(classId, studentId, rewardId) {
-    if (!classId || !studentId || !rewardId) return;
-    const r = rewards.find((x) => x.id === rewardId);
-    if (!r) return alert("Reward not found");
-
-    const cost = Number(r.cost || 0);
-    const s = students.find((x) => x.id === studentId);
-    if (!s) return;
-
-    if ((s.currentPoints || 0) < cost) {
-      return alert("Not enough points!");
-    }
-
-    if (!window.confirm(`Redeem "${r.title}" for ${cost} points?`)) return;
-
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const now = new Date().toISOString();
-
-      // 1. Calculate new XP (Points Spent -> XP)
-      const oldXp = Number(s.xp || 0);
-      const newXp = oldXp + cost;
-
-      // 2. Create history entry
-      const historyEntry = {
-        id: uid("rh"),
-        rewardId,
-        title: r.title,
-        cost: cost,
-        date: now,
-        type: "individual",
-      };
-
-      // 3. Handle Cards (Reward Card + Potential XP Cards)
-      let newCards = [...(s.cards || [])];
-
-      // A) Reward Card (if the reward itself is a card)
-      if (r.cardId) {
-        const linkedCard = cards.find((c) => c.id === r.cardId);
-        if (linkedCard) {
-          pushOwnedCard({
-            cardsArr: newCards,
-            cardId: r.cardId,
-            cardData: linkedCard,
-            pointsGranted: 0,
-            streakId: "reward",
-          });
-        }
-      }
-
-      // B) XP Unlock Check (The fix!)
-      const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
-      unlockedXpCards.forEach(c => {
-        pushOwnedCard({
-          cardsArr: newCards,
-          cardId: c.id,
-          cardData: c,
-          pointsGranted: 0, // Experience cards usually don't give points themselves, they are the prize
-          streakId: "xp_unlock",
-        });
-      });
-
-      // 4. Update Database
-      await updateDoc(studentRef, {
-        currentPoints: increment(-cost),
-        xp: newXp, // Save the new XP
-        rewardsHistory: [ ...(s.rewardsHistory || []), historyEntry ],
-        cards: newCards,
-      });
-
-      if (unlockedXpCards.length > 0) {
-        alert(`🎉 Level Up! Unlocked ${unlockedXpCards.length} new Experience Card(s)!`);
-      }
-
-    } catch (err) {
-      console.error(err);
-      alert("Failed to redeem.");
-    }
+    await redeemIndividualService({
+      db,
+      classId,
+      studentId,
+      rewardId,
+      rewards,
+      students,
+      cards,
+      alertFn: alert,
+    });
   }
 
-  // Redeem: group (shares sum must equal cost). Applies to all participants: subtract share, add XP share, add history entry, grant linked card.
   async function redeemGroup(classId, rewardId, participants) {
-    if (!participants || participants.length === 0) return;
-    const r = rewards.find((x) => x.id === rewardId);
-    if (!r) return;
-
-    if (!window.confirm(`Redeem "${r.title}" for group?`)) return;
-
-    try {
-      const batch = writeBatch(db);
-      const now = new Date().toISOString();
-
-      // Create list of names for history
-      const contributors = participants.map(([sid, share]) => {
-        const sName = students.find(s => s.id === sid)?.name || "Unknown";
-        return { name: sName, cost: Number(share) };
-      });
-
-      let anyoneLeveledUp = false;
-
-      for (const [sid, share] of participants) {
-        const st = students.find((s) => s.id === sid);
-        if (!st) continue;
-
-        const studentRef = doc(db, `classes/${classId}/students/${sid}`);
-        const costNum = Number(share);
-
-        // 1. Calculate new XP (Points Spent -> XP)
-        const oldXp = Number(st.xp || 0);
-        const newXp = oldXp + costNum;
-
-        const historyEntry = {
-          id: uid("rh"), // Make sure you have the uid() helper or use Math.random
-          rewardId,
-          title: r.title,
-          cost: costNum,
-          date: now,
-          type: "group",
-          contributors: contributors,
-        };
-
-        let newCards = [...(st.cards || [])];
-
-        // A) Reward Card (if exists)
-        if (r.cardId) {
-          const linkedCard = cards.find((c) => c.id === r.cardId);
-          if (linkedCard) {
-            pushOwnedCard({
-              cardsArr: newCards,
-              cardId: r.cardId,
-              cardData: linkedCard,
-              pointsGranted: 0,
-              streakId: "reward_group",
-            });
-          }
-        }
-
-        // B) Check for Level Ups (Experience Cards)
-        const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
-        if (unlockedXpCards.length > 0) anyoneLeveledUp = true;
-        
-        unlockedXpCards.forEach(c => {
-          pushOwnedCard({
-            cardsArr: newCards,
-            cardId: c.id,
-            cardData: c,
-            pointsGranted: 0,
-            streakId: "xp_unlock",
-          });
-        });
-
-        // Update Arrays manually for batch
-        const nextHistory = [ ...(st.rewardsHistory || []), historyEntry ];
-        
-        batch.update(studentRef, {
-          currentPoints: increment(-costNum),
-          xp: increment(costNum), // ADD XP because they spent points
-          rewardsHistory: nextHistory,
-          cards: newCards,
-        });
-      }
-
-      await batch.commit();
-      
-      if (anyoneLeveledUp) {
-        alert("🎉 Some students leveled up and unlocked Experience Cards!");
-      }
-
-      return true;
-
-    } catch (err) {
-      console.error(err);
-      alert("Failed group redeem.");
-    }
+    await redeemGroupService({
+      db,
+      classId,
+      rewardId,
+      participants,
+      rewards,
+      students,
+      cards,
+      alertFn: alert,
+    });
   }
 
   // ----- IMPROVED LOGIN SCREEN -----
@@ -1775,10 +643,29 @@ export default function App() {
               mode={mode}
               studentFilter={studentFilter}
               setStudentFilter={setStudentFilter}
-              onAddStreak={addStreakTypeForClass}
+              onAddStreak={(classId) => addStreakTypeForClass({
+                db,
+                classId,
+                classesList,
+                cards,
+                promptFn: window.prompt.bind(window),
+                alertFn: window.alert.bind(window),
+              })}
               onManageStudent={setSelectedStudentId}
               onProfileStudent={setProfileStudentId}
-              onChangeStudentStreak={changeStudentStreakValue}
+              onChangeStudentStreak={(classId, studentId, streakId, delta, cfg) =>
+                changeStudentStreakValue({
+                  db,
+                  classId,
+                  studentId,
+                  streakId,
+                  delta,
+                  maxValueOrCfg: cfg,
+                  promptFn: window.prompt.bind(window),
+                  alertFn: window.alert.bind(window),
+                  getCardDataFast,
+                })
+              }
               onQuickAddPoints={quickAddPoints}
               onPreviewCard={setCardPreview}
               onAddStudent={() => {
@@ -1998,11 +885,53 @@ export default function App() {
           cards={cards}
           rewards={rewards}
           streakConfigs={activeClass?.streakConfigs || []}
-          changeStudentStreakValue={changeStudentStreakValue}
-          resetStudentStreak={resetStudentStreak}
-          deleteStreakTypeForClass={deleteStreakTypeForClass}
-          setStickyCelebrateForClass={setStickyCelebrateForClass}
-          setStreakRewardCardsForClass={setStreakRewardCardsForClass}
+          changeStudentStreakValue={(classId, studentId, streakId, delta, cfg) =>
+            changeStudentStreakValue({
+              db,
+              classId,
+              studentId,
+              streakId,
+              delta,
+              maxValueOrCfg: cfg,
+              promptFn: window.prompt.bind(window),
+              alertFn: window.alert.bind(window),
+              getCardDataFast,
+            })
+          }
+          resetStudentStreak={(classId, studentId, streakId) =>
+            resetStudentStreak({ db, classId, studentId, streakId, alertFn: window.alert.bind(window) })
+          }
+          deleteStreakTypeForClass={(classId, streakId) =>
+            deleteStreakTypeForClass({ db, classId, streakId, alertFn: window.alert.bind(window) })
+          }
+          setStickyCelebrateForClass={async (classId, streakId, stickyCelebrate) => {
+            try {
+              const classRef = doc(db, `classes/${classId}`);
+              const snap = await getDoc(classRef);
+              if (!snap.exists()) return;
+              const data = snap.data();
+              const list = data.streakConfigs || [];
+              const updated = list.map((cfg) =>
+                cfg.id === streakId ? { ...cfg, stickyCelebrate: !!stickyCelebrate } : cfg
+              );
+              await updateDoc(classRef, { streakConfigs: updated });
+            } catch (err) {
+              console.error("setStickyCelebrateForClass error", err);
+              alert("Could not update sticky celebration.");
+            }
+          }}
+          setStreakRewardCardsForClass={(classId, streakId, cfg) =>
+            setStreakRewardCardsForClass({
+              db,
+              classId,
+              classesList,
+              cards,
+              promptFn: window.prompt.bind(window),
+              alertFn: window.alert.bind(window),
+              streakId,
+              cfg,
+            })
+          }
           mode={mode}
           onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
