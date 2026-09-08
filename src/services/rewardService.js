@@ -48,6 +48,44 @@ export async function deleteReward({
   }
 }
 
+// Shared by cardService (give single/bulk) and streakService (manual +/-):
+// grants the reward cards configured for a streak once it hits its maximum.
+export async function grantStreakMaxRewardCards({
+  rewardCardIds,
+  cardsArr,
+  currentPoints,
+  multiplier,
+  streakId,
+  classId,
+  getCardDataFast,
+  givenRewardCardIds = new Set(),
+}) {
+  let points = currentPoints;
+
+  for (const rewardCardId of Array.isArray(rewardCardIds) ? rewardCardIds : []) {
+    if (!rewardCardId || givenRewardCardIds.has(rewardCardId)) continue;
+
+    const rewardCard = await getCardDataFast(classId, rewardCardId);
+    if (!rewardCard) continue;
+    if ((rewardCard.category || "points") !== "points") continue;
+
+    const pts = round2(Number(rewardCard.points || 0) * multiplier);
+
+    pushOwnedCard({
+      cardsArr,
+      cardId: rewardCardId,
+      cardData: rewardCard,
+      pointsGranted: pts,
+      streakId,
+    });
+
+    points = round2(points + pts);
+    givenRewardCardIds.add(rewardCardId);
+  }
+
+  return points;
+}
+
 export function pushOwnedCard({ cardsArr, cardId, cardData, pointsGranted, streakId }) {
   cardsArr.push({
     id: uid("owned"),

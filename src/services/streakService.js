@@ -7,13 +7,13 @@ import {
   writeBatch,
 } from "firebase/firestore";
 
-import { uid, round2 } from "../utils/helpers";
+import { uid } from "../utils/helpers";
 import { todayISODate, addDaysISO } from "../utils/dateUtils";
 import {
   parseFloatScheduleInput,
   normalizeFloatWindows,
 } from "../utils/floatWindowUtils";
-import { pushOwnedCard } from "./rewardService";
+import { grantStreakMaxRewardCards } from "./rewardService";
 
 export async function addStreakTypeForClass({
   db,
@@ -260,30 +260,15 @@ export async function changeStudentStreakValue({
       if (rewardIds.length) {
         const multiplier = typeof data.multiplier === "number" ? data.multiplier : 1;
         const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
-        let currentPoints = Number(data.currentPoints || 0);
-
-        const dedupe = new Set();
-
-        for (const rewardCardId of rewardIds) {
-          if (!rewardCardId || dedupe.has(rewardCardId)) continue;
-
-          const rewardCard = await getCardDataFast(classId, rewardCardId);
-          if (!rewardCard) continue;
-          if ((rewardCard.category || "points") !== "points") continue;
-
-          const pts = round2(Number(rewardCard.points || 0) * multiplier);
-
-          pushOwnedCard({
-            cardsArr,
-            cardId: rewardCardId,
-            cardData: rewardCard,
-            pointsGranted: pts,
-            streakId,
-          });
-
-          currentPoints = round2(currentPoints + pts);
-          dedupe.add(rewardCardId);
-        }
+        const currentPoints = await grantStreakMaxRewardCards({
+          rewardCardIds: rewardIds,
+          cardsArr,
+          currentPoints: Number(data.currentPoints || 0),
+          multiplier,
+          streakId,
+          classId,
+          getCardDataFast,
+        });
 
         payload.cards = cardsArr;
         payload.currentPoints = currentPoints;

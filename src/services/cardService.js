@@ -19,7 +19,7 @@ import {
   parseFloatScheduleInput,
   normalizeFloatWindows,
 } from "../utils/floatWindowUtils";
-import { pushOwnedCard } from "./rewardService";
+import { grantStreakMaxRewardCards } from "./rewardService";
 import {
   incrementLinkedStreakIfNeeded,
   incrementStreaksNoFloatWindows,
@@ -241,27 +241,16 @@ export async function giveCardToStudent({
       for (const streakId of crossedMaxIds) {
         const cfg = streakConfigs.find((c) => c.id === streakId);
         const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
-        for (const rewardCardId of rewardIds) {
-          if (!rewardCardId || givenRewardCardIds.has(rewardCardId)) continue;
-
-          const rewardCard = await getCardDataFast(classId, rewardCardId);
-          if (!rewardCard) continue;
-          if ((rewardCard.category || "points") !== "points") continue;
-
-          const base = Number(rewardCard.points || 0);
-          const pts = round2(base * multiplier);
-
-          pushOwnedCard({
-            cardsArr,
-            cardId: rewardCardId,
-            cardData: rewardCard,
-            pointsGranted: pts,
-            streakId,
-          });
-
-          currentPoints = round2(currentPoints + pts);
-          givenRewardCardIds.add(rewardCardId);
-        }
+        currentPoints = await grantStreakMaxRewardCards({
+          rewardCardIds: rewardIds,
+          cardsArr,
+          currentPoints,
+          multiplier,
+          streakId,
+          classId,
+          getCardDataFast,
+          givenRewardCardIds,
+        });
       }
     }
 
@@ -429,28 +418,17 @@ export async function giveCardToStudentsBulk({
 
         item._rewardDone = item._rewardDone || new Set();
 
-        for (const rewardCardId of rewardIds) {
-          if (!rewardCardId || item._rewardDone.has(rewardCardId)) continue;
-
-          const rewardCard = rewardCache.get(rewardCardId);
-          if (!rewardCard) continue;
-          if ((rewardCard.category || "points") !== "points") continue;
-
-          const base = Number(rewardCard.points || 0);
-          const mult = typeof item.multiplier === "number" ? item.multiplier : 1;
-          const pts = round2(base * mult);
-
-          pushOwnedCard({
-            cardsArr: item.cardsArr,
-            cardId: rewardCardId,
-            cardData: rewardCard,
-            pointsGranted: pts,
-            streakId,
-          });
-
-          item.currentPoints = round2(item.currentPoints + pts);
-          item._rewardDone.add(rewardCardId);
-        }
+        const mult = typeof item.multiplier === "number" ? item.multiplier : 1;
+        item.currentPoints = await grantStreakMaxRewardCards({
+          rewardCardIds: rewardIds,
+          cardsArr: item.cardsArr,
+          currentPoints: item.currentPoints,
+          multiplier: mult,
+          streakId,
+          classId,
+          getCardDataFast: async (cId, cardId) => rewardCache.get(cardId) || null,
+          givenRewardCardIds: item._rewardDone,
+        });
       }
     }
 
