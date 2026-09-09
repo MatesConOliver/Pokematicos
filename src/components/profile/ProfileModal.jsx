@@ -1,11 +1,27 @@
 import React, { useState } from "react";
 
-export default function ProfileModal({ mode, student, onClose, onSave, onChangePin, onValidationError, pastelColors = [] }) {
+export default function ProfileModal({
+  mode,
+  student,
+  onClose,
+  onSave,
+  onChangePin,
+  onValidationError,
+  pastelColors = [],
+  giveableCards = [],
+  myPendingRequests = [],
+  onCreateRequest,
+  onCancelRequest,
+}) {
   const [emojis, setEmojis] = useState(student.nameEmojis || "");
   const [color, setColor] = useState(student.profileColor || "");
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [newPinConfirm, setNewPinConfirm] = useState("");
+  const [requestType, setRequestType] = useState("points");
+  const [requestCardId, setRequestCardId] = useState("");
+  const [requestAmount, setRequestAmount] = useState("");
+  const [requestNote, setRequestNote] = useState("");
 
   const displayName = `${student.name}${emojis ? " " + emojis : ""}`;
 
@@ -142,6 +158,133 @@ export default function ProfileModal({ mode, student, onClose, onSave, onChangeP
               </div>
             )}
           </div>
+
+          {onCreateRequest && (
+            <div style={{ marginTop: 24, borderTop: "1px dashed #e0e0e0", paddingTop: 16 }}>
+              <div style={{
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                color: "#999",
+                fontWeight: 700,
+                marginBottom: 12,
+              }}>
+                Pedir algo al profe
+              </div>
+
+              {myPendingRequests.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                  {myPendingRequests.map((r) => (
+                    <div key={r.id} style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
+                      background: "#fff",
+                      border: "1px solid #eee",
+                      borderRadius: 10,
+                      padding: "8px 12px",
+                    }}>
+                      <div style={{ fontSize: 13 }}>
+                        {r.type === "card" ? `🃏 ${r.cardTitle || r.cardId}` : `⭐ ${r.amount} pts`}
+                        <span className="muted" style={{ marginLeft: 6 }}>pendiente</span>
+                      </div>
+                      {onCancelRequest && (
+                        <button className="btn" style={{ fontSize: 12 }} onClick={() => onCancelRequest(r)}>
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {myPendingRequests.length >= 3 ? (
+                <div className="muted">Ya tienes 3 peticiones pendientes. Espera a que se resuelvan.</div>
+              ) : (
+                <div style={{ display: "grid", gap: 10, maxWidth: 320 }}>
+                  <div style={{ display: "flex", gap: 14 }}>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input
+                        type="radio"
+                        name="requestType"
+                        checked={requestType === "points"}
+                        onChange={() => setRequestType("points")}
+                      />
+                      Puntos
+                    </label>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input
+                        type="radio"
+                        name="requestType"
+                        checked={requestType === "card"}
+                        onChange={() => setRequestType("card")}
+                      />
+                      Carta
+                    </label>
+                  </div>
+
+                  {requestType === "points" ? (
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Cantidad de puntos"
+                      value={requestAmount}
+                      onChange={(e) => setRequestAmount(e.target.value)}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    />
+                  ) : (
+                    <select
+                      value={requestCardId}
+                      onChange={(e) => setRequestCardId(e.target.value)}
+                      style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    >
+                      <option value="">-- elige una carta --</option>
+                      {giveableCards.map((c) => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  <textarea
+                    placeholder="Explica por qué (opcional)"
+                    value={requestNote}
+                    onChange={(e) => setRequestNote(e.target.value)}
+                    rows={2}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", resize: "vertical" }}
+                  />
+
+                  <button
+                    className="btn primary"
+                    onClick={async () => {
+                      if (requestType === "points" && Number(requestAmount) <= 0) {
+                        if (onValidationError) onValidationError("Indica una cantidad de puntos válida.");
+                        return;
+                      }
+                      if (requestType === "card" && !requestCardId) {
+                        if (onValidationError) onValidationError("Elige una carta.");
+                        return;
+                      }
+                      const ok = await onCreateRequest({
+                        type: requestType,
+                        amount: requestType === "points" ? Number(requestAmount) : undefined,
+                        cardId: requestType === "card" ? requestCardId : undefined,
+                        cardTitle: requestType === "card" ? giveableCards.find((c) => c.id === requestCardId)?.title : undefined,
+                        note: requestNote,
+                      });
+                      if (ok) {
+                        setRequestAmount("");
+                        setRequestCardId("");
+                        setRequestNote("");
+                      }
+                    }}
+                  >
+                    Enviar petición
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {onChangePin && (
             <div style={{ marginTop: 24, borderTop: "1px dashed #e0e0e0", paddingTop: 16 }}>

@@ -12,11 +12,18 @@ import FloatScheduleModal from "./components/classes/FloatScheduleModal";
 import ProfileModal from "./components/profile/ProfileModal";
 import PinGateModal from "./components/profile/PinGateModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
+import RequestsPanel from "./components/requests/RequestsPanel";
 import LoginScreen from "./components/auth/LoginScreen";
 import ClassesPanel from "./components/classes/ClassesPanel";
 import StudentsPanel from "./components/students/StudentsPanel";
 import { addStudent, editStudent, deleteStudent } from "./services/studentService";
 import { verifyPin, changePin, resetPin } from "./services/studentAuthService";
+import {
+  createRequest as createRequestService,
+  cancelRequest as cancelRequestService,
+  rejectRequest as rejectRequestService,
+  resolveRequestApproved,
+} from "./services/requestService";
 import {
   addStreakTypeForClass,
   changeStudentStreakValue,
@@ -46,6 +53,7 @@ import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
 import useAuthMode from "./hooks/useAuthMode";
 import useActionFeedback from "./hooks/useActionFeedback";
+import useStudentRequests from "./hooks/useStudentRequests";
 /**
  * Pokemáticos — Firestore + Storage (main application shell)
  *
@@ -127,6 +135,9 @@ export default function App() {
   const [profileStudentId, setProfileStudentId] = useState(null);
   // Students whose PIN has already been verified this session
   const [unlockedProfileIds, setUnlockedProfileIds] = useState(() => new Set());
+  const [showRequestsPanel, setShowRequestsPanel] = useState(false);
+
+  const { pendingRequests, pendingCount } = useStudentRequests({ db });
 
   const newClassNameRef = useRef(null);
   const newStudentRef = useRef(null);
@@ -152,6 +163,16 @@ export default function App() {
 
   const profileNeedsPin =
     !!profileStudent && mode !== "admin" && !unlockedProfileIds.has(profileStudent.id);
+
+  const giveableCardsForProfile = useMemo(
+    () => (cards || []).filter((c) => (c.category || "points") !== "rewards"),
+    [cards]
+  );
+
+  const myPendingRequests = useMemo(
+    () => pendingRequests.filter((r) => r.studentId === profileStudentId),
+    [pendingRequests, profileStudentId]
+  );
 
   const {
     stickyBackground,
@@ -334,6 +355,79 @@ export default function App() {
           profileColor: safeColor,
         });
       },
+    });
+  }
+
+  // ----- Student requests (card / points, pending professor approval) -----
+  async function createStudentRequest(classId, student, payload) {
+    return runMutation({
+      loadingMessage: "Enviando petición...",
+      successMessage: "Petición enviada.",
+      errorMessage: "No se pudo enviar la petición.",
+      action: async () => {
+        return createRequestService(
+          db,
+          classId,
+          {
+            studentId: student.id,
+            studentName: student.name,
+            className: activeClass?.name || "",
+            ...payload,
+          },
+          notify
+        );
+      },
+    });
+  }
+
+  async function cancelStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Cancelando...",
+      successMessage: "Petición cancelada.",
+      errorMessage: "No se pudo cancelar la petición.",
+      action: async () => cancelRequestService(db, request.classId, request.id, notify),
+    });
+  }
+
+  async function approveStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Aprobando petición...",
+      successMessage: "Petición aprobada.",
+      errorMessage: "No se pudo aprobar la petición.",
+      action: async () => {
+        if (request.type === "points") {
+          await quickAddPointsService({
+            db,
+            classId: request.classId,
+            studentId: request.studentId,
+            amount: request.amount,
+            alertFn: notify,
+          });
+        } else if (request.type === "card") {
+          const classSnap = await getDoc(doc(db, `classes/${request.classId}`));
+          const requestClass = classSnap.exists() ? { id: request.classId, ...classSnap.data() } : null;
+          await giveCardToStudentService({
+            db,
+            classId: request.classId,
+            studentId: request.studentId,
+            cardId: request.cardId,
+            activeClass: requestClass,
+            getCardDataFast,
+            alertFn: notify,
+            scheduleFn: requestFloatSchedule,
+          });
+        }
+        await resolveRequestApproved(db, request.classId, request.id, notify);
+      },
+    });
+  }
+
+  async function rejectStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Rechazando...",
+      successMessage: "Petición rechazada.",
+      errorMessage: "No se pudo rechazar la petición.",
+      action: async () => rejectRequestService(db, request.classId, request.id, notify),
     });
   }
 
@@ -775,6 +869,11 @@ export default function App() {
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {mode === "admin" && (
+            <button className="btn" onClick={() => setShowRequestsPanel(true)}>
+              Peticiones{pendingCount > 0 ? ` (${pendingCount})` : ""}
+            </button>
+          )}
           {authUser ? (
             <button className="btn" onClick={logout}>
               Cerrar sesión
@@ -913,6 +1012,16 @@ export default function App() {
         />
       )}
 
+      {/* Requests panel (admin only, global across classes) */}
+      {mode === "admin" && showRequestsPanel && (
+        <RequestsPanel
+          pendingRequests={pendingRequests}
+          onApprove={approveStudentRequest}
+          onReject={rejectStudentRequest}
+          onClose={() => setShowRequestsPanel(false)}
+        />
+      )}
+
       {/* Profile modal */}
       {profileStudent && !profileNeedsPin && (
         <ProfileModal
@@ -927,6 +1036,10 @@ export default function App() {
             changePin(db, activeClassId, profileStudent.id, profileStudent, currentPin, newPin, notify)
           }
           onValidationError={notify}
+          giveableCards={giveableCardsForProfile}
+          myPendingRequests={myPendingRequests}
+          onCreateRequest={(payload) => createStudentRequest(activeClassId, profileStudent, payload)}
+          onCancelRequest={(request) => cancelStudentRequest(request)}
         />
       )}
 
