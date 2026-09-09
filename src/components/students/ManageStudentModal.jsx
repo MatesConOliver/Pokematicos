@@ -36,6 +36,7 @@ export default function ManageStudentModal({
   onRedeemGroup,
   setCardPreview,
   onValidationError,
+  onResetPin,
 }) {
   const [redeemRewardId, setRedeemRewardId] = useState("");
   const [redeemMode, setRedeemMode] = useState("individual");
@@ -117,6 +118,9 @@ export default function ManageStudentModal({
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn" onClick={onClose}>Close</button>
+            {onResetPin && (
+              <button className="btn" onClick={onResetPin}>Reset PIN</button>
+            )}
             <button className="btn" onClick={onDeleteStudent}>Delete student</button>
           </div>
         </div>

@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 
-export default function ProfileModal({ mode, student, onClose, onSave, pastelColors = [] }) {
+export default function ProfileModal({ mode, student, onClose, onSave, onChangePin, onValidationError, pastelColors = [] }) {
   const [emojis, setEmojis] = useState(student.nameEmojis || "");
   const [color, setColor] = useState(student.profileColor || "");
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [newPinConfirm, setNewPinConfirm] = useState("");
 
   const displayName = `${student.name}${emojis ? " " + emojis : ""}`;
 
@@ -139,6 +142,74 @@ export default function ProfileModal({ mode, student, onClose, onSave, pastelCol
               </div>
             )}
           </div>
+
+          {onChangePin && (
+            <div style={{ marginTop: 24, borderTop: "1px dashed #e0e0e0", paddingTop: 16 }}>
+              <div style={{
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                color: "#999",
+                fontWeight: 700,
+                marginBottom: 12,
+              }}>
+                Cambiar PIN
+              </div>
+
+              <div style={{ display: "grid", gap: 10, maxWidth: 260 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>PIN actual</div>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={currentPin}
+                    onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                  />
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Nuevo PIN (4 dígitos)</div>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                  />
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Confirmar nuevo PIN</div>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={newPinConfirm}
+                    onChange={(e) => setNewPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                  />
+                </div>
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    if (newPin.length !== 4 || newPin !== newPinConfirm) {
+                      if (onValidationError) onValidationError("Los nuevos PIN no coinciden o no tienen 4 dígitos.");
+                      return;
+                    }
+                    const ok = await onChangePin(currentPin, newPin);
+                    if (ok) {
+                      setCurrentPin("");
+                      setNewPin("");
+                      setNewPinConfirm("");
+                    }
+                  }}
+                >
+                  Cambiar PIN
+                </button>
+              </div>
+            </div>
+          )}
 
           <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn" onClick={onClose}>Cancel</button>

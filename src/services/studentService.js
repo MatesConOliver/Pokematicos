@@ -22,6 +22,8 @@ export async function addStudent(
       xp: 0,
       multiplier: 1,
       streaks: {},
+      // basic "locker" PIN, not real security
+      pin: "0000",
       // inventory / history
       cards: [],
       rewardsHistory: [],

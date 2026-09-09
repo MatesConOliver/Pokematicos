@@ -10,11 +10,13 @@ import StreakFormModal from "./components/classes/StreakFormModal";
 import RewardCardPickerModal from "./components/classes/RewardCardPickerModal";
 import FloatScheduleModal from "./components/classes/FloatScheduleModal";
 import ProfileModal from "./components/profile/ProfileModal";
+import PinGateModal from "./components/profile/PinGateModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
 import LoginScreen from "./components/auth/LoginScreen";
 import ClassesPanel from "./components/classes/ClassesPanel";
 import StudentsPanel from "./components/students/StudentsPanel";
 import { addStudent, editStudent, deleteStudent } from "./services/studentService";
+import { verifyPin, changePin, resetPin } from "./services/studentAuthService";
 import {
   addStreakTypeForClass,
   changeStudentStreakValue,
@@ -123,6 +125,8 @@ export default function App() {
 
   // Profile modal selection (guest + admin)
   const [profileStudentId, setProfileStudentId] = useState(null);
+  // Students whose PIN has already been verified this session
+  const [unlockedProfileIds, setUnlockedProfileIds] = useState(() => new Set());
 
   const newClassNameRef = useRef(null);
   const newStudentRef = useRef(null);
@@ -145,6 +149,9 @@ export default function App() {
     () => students.find((s) => s.id === profileStudentId) || null,
     [students, profileStudentId]
   );
+
+  const profileNeedsPin =
+    !!profileStudent && mode !== "admin" && !unlockedProfileIds.has(profileStudent.id);
 
   const {
     stickyBackground,
@@ -891,8 +898,23 @@ export default function App() {
         />
       )}
 
+      {/* PIN gate before opening a student's profile (guests only) */}
+      {profileStudent && profileNeedsPin && (
+        <PinGateModal
+          student={profileStudent}
+          onClose={() => setProfileStudentId(null)}
+          onSubmit={(pin) => {
+            if (verifyPin(profileStudent, pin)) {
+              setUnlockedProfileIds((prev) => new Set(prev).add(profileStudent.id));
+            } else {
+              notify("PIN incorrecto.");
+            }
+          }}
+        />
+      )}
+
       {/* Profile modal */}
-      {profileStudent && (
+      {profileStudent && !profileNeedsPin && (
         <ProfileModal
           mode={mode}
           student={profileStudent}
@@ -901,6 +923,10 @@ export default function App() {
           onSave={(cosmetics) =>
             saveStudentProfileCosmetics(activeClassId, profileStudent.id, cosmetics)
           }
+          onChangePin={(currentPin, newPin) =>
+            changePin(db, activeClassId, profileStudent.id, profileStudent, currentPin, newPin, notify)
+          }
+          onValidationError={notify}
         />
       )}
 
@@ -964,6 +990,11 @@ export default function App() {
           onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates, notify)}
           onClose={() => setSelectedStudentId(null)}
           onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId, askConfirmation, notify)}
+          onResetPin={async () => {
+            if (!(await askConfirmation(`Reset PIN for ${selectedStudent.name} to 0000?`))) return;
+            const ok = await resetPin(db, activeClassId, selectedStudent.id, notify);
+            if (ok) notify("PIN reset to 0000.");
+          }}
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
           onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
           onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
