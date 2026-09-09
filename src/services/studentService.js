@@ -51,15 +51,17 @@ export async function deleteStudent(
   classId,
   studentId,
   setSelectedStudentId,
-  setProfileStudentId
+  setProfileStudentId,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null
 ) {
-  if (!window.confirm("Delete this student?")) return;
+  if (confirmFn && !(await confirmFn("Delete this student?"))) return;
   try {
     await deleteDoc(doc(db, `classes/${classId}/students/${studentId}`));
     setSelectedStudentId(null);
     setProfileStudentId(null);
   } catch (err) {
     console.error(err);
-    alert("Failed to delete student.");
+    if (alertFn) alertFn("Failed to delete student.");
   }
 }

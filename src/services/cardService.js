@@ -172,8 +172,9 @@ export async function deleteCard({
   classId,
   cardId,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
 }) {
-  if (!window.confirm("Delete this library card?")) return;
+  if (confirmFn && !(await confirmFn("Delete this library card?"))) return;
   try {
     await deleteDoc(doc(db, `classes/${classId}/cards/${cardId}`));
   } catch (err) {
@@ -190,6 +191,7 @@ export async function giveCardToStudent({
   activeClass,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   getCardDataFast,
+  scheduleFn,
 }) {
   try {
     const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
@@ -226,9 +228,10 @@ export async function giveCardToStudent({
         ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
         : [];
 
-    const res = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
+    const res = await incrementLinkedStreakIfNeeded(sdata, linkedIds, {
       allowPrompts: true,
       studentName: sdata.name || "",
+      scheduleFn,
     }, activeClass);
 
     const nextStreaks = res?.nextStreaks || null;
@@ -361,18 +364,16 @@ export async function giveCardToStudentsBulk({
       const preview = names.slice(0, 12).join(", ");
       const more = names.length > 12 ? ` (+${names.length - 12} more)` : "";
 
-      const input = window.prompt(
-        `🎉 Bulk give: ${emoji} streak reached MAX today by ${names.length} students:\n` +
-          `${preview}${more}\n\n` +
-          `Floating emoji schedule (applies to ALL above students for this streak)\n` +
-          `Type: delay,duration  (examples: 0,7  or  7,14  or  start=3 duration=10)`,
-        `${defaultDelay},${defaultDur}`
-      );
+      const schedule = scheduleFn
+        ? await scheduleFn({
+            delayDays: defaultDelay,
+            durationDays: defaultDur,
+            message: `🎉 ${emoji} streak reached its maximum today for ${names.length} students: ${preview}${more}. This schedule applies to all of them.`,
+          })
+        : parseFloatScheduleInput(null, { delayDays: defaultDelay, durationDays: defaultDur });
+      if (!schedule) continue;
 
-      const { delayDays, durationDays } = parseFloatScheduleInput(input, {
-        delayDays: defaultDelay,
-        durationDays: defaultDur,
-      });
+      const { delayDays, durationDays } = schedule;
 
       const start = addDaysISO(today, delayDays);
       const end = addDaysISO(start, durationDays - 1);

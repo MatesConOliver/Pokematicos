@@ -11,6 +11,7 @@ export default function useBackgroundManager({
   storage,
   activeClassId,
   activeClass,
+  notify,
 }) {
   const [globalBackgroundUrl, setGlobalBackgroundUrl] = useState("");
   const [stickyBackground, setStickyBackground] = useState("");
@@ -67,14 +68,14 @@ export default function useBackgroundManager({
 
       if (activeClassId) {
         await updateDoc(firestoreRef, { backgroundUrl: url });
-        alert(`Background updated for ${activeClass.name}!`);
+        notify(`Background updated for ${activeClass.name}!`);
       } else {
         await setDoc(firestoreRef, { url });
-        alert("Global default background updated!");
+        notify("Global default background updated!");
       }
     } catch (err) {
       console.error("uploadBackgroundImage error:", err);
-      alert("Failed to upload background image.");
+      notify("Failed to upload background image.");
     }
   }
 
@@ -84,14 +85,14 @@ export default function useBackgroundManager({
         await updateDoc(doc(db, "classes", activeClassId), {
           backgroundUrl: "",
         });
-        alert(`Removed background for ${activeClass.name}. Now using default.`);
+        notify(`Removed background for ${activeClass.name}. Now using default.`);
       } else {
         await setDoc(doc(db, "config", "background"), { url: "" });
-        alert("Global background removed!");
+        notify("Global background removed!");
       }
     } catch (err) {
       console.error("clearBackgroundImage error:", err);
-      alert("Failed to remove background.");
+      notify("Failed to remove background.");
     }
   }
 

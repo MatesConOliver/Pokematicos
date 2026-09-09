@@ -36,9 +36,10 @@ export async function deleteReward({
   classId,
   rewardId,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
 }) {
   if (!classId || !rewardId) return;
-  if (!window.confirm("Delete this reward?")) return;
+  if (confirmFn && !(await confirmFn("Delete this reward?"))) return;
 
   try {
     await deleteDoc(doc(db, `classes/${classId}/rewards/${rewardId}`));

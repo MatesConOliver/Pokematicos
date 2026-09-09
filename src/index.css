@@ -5,6 +5,187 @@
 /* small helpers you might like */
 html, body, #root { height: 100%; }
 
+.feedback-notice {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(420px, calc(100vw - 40px));
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  color: #172033;
+  font-weight: 700;
+  animation: feedbackNoticeIn 180ms ease-out;
+}
+
+.feedback-dismiss {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.feedback-dialog {
+  width: min(430px, calc(100vw - 32px));
+  padding: 26px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  color: #172033;
+  animation: feedbackDialogIn 180ms ease-out;
+}
+
+.feedback-dialog-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff1d6;
+  color: #a15c00;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.feedback-dialog h3 {
+  margin: 16px 0 8px;
+}
+
+.feedback-dialog p {
+  margin: 0;
+  white-space: pre-line;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.feedback-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.form-modal {
+  max-width: 560px;
+}
+
+.form-modal > .muted {
+  margin: -4px 0 18px;
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  color: #172033;
+  font-size: 14px;
+}
+
+.form-check input,
+.reward-picker-option input {
+  margin-top: 3px;
+  accent-color: #2563eb;
+}
+
+.form-check span {
+  display: grid;
+  gap: 3px;
+}
+
+.form-check small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.reward-picker {
+  margin: 20px 0 0;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.reward-picker legend {
+  padding: 0 6px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reward-picker-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  margin-top: 12px;
+  overflow: auto;
+}
+
+.reward-picker-option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid #eef0f3;
+  border-radius: 9px;
+  background: #fafafa;
+  color: #172033;
+  font-size: 13px;
+}
+
+.reward-picker-option strong {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.schedule-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .schedule-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.btn.danger {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+@keyframes feedbackNoticeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes feedbackDialogIn {
+  from { opacity: 0; transform: scale(0.97) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 /* === Owned card modal navigation (modern) === */
 .ownedCardModal {
   position: relative;

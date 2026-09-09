@@ -9,17 +9,15 @@ import {
 
 import { uid } from "../utils/helpers";
 import { todayISODate, addDaysISO } from "../utils/dateUtils";
-import {
-  parseFloatScheduleInput,
-  normalizeFloatWindows,
-} from "../utils/floatWindowUtils";
+import { normalizeFloatWindows } from "../utils/floatWindowUtils";
 import { grantStreakMaxRewardCards } from "./rewardService";
 
 export async function addStreakTypeForClass({
   db,
   classId,
   classesList,
-  promptFn = typeof window !== "undefined" ? window.prompt.bind(window) : null,
+  cards,
+  formFn,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
 }) {
   if (!classId) {
@@ -27,36 +25,18 @@ export async function addStreakTypeForClass({
     return;
   }
 
-  if (!promptFn) return;
+  if (!formFn) return;
 
-  const emoji = promptFn("Emoji for this streak (for example 🔥, 👻, ⭐):");
-  if (!emoji || !emoji.trim()) return;
+  const values = await formFn({});
+  if (!values) return;
 
-  const maxStr = promptFn("Maximum value for this streak (for example 5):");
-  const max = Number(maxStr || "0");
+  const { emoji, max, float, stickyCelebrate, rewardCardIds } = values;
   if (!Number.isFinite(max) || max <= 0) {
     if (alertFn) alertFn("Maximum must be a number greater than 0.");
     return;
   }
 
-  const floatAns = promptFn(
-    "When a student reaches this maximum streak, should this emoji float faintly in their card background? (yes/no)"
-  );
-  const float = !!(floatAns && floatAns.toLowerCase().startsWith("y"));
-
-  const stickyAns = promptFn(
-    "If you Reset this streak later, should the celebration (party + floating) keep showing for the rest of the day when max was reached? (yes/no)"
-  );
-  const stickyCelebrate = !!(stickyAns && stickyAns.toLowerCase().startsWith("y"));
-
   const id = uid("streak");
-  const rewardCardIds = promptPickRewardCardIds({
-    promptFn,
-    alertFn,
-    cards: (Array.isArray(classesList) ? classesList : []),
-    defaultIds: [],
-    label: `${emoji} streak`,
-  }) ?? [];
 
   const newCfg = {
     id,
@@ -136,25 +116,19 @@ export async function setStreakRewardCardsForClass({
   classId,
   classesList,
   cards,
-  promptFn = typeof window !== "undefined" ? window.prompt.bind(window) : null,
+  rewardCardPickerFn,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   streakId,
   cfg,
 }) {
-  if (!promptFn) return;
+  if (!rewardCardPickerFn) return;
 
   try {
     const current = (Array.isArray(classesList) ? classesList : []).find((c) => c.id === classId)?.streakConfigs || [];
     const found = current.find((c) => c.id === streakId) || cfg || null;
     const existing = Array.isArray(found?.rewardCardIds) ? found.rewardCardIds : [];
 
-    const next = promptPickRewardCardIds({
-      cards,
-      promptFn,
-      alertFn,
-      defaultIds: existing,
-      label: found?.emoji ? `${found.emoji} streak` : "this streak",
-    });
+    const next = await rewardCardPickerFn(existing);
 
     if (next === null) return;
     if (next === undefined) return;
@@ -177,7 +151,7 @@ export async function changeStudentStreakValue({
   streakId,
   delta,
   maxValueOrCfg,
-  promptFn = typeof window !== "undefined" ? window.prompt.bind(window) : null,
+  scheduleFn,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   getCardDataFast,
 }) {
@@ -217,25 +191,22 @@ export async function changeStudentStreakValue({
       const defaultDelay = 7;
       const defaultDur = 7;
 
-      const delayStr = promptFn(
-        `🎉 ${data.name || "Student"} reached the maximum for ${cfg.emoji || "this"} streak!\nFloating emoji: how many DAYS after today should it start?\n(Example: 0 = today, 7 = next week)`,
-        String(defaultDelay)
-      );
-      const durationStr = promptFn(
-        `How many DAYS should the floating emoji last? (Example: 7 = one full week)`,
-        String(defaultDur)
-      );
-
-      let delayDays = parseInt((delayStr ?? String(defaultDelay)).trim(), 10);
-      if (!Number.isFinite(delayDays) || delayDays < 0) delayDays = defaultDelay;
-
-      let durationDays = parseInt((durationStr ?? String(defaultDur)).trim(), 10);
-      if (!Number.isFinite(durationDays) || durationDays <= 0) durationDays = defaultDur;
-
-      const start = addDaysISO(today, delayDays);
-      const end = addDaysISO(start, durationDays - 1);
-
-      floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+      const schedule = scheduleFn
+        ? await scheduleFn({
+            delayDays: defaultDelay,
+            durationDays: defaultDur,
+            message: `🎉 ${data.name || "Student"} reached the maximum for ${cfg.emoji || "this"} streak!`,
+          })
+        : null;
+      if (schedule) {
+        const delayDays = schedule.delayDays;
+        const durationDays = schedule.durationDays;
+        const start = addDaysISO(today, delayDays);
+        const end = addDaysISO(start, durationDays - 1);
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+      } else {
+        floatWindows = normalizeFloatWindows(floatWindows, today);
+      }
     } else {
       floatWindows = normalizeFloatWindows(floatWindows, today);
     }
@@ -321,15 +292,11 @@ export async function deleteStreakTypeForClass({
   classId,
   streakId,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
 }) {
-  if (
-    typeof window !== "undefined" &&
-    !window.confirm(
-      "Delete this streak type for the whole class? This cannot be undone.\n\nThis will also remove it (and any floating windows) from every student."
-    )
-  ) {
-    return;
-  }
+  if (confirmFn && !(await confirmFn(
+    "Delete this streak type for the whole class? This cannot be undone.\n\nThis will also remove it (and any floating windows) from every student."
+  ))) return;
 
   try {
     const classRef = doc(db, `classes/${classId}`);
@@ -368,7 +335,7 @@ export async function deleteStreakTypeForClass({
   }
 }
 
-export function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}, activeClass = null) {
+export async function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}, activeClass = null) {
   const today = todayISODate();
   const ids = Array.isArray(idsOrId)
     ? idsOrId.filter(Boolean)
@@ -406,27 +373,17 @@ export function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}, activeC
       let delayDays = defaultDelay;
       let durationDays = defaultDur;
 
-      if (allowPrompts && typeof window !== "undefined") {
+      if (allowPrompts && opts.scheduleFn) {
         const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
-
-        const input = window.prompt(
-          `🎉 Max reached for ${studentName}${progress}!\n\n` +
-            `${streakLabel}: floating emoji schedule\n` +
-            `Type: delay,duration\n` +
-            `Examples:\n` +
-            `  0,7   (start today, 7 days)\n` +
-            `  7,14  (start in 7 days, 14 days)\n` +
-            `  start=3 duration=10\n`,
-          `${defaultDelay},${defaultDur}`
-        );
-
-        const parsed = parseFloatScheduleInput(input, {
+        const parsed = await opts.scheduleFn({
           delayDays: defaultDelay,
           durationDays: defaultDur,
+          message: `🎉 Max reached for ${studentName}${progress}. ${streakLabel} floating schedule applies to this student.`,
         });
-
-        delayDays = parsed.delayDays;
-        durationDays = parsed.durationDays;
+        if (parsed) {
+          delayDays = parsed.delayDays;
+          durationDays = parsed.durationDays;
+        }
       }
 
       const start = addDaysISO(today, delayDays);

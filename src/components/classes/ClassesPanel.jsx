@@ -9,6 +9,8 @@ export default function ClassesPanel({
   mode,
   db,
   newClassNameRef,
+  confirmFn,
+  alertFn,
 }) {
   return (
     <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
@@ -41,7 +43,7 @@ export default function ClassesPanel({
                   </button>
                   <button
                     className="btn"
-                    onClick={() => removeClass(db, c.id, activeClassId, setActiveClassId)}
+                    onClick={() => removeClass(db, c.id, activeClassId, setActiveClassId, confirmFn)}
                   >
                     Delete
                   </button>
@@ -68,7 +70,7 @@ export default function ClassesPanel({
               className="btn primary"
               onClick={() => {
                 const name = newClassNameRef.current?.value?.trim();
-                if (!name) return alert("Enter class name");
+                if (!name) return alertFn("Enter class name");
                 createClass(db, name, setActiveClassId);
                 if (newClassNameRef.current) newClassNameRef.current.value = "";
               }}

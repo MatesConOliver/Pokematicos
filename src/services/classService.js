@@ -50,13 +50,16 @@ export async function editClassName(db, classId, classesList) {
  * @param {string} activeClassId - Currently selected class ID
  * @param {Function} onClassDeleted - Callback with null if the deleted class was active
  */
-export async function removeClass(db, classId, activeClassId, onClassDeleted) {
-  if (
-    !window.confirm(
-      "Delete this class? (Subcollections won't be deleted automatically)"
-    )
-  )
-    return;
+export async function removeClass(
+  db,
+  classId,
+  activeClassId,
+  onClassDeleted,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null
+) {
+  if (confirmFn && !(await confirmFn(
+    "Delete this class? (Subcollections won't be deleted automatically)"
+  ))) return;
   try {
     await deleteDoc(doc(db, `classes/${classId}`));
     if (activeClassId === classId && onClassDeleted) onClassDeleted(null);

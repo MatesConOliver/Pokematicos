@@ -62,6 +62,7 @@ export async function redeemIndividual({
   students,
   cards,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
 }) {
   if (!classId || !studentId || !rewardId) return;
   const r = rewards.find((x) => x.id === rewardId);
@@ -75,7 +76,7 @@ export async function redeemIndividual({
     return alertFn ? alertFn("Not enough points!") : undefined;
   }
 
-  if (typeof window !== "undefined" && !window.confirm(`Redeem "${r.title}" for ${cost} points?`)) return;
+  if (confirmFn && !(await confirmFn(`Redeem "${r.title}" for ${cost} points?`))) return;
 
   try {
     const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
@@ -146,12 +147,13 @@ export async function redeemGroup({
   students,
   cards,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
 }) {
   if (!participants || participants.length === 0) return;
   const r = rewards.find((x) => x.id === rewardId);
   if (!r) return;
 
-  if (typeof window !== "undefined" && !window.confirm(`Redeem "${r.title}" for group?`)) return;
+  if (confirmFn && !(await confirmFn(`Redeem "${r.title}" for group?`))) return;
 
   try {
     const batch = writeBatch(db);

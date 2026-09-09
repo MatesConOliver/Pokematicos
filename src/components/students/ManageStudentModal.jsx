@@ -31,6 +31,7 @@ export default function ManageStudentModal({
   onGiveCard,
   onRemoveOne,
   onRemoveAll,
+  confirmFn,
   onRedeemIndividual,
   onRedeemGroup,
   setCardPreview,
@@ -346,8 +347,8 @@ export default function ManageStudentModal({
                         </button>
                         <button
                           className="btn"
-                          onClick={() => {
-                            if (!window.confirm(`Remove ALL ${g.ownedIds.length} copies of "${g.title}"?`)) return;
+                          onClick={async () => {
+                            if (confirmFn && !(await confirmFn(`Remove ALL ${g.ownedIds.length} copies of "${g.title}"?`))) return;
                             onRemoveAll(g.ownedIds);
                           }}
                         >

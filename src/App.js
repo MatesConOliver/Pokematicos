@@ -5,6 +5,10 @@ import LibrarySection from "./components/cards/LibrarySection";
 import CardEditModal from "./components/cards/CardEditModal";
 import CardPreviewModal from "./components/cards/CardPreviewModal";
 import BulkGiveModal from "./components/cards/BulkGiveModal";
+import FeedbackDialog from "./components/common/FeedbackDialog";
+import StreakFormModal from "./components/classes/StreakFormModal";
+import RewardCardPickerModal from "./components/classes/RewardCardPickerModal";
+import FloatScheduleModal from "./components/classes/FloatScheduleModal";
 import ProfileModal from "./components/profile/ProfileModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
 import LoginScreen from "./components/auth/LoginScreen";
@@ -96,6 +100,11 @@ export default function App() {
   // ----- UI -----
   const [studentFilter, setStudentFilter] = useState("");
   const [cardPreview, setCardPreview] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
+  const [streakFormRequest, setStreakFormRequest] = useState(null);
+  const [rewardPickerRequest, setRewardPickerRequest] = useState(null);
+  const [scheduleRequest, setScheduleRequest] = useState(null);
 
   
   const [bulkGiveCard, setBulkGiveCard] = useState(null); // card object
@@ -139,14 +148,89 @@ export default function App() {
     storage,
     activeClassId,
     activeClass,
+    notify,
   });
 
   const [editCard, setEditCard] = useState(null);
 
+  function notify(message) {
+    setNotice({ message });
+  }
+
+  function askConfirmation(message) {
+    return new Promise((resolve) => {
+      setConfirmation({ message, resolve });
+    });
+  }
+
+  function resolveConfirmation(value) {
+    confirmation?.resolve(value);
+    setConfirmation(null);
+  }
+
+  function requestStreakForm(initial = {}) {
+    return new Promise((resolve) => {
+      setStreakFormRequest({
+        initial,
+        rewardCardIds: Array.isArray(initial.rewardCardIds) ? initial.rewardCardIds : [],
+        resolve,
+        title: initial.id ? "Edit streak" : "Create streak",
+        toggleRewardCard: (cardId) => {
+          setStreakFormRequest((current) => {
+            if (!current) return current;
+            const rewardCardIds = current.rewardCardIds.includes(cardId)
+              ? current.rewardCardIds.filter((id) => id !== cardId)
+              : [...current.rewardCardIds, cardId];
+            return { ...current, rewardCardIds };
+          });
+        },
+      });
+    });
+  }
+
+  function resolveStreakForm(value) {
+    streakFormRequest?.resolve(value);
+    setStreakFormRequest(null);
+  }
+
+  function requestRewardCardSelection(defaultIds = []) {
+    return new Promise((resolve) => {
+      setRewardPickerRequest({
+        selectedIds: [...defaultIds],
+        resolve,
+        toggleCard: (cardId) => {
+          setRewardPickerRequest((current) => {
+            if (!current) return current;
+            const selectedIds = current.selectedIds.includes(cardId)
+              ? current.selectedIds.filter((id) => id !== cardId)
+              : [...current.selectedIds, cardId];
+            return { ...current, selectedIds };
+          });
+        },
+      });
+    });
+  }
+
+  function resolveRewardCardSelection(value) {
+    rewardPickerRequest?.resolve(value);
+    setRewardPickerRequest(null);
+  }
+
+  function requestFloatSchedule(initial) {
+    return new Promise((resolve) => {
+      setScheduleRequest({ ...initial, resolve });
+    });
+  }
+
+  function resolveFloatSchedule(value) {
+    scheduleRequest?.resolve(value);
+    setScheduleRequest(null);
+  }
+
   // ----- Guards -----
   function ensureClassSelected() {
     if (!activeClassId) {
-      alert("Please select or create a class first.");
+      notify("Please select or create a class first.");
       return false;
     }
     return true;
@@ -174,7 +258,7 @@ export default function App() {
       classId: activeClassId,
       cardId,
       updates,
-      alertFn: alert,
+      alertFn: notify,
     });
   }
 
@@ -196,7 +280,7 @@ export default function App() {
       classId,
       studentId,
       amount,
-      alertFn: alert,
+      alertFn: notify,
     });
   }
 
@@ -215,7 +299,7 @@ export default function App() {
       });
     } catch (err) {
       console.error(err);
-      alert("Could not save profile. (Check Firestore rules)");
+      notify("Could not save profile. (Check Firestore rules)");
     }
   }
 
@@ -244,7 +328,7 @@ export default function App() {
       unlockedFile,
       lockedFileInputRef,
       unlockedFileInputRef,
-      alertFn: alert,
+      alertFn: notify,
     });
   }
 
@@ -253,7 +337,8 @@ export default function App() {
       db,
       classId: activeClassId,
       cardId,
-      alertFn: alert,
+      alertFn: notify,
+      confirmFn: askConfirmation,
     });
   }
 
@@ -266,7 +351,8 @@ export default function App() {
       cardId,
       activeClass,
       getCardDataFast,
-      alertFn: alert,
+      alertFn: notify,
+      scheduleFn: requestFloatSchedule,
     });
   }
 
@@ -280,7 +366,8 @@ export default function App() {
       studentIds,
       activeClass,
       getCardDataFast,
-      alertFn: alert,
+      alertFn: notify,
+      scheduleFn: requestFloatSchedule,
     });
   }
 
@@ -306,7 +393,7 @@ export default function App() {
       classId,
       studentId,
       ownedIds,
-      alertFn: alert,
+      alertFn: notify,
     });
   }
 
@@ -319,7 +406,7 @@ export default function App() {
       title,
       cost,
       linkedCardId,
-      alertFn: alert,
+      alertFn: notify,
     });
   }
 
@@ -328,7 +415,8 @@ export default function App() {
       db,
       classId: activeClassId,
       rewardId,
-      alertFn: alert,
+      alertFn: notify,
+      confirmFn: askConfirmation,
     });
   }
 
@@ -341,7 +429,8 @@ export default function App() {
       rewards,
       students,
       cards,
-      alertFn: alert,
+      alertFn: notify,
+      confirmFn: askConfirmation,
     });
   }
 
@@ -354,7 +443,8 @@ export default function App() {
       rewards,
       students,
       cards,
-      alertFn: alert,
+      alertFn: notify,
+      confirmFn: askConfirmation,
     });
   }
 
@@ -631,6 +721,8 @@ export default function App() {
           mode={mode}
           db={db}
           newClassNameRef={newClassNameRef}
+          confirmFn={askConfirmation}
+          alertFn={notify}
         />
 
         {/* Only show these if a class is selected */}
@@ -650,8 +742,8 @@ export default function App() {
                 classId,
                 classesList,
                 cards,
-                promptFn: window.prompt.bind(window),
-                alertFn: window.alert.bind(window),
+                formFn: requestStreakForm,
+                alertFn: notify,
               })}
               onManageStudent={setSelectedStudentId}
               onProfileStudent={setProfileStudentId}
@@ -663,8 +755,8 @@ export default function App() {
                   streakId,
                   delta,
                   maxValueOrCfg: cfg,
-                  promptFn: window.prompt.bind(window),
-                  alertFn: window.alert.bind(window),
+                  scheduleFn: requestFloatSchedule,
+                  alertFn: notify,
                   getCardDataFast,
                 })
               }
@@ -672,7 +764,7 @@ export default function App() {
               onPreviewCard={setCardPreview}
               onAddStudent={() => {
                 const name = newStudentRef.current?.value?.trim();
-                if (!name) return alert("Enter name");
+                if (!name) return notify("Enter name");
                 addStudent(db, activeClassId, name, ensureClassSelected, newStudentRef);
                 if (newStudentRef.current) newStudentRef.current.value = "";
               }}
@@ -749,16 +841,16 @@ export default function App() {
               streakId,
               delta,
               maxValueOrCfg: cfg,
-              promptFn: window.prompt.bind(window),
-              alertFn: window.alert.bind(window),
+              scheduleFn: requestFloatSchedule,
+              alertFn: notify,
               getCardDataFast,
             })
           }
           resetStudentStreak={(classId, studentId, streakId) =>
-            resetStudentStreak({ db, classId, studentId, streakId, alertFn: window.alert.bind(window) })
+            resetStudentStreak({ db, classId, studentId, streakId, alertFn: notify })
           }
           deleteStreakTypeForClass={(classId, streakId) =>
-            deleteStreakTypeForClass({ db, classId, streakId, alertFn: window.alert.bind(window) })
+            deleteStreakTypeForClass({ db, classId, streakId, alertFn: notify, confirmFn: askConfirmation })
           }
           setStickyCelebrateForClass={async (classId, streakId, stickyCelebrate) => {
             try {
@@ -773,7 +865,7 @@ export default function App() {
               await updateDoc(classRef, { streakConfigs: updated });
             } catch (err) {
               console.error("setStickyCelebrateForClass error", err);
-              alert("Could not update sticky celebration.");
+              notify("Could not update sticky celebration.");
             }
           }}
           setStreakRewardCardsForClass={(classId, streakId, cfg) =>
@@ -782,8 +874,8 @@ export default function App() {
               classId,
               classesList,
               cards,
-              promptFn: window.prompt.bind(window),
-              alertFn: window.alert.bind(window),
+              rewardCardPickerFn: requestRewardCardSelection,
+              alertFn: notify,
               streakId,
               cfg,
             })
@@ -791,10 +883,11 @@ export default function App() {
           mode={mode}
           onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates)}
           onClose={() => setSelectedStudentId(null)}
-          onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId)}
+          onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId, askConfirmation, notify)}
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
           onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
           onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
+          confirmFn={askConfirmation}
           onRedeemIndividual={(rewardId) => {
             // Pass classId, studentId, rewardId
             redeemIndividual(activeClassId, selectedStudentId, rewardId);
@@ -822,6 +915,33 @@ export default function App() {
           await giveCardToStudentsBulk(activeClassId, bulkGiveCard.id, bulkGiveSelectedIds);
           setBulkGiveCard(null);
         }}
+      />
+
+      <FeedbackDialog
+        notice={notice}
+        confirmation={confirmation}
+        onDismissNotice={() => setNotice(null)}
+        onResolveConfirmation={resolveConfirmation}
+      />
+
+      <StreakFormModal
+        request={streakFormRequest}
+        cards={cards}
+        onClose={() => resolveStreakForm(null)}
+        onSave={resolveStreakForm}
+      />
+
+      <RewardCardPickerModal
+        request={rewardPickerRequest}
+        cards={cards}
+        onClose={() => resolveRewardCardSelection(undefined)}
+        onSave={resolveRewardCardSelection}
+      />
+
+      <FloatScheduleModal
+        request={scheduleRequest}
+        onClose={() => resolveFloatSchedule(null)}
+        onSave={resolveFloatSchedule}
       />
     </div>
   );
