@@ -38,6 +38,8 @@ export default function StudentsPanel({
 
           <input
             placeholder="Filter students..."
+            name="studentNameFilter"
+            autoComplete="off"
             value={studentFilter}
             onChange={(e) => setStudentFilter(e.target.value)}
             style={{

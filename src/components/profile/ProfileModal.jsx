@@ -160,34 +160,40 @@ export default function ProfileModal({ mode, student, onClose, onSave, onChangeP
                 <div>
                   <div className="muted" style={{ marginBottom: 6 }}>PIN actual</div>
                   <input
-                    type="password"
+                    type="text"
+                    name="studentPinCurrent"
+                    autoComplete="off"
                     inputMode="numeric"
                     maxLength={4}
                     value={currentPin}
                     onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", WebkitTextSecurity: "disc" }}
                   />
                 </div>
                 <div>
                   <div className="muted" style={{ marginBottom: 6 }}>Nuevo PIN (4 dígitos)</div>
                   <input
-                    type="password"
+                    type="text"
+                    name="studentPinNew"
+                    autoComplete="off"
                     inputMode="numeric"
                     maxLength={4}
                     value={newPin}
                     onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", WebkitTextSecurity: "disc" }}
                   />
                 </div>
                 <div>
                   <div className="muted" style={{ marginBottom: 6 }}>Confirmar nuevo PIN</div>
                   <input
-                    type="password"
+                    type="text"
+                    name="studentPinNewConfirm"
+                    autoComplete="off"
                     inputMode="numeric"
                     maxLength={4}
                     value={newPinConfirm}
                     onChange={(e) => setNewPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", WebkitTextSecurity: "disc" }}
                   />
                 </div>
                 <button

@@ -22,7 +22,9 @@ export default function PinGateModal({ student, onClose, onSubmit }) {
         <div style={{ marginTop: 16 }}>
           <input
             autoFocus
-            type="password"
+            type="text"
+            name="studentPinGate"
+            autoComplete="off"
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={4}
@@ -40,6 +42,7 @@ export default function PinGateModal({ student, onClose, onSubmit }) {
               fontSize: 24,
               textAlign: "center",
               letterSpacing: 8,
+              WebkitTextSecurity: "disc",
             }}
           />
         </div>
