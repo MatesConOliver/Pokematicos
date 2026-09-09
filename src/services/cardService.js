@@ -264,6 +264,7 @@ export async function giveCardToStudent({
   } catch (err) {
     console.error(err);
     if (alertFn) alertFn("Failed to give card.");
+    throw err;
   }
 }
 

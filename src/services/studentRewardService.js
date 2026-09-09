@@ -29,6 +29,7 @@ export async function quickAddPoints({
   } catch (err) {
     console.error("quickAddPoints error", err);
     if (alertFn) alertFn("Could not add points.");
+    throw err;
   }
 }
 

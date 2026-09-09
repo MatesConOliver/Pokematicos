@@ -487,16 +487,20 @@ export default function App() {
 
   // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
   async function giveCardToStudent(classId, studentId, cardId) {
-    await giveCardToStudentService({
-      db,
-      classId,
-      studentId,
-      cardId,
-      activeClass,
-      getCardDataFast,
-      alertFn: notify,
-      scheduleFn: requestFloatSchedule,
-    });
+    try {
+      await giveCardToStudentService({
+        db,
+        classId,
+        studentId,
+        cardId,
+        activeClass,
+        getCardDataFast,
+        alertFn: notify,
+        scheduleFn: requestFloatSchedule,
+      });
+    } catch (err) {
+      // already reported to the user via alertFn inside the service
+    }
   }
 
   // Bulk give: give ONE library card to MANY students (points are multiplied by each student's multiplier).
