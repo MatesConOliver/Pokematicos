@@ -3,6 +3,8 @@ import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db, storage, auth } from "./firebase";
 import LibrarySection from "./components/cards/LibrarySection";
 import CardEditModal from "./components/cards/CardEditModal";
+import CardPreviewModal from "./components/cards/CardPreviewModal";
+import BulkGiveModal from "./components/cards/BulkGiveModal";
 import ProfileModal from "./components/profile/ProfileModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
 import LoginScreen from "./components/auth/LoginScreen";
@@ -38,7 +40,7 @@ import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
 import useAuthMode from "./hooks/useAuthMode";
 /**
- * Pokemáticos — Firestore + Storage (single-file App.js)
+ * Pokemáticos — Firestore + Storage (main application shell)
  *
  * What this version adds back (from your old localStorage version) + fixes:
  * - Guest vs Admin mode (guests cannot Manage; they can only view cards and open a Profile modal)
@@ -698,157 +700,11 @@ export default function App() {
         )}
       </div>
 
-      {/* Card preview modal */}
-      {cardPreview && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setCardPreview(null)}
-        >
-          {/* If it comes from the library (locked card) -> show full info modal */}
-          {cardPreview.isLibraryCard ? (
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <div
-                  style={{
-                    width: 360,
-                    maxWidth: "100%",
-                    height: 500,
-                    maxHeight: "70vh",
-                    background: "#f6f6f6",
-                    borderRadius: 8,
-                    overflow: "hidden",
-                  }}
-                >
-                  {cardPreview.imageURL ? (
-                    <img
-                      src={cardPreview.imageURL}
-                      alt={cardPreview.title}
-                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                    />
-                  ) : (
-                    <div style={{ padding: 12 }}>{cardPreview.title}</div>
-                  )}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 220 }}>
-                  <h3 style={{ marginTop: 0 }}>{cardPreview.title}</h3>
-                  <div className="muted">{cardPreview.description}</div>
-                  <div style={{ marginTop: 8, fontWeight: 700 }}>
-                    {cardPreview.points || 0} pts
-                  </div>
-
-                  <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button className="btn" onClick={() => setCardPreview(null)}>
-                      Close
-                    </button>
-                    
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            (() => {
-              /* Owned card (unlocked) -> image only */
-              const ownedList = cardPreview.ownedList || null;
-              const ownedIndex = Number.isFinite(cardPreview.ownedIndex) ? cardPreview.ownedIndex : 0;
-              const currentOwned = ownedList ? ownedList[ownedIndex] : cardPreview;
-
-              return (
-                <div
-                 className="ownedCardModal"
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    maxWidth: "min(85vw, 720px)",
-                    width: "85vw",
-                    height: "min(70vh, 520px)",
-                    maxHeight: "70vh",
-                    borderRadius: 16,
-                    overflow: "hidden",
-                    background: "transparent",
-                    position: "relative",
-                    boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {currentOwned?.imageURL ? (
-                    <>
-                      <img
-                        src={currentOwned?.imageURL}
-                        alt=""
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          display: "block",
-                        }}
-                      />
-
-                      {/* Left button */}
-                      <button
-                        type="button"
-                        className="cardNavBtn cardNavLeft"
-                        disabled={!ownedList || ownedIndex <= 0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          ownedNav(-1);
-                        }}
-                        aria-label="Previous card"
-                      >
-                        <span className="cardNavIcon" aria-hidden="true">‹</span>
-                      </button>
-
-                      {/* Right button */}
-                      <button
-                        type="button"
-                        className="cardNavBtn cardNavRight"
-                        disabled={!ownedList || ownedIndex >= ownedList.length - 1}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          ownedNav(+1);
-                        }}
-                        aria-label="Next card"
-                      >
-                        <span className="cardNavIcon" aria-hidden="true">›</span>
-                      </button>
-
-                      {/* Counter (1 / N) */}
-                      {ownedList && ownedList.length > 0 && (
-                        <div className="cardNavCounter">
-                          {ownedIndex + 1} / {ownedList.length}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ padding: 16, color: "white", textAlign: "center" }}>
-                      {cardPreview.title || "Card"}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => setCardPreview(null)}
-                    style={{
-                      position: "absolute",
-                      top: 8,
-                      right: 8,
-                      borderRadius: "999px",
-                      border: "none",
-                      padding: "4px 8px",
-                      fontSize: 14,
-                      cursor: "pointer",
-                      background: "rgba(0,0,0,0.6)",
-                      color: "white",
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              );
-            })()
-          )}
-        </div>
-      )}
+      <CardPreviewModal
+        cardPreview={cardPreview}
+        onClose={() => setCardPreview(null)}
+        onNavigate={ownedNav}
+      />
 
       {/* Card edit modal */}
       {mode === "admin" && editCard && (
@@ -955,77 +811,18 @@ export default function App() {
         />
       )}
 
-      {/* Bulk give modal */}
-      {bulkGiveCard && (
-        <div className="modal-backdrop" onClick={() => setBulkGiveCard(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0 }}>Give card</h3>
-            <div style={{ fontWeight: 900, marginTop: 6 }}>{bulkGiveCard.title}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              Select students to receive this card. Points will be multiplied by each student's multiplier.
-            </div>
-
-            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button className="btn" onClick={toggleBulkGiveSelectAll}>
-                {bulkGiveSelectedIds.length === students.length ? "Deselect all" : "Select all"}
-              </button>
-              <div className="muted">{bulkGiveSelectedIds.length} selected</div>
-            </div>
-
-            <div
-              style={{
-                marginTop: 12,
-                maxHeight: 320,
-                overflow: "auto",
-                border: "1px solid #eee",
-                borderRadius: 12,
-                padding: 10,
-                background: "#fff",
-              }}
-            >
-              {students.map((s) => (
-                <label
-                  key={s.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "8px 6px",
-                    borderBottom: "1px solid #f2f2f2",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={bulkGiveSelectedIds.includes(s.id)}
-                    onChange={() => toggleBulkGiveStudent(s.id)}
-                  />
-                  <span style={{ fontWeight: 800 }}>{s.name}</span>
-                  <span className="muted" style={{ marginLeft: "auto" }}>
-                    x{typeof s.multiplier === "number" ? s.multiplier : 1}
-                  </span>
-                </label>
-              ))}
-              {students.length === 0 && <div className="muted">No students in this class yet.</div>}
-            </div>
-
-            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="btn" onClick={() => setBulkGiveCard(null)}>
-                Cancel
-              </button>
-              <button
-                className="btn primary"
-                disabled={bulkGiveSelectedIds.length === 0}
-                onClick={async () => {
-                  await giveCardToStudentsBulk(activeClassId, bulkGiveCard.id, bulkGiveSelectedIds);
-                  setBulkGiveCard(null);
-                }}
-              >
-                Give to selected
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BulkGiveModal
+        card={bulkGiveCard}
+        students={students}
+        selectedStudentIds={bulkGiveSelectedIds}
+        onClose={() => setBulkGiveCard(null)}
+        onToggleStudent={toggleBulkGiveStudent}
+        onToggleSelectAll={toggleBulkGiveSelectAll}
+        onGive={async () => {
+          await giveCardToStudentsBulk(activeClassId, bulkGiveCard.id, bulkGiveSelectedIds);
+          setBulkGiveCard(null);
+        }}
+      />
     </div>
   );
 }
