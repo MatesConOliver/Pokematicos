@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 
-export default function FeedbackDialog({ notice, confirmation, onDismissNotice, onResolveConfirmation }) {
+export default function FeedbackDialog({
+  notice,
+  confirmation,
+  pendingAction,
+  onDismissNotice,
+  onResolveConfirmation,
+}) {
   useEffect(() => {
     if (!notice) return undefined;
     const timer = window.setTimeout(onDismissNotice, 4200);
@@ -9,6 +15,13 @@ export default function FeedbackDialog({ notice, confirmation, onDismissNotice, 
 
   return (
     <>
+      {pendingAction && (
+        <div className="feedback-notice feedback-notice--loading" role="status" aria-live="polite">
+          <span>{pendingAction}</span>
+          <span className="feedback-spinner" aria-hidden="true" />
+        </div>
+      )}
+
       {notice && (
         <div className="feedback-notice" role="status">
           <span>{notice.message}</span>

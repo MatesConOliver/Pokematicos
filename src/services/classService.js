@@ -12,7 +12,7 @@ import {
  * @param {string} name - Name of the class to create
  * @param {Function} onClassCreated - Callback receiving the new classId
  */
-export async function createClass(db, name, onClassCreated) {
+export async function createClass(db, name, onClassCreated, alertFn = null) {
   if (!name?.trim()) return;
   try {
     const payload = { name: name.trim(), createdAt: Date.now() };
@@ -20,7 +20,7 @@ export async function createClass(db, name, onClassCreated) {
     if (onClassCreated) onClassCreated(ref.id);
   } catch (err) {
     console.error("createClass err:", err);
-    alert("Failed to create class.");
+    if (alertFn) alertFn("Failed to create class.");
   }
 }
 
@@ -28,18 +28,16 @@ export async function createClass(db, name, onClassCreated) {
  * Edit an existing class name
  * @param {Object} db - Firestore database instance
  * @param {string} classId - ID of the class to edit
- * @param {Array} classesList - Array of all classes (to find the class being edited)
+ * @param {string} newName - New name to apply
  */
-export async function editClassName(db, classId, classesList) {
-  const cls = classesList.find((c) => c.id === classId);
-  if (!cls) return;
-  const newName = prompt("New class name:", cls.name || "");
-  if (!newName?.trim()) return;
+export async function editClassName(db, classId, newName, alertFn = null) {
+  const safeName = (newName || "").trim();
+  if (!classId || !safeName) return;
   try {
-    await updateDoc(doc(db, `classes/${classId}`), { name: newName.trim() });
+    await updateDoc(doc(db, `classes/${classId}`), { name: safeName });
   } catch (err) {
     console.error(err);
-    alert("Could not rename class.");
+    if (alertFn) alertFn("Could not rename class.");
   }
 }
 
@@ -55,7 +53,8 @@ export async function removeClass(
   classId,
   activeClassId,
   onClassDeleted,
-  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null
+  confirmFn = null,
+  alertFn = null
 ) {
   if (confirmFn && !(await confirmFn(
     "Delete this class? (Subcollections won't be deleted automatically)"
@@ -65,6 +64,6 @@ export async function removeClass(
     if (activeClassId === classId && onClassDeleted) onClassDeleted(null);
   } catch (err) {
     console.error(err);
-    alert("Failed to delete class.");
+    if (alertFn) alertFn("Failed to delete class.");
   }
 }

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db, storage, auth } from "./firebase";
 import LibrarySection from "./components/cards/LibrarySection";
@@ -43,6 +43,7 @@ import { safeLower, PASTEL_COLORS } from "./utils/helpers";
 import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
 import useAuthMode from "./hooks/useAuthMode";
+import useActionFeedback from "./hooks/useActionFeedback";
 /**
  * Pokemáticos — Firestore + Storage (main application shell)
  *
@@ -100,11 +101,19 @@ export default function App() {
   // ----- UI -----
   const [studentFilter, setStudentFilter] = useState("");
   const [cardPreview, setCardPreview] = useState(null);
-  const [notice, setNotice] = useState(null);
-  const [confirmation, setConfirmation] = useState(null);
   const [streakFormRequest, setStreakFormRequest] = useState(null);
   const [rewardPickerRequest, setRewardPickerRequest] = useState(null);
   const [scheduleRequest, setScheduleRequest] = useState(null);
+  const [classRenameRequest, setClassRenameRequest] = useState(null);
+  const {
+    notice,
+    confirmation,
+    pendingAction,
+    notify,
+    askConfirmation,
+    resolveConfirmation,
+    runAction,
+  } = useActionFeedback();
 
   
   const [bulkGiveCard, setBulkGiveCard] = useState(null); // card object
@@ -153,20 +162,18 @@ export default function App() {
 
   const [editCard, setEditCard] = useState(null);
 
-  function notify(message) {
-    setNotice({ message });
-  }
-
-  function askConfirmation(message) {
-    return new Promise((resolve) => {
-      setConfirmation({ message, resolve });
-    });
-  }
-
-  function resolveConfirmation(value) {
-    confirmation?.resolve(value);
-    setConfirmation(null);
-  }
+  const runMutation = useCallback(
+    async ({ action, loadingMessage, successMessage, errorMessage, confirmMessage }) => {
+      return runAction({
+        action,
+        message: loadingMessage || "Working...",
+        successMessage,
+        errorMessage: errorMessage || "Something went wrong.",
+        confirmMessage,
+      });
+    },
+    [runAction]
+  );
 
   function requestStreakForm(initial = {}) {
     return new Promise((resolve) => {
@@ -227,6 +234,17 @@ export default function App() {
     setScheduleRequest(null);
   }
 
+  function requestClassRename(currentName = "") {
+    return new Promise((resolve) => {
+      setClassRenameRequest({ currentName, resolve });
+    });
+  }
+
+  function resolveClassRename(value) {
+    classRenameRequest?.resolve(value);
+    setClassRenameRequest(null);
+  }
+
   // ----- Guards -----
   function ensureClassSelected() {
     if (!activeClassId) {
@@ -275,12 +293,19 @@ export default function App() {
   }
 
   async function quickAddPoints(classId, studentId, amount) {
-    await quickAddPointsService({
-      db,
-      classId,
-      studentId,
-      amount,
-      alertFn: notify,
+    return runMutation({
+      loadingMessage: "Adding points...",
+      successMessage: "Points added.",
+      errorMessage: "Could not add points.",
+      action: async () => {
+        await quickAddPointsService({
+          db,
+          classId,
+          studentId,
+          amount,
+          alertFn: notify,
+        });
+      },
     });
   }
 
@@ -290,17 +315,19 @@ export default function App() {
     studentId,
     { nameEmojis, profileColor }
   ) {
-    const safeEmojis = (nameEmojis || "").toString().slice(0, 2);
-    const safeColor = (profileColor || "").toString();
-    try {
-      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
-        nameEmojis: safeEmojis,
-        profileColor: safeColor,
-      });
-    } catch (err) {
-      console.error(err);
-      notify("Could not save profile. (Check Firestore rules)");
-    }
+    return runMutation({
+      loadingMessage: "Saving profile...",
+      successMessage: "Profile saved.",
+      errorMessage: "Could not save profile. (Check Firestore rules)",
+      action: async () => {
+        const safeEmojis = (nameEmojis || "").toString().slice(0, 2);
+        const safeColor = (profileColor || "").toString();
+        await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
+          nameEmojis: safeEmojis,
+          profileColor: safeColor,
+        });
+      },
+    });
   }
 
   // ----- Cards: locked + unlocked -----
@@ -315,30 +342,45 @@ export default function App() {
   }) {
     if (!ensureClassSelected()) return;
 
-    await createCardService({
-      db,
-      storage,
-      classId: activeClassId,
-      title,
-      description,
-      points,
-      category,
-      linkedStreakIds,
-      lockedFile,
-      unlockedFile,
-      lockedFileInputRef,
-      unlockedFileInputRef,
-      alertFn: notify,
+    return runMutation({
+      loadingMessage: "Saving card...",
+      successMessage: "Card saved.",
+      errorMessage: "Could not save card.",
+      action: async () => {
+        await createCardService({
+          db,
+          storage,
+          classId: activeClassId,
+          title,
+          description,
+          points,
+          category,
+          linkedStreakIds,
+          lockedFile,
+          unlockedFile,
+          lockedFileInputRef,
+          unlockedFileInputRef,
+          alertFn: notify,
+        });
+      },
     });
   }
 
   async function deleteCard(cardId) {
-    await deleteCardService({
-      db,
-      classId: activeClassId,
-      cardId,
-      alertFn: notify,
-      confirmFn: askConfirmation,
+    return runMutation({
+      loadingMessage: "Deleting card...",
+      successMessage: "Card deleted.",
+      errorMessage: "Could not delete card.",
+      confirmMessage: "Delete this card?",
+      action: async () => {
+        await deleteCardService({
+          db,
+          classId: activeClassId,
+          cardId,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
     });
   }
 
@@ -400,51 +442,82 @@ export default function App() {
   // ----- Rewards -----
   async function createReward({ title, cost, linkedCardId }) {
     if (!ensureClassSelected()) return;
-    await createRewardService({
-      db,
-      classId: activeClassId,
-      title,
-      cost,
-      linkedCardId,
-      alertFn: notify,
+    return runMutation({
+      loadingMessage: "Saving reward...",
+      successMessage: "Reward saved.",
+      errorMessage: "Could not save reward.",
+      action: async () => {
+        await createRewardService({
+          db,
+          classId: activeClassId,
+          title,
+          cost,
+          linkedCardId,
+          alertFn: notify,
+        });
+      },
     });
   }
 
   async function deleteReward(rewardId) {
-    await deleteRewardService({
-      db,
-      classId: activeClassId,
-      rewardId,
-      alertFn: notify,
-      confirmFn: askConfirmation,
+    return runMutation({
+      loadingMessage: "Deleting reward...",
+      successMessage: "Reward deleted.",
+      errorMessage: "Could not delete reward.",
+      confirmMessage: "Delete this reward?",
+      action: async () => {
+        await deleteRewardService({
+          db,
+          classId: activeClassId,
+          rewardId,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
     });
   }
 
   async function redeemIndividual(classId, studentId, rewardId) {
-    await redeemIndividualService({
-      db,
-      classId,
-      studentId,
-      rewardId,
-      rewards,
-      students,
-      cards,
-      alertFn: notify,
-      confirmFn: askConfirmation,
+    return runMutation({
+      loadingMessage: "Redeeming reward...",
+      successMessage: "Reward redeemed.",
+      errorMessage: "Could not redeem reward.",
+      confirmMessage: "Redeem this reward for the student?",
+      action: async () => {
+        await redeemIndividualService({
+          db,
+          classId,
+          studentId,
+          rewardId,
+          rewards,
+          students,
+          cards,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
     });
   }
 
   async function redeemGroup(classId, rewardId, participants) {
-    await redeemGroupService({
-      db,
-      classId,
-      rewardId,
-      participants,
-      rewards,
-      students,
-      cards,
-      alertFn: notify,
-      confirmFn: askConfirmation,
+    return runMutation({
+      loadingMessage: "Redeeming group reward...",
+      successMessage: "Group reward redeemed.",
+      errorMessage: "Could not redeem group reward.",
+      confirmMessage: "Redeem this reward for the selected group?",
+      action: async () => {
+        await redeemGroupService({
+          db,
+          classId,
+          rewardId,
+          participants,
+          rewards,
+          students,
+          cards,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
     });
   }
 
@@ -723,6 +796,12 @@ export default function App() {
           newClassNameRef={newClassNameRef}
           confirmFn={askConfirmation}
           alertFn={notify}
+          onRenameClass={async (classId, currentName) => {
+            const nextName = await requestClassRename(currentName);
+            if (typeof nextName === "string" && nextName.trim()) {
+              await editClassName(db, classId, nextName.trim(), notify);
+            }
+          }}
         />
 
         {/* Only show these if a class is selected */}
@@ -765,7 +844,7 @@ export default function App() {
               onAddStudent={() => {
                 const name = newStudentRef.current?.value?.trim();
                 if (!name) return notify("Enter name");
-                addStudent(db, activeClassId, name, ensureClassSelected, newStudentRef);
+                addStudent(db, activeClassId, name, ensureClassSelected, newStudentRef, notify);
                 if (newStudentRef.current) newStudentRef.current.value = "";
               }}
               newStudentRef={newStudentRef}
@@ -787,6 +866,7 @@ export default function App() {
               onDeleteCard={deleteCard}
               onCreateReward={createReward}
               onDeleteReward={deleteReward}
+              onValidationError={notify}
             />
           </>
         )}
@@ -881,7 +961,7 @@ export default function App() {
             })
           }
           mode={mode}
-          onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates)}
+          onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates, notify)}
           onClose={() => setSelectedStudentId(null)}
           onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId, askConfirmation, notify)}
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
@@ -920,7 +1000,8 @@ export default function App() {
       <FeedbackDialog
         notice={notice}
         confirmation={confirmation}
-        onDismissNotice={() => setNotice(null)}
+        pendingAction={pendingAction}
+        onDismissNotice={() => notify(null)}
         onResolveConfirmation={resolveConfirmation}
       />
 
@@ -943,6 +1024,40 @@ export default function App() {
         onClose={() => resolveFloatSchedule(null)}
         onSave={resolveFloatSchedule}
       />
+
+      {classRenameRequest && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="rename-class-title">
+            <h3 id="rename-class-title" style={{ marginTop: 0 }}>Rename class</h3>
+            <input
+              className="input"
+              defaultValue={classRenameRequest.currentName}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const nextValue = e.currentTarget.value;
+                  resolveClassRename(nextValue);
+                }
+              }}
+            />
+            <div className="feedback-dialog-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn" onClick={() => resolveClassRename(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={(e) => {
+                  const input = e.currentTarget.parentElement?.previousElementSibling;
+                  resolveClassRename(input?.value ?? "");
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

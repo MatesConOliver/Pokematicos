@@ -35,6 +35,7 @@ export default function ManageStudentModal({
   onRedeemIndividual,
   onRedeemGroup,
   setCardPreview,
+  onValidationError,
 }) {
   const [redeemRewardId, setRedeemRewardId] = useState("");
   const [redeemMode, setRedeemMode] = useState("individual");
@@ -403,7 +404,10 @@ export default function ManageStudentModal({
                   <button
                     className="btn primary"
                     onClick={() => {
-                      if (!redeemRewardId) return alert("Choose a reward first.");
+                      if (!redeemRewardId) {
+                        if (onValidationError) onValidationError("Choose a reward first.");
+                        return;
+                      }
                       onRedeemIndividual(redeemRewardId);
                     }}
                   >
@@ -452,7 +456,10 @@ export default function ManageStudentModal({
                     <button
                       className="btn primary"
                       onClick={() => {
-                        if (!redeemRewardId) return alert("Choose a reward first.");
+                        if (!redeemRewardId) {
+                          if (onValidationError) onValidationError("Choose a reward first.");
+                          return;
+                        }
                         onRedeemGroup(redeemRewardId, shares);
                       }}
                     >

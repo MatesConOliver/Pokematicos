@@ -19,6 +19,7 @@ export default function CardLibrary({
   onDeleteCard,
   onCreateReward,
   onDeleteReward,
+  onValidationError,
 }) {
   const [libraryTab, setLibraryTab] = useState("points");
 
@@ -55,6 +56,7 @@ export default function CardLibrary({
             lockedInputRef={lockedInputRef}
             unlockedInputRef={unlockedInputRef}
             streakConfigs={streakConfigs}
+            onValidationError={onValidationError}
           />
         </div>
       )}
@@ -129,7 +131,11 @@ export default function CardLibrary({
 
               {mode === "admin" && (
                 <div style={{ borderTop: "1px dashed #eee", paddingTop: 10, marginTop: 10 }}>
-                  <RewardCreateForm cards={cards} onCreate={onCreateReward} />
+                  <RewardCreateForm
+                    cards={cards}
+                    onCreate={onCreateReward}
+                    onValidationError={onValidationError}
+                  />
                 </div>
               )}
             </div>

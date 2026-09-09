@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function CardEditModal({ card, streakConfigs = [], onClose, onSave }) {
+export default function CardEditModal({ card, streakConfigs = [], onClose, onSave, onValidationError }) {
   const [title, setTitle] = useState(card.title || "");
   const [description, setDescription] = useState(card.description || "");
   const [points, setPoints] = useState(card.points ?? 0);
@@ -126,7 +126,10 @@ export default function CardEditModal({ card, streakConfigs = [], onClose, onSav
                   type="button"
                   onClick={() => {
                     const id = resolveStreakIdFromText(streakLookup);
-                    if (!id) return alert("No match. Try emoji (🔥) or number (1).");
+                    if (!id) {
+                      if (onValidationError) onValidationError("No match. Try emoji (🔥) or number (1).");
+                      return;
+                    }
                     addStreakId(id);
                     setStreakLookup("");
                   }}

@@ -5,7 +5,8 @@ export async function addStudent(
   activeClassId,
   name,
   ensureClassSelected,
-  newStudentRef
+  newStudentRef,
+  alertFn = null
 ) {
   if (!ensureClassSelected()) return;
   if (!name?.trim()) return;
@@ -30,11 +31,11 @@ export async function addStudent(
     if (newStudentRef.current) newStudentRef.current.value = "";
   } catch (err) {
     console.error(err);
-    alert("Failed to add student.");
+    if (alertFn) alertFn("Failed to add student.");
   }
 }
 
-export async function editStudent(db, classId, studentId, updates) {
+export async function editStudent(db, classId, studentId, updates, alertFn = null) {
   try {
     await updateDoc(
       doc(db, `classes/${classId}/students/${studentId}`),
@@ -42,7 +43,7 @@ export async function editStudent(db, classId, studentId, updates) {
     );
   } catch (err) {
     console.error(err);
-    alert("Failed saving student changes.");
+    if (alertFn) alertFn("Failed saving student changes.");
   }
 }
 

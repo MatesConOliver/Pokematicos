@@ -11,6 +11,7 @@ export default function ClassesPanel({
   newClassNameRef,
   confirmFn,
   alertFn,
+  onRenameClass,
 }) {
   return (
     <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
@@ -38,7 +39,7 @@ export default function ClassesPanel({
 
               {mode === "admin" && (
                 <>
-                  <button className="btn" onClick={() => editClassName(db, c.id, classesList)}>
+                  <button className="btn" onClick={() => onRenameClass?.(c.id, c.name)}>
                     Edit
                   </button>
                   <button
