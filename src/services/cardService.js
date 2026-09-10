@@ -4,6 +4,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  runTransaction,
   updateDoc,
   writeBatch,
 } from "firebase/firestore";
@@ -211,18 +212,23 @@ export async function giveCardToStudent({
     let basePoints = 0;
     if (category === "points") basePoints = Number(cardData.points || 0);
 
+    // Compute only the NEW card entries / points delta here. The final merge
+    // happens inside a transaction against the freshest server state, so a
+    // concurrent grant to the same student (e.g. two approved requests in a
+    // row) can never silently overwrite/lose the other one's card.
     const effectivePoints = round2(basePoints * multiplier);
-    const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
-    cardsArr.push({
-      id: uid("owned"),
-      cardId,
-      title: cardData.title,
-      imageURL: cardData.imageURL || "",
-      grantedAt: new Date().toISOString(),
-      pointsGranted: effectivePoints,
-    });
+    const newEntries = [
+      {
+        id: uid("owned"),
+        cardId,
+        title: cardData.title,
+        imageURL: cardData.imageURL || "",
+        grantedAt: new Date().toISOString(),
+        pointsGranted: effectivePoints,
+      },
+    ];
 
-    let currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
+    let pointsDelta = effectivePoints;
     const linkedIds =
       category === "points"
         ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
@@ -244,10 +250,10 @@ export async function giveCardToStudent({
       for (const streakId of crossedMaxIds) {
         const cfg = streakConfigs.find((c) => c.id === streakId);
         const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
-        currentPoints = await grantStreakMaxRewardCards({
+        pointsDelta = await grantStreakMaxRewardCards({
           rewardCardIds: rewardIds,
-          cardsArr,
-          currentPoints,
+          cardsArr: newEntries,
+          currentPoints: pointsDelta,
           multiplier,
           streakId,
           classId,
@@ -257,10 +263,20 @@ export async function giveCardToStudent({
       }
     }
 
-    const payload = { cards: cardsArr, currentPoints };
-    if (nextStreaks) payload.streaks = nextStreaks;
+    await runTransaction(db, async (tx) => {
+      const freshSnap = await tx.get(studentRef);
+      if (!freshSnap.exists()) return;
+      const freshData = freshSnap.data();
+      const freshCards = Array.isArray(freshData.cards) ? freshData.cards : [];
 
-    await updateDoc(studentRef, payload);
+      const payload = {
+        cards: [...freshCards, ...newEntries],
+        currentPoints: round2((freshData.currentPoints || 0) + pointsDelta),
+      };
+      if (nextStreaks) payload.streaks = nextStreaks;
+
+      tx.update(studentRef, payload);
+    });
   } catch (err) {
     console.error(err);
     if (alertFn) alertFn("Failed to give card.");
