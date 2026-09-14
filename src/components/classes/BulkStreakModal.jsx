@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { todayISODate } from "../../utils/dateUtils";
 
 export default function BulkStreakModal({
   className,
@@ -10,6 +11,9 @@ export default function BulkStreakModal({
   onCreateStreakType,
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
+  const [viewStreakId, setViewStreakId] = useState(streakConfigs[0]?.id || null);
+  const today = todayISODate();
+  const viewCfg = streakConfigs.find((c) => c.id === viewStreakId) || null;
 
   const allSelected = students.length > 0 && selectedIds.length === students.length;
 
@@ -53,16 +57,33 @@ export default function BulkStreakModal({
             }}
           >
             {students.length === 0 && <div className="muted">No students in this class.</div>}
-            {students.map((s) => (
-              <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(s.id)}
-                  onChange={() => toggleStudent(s.id)}
-                />
-                <span>{s.name}</span>
-              </label>
-            ))}
+            {students.map((s) => {
+              const streak = (s.streaks && s.streaks[viewStreakId]) || { value: 0, lastUpdated: "" };
+              const isToday = streak.lastUpdated && streak.lastUpdated === today;
+
+              return (
+                <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(s.id)}
+                    onChange={() => toggleStudent(s.id)}
+                  />
+                  <span style={{ flex: 1 }}>{s.name}</span>
+                  {viewCfg && (
+                    <span style={{ fontSize: 13 }}>
+                      {(viewCfg.emoji || "").repeat(streak.value || 0) || (
+                        <span style={{ opacity: 0.4 }}>{viewCfg.emoji}</span>
+                      )}{" "}
+                      {streak.lastUpdated && (
+                        <span style={{ color: isToday ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
+                          {streak.lastUpdated}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </label>
+              );
+            })}
           </div>
           <div className="muted" style={{ marginTop: 4 }}>
             {selectedIds.length} of {students.length} selected
@@ -78,20 +99,23 @@ export default function BulkStreakModal({
               {streakConfigs.map((cfg) => (
                 <div
                   key={cfg.id}
+                  onClick={() => setViewStreakId(cfg.id)}
+                  title="Click to show this streak next to each student"
                   style={{
-                    border: "1px solid #e5e7eb",
+                    border: cfg.id === viewStreakId ? "2px solid #6366f1" : "1px solid #e5e7eb",
                     borderRadius: 8,
                     padding: 10,
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                     gap: 8,
+                    cursor: "pointer",
                   }}
                 >
                   <div style={{ fontWeight: 700 }}>
                     {cfg.emoji} streak (max {cfg.max})
                   </div>
-                  <div style={{ display: "flex", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
                     <button
                       className="btn"
                       disabled={selectedIds.length === 0}
