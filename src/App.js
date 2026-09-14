@@ -165,7 +165,7 @@ export default function App() {
     !!profileStudent && mode !== "admin" && !unlockedProfileIds.has(profileStudent.id);
 
   const giveableCardsForProfile = useMemo(
-    () => (cards || []).filter((c) => (c.category || "points") !== "rewards"),
+    () => (cards || []).filter((c) => (c.category || "points") === "points"),
     [cards]
   );
 
@@ -587,7 +587,6 @@ export default function App() {
       loadingMessage: "Redeeming reward...",
       successMessage: "Reward redeemed.",
       errorMessage: "Could not redeem reward.",
-      confirmMessage: "Redeem this reward for the student?",
       action: async () => {
         await redeemIndividualService({
           db,
@@ -1041,6 +1040,11 @@ export default function App() {
           }
           onValidationError={notify}
           giveableCards={giveableCardsForProfile}
+          allCards={cards}
+          rewards={rewards}
+          onRedeemReward={(rewardId) =>
+            redeemIndividual(activeClassId, profileStudent.id, rewardId)
+          }
           myPendingRequests={myPendingRequests}
           onCreateRequest={(payload) => createStudentRequest(activeClassId, profileStudent, payload)}
           onCancelRequest={(request) => cancelStudentRequest(request)}
