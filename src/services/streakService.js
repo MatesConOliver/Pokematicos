@@ -287,6 +287,181 @@ export async function resetStudentStreak({
   }
 }
 
+// Applies +1/-1 to a single streak for many students at once (same rewards/float logic as
+// changeStudentStreakValue, but asks the float schedule question only ONCE for the whole batch).
+export async function bulkChangeStreakValue({
+  db,
+  classId,
+  studentIds,
+  streakId,
+  delta,
+  cfg,
+  scheduleFn,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  getCardDataFast,
+}) {
+  const ids = Array.isArray(studentIds) ? studentIds.filter(Boolean) : [];
+  if (ids.length === 0) {
+    if (alertFn) alertFn("Select at least one student.");
+    return;
+  }
+
+  try {
+    const today = todayISODate();
+    const maxValue = typeof cfg?.max === "number" ? cfg.max : 0;
+
+    const snaps = await Promise.all(
+      ids.map((id) => getDoc(doc(db, `classes/${classId}/students/${id}`)))
+    );
+    const studentsData = snaps
+      .map((snap, idx) => (snap.exists() ? { id: ids[idx], ref: snap.ref, data: snap.data() } : null))
+      .filter(Boolean);
+
+    let floatSchedule = null;
+    if (delta > 0 && cfg?.float) {
+      const willCrossAny = studentsData.some(({ data }) => {
+        const entry = (data.streaks || {})[streakId] || {};
+        const current = entry.value || 0;
+        let next = current + delta;
+        if (maxValue > 0 && next > maxValue) next = maxValue;
+        return maxValue > 0 && next === maxValue && current < maxValue;
+      });
+
+      if (willCrossAny && scheduleFn) {
+        floatSchedule = await scheduleFn({
+          delayDays: 7,
+          durationDays: 7,
+          message: `🎉 Several students will reach the maximum for ${cfg.emoji || "this"} streak!`,
+        });
+      }
+    }
+
+    let batch = writeBatch(db);
+    let writes = 0;
+
+    for (const { ref, data } of studentsData) {
+      const streaks = data.streaks || {};
+      const existingEntry = streaks[streakId] || {};
+      const current = existingEntry.value || 0;
+
+      let next = current + delta;
+      if (next < 0) next = 0;
+      if (maxValue > 0 && next > maxValue) next = maxValue;
+
+      const prevMaxAchievedOn = existingEntry.maxAchievedOn || "";
+      const reachedMaxNow = delta > 0 && maxValue > 0 && next === maxValue;
+      const crossedToMax = reachedMaxNow && current < maxValue;
+
+      let floatWindows = Array.isArray(existingEntry.floatWindows) ? existingEntry.floatWindows : [];
+
+      if (crossedToMax && cfg?.float) {
+        const delayDays = floatSchedule?.delayDays ?? 7;
+        const durationDays = floatSchedule?.durationDays ?? 7;
+        const start = addDaysISO(today, delayDays);
+        const end = addDaysISO(start, durationDays - 1);
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+      } else {
+        floatWindows = normalizeFloatWindows(floatWindows, today);
+      }
+
+      const updatedEntry = {
+        ...existingEntry,
+        value: next,
+        lastUpdated: delta > 0 ? today : (existingEntry.lastUpdated || ""),
+        maxAchievedOn: reachedMaxNow ? today : prevMaxAchievedOn,
+        floatWindows,
+      };
+
+      const payload = { streaks: { ...streaks, [streakId]: updatedEntry } };
+
+      if (crossedToMax) {
+        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+        if (rewardIds.length) {
+          const multiplier = typeof data.multiplier === "number" ? data.multiplier : 1;
+          const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
+          const currentPoints = await grantStreakMaxRewardCards({
+            rewardCardIds: rewardIds,
+            cardsArr,
+            currentPoints: Number(data.currentPoints || 0),
+            multiplier,
+            streakId,
+            classId,
+            getCardDataFast,
+          });
+          payload.cards = cardsArr;
+          payload.currentPoints = currentPoints;
+        }
+      }
+
+      batch.update(ref, payload);
+      writes++;
+
+      if (writes >= 450) {
+        await batch.commit();
+        batch = writeBatch(db);
+        writes = 0;
+      }
+    }
+
+    if (writes > 0) await batch.commit();
+  } catch (err) {
+    console.error("bulkChangeStreakValue error", err);
+    if (alertFn) alertFn("Could not update streaks. See console.");
+    throw err;
+  }
+}
+
+// Resets a single streak to 0 for many students at once.
+export async function bulkResetStreak({
+  db,
+  classId,
+  studentIds,
+  streakId,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  const ids = Array.isArray(studentIds) ? studentIds.filter(Boolean) : [];
+  if (ids.length === 0) {
+    if (alertFn) alertFn("Select at least one student.");
+    return;
+  }
+
+  try {
+    let batch = writeBatch(db);
+    let writes = 0;
+
+    for (const id of ids) {
+      const ref = doc(db, `classes/${classId}/students/${id}`);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) continue;
+
+      const data = snap.data();
+      const streaks = data.streaks || {};
+      const prev = streaks[streakId] || {};
+      const updatedEntry = {
+        value: 0,
+        lastUpdated: "",
+        maxAchievedOn: prev.maxAchievedOn || "",
+        floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
+      };
+
+      batch.update(ref, { streaks: { ...streaks, [streakId]: updatedEntry } });
+      writes++;
+
+      if (writes >= 450) {
+        await batch.commit();
+        batch = writeBatch(db);
+        writes = 0;
+      }
+    }
+
+    if (writes > 0) await batch.commit();
+  } catch (err) {
+    console.error("bulkResetStreak error", err);
+    if (alertFn) alertFn("Could not reset streaks. See console.");
+    throw err;
+  }
+}
+
 export async function deleteStreakTypeForClass({
   db,
   classId,

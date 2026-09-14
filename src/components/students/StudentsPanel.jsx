@@ -33,7 +33,7 @@ export default function StudentsPanel({
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {mode === "admin" && activeClassId && (
-            <button className="btn" onClick={() => onAddStreak(activeClassId)}>New streak</button>
+            <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
           )}
 
           <input

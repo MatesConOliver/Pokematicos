@@ -12,6 +12,7 @@ import FloatScheduleModal from "./components/classes/FloatScheduleModal";
 import ProfileModal from "./components/profile/ProfileModal";
 import PinGateModal from "./components/profile/PinGateModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
+import BulkStreakModal from "./components/classes/BulkStreakModal";
 import RequestsPanel from "./components/requests/RequestsPanel";
 import LoginScreen from "./components/auth/LoginScreen";
 import ClassesPanel from "./components/classes/ClassesPanel";
@@ -30,6 +31,8 @@ import {
   deleteStreakTypeForClass,
   resetStudentStreak,
   setStreakRewardCardsForClass,
+  bulkChangeStreakValue,
+  bulkResetStreak,
 } from "./services/streakService";
 import {
   createReward as createRewardService,
@@ -138,6 +141,7 @@ export default function App() {
   // Students whose PIN has already been verified this session
   const [unlockedProfileIds, setUnlockedProfileIds] = useState(() => new Set());
   const [showRequestsPanel, setShowRequestsPanel] = useState(false);
+  const [showBulkStreaks, setShowBulkStreaks] = useState(false);
 
   const { pendingRequests, pendingCount } = useStudentRequests({ db });
 
@@ -933,14 +937,7 @@ export default function App() {
               mode={mode}
               studentFilter={studentFilter}
               setStudentFilter={setStudentFilter}
-              onAddStreak={(classId) => addStreakTypeForClass({
-                db,
-                classId,
-                classesList,
-                cards,
-                formFn: requestStreakForm,
-                alertFn: notify,
-              })}
+              onAddStreak={() => setShowBulkStreaks(true)}
               onManageStudent={setSelectedStudentId}
               onProfileStudent={setProfileStudentId}
               onChangeStudentStreak={(classId, studentId, streakId, delta, cfg) =>
@@ -1020,6 +1017,60 @@ export default function App() {
               notify("PIN incorrecto.");
             }
           }}
+        />
+      )}
+
+      {/* Bulk streak management (admin only, active class) */}
+      {mode === "admin" && showBulkStreaks && activeClassId && (
+        <BulkStreakModal
+          className={activeClass?.name || ""}
+          students={students}
+          streakConfigs={activeClass?.streakConfigs || []}
+          onClose={() => setShowBulkStreaks(false)}
+          onBulkChange={(cfg, delta, selectedIds) =>
+            runAction({
+              action: () =>
+                bulkChangeStreakValue({
+                  db,
+                  classId: activeClassId,
+                  studentIds: selectedIds,
+                  streakId: cfg.id,
+                  delta,
+                  cfg,
+                  scheduleFn: requestFloatSchedule,
+                  alertFn: notify,
+                  getCardDataFast,
+                }),
+              message: "Updating streaks...",
+              confirmMessage: `${delta > 0 ? "Add +1" : "Subtract -1"} to the ${cfg.emoji || ""} streak for ${selectedIds.length} student(s)?`,
+              errorMessage: "Could not update streaks.",
+            })
+          }
+          onBulkReset={(cfg, selectedIds) =>
+            runAction({
+              action: () =>
+                bulkResetStreak({
+                  db,
+                  classId: activeClassId,
+                  studentIds: selectedIds,
+                  streakId: cfg.id,
+                  alertFn: notify,
+                }),
+              message: "Resetting streaks...",
+              confirmMessage: `Reset the ${cfg.emoji || ""} streak to 0 for ${selectedIds.length} student(s)? This cannot be undone.`,
+              errorMessage: "Could not reset streaks.",
+            })
+          }
+          onCreateStreakType={() =>
+            addStreakTypeForClass({
+              db,
+              classId: activeClassId,
+              classesList,
+              cards,
+              formFn: requestStreakForm,
+              alertFn: notify,
+            })
+          }
         />
       )}
 
