@@ -128,7 +128,10 @@ export async function redeemIndividual({
     });
 
     if (unlockedXpCards.length > 0 && alertFn) {
-      alertFn(`🎉 Level Up! Unlocked ${unlockedXpCards.length} new Experience Card(s)!`);
+      alertFn({
+        message: `Unlocked ${unlockedXpCards.length} new Experience Card(s)!`,
+        cards: unlockedXpCards,
+      });
     }
 
     return true;

@@ -56,6 +56,7 @@ export default function ProfileModal({
         style={{
           maxWidth: 640,
           width: "95%",
+          height: 620,
           maxHeight: "90vh",
           display: "flex",
           flexDirection: "column",
@@ -73,6 +74,7 @@ export default function ProfileModal({
             justifyContent: "space-between",
             alignItems: "center",
             gap: 12,
+            flexShrink: 0,
           }}
         >
           <div>
@@ -106,6 +108,7 @@ export default function ProfileModal({
             padding: "8px 16px 0 16px",
             gap: 6,
             overflowX: "auto",
+            flexShrink: 0,
           }}
         >
           <button

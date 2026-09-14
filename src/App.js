@@ -117,9 +117,11 @@ export default function App() {
   const [classRenameRequest, setClassRenameRequest] = useState(null);
   const {
     notice,
+    levelUpNotice,
     confirmation,
     pendingAction,
     notify,
+    notifyLevelUp,
     askConfirmation,
     resolveConfirmation,
     runAction,
@@ -596,7 +598,13 @@ export default function App() {
           rewards,
           students,
           cards,
-          alertFn: notify,
+          alertFn: (data) => {
+            if (typeof data === "object" && data !== null && data.cards) {
+              notifyLevelUp(data);
+            } else {
+              notify(data);
+            }
+          },
           confirmFn: askConfirmation,
         });
       },
@@ -1151,9 +1159,11 @@ export default function App() {
 
       <FeedbackDialog
         notice={notice}
+        levelUpNotice={levelUpNotice}
         confirmation={confirmation}
         pendingAction={pendingAction}
         onDismissNotice={() => notify(null)}
+        onDismissLevelUp={() => notifyLevelUp(null)}
         onResolveConfirmation={resolveConfirmation}
       />
 

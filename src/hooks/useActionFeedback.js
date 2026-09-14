@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 
 export default function useActionFeedback() {
   const [notice, setNotice] = useState(null);
+  const [levelUpNotice, setLevelUpNotice] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
 
@@ -11,6 +12,14 @@ export default function useActionFeedback() {
       return;
     }
     setNotice({ message });
+  }, []);
+
+  const notifyLevelUp = useCallback((data) => {
+    if (!data) {
+      setLevelUpNotice(null);
+      return;
+    }
+    setLevelUpNotice(typeof data === "string" ? { message: data } : data);
   }, []);
 
   const askConfirmation = useCallback((message) => {
@@ -65,13 +74,26 @@ export default function useActionFeedback() {
     () => ({
       notice,
       setNotice,
+      levelUpNotice,
+      setLevelUpNotice,
       confirmation,
       pendingAction,
       notify,
+      notifyLevelUp,
       askConfirmation,
       resolveConfirmation,
       runAction,
     }),
-    [askConfirmation, confirmation, notify, pendingAction, resolveConfirmation, runAction, notice]
+    [
+      askConfirmation,
+      confirmation,
+      notify,
+      notifyLevelUp,
+      levelUpNotice,
+      pendingAction,
+      resolveConfirmation,
+      runAction,
+      notice,
+    ]
   );
 }
