@@ -88,13 +88,13 @@ export default function LoginScreen({
   return (
     <div style={loginStyles.container}>
       <div style={loginStyles.card}>
-        <h1 style={loginStyles.title}>CBA Card System</h1>
+        <h1 style={loginStyles.title}>CBA Cards and Points System</h1>
 
         {(!authChecked || checkingAdmin) ? (
-          <div style={{ color: "#666", padding: 20 }}>Cargando...</div>
+          <div style={{ color: "#666", padding: 20 }}>Loading...</div>
         ) : !showAdminForm ? (
           <>
-            <p style={loginStyles.subtitle}>Selecciona cómo quieres entrar</p>
+            <p style={loginStyles.subtitle}>Log in as a...</p>
 
             <button
               style={loginStyles.studentBtn}
@@ -102,7 +102,7 @@ export default function LoginScreen({
               onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.02)"}
               onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
             >
-              🎒 Soy Alumno (Invitado)
+              🎒 Student (Guest)
             </button>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0", opacity: 0.5 }}>
@@ -115,12 +115,12 @@ export default function LoginScreen({
               style={loginStyles.teacherBtn}
               onClick={() => setShowAdminForm(true)}
             >
-              👨‍🏫 Soy Profe (Admin)
+              👨‍🏫 Teacher (Admin)
             </button>
           </>
         ) : (
           <>
-            <p style={loginStyles.subtitle}>Acceso para profesores</p>
+            <p style={loginStyles.subtitle}>Access for teachers</p>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
