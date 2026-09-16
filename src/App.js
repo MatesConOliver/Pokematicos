@@ -946,10 +946,12 @@ export default function App() {
 
         {/* Only show these if a class is selected */}
         {activeClassId && activeClass?.archivedUrl ? (
-          <section style={{ gridColumn: "2 / -1", padding: 24, textAlign: "center" }}>
-            <h2>This class has ended</h2>
-            <p>The activity for this class has finished. You can still visit its archive:</p>
-            <a className="btn primary" href={activeClass.archivedUrl} target="_blank" rel="noreferrer">
+          <section className="ended-class-panel" aria-labelledby="ended-class-title">
+            <div className="ended-class-icon" aria-hidden="true">✦</div>
+            <p className="ended-class-eyebrow">Class archive</p>
+            <h2 id="ended-class-title">This class has ended</h2>
+            <p>The activity is over, but the memories are still here.</p>
+            <a className="btn primary ended-class-link" href={activeClass.archivedUrl} target="_blank" rel="noreferrer">
               Open class archive
             </a>
           </section>
@@ -1303,11 +1305,11 @@ export default function App() {
         <div className="modal-backdrop" role="presentation">
           <div className="feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="archive-class-title">
             <h3 id="archive-class-title" style={{ marginTop: 0 }}>End class activity</h3>
-            <p className="muted">Enter the URL of the class archive. Leaving it empty cancels the action.</p>
+            <p className="muted">Enter the complete archive URL, including <strong>https://</strong>. Leaving it empty cancels the action.</p>
             <input
               className="input"
               type="url"
-              placeholder="https://..."
+              placeholder="https://example.com/archive"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter") resolveClassArchiveUrl(e.currentTarget.value);
