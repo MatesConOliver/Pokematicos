@@ -31,9 +31,12 @@ export default function ManageStudentModal({
   onGiveCard,
   onRemoveOne,
   onRemoveAll,
+  confirmFn,
   onRedeemIndividual,
   onRedeemGroup,
   setCardPreview,
+  onValidationError,
+  onResetPin,
 }) {
   const [redeemRewardId, setRedeemRewardId] = useState("");
   const [redeemMode, setRedeemMode] = useState("individual");
@@ -115,6 +118,9 @@ export default function ManageStudentModal({
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn" onClick={onClose}>Close</button>
+            {onResetPin && (
+              <button className="btn" onClick={onResetPin}>Reset PIN</button>
+            )}
             <button className="btn" onClick={onDeleteStudent}>Delete student</button>
           </div>
         </div>
@@ -346,8 +352,8 @@ export default function ManageStudentModal({
                         </button>
                         <button
                           className="btn"
-                          onClick={() => {
-                            if (!window.confirm(`Remove ALL ${g.ownedIds.length} copies of "${g.title}"?`)) return;
+                          onClick={async () => {
+                            if (confirmFn && !(await confirmFn(`Remove ALL ${g.ownedIds.length} copies of "${g.title}"?`))) return;
                             onRemoveAll(g.ownedIds);
                           }}
                         >
@@ -402,7 +408,10 @@ export default function ManageStudentModal({
                   <button
                     className="btn primary"
                     onClick={() => {
-                      if (!redeemRewardId) return alert("Choose a reward first.");
+                      if (!redeemRewardId) {
+                        if (onValidationError) onValidationError("Choose a reward first.");
+                        return;
+                      }
                       onRedeemIndividual(redeemRewardId);
                     }}
                   >
@@ -451,7 +460,10 @@ export default function ManageStudentModal({
                     <button
                       className="btn primary"
                       onClick={() => {
-                        if (!redeemRewardId) return alert("Choose a reward first.");
+                        if (!redeemRewardId) {
+                          if (onValidationError) onValidationError("Choose a reward first.");
+                          return;
+                        }
                         onRedeemGroup(redeemRewardId, shares);
                       }}
                     >

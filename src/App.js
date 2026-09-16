@@ -1,47 +1,65 @@
-// src/App.js
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  orderBy,
-  writeBatch,
-  increment,
-} from "firebase/firestore";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
-import LibraryCardRow from "./components/cards/LibraryCardRow";
-import CardCreateForm from "./components/cards/CardCreateForm";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { db, storage, auth } from "./firebase";
+import LibrarySection from "./components/cards/LibrarySection";
 import CardEditModal from "./components/cards/CardEditModal";
-import RewardCreateForm from "./components/rewards/RewardCreateForm";
+import CardPreviewModal from "./components/cards/CardPreviewModal";
+import BulkGiveModal from "./components/cards/BulkGiveModal";
+import FeedbackDialog from "./components/common/FeedbackDialog";
+import StreakFormModal from "./components/classes/StreakFormModal";
+import RewardCardPickerModal from "./components/classes/RewardCardPickerModal";
+import FloatScheduleModal from "./components/classes/FloatScheduleModal";
 import ProfileModal from "./components/profile/ProfileModal";
-import EmojiParty from "./components/common/EmojiParty";
+import PinGateModal from "./components/profile/PinGateModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
-import { uid, round2, safeLower, PASTEL_COLORS } from "./utils/helpers";
-import { todayISODate, addDaysISO } from "./utils/dateUtils";
-
-
+import BulkStreakModal from "./components/classes/BulkStreakModal";
+import RequestsPanel from "./components/requests/RequestsPanel";
+import LoginScreen from "./components/auth/LoginScreen";
+import ClassesPanel from "./components/classes/ClassesPanel";
+import StudentsPanel from "./components/students/StudentsPanel";
+import { addStudent, editStudent, deleteStudent } from "./services/studentService";
+import { verifyPin, changePin, resetPin } from "./services/studentAuthService";
+import {
+  createRequest as createRequestService,
+  cancelRequest as cancelRequestService,
+  rejectRequest as rejectRequestService,
+  resolveRequestApproved,
+} from "./services/requestService";
+import {
+  addStreakTypeForClass,
+  changeStudentStreakValue,
+  deleteStreakTypeForClass,
+  resetStudentStreak,
+  setStreakRewardCardsForClass,
+  bulkChangeStreakValue,
+  bulkResetStreak,
+} from "./services/streakService";
+import {
+  createReward as createRewardService,
+  deleteReward as deleteRewardService,
+} from "./services/rewardService";
+import {
+  quickAddPoints as quickAddPointsService,
+  removeOwnedCardsBulk as removeOwnedCardsBulkService,
+  redeemIndividual as redeemIndividualService,
+  redeemGroup as redeemGroupService,
+} from "./services/studentRewardService";
+import {
+  createCard as createCardService,
+  updateCard as updateCardService,
+  deleteCard as deleteCardService,
+  giveCardToStudent as giveCardToStudentService,
+  giveCardToStudentsBulk as giveCardToStudentsBulkService,
+} from "./services/cardService";
+import { safeLower, PASTEL_COLORS } from "./utils/helpers";
+import { editClassName, endClassActivity } from "./services/classService";
+import useBackgroundManager from "./hooks/useBackgroundManager";
+import useClassData from "./hooks/useClassData";
+import useAuthMode from "./hooks/useAuthMode";
+import useActionFeedback from "./hooks/useActionFeedback";
+import useStudentRequests from "./hooks/useStudentRequests";
 /**
- * Pokemáticos — Firestore + Storage (single-file App.js)
+ * Pokemáticos — Firestore + Storage (main application shell)
  *
  * What this version adds back (from your old localStorage version) + fixes:
  * - Guest vs Admin mode (guests cannot Manage; they can only view cards and open a Profile modal)
@@ -58,190 +76,61 @@ import { todayISODate, addDaysISO } from "./utils/dateUtils";
  * otherwise saving will fail. See rule note at the bottom.
  */
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
-  authDomain: "pokematicos.firebaseapp.com",
-  databaseURL:
-    "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pokematicos",
-  storageBucket: "pokematicos.firebasestorage.app",
-  messagingSenderId: "101415606738",
-  appId: "1:101415606738:web:c009f17005904490e9d00b",
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-const auth = getAuth(app);
-
-
-function parseFloatScheduleInput(input, defaults = { delayDays: 7, durationDays: 7 }) {
-  const fallback = {
-    delayDays: Number.isFinite(defaults.delayDays) ? defaults.delayDays : 7,
-    durationDays: Number.isFinite(defaults.durationDays) ? defaults.durationDays : 7,
-  };
-
-  if (input == null) return fallback;
-  const s = String(input).trim();
-  if (!s) return fallback;
-
-  // 1) "a,b" format
-  if (s.includes(",")) {
-    const [a, b] = s.split(",").map((x) => x.trim());
-    const delay = parseInt(a, 10);
-    const dur = parseInt(b, 10);
-    return {
-      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
-      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
-    };
-  }
-
-  // 2) key=value format: start=7 duration=10 (order doesn't matter)
-  const mStart = s.match(/(?:start|delay)\s*=\s*(-?\d+)/i);
-  const mDur = s.match(/(?:duration|days)\s*=\s*(-?\d+)/i);
-
-  if (mStart || mDur) {
-    const delay = mStart ? parseInt(mStart[1], 10) : fallback.delayDays;
-    const dur = mDur ? parseInt(mDur[1], 10) : fallback.durationDays;
-    return {
-      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
-      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
-    };
-  }
-
-  // 3) two numbers: "7 14"
-  const nums = s.match(/-?\d+/g) || [];
-  if (nums.length >= 2) {
-    const delay = parseInt(nums[0], 10);
-    const dur = parseInt(nums[1], 10);
-    return {
-      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
-      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
-    };
-  }
-
-  // 4) single number means delay; use default duration
-  const one = parseInt(nums[0], 10);
-  return {
-    delayDays: Number.isFinite(one) && one >= 0 ? one : fallback.delayDays,
-    durationDays: fallback.durationDays,
-  };
-}
-
-function normalizeFloatWindows(windows, today) {
-  const list = Array.isArray(windows) ? windows : [];
-  const cleaned = list
-    .filter((w) => w && typeof w.start === "string" && typeof w.end === "string" && w.start && w.end)
-    // prune windows fully in the past
-    .filter((w) => !today || w.end >= today)
-    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
-
-  const merged = [];
-  for (const w of cleaned) {
-    if (merged.length === 0) {
-      merged.push({ start: w.start, end: w.end });
-      continue;
-    }
-    const last = merged[merged.length - 1];
-    // merge if overlaps OR is adjacent (end + 1 day >= next.start)
-    const lastEndPlus1 = addDaysISO(last.end, 1);
-    if (w.start <= lastEndPlus1) {
-      if (w.end > last.end) last.end = w.end;
-    } else {
-      merged.push({ start: w.start, end: w.end });
-    }
-  }
-  return merged;
-}
-
-function isTodayInFloatWindows(today, windows) {
-  if (!today) return false;
-  const list = Array.isArray(windows) ? windows : [];
-  return list.some((w) => w && w.start <= today && today <= w.end);
-}
-
 export default function App() {
   // ----- Mode -----
-  const [mode, setMode] = useState(null); // null | "admin" | "reader"
-
-  const [authUser, setAuthUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [showAdminForm, setShowAdminForm] = useState(false);
-
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPass, setAdminPass] = useState("");
-  const [adminError, setAdminError] = useState("");
-  const [checkingAdmin, setCheckingAdmin] = useState(false);
-
-  function enterReader() {
-    setMode("reader");
-  }
-
-  // Watch login/logout
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setAuthUser(user || null);
-      setAuthChecked(true);
-
-      if (!user) {
-        // logged out: keep chooser screen until user picks guest or logs in
-        setCheckingAdmin(false);
-        return;
-      }
-
-      // logged in: check if this user is in /admins/{uid}
-      try {
-        setCheckingAdmin(true);
-        const adminSnap = await getDoc(doc(db, "admins", user.uid));
-        if (adminSnap.exists()) {
-          setMode("admin");
-        } else {
-          setMode("reader"); // logged in but not admin
-        }
-      } finally {
-        setCheckingAdmin(false);
-      }
-    });
-
-    return () => unsub();
-  }, []);
-
-  // Admin login action
-  async function loginAdminEmailPassword() {
-    setAdminError("");
-    try {
-      await signInWithEmailAndPassword(auth, adminEmail.trim(), adminPass);
-      // onAuthStateChanged will run and set mode to admin if UID is in /admins
-    } catch (e) {
-      console.error(e);
-      setAdminError("Login failed. Check email/password.");
-    }
-  }
-
-  async function logout() {
-    await signOut(auth);
-    setMode(null);
-    setAdminPass("");
-  }
+  const {
+    mode,
+    setMode,
+    authUser,
+    authChecked,
+    showAdminForm,
+    setShowAdminForm,
+    adminEmail,
+    setAdminEmail,
+    adminPass,
+    setAdminPass,
+    adminError,
+    setAdminError,
+    checkingAdmin,
+    enterReader,
+    loginAdminEmailPassword,
+    logout,
+  } = useAuthMode({ auth, db });
 
   // ----- Data -----
-  const [classesList, setClassesList] = useState([]);
   const [activeClassId, setActiveClassId] = useState(null);
 
-  const [students, setStudents] = useState([]);
-  const [cards, setCards] = useState([]);
-  const [rewards, setRewards] = useState([]);
-
-  const [loadingClasses, setLoadingClasses] = useState(true);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-  const [loadingCards, setLoadingCards] = useState(false);
-  const [loadingRewards, setLoadingRewards] = useState(false);
+  const {
+    classesList,
+    students,
+    cards,
+    rewards,
+    loadingClasses,
+    loadingStudents,
+    loadingCards,
+    loadingRewards,
+    errorMsg,
+  } = useClassData({ db, activeClassId });
 
   // ----- UI -----
-  const [errorMsg, setErrorMsg] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
-  const [libraryTab, setLibraryTab] = useState("points"); // points | rewards | experience | extra
   const [cardPreview, setCardPreview] = useState(null);
+  const [streakFormRequest, setStreakFormRequest] = useState(null);
+  const [rewardPickerRequest, setRewardPickerRequest] = useState(null);
+  const [scheduleRequest, setScheduleRequest] = useState(null);
+  const [classRenameRequest, setClassRenameRequest] = useState(null);
+  const [classArchiveRequest, setClassArchiveRequest] = useState(null);
+  const {
+    notice,
+    levelUpNotice,
+    confirmation,
+    pendingAction,
+    notify,
+    notifyLevelUp,
+    askConfirmation,
+    resolveConfirmation,
+    runAction,
+  } = useActionFeedback();
 
   
   const [bulkGiveCard, setBulkGiveCard] = useState(null); // card object
@@ -251,6 +140,12 @@ export default function App() {
 
   // Profile modal selection (guest + admin)
   const [profileStudentId, setProfileStudentId] = useState(null);
+  // Students whose PIN has already been verified this session
+  const [unlockedProfileIds, setUnlockedProfileIds] = useState(() => new Set());
+  const [showRequestsPanel, setShowRequestsPanel] = useState(false);
+  const [showBulkStreaks, setShowBulkStreaks] = useState(false);
+
+  const { pendingRequests, pendingCount } = useStudentRequests({ db });
 
   const newClassNameRef = useRef(null);
   const newStudentRef = useRef(null);
@@ -258,9 +153,6 @@ export default function App() {
   // two file inputs for cards
   const lockedFileInputRef = useRef(null);
   const unlockedFileInputRef = useRef(null);
-
-  const [globalBackgroundUrl, setGlobalBackgroundUrl] = useState(""); // Renamed from backgroundUrl
-  const bgInputRef = useRef(null);
 
   const activeClass = useMemo(
     () => classesList.find((c) => c.id === activeClassId) || null,
@@ -277,186 +169,139 @@ export default function App() {
     [students, profileStudentId]
   );
 
+  const profileNeedsPin =
+    !!profileStudent && mode !== "admin" && !unlockedProfileIds.has(profileStudent.id);
+
+  const giveableCardsForProfile = useMemo(
+    () => (cards || []).filter((c) => (c.category || "points") === "points"),
+    [cards]
+  );
+
+  const myPendingRequests = useMemo(
+    () => pendingRequests.filter((r) => r.studentId === profileStudentId),
+    [pendingRequests, profileStudentId]
+  );
+
+  const {
+    stickyBackground,
+    globalBackgroundUrl,
+    bgInputRef,
+    uploadBackgroundImage,
+    clearBackgroundImage,
+  } = useBackgroundManager({
+    db,
+    storage,
+    activeClassId,
+    activeClass,
+    notify,
+  });
+
   const [editCard, setEditCard] = useState(null);
 
-  // ----- Subscribe: classes -----
-  useEffect(() => {
-    setLoadingClasses(true);
-    const q = query(collection(db, "classes"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setClassesList(arr);
-        setLoadingClasses(false);
-      },
-      (err) => {
-        console.error("Failed loading classes:", err);
-        setErrorMsg("Failed to load classes. Check console.");
-        setLoadingClasses(false);
-      }
-    );
-    return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const runMutation = useCallback(
+    async ({ action, loadingMessage, successMessage, errorMessage, confirmMessage }) => {
+      return runAction({
+        action,
+        message: loadingMessage || "Working...",
+        successMessage,
+        errorMessage: errorMessage || "Something went wrong.",
+        confirmMessage,
+      });
+    },
+    [runAction]
+  );
 
-  // Keep listening to the global default background
-  useEffect(() => {
-    const bgDocRef = doc(db, "config", "background");
-    const unsub = onSnapshot(bgDocRef, (snap) => {
-      if (snap.exists()) {
-        setGlobalBackgroundUrl(snap.data().url || "");
-      } else {
-        setGlobalBackgroundUrl("");
-      }
+  function requestStreakForm(initial = {}) {
+    return new Promise((resolve) => {
+      setStreakFormRequest({
+        initial,
+        rewardCardIds: Array.isArray(initial.rewardCardIds) ? initial.rewardCardIds : [],
+        resolve,
+        title: initial.id ? "Edit streak" : "Create streak",
+        toggleRewardCard: (cardId) => {
+          setStreakFormRequest((current) => {
+            if (!current) return current;
+            const rewardCardIds = current.rewardCardIds.includes(cardId)
+              ? current.rewardCardIds.filter((id) => id !== cardId)
+              : [...current.rewardCardIds, cardId];
+            return { ...current, rewardCardIds };
+          });
+        },
+      });
     });
-    return () => unsub();
-  }, []);
+  }
 
-  // 1. State for the "Sticky" background
-  const [stickyBackground, setStickyBackground] = useState("");
-  
-  // 2. Ref to ensure we only load the global background ONCE (on startup)
-  const hasLoadedInitialGlobal = useRef(false);
+  function resolveStreakForm(value) {
+    streakFormRequest?.resolve(value);
+    setStreakFormRequest(null);
+  }
 
-  // 3. Effect: Load Global Background ONLY on first load
-  useEffect(() => {
-    if (!hasLoadedInitialGlobal.current && globalBackgroundUrl) {
-      setStickyBackground(globalBackgroundUrl);
-      hasLoadedInitialGlobal.current = true;
-    }
-  }, [globalBackgroundUrl]);
+  function requestRewardCardSelection(defaultIds = []) {
+    return new Promise((resolve) => {
+      setRewardPickerRequest({
+        selectedIds: [...defaultIds],
+        resolve,
+        toggleCard: (cardId) => {
+          setRewardPickerRequest((current) => {
+            if (!current) return current;
+            const selectedIds = current.selectedIds.includes(cardId)
+              ? current.selectedIds.filter((id) => id !== cardId)
+              : [...current.selectedIds, cardId];
+            return { ...current, selectedIds };
+          });
+        },
+      });
+    });
+  }
 
-  // 4. Effect: When a class is selected, set the background (Image or Blank)
-  useEffect(() => {
-    if (activeClassId) {
-      // If class has a URL, use it. If not, use "" (Blank).
-      // We do NOT fall back to globalBackgroundUrl here.
-      const nextBg = activeClass?.backgroundUrl || ""; 
-      setStickyBackground(nextBg);
-    }
-    // If activeClassId is null (unselected), we do NOTHING.
-    // This preserves whatever background was last shown.
-  }, [activeClassId, activeClass]);
+  function resolveRewardCardSelection(value) {
+    rewardPickerRequest?.resolve(value);
+    setRewardPickerRequest(null);
+  }
 
-  // ----- Subscribe: class subcollections -----
-  useEffect(() => {
-    if (!activeClassId) {
-      setStudents([]);
-      setCards([]);
-      setRewards([]);
-      return;
-    }
+  function requestFloatSchedule(initial) {
+    return new Promise((resolve) => {
+      setScheduleRequest({ ...initial, resolve });
+    });
+  }
 
-    setErrorMsg("");
+  function resolveFloatSchedule(value) {
+    scheduleRequest?.resolve(value);
+    setScheduleRequest(null);
+  }
 
-    setLoadingStudents(true);
-    const unsubStudents = onSnapshot(
-      query(collection(db, `classes/${activeClassId}/students`), orderBy("name")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setStudents(arr);
-        setLoadingStudents(false);
-      },
-      (err) => {
-        console.error("students snapshot err", err);
-        setErrorMsg("Error loading students.");
-        setLoadingStudents(false);
-      }
-    );
+  function requestClassRename(currentName = "") {
+    return new Promise((resolve) => {
+      setClassRenameRequest({ currentName, resolve });
+    });
+  }
 
-    setLoadingCards(true);
-    const unsubCards = onSnapshot(
-      // Oldest -> newest (as you asked): top to bottom = old to new
-      query(collection(db, `classes/${activeClassId}/cards`), orderBy("createdAt", "asc")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setCards(arr);
-        setLoadingCards(false);
-      },
-      (err) => {
-        console.error("cards snapshot err", err);
-        setErrorMsg("Error loading cards.");
-        setLoadingCards(false);
-      }
-    );
+  function resolveClassRename(value) {
+    classRenameRequest?.resolve(value);
+    setClassRenameRequest(null);
+  }
 
-    setLoadingRewards(true);
-    const unsubRewards = onSnapshot(
-      query(collection(db, `classes/${activeClassId}/rewards`), orderBy("title")),
-      (snap) => {
-        const arr = [];
-        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
-        setRewards(arr);
-        setLoadingRewards(false);
-      },
-      (err) => {
-        console.error("rewards snapshot err", err);
-        setErrorMsg("Error loading rewards.");
-        setLoadingRewards(false);
-      }
-    );
+  function requestClassArchiveUrl(className = "") {
+    return new Promise((resolve) => {
+      setClassArchiveRequest({ className, resolve });
+    });
+  }
 
-    return () => {
-      unsubStudents();
-      unsubCards();
-      unsubRewards();
-    };
-  }, [activeClassId]);
+  function resolveClassArchiveUrl(value) {
+    classArchiveRequest?.resolve(value);
+    setClassArchiveRequest(null);
+  }
 
   // ----- Guards -----
   function ensureClassSelected() {
     if (!activeClassId) {
-      alert("Please select or create a class first.");
+      notify("Please select or create a class first.");
       return false;
     }
     return true;
   }
 
-  // ----- Class actions -----
-  async function createClass(name) {
-    if (!name?.trim()) return;
-    try {
-      const payload = { name: name.trim(), createdAt: Date.now() };
-      const ref = await addDoc(collection(db, "classes"), payload);
-      setActiveClassId(ref.id);
-    } catch (err) {
-      console.error("createClass err:", err);
-      alert("Failed to create class.");
-    }
-  }
-
-  async function editClassName(classId) {
-    const cls = classesList.find((c) => c.id === classId);
-    if (!cls) return;
-    const newName = prompt("New class name:", cls.name || "");
-    if (!newName?.trim()) return;
-    try {
-      await updateDoc(doc(db, `classes/${classId}`), { name: newName.trim() });
-    } catch (err) {
-      console.error(err);
-      alert("Could not rename class.");
-    }
-  }
-
-  async function removeClass(classId) {
-    if (
-      !window.confirm(
-        "Delete this class? (Subcollections won't be deleted automatically)"
-      )
-    )
-      return;
-    try {
-      await deleteDoc(doc(db, `classes/${classId}`));
-      if (activeClassId === classId) setActiveClassId(null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete class.");
-    }
-  }
+  // ----- Class actions (extracted to services/classService.js) -----
 
   // Navigate through owned cards
   function ownedNav(delta) {
@@ -472,164 +317,18 @@ export default function App() {
   }
 
   async function updateCard(cardId, updates) {
-    if (!ensureClassSelected()) return;
-    try {
-      const cardRef = doc(db, `classes/${activeClassId}/cards/${cardId}`);
-      const snap = await getDoc(cardRef);
-      if (!snap.exists()) return alert("Card not found");
-      const prev = snap.data();
-
-      const {
-        title,
-        description,
-        points,
-        category,
-        linkedStreakIds,
-        lockedFile,
-        unlockedFile,
-      } = updates || {};
-
-      let lockedImageURL = prev.lockedImageURL || "";
-      let unlockedImageURL = prev.imageURL || "";
-
-      const baseKey = uid(`cardedit_${cardId}`);
-
-      if (lockedFile) {
-        const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
-        const refLocked = storageRef(storage, `classes/${activeClassId}/cards/${keyLocked}`);
-        const up = await uploadBytes(refLocked, lockedFile);
-        lockedImageURL = await getDownloadURL(up.ref);
-      }
-
-      if (unlockedFile) {
-        const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
-        const refUnlocked = storageRef(storage, `classes/${activeClassId}/cards/${keyUnlocked}`);
-        const up = await uploadBytes(refUnlocked, unlockedFile);
-        unlockedImageURL = await getDownloadURL(up.ref);
-      }
-
-      // fallback: if only one image exists
-      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
-      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
-
-      const nextCategory = (category || prev.category || "points");
-
-      // clean + unique
-      const cleanIds =
-        nextCategory === "points"
-          ? Array.from(new Set((Array.isArray(linkedStreakIds) ? linkedStreakIds : []).filter(Boolean).map(String)))
-          : [];
-
-      await updateDoc(cardRef, {
-        title: (title || "").trim(),
-        description: description || "",
-        points: Number(points) || 0,
-        category: nextCategory,
-
-        // ✅ new source of truth (multi)
-        linkedStreakIds: cleanIds,
-
-        imageURL: unlockedImageURL,
-        lockedImageURL,
-        updatedAt: Date.now(),
-      });
-    } catch (err) {
-      console.error("updateCard error", err);
-      alert("Failed to update card. See console.");
-    }
+    await updateCardService({
+      db,
+      storage,
+      classId: activeClassId,
+      cardId,
+      updates,
+      alertFn: notify,
+    });
   }
 
 
   // --- CLASS STREAK TYPES (per class) ---
-
-  async function addStreakTypeForClass(classId) {
-    if (!classId) {
-      alert("Select a class first");
-      return;
-    }
-
-    // 1) Emoji
-    const emoji = prompt("Emoji for this streak (for example 🔥, 👻, ⭐):");
-    if (!emoji || !emoji.trim()) return;
-
-    // 2) Maximum value
-    const maxStr = prompt("Maximum value for this streak (for example 5):");
-    const max = Number(maxStr || "0");
-    if (!Number.isFinite(max) || max <= 0) {
-      alert("Maximum must be a number greater than 0.");
-      return;
-    }
-
-    // 3) Floating emoji?
-    const floatAns = prompt(
-      "When a student reaches this maximum streak, should this emoji float faintly in their card background? (yes/no)"
-    );
-    const float = !!(floatAns && floatAns.toLowerCase().startsWith("y"));
-
-    // 4) Sticky celebration after reset?
-    const stickyAns = prompt(
-      "If you Reset this streak later, should the celebration (party + floating) keep showing for the rest of the day when max was reached? (yes/no)"
-    );
-    const stickyCelebrate = !!(stickyAns && stickyAns.toLowerCase().startsWith("y"));
-
-    const id = uid("streak");
-    const rewardCardIds = (promptPickRewardCardIds({ defaultIds: [], label: `${emoji} streak` }) ?? []);
-
-    const newCfg = {
-      id,
-      emoji,
-      max,
-      float,
-      stickyCelebrate,
-      rewardCardIds,
-    };
-
-    try {
-      const clsRef = doc(db, `classes/${classId}`);
-
-      // take current streakConfigs from the in-memory classesList
-      const current =
-        classesList.find((c) => c.id === classId)?.streakConfigs || [];
-
-      await updateDoc(clsRef, {
-        streakConfigs: [...current, newCfg],
-      });
-
-      alert("New streak type created for this class.");
-    } catch (err) {
-      console.error(err);
-      alert("Could not create streak type. See console for details.");
-    }
-  }
-
-  function getNewExperienceCards(currentCards, currentXp, allCards) {
-    // 1. Find all cards that are category "experience"
-    const xpCards = allCards.filter(c => c.category === "experience");
-    
-    // 2. Filter for ones we have reached the threshold for (card.points = threshold)
-    const unlocked = xpCards.filter(c => currentXp >= (c.points || 0));
-
-    // 3. Filter out ones the student ALREADY has
-    // We check if the student's owned list contains a card with this source ID
-    const newUnlocks = unlocked.filter(c => 
-      !currentCards.some(owned => owned.cardId === c.id)
-    );
-
-    return newUnlocks;
-  }
-
-  function pushOwnedCard({ cardsArr, cardId, cardData, pointsGranted, streakId }) {
-    cardsArr.push({
-      id: uid("owned"),
-      cardId,
-      title: cardData.title || "",
-      imageURL: cardData.imageURL || "",
-      imageURL2: cardData.imageURL2 || "",
-      grantedAt: new Date().toISOString(),
-      pointsGranted: round2(pointsGranted || 0),
-      autoFrom: { type: "streakMax", streakId },
-    });
-  }
 
   async function getCardDataFast(classId, cardId) {
     const local = (Array.isArray(cards) ? cards : []).find((c) => c.id === cardId);
@@ -640,445 +339,21 @@ export default function App() {
     return { id: cardId, ...snap.data() };
   }
 
-  async function setStickyCelebrateForClass(classId, streakId, stickyCelebrate) {
-    try {
-      const classRef = doc(db, `classes/${classId}`);
-      const snap = await getDoc(classRef);
-      if (!snap.exists()) return;
-
-      const data = snap.data();
-      const list = data.streakConfigs || [];
-
-      const updated = list.map((cfg) =>
-        cfg.id === streakId ? { ...cfg, stickyCelebrate: !!stickyCelebrate } : cfg
-      );
-
-      await updateDoc(classRef, { streakConfigs: updated });
-    } catch (err) {
-      console.error("setStickyCelebrateForClass error", err);
-      alert("Could not update sticky celebration.");
-    }
-  }
-
-  function promptPickRewardCardIds({ defaultIds = [], label = "" } = {}) {
-    // Only points cards make sense as “reward cards” because they add points.
-    const opts = (Array.isArray(cards) ? cards : [])
-      .filter((c) => ((c.category || "points") === "points"))
-      .slice()
-      .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
-
-    if (opts.length === 0) {
-      alert("No POINTS cards found in the library. Create a points card first.");
-      return null; // signal: nothing changed / can’t pick
-    }
-
-    const idToNum = new Map(opts.map((c, i) => [c.id, i + 1]));
-    const currentNums = (defaultIds || []).map((id) => idToNum.get(id)).filter(Boolean);
-    const defaultText = currentNums.length ? currentNums.join(",") : "";
-
-    const list = opts
-      .map((c, i) => `${i + 1}) ${c.title || "(untitled)"} — ${Number(c.points || 0)} pts`)
-      .join("\n");
-
-    const input = prompt(
-      `Reward card(s) when ${label || "this"} streak reaches MAX.\n` +
-        `Choose numbers separated by commas (example: 1,3).\n` +
-        `Leave empty for NONE.\n\n${list}`,
-      defaultText
-    );
-
-    if (input == null) return undefined; // cancel => keep existing
-    const s = String(input).trim();
-    if (!s) return []; // empty => clear
-
-    const parts = s.split(",").map((x) => x.trim()).filter(Boolean);
-
-    const picked = [];
-    for (const p of parts) {
-      // allow selecting by number
-      const n = parseInt(p, 10);
-      if (Number.isFinite(n) && n >= 1 && n <= opts.length) {
-        picked.push(opts[n - 1].id);
-        continue;
-      }
-      // allow pasting cardId directly (optional)
-      const byId = opts.find((c) => c.id === p);
-      if (byId) picked.push(byId.id);
-    }
-
-    return Array.from(new Set(picked));
-  }
-
-  async function setStreakRewardCardsForClass(classId, streakId, cfg) {
-    try {
-      const current = classesList.find((c) => c.id === classId)?.streakConfigs || [];
-      const found = current.find((c) => c.id === streakId) || cfg || null;
-      const existing = Array.isArray(found?.rewardCardIds) ? found.rewardCardIds : [];
-
-      const next = promptPickRewardCardIds({
-        defaultIds: existing,
-        label: found?.emoji ? `${found.emoji} streak` : "this streak",
-      });
-
-      if (next === null) return;        // no points cards exist
-      if (next === undefined) return;   // user cancelled
-
-      const nextConfigs = current.map((c) =>
-        c.id === streakId ? { ...c, rewardCardIds: next } : c
-      );
-
-      await updateDoc(doc(db, `classes/${classId}`), { streakConfigs: nextConfigs });
-    } catch (e) {
-      console.error("setStreakRewardCardsForClass error", e);
-      alert("Could not set reward cards. See console.");
-    }
-  }
-
-  // --- STUDENT STREAKS edit (generic) ---
-  async function changeStudentStreakValue(classId, studentId, streakId, delta, maxValueOrCfg) {
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const data = snap.data();
-
-      const streaks = data.streaks || {};
-      const existingEntry = streaks[streakId] || {};
-      const current = existingEntry.value || 0;
-
-      // Accept either a number maxValue OR the full cfg object
-      const cfg = maxValueOrCfg && typeof maxValueOrCfg === "object" ? maxValueOrCfg : null;
-      const maxValue =
-        typeof maxValueOrCfg === "number"
-          ? maxValueOrCfg
-          : typeof cfg?.max === "number"
-          ? cfg.max
-          : 0;
-
-      let next = current + delta;
-      if (next < 0) next = 0;
-      if (typeof maxValue === "number" && maxValue > 0 && next > maxValue) {
-        next = maxValue;
-      }
-
-      const today = todayISODate();
-      const prevMaxAchievedOn = existingEntry.maxAchievedOn || "";
-
-      const reachedMaxNow = delta > 0 && typeof maxValue === "number" && maxValue > 0 && next === maxValue;
-      const crossedToMax = reachedMaxNow && current < maxValue;
-
-      // Keep existing float windows; add new one only when we CROSS into max
-      let floatWindows = Array.isArray(existingEntry.floatWindows) ? existingEntry.floatWindows : [];
-
-      if (crossedToMax && cfg?.float) {
-        const defaultDelay = 7;
-        const defaultDur = 7;
-
-        const delayStr = prompt(
-          `🎉 ${data.name || "Student"} reached the maximum for ${cfg.emoji || "this"} streak!
-          Floating emoji: how many DAYS after today should it start?
-          (Example: 0 = today, 7 = next week)`,
-          String(defaultDelay)
-        );
-        const durationStr = prompt(
-          `How many DAYS should the floating emoji last? (Example: 7 = one full week)`,
-          String(defaultDur)
-        );
-
-        let delayDays = parseInt((delayStr ?? String(defaultDelay)).trim(), 10);
-        if (!Number.isFinite(delayDays) || delayDays < 0) delayDays = defaultDelay;
-
-        let durationDays = parseInt((durationStr ?? String(defaultDur)).trim(), 10);
-        if (!Number.isFinite(durationDays) || durationDays <= 0) durationDays = defaultDur;
-
-        const start = addDaysISO(today, delayDays);
-        const end = addDaysISO(start, durationDays - 1);
-
-        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
-      } else {
-        // still prune old windows to keep data light
-        floatWindows = normalizeFloatWindows(floatWindows, today);
-      }
-
-      const updatedEntry = {
-        ...existingEntry,
-        value: next,
-        lastUpdated: delta > 0 ? today : (existingEntry.lastUpdated || ""),
-        // If we hit max today (even if we were already at max and pressed +1) -> mark today.
-        // Otherwise keep whatever date was recorded.
-        maxAchievedOn: reachedMaxNow ? today : prevMaxAchievedOn,
-        floatWindows,
-      };
-
-      const updatedStreaks = {
-        ...streaks,
-        [streakId]: updatedEntry,
-      };
-
-      const payload = { streaks: updatedStreaks };
-
-      if (crossedToMax) {
-        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
-        if (rewardIds.length) {
-          const multiplier = typeof data.multiplier === "number" ? data.multiplier : 1;
-          const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
-          let currentPoints = Number(data.currentPoints || 0);
-
-          const dedupe = new Set();
-
-          for (const rewardCardId of rewardIds) {
-            if (!rewardCardId || dedupe.has(rewardCardId)) continue;
-
-            const rewardCard = await getCardDataFast(classId, rewardCardId);
-            if (!rewardCard) continue;
-            if ((rewardCard.category || "points") !== "points") continue;
-
-            const pts = round2(Number(rewardCard.points || 0) * multiplier);
-
-            pushOwnedCard({
-              cardsArr,
-              cardId: rewardCardId,
-              cardData: rewardCard,
-              pointsGranted: pts,
-              streakId,
-            });
-
-            currentPoints = round2(currentPoints + pts);
-            dedupe.add(rewardCardId);
-          }
-
-          payload.cards = cardsArr;
-          payload.currentPoints = currentPoints;
-        }
-      }
-
-      await updateDoc(studentRef, payload);
-      
-      // No setSelectedStudent – snapshot will refresh students list
-    } catch (err) {
-      console.error("changeStudentStreakValue error", err);
-      alert("Could not update streak. See console.");
-    }
-  }
-
-  async function resetStudentStreak(classId, studentId, streakId) {
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const streaks = data.streaks || {};
-
-      const prev = streaks[streakId] || {};
-      const updatedEntry = {
-        value: 0,
-        lastUpdated: "",
-        maxAchievedOn: prev.maxAchievedOn || "",
-        floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
-      };
-
-      const updatedStreaks = {
-        ...streaks,
-        [streakId]: updatedEntry,
-      };
-
-      await updateDoc(studentRef, { streaks: updatedStreaks });
-      // Again, no setSelectedStudent – snapshot will handle UI refresh
-    } catch (err) {
-      console.error("resetStudentStreak error", err);
-      alert("Could not reset streak.");
-    }
-  }
-
-  async function deleteStreakTypeForClass(classId, streakId) {
-    if (
-      !window.confirm(
-        "Delete this streak type for the whole class? This cannot be undone.\n\nThis will also remove it (and any floating windows) from every student."
-      )
-    ) {
-      return;
-    }
-
-    try {
-      // 1) Remove from class config
-      const classRef = doc(db, `classes/${classId}`);
-      const snap = await getDoc(classRef);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const list = data.streakConfigs || [];
-      const updated = list.filter((cfg) => cfg.id !== streakId);
-      await updateDoc(classRef, { streakConfigs: updated });
-
-      // 2) Remove from every student (including floatWindows)
-      const studentsSnap = await getDocs(collection(db, `classes/${classId}/students`));
-      let batch = writeBatch(db);
-      let writes = 0;
-
-      for (const sdoc of studentsSnap.docs) {
-        const sdata = sdoc.data();
-        const streaks = sdata.streaks || {};
-        if (!streaks[streakId]) continue;
-
-        const nextStreaks = { ...streaks };
-        delete nextStreaks[streakId];
-
-        batch.update(sdoc.ref, { streaks: nextStreaks });
-        writes++;
-
-        // Firestore batch limit safety
-        if (writes >= 450) {
-          await batch.commit();
-          batch = writeBatch(db);
-          writes = 0;
-        }
-      }
-      if (writes > 0) await batch.commit();
-    } catch (err) {
-      console.error("deleteStreakTypeForClass error", err);
-      alert("Could not delete streak. See console.");
-    }
-  }
-
-  // Upload and set background image
-  async function uploadBackgroundImage(file) {
-    if (!file) return;
-  
-    try {
-      const safeName = file.name.replace(/\s+/g, "_");
-      const timestamp = Date.now();
-      
-      // DECISION: Are we uploading for a specific class or the global default?
-      let storagePath;
-      let firestoreRef;
-      
-      if (activeClassId) {
-        // 1. Class Specific
-        // We store it in a subfolder so your bucket stays clean
-        storagePath = `classes/${activeClassId}/backgrounds/bg_${timestamp}_${safeName}`;
-        firestoreRef = doc(db, "classes", activeClassId);
-      } else {
-        // 2. Global Default (Your existing logic)
-        storagePath = `backgrounds/bg_${timestamp}_${safeName}`;
-        firestoreRef = doc(db, "config", "background");
-      }
-  
-      // A. Upload the file to Firebase Storage
-      const ref = storageRef(storage, storagePath);
-      const snapshot = await uploadBytes(ref, file);
-      const url = await getDownloadURL(snapshot.ref);
-  
-      // B. Save the URL to the correct Firestore document
-      if (activeClassId) {
-        // Update the CLASS document
-        await updateDoc(firestoreRef, { backgroundUrl: url });
-        alert(`Background updated for ${activeClass.name}!`);
-      } else {
-        // Update the CONFIG document
-        await setDoc(firestoreRef, { url });
-        alert("Global default background updated!");
-      }
-  
-    } catch (err) {
-      console.error("uploadBackgroundImage error:", err);
-      alert("Failed to upload background image.");
-    }
-  }
-
-  // Remove background image (for active class, and set to none)
-  async function clearBackgroundImage() {
-    try {
-      if (activeClassId) {
-        // Remove ONLY the class background (reverting it to the global default)
-        await updateDoc(doc(db, "classes", activeClassId), { 
-          backgroundUrl: "" 
-        });
-        alert(`Removed background for ${activeClass.name}. Now using default.`);
-      } else {
-        // Remove the global background
-        await setDoc(doc(db, "config", "background"), { url: "" });
-        alert("Global background removed!");
-      }
-    } catch (err) {
-      console.error("clearBackgroundImage error:", err);
-      alert("Failed to remove background.");
-    }
-  }
-
-
-  // ----- Student actions -----
-  async function addStudent(name) {
-    if (!ensureClassSelected()) return;
-    if (!name?.trim()) return;
-
-    try {
-      const payload = {
-        name: name.trim(),
-        // profile cosmetics
-        nameEmojis: "",
-        profileColor: "",
-        // points / xp
-        currentPoints: 0,
-        xp: 0,
-        multiplier: 1,
-        streaks: {},
-        // inventory / history
-        cards: [],
-        rewardsHistory: [],
-        createdAt: Date.now(),
-      };
-      await addDoc(collection(db, `classes/${activeClassId}/students`), payload);
-      if (newStudentRef.current) newStudentRef.current.value = "";
-    } catch (err) {
-      console.error(err);
-      alert("Failed to add student.");
-    }
-  }
-
-  async function editStudent(classId, studentId, updates) {
-    try {
-      await updateDoc(
-        doc(db, `classes/${classId}/students/${studentId}`),
-        updates
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Failed saving student changes.");
-    }
-  }
-
-  async function deleteStudent(classId, studentId) {
-    if (!window.confirm("Delete this student?")) return;
-    try {
-      await deleteDoc(doc(db, `classes/${classId}/students/${studentId}`));
-      setSelectedStudentId(null);
-      setProfileStudentId(null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete student.");
-    }
-  }
-
   async function quickAddPoints(classId, studentId, amount) {
-    const rawAmount = Number(amount || 0);
-    if (!Number.isFinite(rawAmount) || rawAmount === 0) return;
-
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      // 1. Get current multiplier
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const sdata = snap.data();
-      const mult = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-
-      // 2. Apply multiplier
-      const effective = round2(rawAmount * mult);
-
-      // 3. Update (using increment for safety, or direct set if you prefer exact calc)
-      await updateDoc(studentRef, { currentPoints: increment(effective) });
-    } catch (err) {
-      console.error("quickAddPoints error", err);
-      alert("Could not add points.");
-    }
+    return runMutation({
+      loadingMessage: "Adding points...",
+      successMessage: "Points added.",
+      errorMessage: "Could not add points.",
+      action: async () => {
+        await quickAddPointsService({
+          db,
+          classId,
+          studentId,
+          amount,
+          alertFn: notify,
+        });
+      },
+    });
   }
 
   // Profile cosmetics (guest allowed if rules permit)
@@ -1087,17 +362,92 @@ export default function App() {
     studentId,
     { nameEmojis, profileColor }
   ) {
-    const safeEmojis = (nameEmojis || "").toString().slice(0, 2);
-    const safeColor = (profileColor || "").toString();
-    try {
-      await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
-        nameEmojis: safeEmojis,
-        profileColor: safeColor,
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Could not save profile. (Check Firestore rules)");
-    }
+    return runMutation({
+      loadingMessage: "Saving profile...",
+      successMessage: "Profile saved.",
+      errorMessage: "Could not save profile. (Check Firestore rules)",
+      action: async () => {
+        const safeEmojis = (nameEmojis || "").toString().slice(0, 2);
+        const safeColor = (profileColor || "").toString();
+        await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
+          nameEmojis: safeEmojis,
+          profileColor: safeColor,
+        });
+      },
+    });
+  }
+
+  // ----- Student requests (card / points, pending professor approval) -----
+  async function createStudentRequest(classId, student, payload) {
+    return runMutation({
+      loadingMessage: "Enviando petición...",
+      successMessage: "Petición enviada.",
+      errorMessage: "No se pudo enviar la petición.",
+      action: async () => {
+        return createRequestService(
+          db,
+          classId,
+          {
+            studentId: student.id,
+            studentName: student.name,
+            className: activeClass?.name || "",
+            ...payload,
+          },
+          notify
+        );
+      },
+    });
+  }
+
+  async function cancelStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Cancelando...",
+      successMessage: "Petición cancelada.",
+      errorMessage: "No se pudo cancelar la petición.",
+      action: async () => cancelRequestService(db, request.classId, request.id, notify),
+    });
+  }
+
+  async function approveStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Aprobando petición...",
+      successMessage: "Petición aprobada.",
+      errorMessage: "No se pudo aprobar la petición.",
+      action: async () => {
+        if (request.type === "points") {
+          await quickAddPointsService({
+            db,
+            classId: request.classId,
+            studentId: request.studentId,
+            amount: request.amount,
+            alertFn: notify,
+          });
+        } else if (request.type === "card") {
+          const classSnap = await getDoc(doc(db, `classes/${request.classId}`));
+          const requestClass = classSnap.exists() ? { id: request.classId, ...classSnap.data() } : null;
+          await giveCardToStudentService({
+            db,
+            classId: request.classId,
+            studentId: request.studentId,
+            cardId: request.cardId,
+            activeClass: requestClass,
+            getCardDataFast,
+            alertFn: notify,
+            scheduleFn: requestFloatSchedule,
+          });
+        }
+        await resolveRequestApproved(db, request.classId, request.id, notify);
+      },
+    });
+  }
+
+  async function rejectStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Rechazando...",
+      successMessage: "Petición rechazada.",
+      errorMessage: "No se pudo rechazar la petición.",
+      action: async () => rejectRequestService(db, request.classId, request.id, notify),
+    });
   }
 
   // ----- Cards: locked + unlocked -----
@@ -1111,511 +461,80 @@ export default function App() {
     unlockedFile,
   }) {
     if (!ensureClassSelected()) return;
-    if (!title?.trim()) {
-      alert("Card title required");
-      return;
-    }
 
-    try {
-      const baseKey = uid("card");
-      let lockedImageURL = "";
-      let unlockedImageURL = "";
-
-      if (lockedFile) {
-        const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(
-          /\s+/g,
-          "_"
-        )}`;
-        const refLocked = storageRef(
+    return runMutation({
+      loadingMessage: "Saving card...",
+      successMessage: "Card saved.",
+      errorMessage: "Could not save card.",
+      action: async () => {
+        await createCardService({
+          db,
           storage,
-          `classes/${activeClassId}/cards/${keyLocked}`
-        );
-        const snapLocked = await uploadBytes(refLocked, lockedFile);
-        lockedImageURL = await getDownloadURL(snapLocked.ref);
-      }
-
-      if (unlockedFile) {
-        const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(
-          /\s+/g,
-          "_"
-        )}`;
-        const refUnlocked = storageRef(
-          storage,
-          `classes/${activeClassId}/cards/${keyUnlocked}`
-        );
-        const snapUnlocked = await uploadBytes(refUnlocked, unlockedFile);
-        unlockedImageURL = await getDownloadURL(snapUnlocked.ref);
-      }
-
-      // fallback: if only one image provided
-      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
-      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
-
-      const cleanLinked = Array.isArray(linkedStreakIds)
-        ? linkedStreakIds.filter(Boolean)
-        : [];
-      
-      const payload = {
-        title: title.trim(),
-        description: description || "",
-        points: Number(points) || 0,
-        category: category || "points",
-        linkedStreakIds: category === "points" ? cleanLinked : [],
-        // unlocked in imageURL, locked in lockedImageURL
-        imageURL: unlockedImageURL,
-        lockedImageURL,
-        createdAt: Date.now(),
-      };
-
-      await addDoc(collection(db, `classes/${activeClassId}/cards`), payload);
-
-      // clear file inputs
-      if (lockedFileInputRef.current) lockedFileInputRef.current.value = "";
-      if (unlockedFileInputRef.current) unlockedFileInputRef.current.value = "";
-    } catch (err) {
-      console.error("createCard err:", err);
-      alert("Failed to add card. Check Storage permissions or console.");
-    }
+          classId: activeClassId,
+          title,
+          description,
+          points,
+          category,
+          linkedStreakIds,
+          lockedFile,
+          unlockedFile,
+          lockedFileInputRef,
+          unlockedFileInputRef,
+          alertFn: notify,
+        });
+      },
+    });
   }
 
   async function deleteCard(cardId) {
-    if (!window.confirm("Delete this library card?")) return;
-    try {
-      await deleteDoc(doc(db, `classes/${activeClassId}/cards/${cardId}`));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete card.");
-    }
-  }
-  
-
-  // Cards given increment linked streak automatically (if needed)
-  function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}) {
-    const today = todayISODate();
-    const ids = Array.isArray(idsOrId)
-      ? idsOrId.filter(Boolean)
-      : (idsOrId ? [idsOrId] : []);
-
-    if (ids.length === 0) return null;
-
-    const streaks = { ...(sdata.streaks || {}) };
-    let changed = false;
-
-    const allowPrompts = opts.allowPrompts !== false; // default true
-    const studentName = opts.studentName || sdata.name || "Student";
-    const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
-
-    const crossedMaxIds = [];
-
-    const defaultDelay = Number.isFinite(opts.defaultDelayDays) ? opts.defaultDelayDays : 7;
-    const defaultDur = Number.isFinite(opts.defaultDurationDays) ? opts.defaultDurationDays : 7;
-
-    for (const id of ids) {
-      const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
-
-      // already increased today -> do nothing
-      if ((prev.lastUpdated || "") === today) continue;
-
-      const cfg = (activeClass?.streakConfigs || []).find((c) => c.id === id) || null;
-      const max = typeof cfg?.max === "number" ? cfg.max : 0;
-
-      let nextVal = (prev.value || 0) + 1;
-      if (max > 0 && nextVal > max) nextVal = max;
-
-      const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
-      if (crossedToMax) crossedMaxIds.push(id);
-
-      // keep/prune existing windows
-      let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
-      floatWindows = normalizeFloatWindows(floatWindows, today);
-
-      // If we just reached max AND this streak is configured for floating:
-      if (crossedToMax && cfg?.float) {
-        let delayDays = defaultDelay;
-        let durationDays = defaultDur;
-
-        if (allowPrompts) {
-          const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
-
-          const input = prompt(
-            `🎉 Max reached for ${studentName}${progress}!\n\n` +
-              `${streakLabel}: floating emoji schedule\n` +
-              `Type: delay,duration\n` +
-              `Examples:\n` +
-              `  0,7   (start today, 7 days)\n` +
-              `  7,14  (start in 7 days, 14 days)\n` +
-              `  start=3 duration=10\n`,
-            `${defaultDelay},${defaultDur}`
-          );
-
-          const parsed = parseFloatScheduleInput(input, {
-            delayDays: defaultDelay,
-            durationDays: defaultDur,
-          });
-
-          delayDays = parsed.delayDays;
-          durationDays = parsed.durationDays;
-        }
-
-        const start = addDaysISO(today, delayDays);
-        const end = addDaysISO(start, durationDays - 1);
-        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
-      }
-
-      streaks[id] = {
-        ...prev,
-        value: nextVal,
-        lastUpdated: today,
-        maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
-        floatWindows,
-      };
-
-      changed = true;
-    }
-
-    return { nextStreaks: changed ? streaks : null, crossedMaxIds };
-  }
-
-  function incrementStreaksNoFloatWindows(sdata, ids, streakConfigs) {
-    const today = todayISODate();
-    const streaks = { ...(sdata.streaks || {}) };
-    let changed = false;
-
-    const crossedFloatIds = [];
-    const crossedMaxIds = [];
-
-    for (const id of (Array.isArray(ids) ? ids.filter(Boolean) : [])) {
-      const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
-
-      // already increased today -> do nothing
-      if ((prev.lastUpdated || "") === today) continue;
-
-      const cfg = (streakConfigs || []).find((c) => c.id === id) || null;
-      const max = typeof cfg?.max === "number" ? cfg.max : 0;
-
-      let nextVal = (prev.value || 0) + 1;
-      if (max > 0 && nextVal > max) nextVal = max;
-
-      const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
-
-      // prune old windows but do NOT add new ones yet
-      let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
-      floatWindows = normalizeFloatWindows(floatWindows, today);
-
-      if (crossedToMax) crossedMaxIds.push(id);
-      if (crossedToMax && cfg?.float) crossedFloatIds.push(id);
-
-      streaks[id] = {
-        ...prev,
-        value: nextVal,
-        lastUpdated: today,
-        maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
-        floatWindows,
-      };
-
-      changed = true;
-    }
-
-    return { nextStreaks: changed ? streaks : null, crossedFloatIds, crossedMaxIds };
+    return runMutation({
+      loadingMessage: "Deleting card...",
+      successMessage: "Card deleted.",
+      errorMessage: "Could not delete card.",
+      confirmMessage: "Delete this card?",
+      action: async () => {
+        await deleteCardService({
+          db,
+          classId: activeClassId,
+          cardId,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
+    });
   }
 
   // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
   async function giveCardToStudent(classId, studentId, cardId) {
     try {
-      const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
-      if (!cardSnap.exists()) return alert("Card not found");
-      const cardData = cardSnap.data();
-
-      const category = cardData.category || "points";
-      if (category === "rewards") return; // not eligible to give directly
-
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const studentSnap = await getDoc(studentRef);
-      if (!studentSnap.exists()) return alert("Student not found");
-      const sdata = studentSnap.data();
-
-      const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-
-      // Only points-cards give base points. Experience cards are purely cosmetic.
-      let basePoints = 0;
-      if (category === "points") {
-        basePoints = Number(cardData.points || 0);
-      }
-
-      const effectivePoints = round2(basePoints * multiplier);
-
-      const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
-      cardsArr.push({
-        id: uid("owned"),
+      await giveCardToStudentService({
+        db,
+        classId,
+        studentId,
         cardId,
-        title: cardData.title,
-        imageURL: cardData.imageURL || "",
-        grantedAt: new Date().toISOString(),
-        pointsGranted: effectivePoints,
+        activeClass,
+        getCardDataFast,
+        alertFn: notify,
+        scheduleFn: requestFloatSchedule,
       });
-
-      const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
-
-      const linkedIds =
-        category === "points"
-          ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
-          : [];
-
-      const res = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
-        allowPrompts: true,
-        studentName: sdata.name || "",
-      });
-
-      const nextStreaks = res?.nextStreaks || null;
-      const crossedMaxIds = Array.isArray(res?.crossedMaxIds) ? res.crossedMaxIds : [];
-
-      // ✅ Auto-give rewards for streaks that just hit MAX
-      if (crossedMaxIds.length) {
-        const streakConfigs = activeClass?.streakConfigs || [];
-        const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-
-        const givenRewardCardIds = new Set(); // prevent duplicates in the same click
-
-        for (const streakId of crossedMaxIds) {
-          const cfg = streakConfigs.find((c) => c.id === streakId);
-          const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
-          for (const rewardCardId of rewardIds) {
-            if (!rewardCardId || givenRewardCardIds.has(rewardCardId)) continue;
-
-            const rewardCard = await getCardDataFast(classId, rewardCardId);
-            if (!rewardCard) continue;
-
-            if ((rewardCard.category || "points") !== "points") continue; // only points cards add points
-
-            const base = Number(rewardCard.points || 0);
-            const pts = round2(base * multiplier);
-
-            pushOwnedCard({
-              cardsArr,
-              cardId: rewardCardId,
-              cardData: rewardCard,
-              pointsGranted: pts,
-              streakId,
-            });
-
-            currentPoints = round2(currentPoints + pts);
-            givenRewardCardIds.add(rewardCardId);
-          }
-        }
-      }
-
-      const payload = { cards: cardsArr, currentPoints };
-      if (nextStreaks) payload.streaks = nextStreaks;
-
-      await updateDoc(studentRef, payload);
-
-      // no success alert on purpose
     } catch (err) {
-      console.error(err);
-      alert("Failed to give card.");
+      // already reported to the user via alertFn inside the service
     }
   }
-
 
   // Bulk give: give ONE library card to MANY students (points are multiplied by each student's multiplier).
   // Uses per-student reads to keep it correct even if points/cards changed elsewhere.
   async function giveCardToStudentsBulk(classId, cardId, studentIds) {
-    if (!classId) return;
-    if (!Array.isArray(studentIds) || studentIds.length === 0) return;
-
-    const floatHitsByStreak = new Map(); // for scheduling float windows
-    const maxHitsByStreak = new Map();   // for rewards (reached MAX even if float disabled)
-
-    try {
-      const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
-      if (!cardSnap.exists()) return alert("Card not found");
-      const cardData = cardSnap.data();
-
-      const category = cardData.category || "points";
-      if (category === "rewards") return alert("Rewards cards can't be given directly.");
-
-      const basePoints = category === "points" ? Number(cardData.points || 0) : 0;
-      const linkedIds =
-        category === "points" ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : []) : [];
-
-      const streakConfigs = activeClass?.streakConfigs || [];
-      const today = todayISODate();
-
-      // Phase 1: read + prepare updates, collect "who hit max" per streak
-      const pending = []; // { studentRef, cardsArr, currentPoints, nextStreaks }
-      const maxHitsByStreak = new Map(); // streakId -> array of { idx, name }
-
-      for (let i = 0; i < studentIds.length; i++) {
-        const studentId = studentIds[i];
-        const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-        const studentSnap = await getDoc(studentRef);
-        if (!studentSnap.exists()) continue;
-        const sdata = studentSnap.data();
-
-        const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-        const effectivePoints = round2(basePoints * multiplier);
-
-        const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
-        cardsArr.push({
-          id: uid("owned"),
-          cardId,
-          title: cardData.title,
-          imageURL: cardData.imageURL || "",
-          grantedAt: new Date().toISOString(),
-          pointsGranted: effectivePoints,
-        });
-
-        const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
-
-        let nextStreaks = null;
-        let crossedFloatIds = [];
-        let crossedMaxIds = [];
-
-        if (linkedIds.length > 0) {
-          const res = incrementStreaksNoFloatWindows(sdata, linkedIds, streakConfigs);
-          nextStreaks = res.nextStreaks;
-          crossedFloatIds = res.crossedFloatIds;
-          crossedMaxIds = Array.isArray(res.crossedMaxIds) ? res.crossedMaxIds : [];
-        }
-
-        const idx = pending.length;
-        pending.push({
-          studentRef,
-          studentName: sdata.name || studentId,
-          multiplier,
-          cardsArr,
-          currentPoints,
-          nextStreaks,
-        });
-
-        for (const streakId of crossedFloatIds) {
-          if (!floatHitsByStreak.has(streakId)) floatHitsByStreak.set(streakId, []);
-          floatHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
-        }
-
-        for (const streakId of crossedMaxIds) {
-          if (!maxHitsByStreak.has(streakId)) maxHitsByStreak.set(streakId, []);
-          maxHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
-        }
-      }
-
-      // Phase 2: ONE prompt per streak that had max hits, then apply to all those students
-      const defaultDelay = 7;
-      const defaultDur = 7;
-
-      for (const [streakId, hits] of maxHitsByStreak.entries()) {
-        const cfg = streakConfigs.find((c) => c.id === streakId) || null;
-        const emoji = cfg?.emoji || "⭐";
-
-        const names = hits.map((h) => h.name);
-        const preview = names.slice(0, 12).join(", ");
-        const more = names.length > 12 ? ` (+${names.length - 12} more)` : "";
-
-        const input = prompt(
-          `🎉 Bulk give: ${emoji} streak reached MAX today by ${names.length} students:\n` +
-            `${preview}${more}\n\n` +
-            `Floating emoji schedule (applies to ALL above students for this streak)\n` +
-            `Type: delay,duration  (examples: 0,7  or  7,14  or  start=3 duration=10)`,
-          `${defaultDelay},${defaultDur}`
-        );
-
-        const { delayDays, durationDays } = parseFloatScheduleInput(input, {
-          delayDays: defaultDelay,
-          durationDays: defaultDur,
-        });
-
-        const start = addDaysISO(today, delayDays);
-        const end = addDaysISO(start, durationDays - 1);
-
-        for (const h of hits) {
-          const item = pending[h.idx];
-          if (!item?.nextStreaks) continue;
-
-          const prevEntry = item.nextStreaks[streakId] || { value: 0, lastUpdated: today, maxAchievedOn: today, floatWindows: [] };
-          let floatWindows = Array.isArray(prevEntry.floatWindows) ? prevEntry.floatWindows : [];
-          floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
-
-          item.nextStreaks = {
-            ...item.nextStreaks,
-            [streakId]: { ...prevEntry, floatWindows },
-          };
-        }
-      }
-
-      // Phase 2B: award reward cards for everyone who reached MAX (per streak)
-      const rewardCache = new Map(); // cardId -> cardData
-
-      for (const [streakId, hits] of maxHitsByStreak.entries()) {
-        const cfg = streakConfigs.find((c) => c.id === streakId) || null;
-        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
-        if (rewardIds.length === 0) continue;
-
-        for (const rewardCardId of rewardIds) {
-          if (!rewardCardId) continue;
-
-          if (!rewardCache.has(rewardCardId)) {
-            const cd = await getCardDataFast(classId, rewardCardId);
-            rewardCache.set(rewardCardId, cd || null);
-          }
-        }
-
-        for (const h of hits) {
-          const item = pending[h.idx];
-          if (!item) continue;
-
-          item._rewardDone = item._rewardDone || new Set(); // per-student dedupe during this bulk click
-
-          for (const rewardCardId of rewardIds) {
-            if (!rewardCardId || item._rewardDone.has(rewardCardId)) continue;
-
-            const rewardCard = rewardCache.get(rewardCardId);
-            if (!rewardCard) continue;
-            if ((rewardCard.category || "points") !== "points") continue;
-
-            const base = Number(rewardCard.points || 0);
-            const mult = typeof item.multiplier === "number" ? item.multiplier : 1;
-            const pts = round2(base * mult);
-
-            pushOwnedCard({
-              cardsArr: item.cardsArr,
-              cardId: rewardCardId,
-              cardData: rewardCard,
-              pointsGranted: pts,
-              streakId,
-            });
-
-            item.currentPoints = round2(item.currentPoints + pts);
-            item._rewardDone.add(rewardCardId);
-          }
-        }
-      }
-
-      // Phase 3: write updates in Firestore batches
-      let batch = writeBatch(db);
-      let writes = 0;
-      let given = 0;
-
-      for (const item of pending) {
-        const payload = { cards: item.cardsArr, currentPoints: item.currentPoints };
-        if (item.nextStreaks) payload.streaks = item.nextStreaks;
-
-        batch.update(item.studentRef, payload);
-        writes += 1;
-        given += 1;
-
-        if (writes >= 450) {
-          await batch.commit();
-          batch = writeBatch(db);
-          writes = 0;
-        }
-      }
-
-      if (writes > 0) await batch.commit();
-      alert(`Card given to ${given} student${given === 1 ? "" : "s"}.`);
-    } catch (err) {
-      console.error("giveCardToStudentsBulk error", err);
-      alert("Failed to give card to students. See console.");
-    }
+    await giveCardToStudentsBulkService({
+      db,
+      classId,
+      cardId,
+      studentIds,
+      activeClass,
+      getCardDataFast,
+      alertFn: notify,
+      scheduleFn: requestFloatSchedule,
+    });
   }
 
   function openBulkGive(card) {
@@ -1635,431 +554,118 @@ export default function App() {
   
   // Owned cards removal (bulk) - ONE updateDoc
   async function removeOwnedCardsBulk(classId, studentId, ownedIds) {
-    if (!ownedIds?.length) return;
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const snap = await getDoc(studentRef);
-      if (!snap.exists()) return;
-      const sdata = snap.data();
-      const nextCards = (sdata.cards || []).filter((c) => !ownedIds.includes(c.id));
-      await updateDoc(studentRef, { cards: nextCards });
-    } catch (err) {
-      console.error(err);
-      alert("Failed to remove cards.");
-    }
+    await removeOwnedCardsBulkService({
+      db,
+      classId,
+      studentId,
+      ownedIds,
+      alertFn: notify,
+    });
   }
 
   // ----- Rewards -----
   async function createReward({ title, cost, linkedCardId }) {
     if (!ensureClassSelected()) return;
-    if (!title?.trim()) return;
-    try {
-      const payload = {
-        title: title.trim(),
-        cost: Number(cost || 0),
-        cardId: linkedCardId || null,
-        createdAt: Date.now(),
-      };
-      await addDoc(collection(db, `classes/${activeClassId}/rewards`), payload);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to create reward.");
-    }
+    return runMutation({
+      loadingMessage: "Saving reward...",
+      successMessage: "Reward saved.",
+      errorMessage: "Could not save reward.",
+      action: async () => {
+        await createRewardService({
+          db,
+          classId: activeClassId,
+          title,
+          cost,
+          linkedCardId,
+          alertFn: notify,
+        });
+      },
+    });
   }
 
   async function deleteReward(rewardId) {
-    if (!window.confirm("Delete this reward?")) return;
-    try {
-      await deleteDoc(doc(db, `classes/${activeClassId}/rewards/${rewardId}`));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete reward.");
-    }
-  }
-
-  // ✅ Auto-unlock EXPERIENCE cards when XP reaches the card's "points" threshold
-  function unlockExperienceCards({ allCards, cardsArr, xpAfter, nowISO }) {
-    const library = Array.isArray(allCards) ? allCards : [];
-    if (library.length === 0) return cardsArr; // safety: if cards not loaded yet, do nothing
-
-    const ownedCardIds = new Set(
-      (Array.isArray(cardsArr) ? cardsArr : [])
-        .map((o) => o?.cardId)
-        .filter(Boolean)
-    );
-
-    // Experience cards: category === "experience"
-    const eligible = library
-      .filter((c) => (c.category || "points") === "experience")
-      .filter((c) => Number(c.points ?? 0) >= 0) // allow 0+ thresholds
-      .filter((c) => (Number(xpAfter) || 0) >= Number(c.points ?? 0))
-      .filter((c) => c?.id && !ownedCardIds.has(c.id))
-      .sort((a, b) => Number(a.points ?? 0) - Number(b.points ?? 0));
-
-    if (eligible.length === 0) return cardsArr;
-
-    const next = [...(Array.isArray(cardsArr) ? cardsArr : [])];
-
-    for (const c of eligible) {
-      next.push({
-        id: uid("owned"),
-        cardId: c.id,
-        title: c.title || "",
-        imageURL: c.imageURL || "",
-        grantedAt: nowISO,
-        pointsGranted: 0, // purely cosmetic
-        autoFrom: { type: "xpUnlock", xpRequired: Number(c.points ?? 0), xpAt: Number(xpAfter) || 0 },
-      });
-    }
-
-    return next;
-  }
-
-  // Redeem: individual
-  async function redeemIndividual(classId, studentId, rewardId) {
-    if (!classId || !studentId || !rewardId) return;
-    const r = rewards.find((x) => x.id === rewardId);
-    if (!r) return alert("Reward not found");
-
-    const cost = Number(r.cost || 0);
-    const s = students.find((x) => x.id === studentId);
-    if (!s) return;
-
-    if ((s.currentPoints || 0) < cost) {
-      return alert("Not enough points!");
-    }
-
-    if (!window.confirm(`Redeem "${r.title}" for ${cost} points?`)) return;
-
-    try {
-      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
-      const now = new Date().toISOString();
-
-      // 1. Calculate new XP (Points Spent -> XP)
-      const oldXp = Number(s.xp || 0);
-      const newXp = oldXp + cost;
-
-      // 2. Create history entry
-      const historyEntry = {
-        id: uid("rh"),
-        rewardId,
-        title: r.title,
-        cost: cost,
-        date: now,
-        type: "individual",
-      };
-
-      // 3. Handle Cards (Reward Card + Potential XP Cards)
-      let newCards = [...(s.cards || [])];
-
-      // A) Reward Card (if the reward itself is a card)
-      if (r.cardId) {
-        const linkedCard = cards.find((c) => c.id === r.cardId);
-        if (linkedCard) {
-          pushOwnedCard({
-            cardsArr: newCards,
-            cardId: r.cardId,
-            cardData: linkedCard,
-            pointsGranted: 0,
-            streakId: "reward",
-          });
-        }
-      }
-
-      // B) XP Unlock Check (The fix!)
-      const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
-      unlockedXpCards.forEach(c => {
-        pushOwnedCard({
-          cardsArr: newCards,
-          cardId: c.id,
-          cardData: c,
-          pointsGranted: 0, // Experience cards usually don't give points themselves, they are the prize
-          streakId: "xp_unlock",
-        });
-      });
-
-      // 4. Update Database
-      await updateDoc(studentRef, {
-        currentPoints: increment(-cost),
-        xp: newXp, // Save the new XP
-        rewardsHistory: [ ...(s.rewardsHistory || []), historyEntry ],
-        cards: newCards,
-      });
-
-      if (unlockedXpCards.length > 0) {
-        alert(`🎉 Level Up! Unlocked ${unlockedXpCards.length} new Experience Card(s)!`);
-      }
-
-    } catch (err) {
-      console.error(err);
-      alert("Failed to redeem.");
-    }
-  }
-
-  // Redeem: group (shares sum must equal cost). Applies to all participants: subtract share, add XP share, add history entry, grant linked card.
-  async function redeemGroup(classId, rewardId, participants) {
-    if (!participants || participants.length === 0) return;
-    const r = rewards.find((x) => x.id === rewardId);
-    if (!r) return;
-
-    if (!window.confirm(`Redeem "${r.title}" for group?`)) return;
-
-    try {
-      const batch = writeBatch(db);
-      const now = new Date().toISOString();
-
-      // Create list of names for history
-      const contributors = participants.map(([sid, share]) => {
-        const sName = students.find(s => s.id === sid)?.name || "Unknown";
-        return { name: sName, cost: Number(share) };
-      });
-
-      let anyoneLeveledUp = false;
-
-      for (const [sid, share] of participants) {
-        const st = students.find((s) => s.id === sid);
-        if (!st) continue;
-
-        const studentRef = doc(db, `classes/${classId}/students/${sid}`);
-        const costNum = Number(share);
-
-        // 1. Calculate new XP (Points Spent -> XP)
-        const oldXp = Number(st.xp || 0);
-        const newXp = oldXp + costNum;
-
-        const historyEntry = {
-          id: uid("rh"), // Make sure you have the uid() helper or use Math.random
+    return runMutation({
+      loadingMessage: "Deleting reward...",
+      successMessage: "Reward deleted.",
+      errorMessage: "Could not delete reward.",
+      confirmMessage: "Delete this reward?",
+      action: async () => {
+        await deleteRewardService({
+          db,
+          classId: activeClassId,
           rewardId,
-          title: r.title,
-          cost: costNum,
-          date: now,
-          type: "group",
-          contributors: contributors,
-        };
-
-        let newCards = [...(st.cards || [])];
-
-        // A) Reward Card (if exists)
-        if (r.cardId) {
-          const linkedCard = cards.find((c) => c.id === r.cardId);
-          if (linkedCard) {
-            pushOwnedCard({
-              cardsArr: newCards,
-              cardId: r.cardId,
-              cardData: linkedCard,
-              pointsGranted: 0,
-              streakId: "reward_group",
-            });
-          }
-        }
-
-        // B) Check for Level Ups (Experience Cards)
-        const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
-        if (unlockedXpCards.length > 0) anyoneLeveledUp = true;
-        
-        unlockedXpCards.forEach(c => {
-          pushOwnedCard({
-            cardsArr: newCards,
-            cardId: c.id,
-            cardData: c,
-            pointsGranted: 0,
-            streakId: "xp_unlock",
-          });
+          alertFn: notify,
+          confirmFn: askConfirmation,
         });
-
-        // Update Arrays manually for batch
-        const nextHistory = [ ...(st.rewardsHistory || []), historyEntry ];
-        
-        batch.update(studentRef, {
-          currentPoints: increment(-costNum),
-          xp: increment(costNum), // ADD XP because they spent points
-          rewardsHistory: nextHistory,
-          cards: newCards,
-        });
-      }
-
-      await batch.commit();
-      
-      if (anyoneLeveledUp) {
-        alert("🎉 Some students leveled up and unlocked Experience Cards!");
-      }
-
-      return true;
-
-    } catch (err) {
-      console.error(err);
-      alert("Failed group redeem.");
-    }
+      },
+    });
   }
 
-  // --- NEW STYLES ---
-  const loginStyles = {
-    container: {
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("https://firebasestorage.googleapis.com/v0/b/pokematicos.firebasestorage.app/o/backgrounds%2FBackground%20panoramic.jpg?alt=media&token=33b4b912-6e8f-4bf4-8b67-94e250310150")',
-      backgroundSize: "cover",     
-      backgroundPosition: "center", 
-      backgroundRepeat: "no-repeat",
-      fontFamily: "'Inter', sans-serif",
-      padding: 20,
-    },
-    card: {
-      background: "white",
-      padding: "40px",
-      borderRadius: "16px",
-      boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-      width: "100%",
-      maxWidth: "400px",
-      textAlign: "center",
-    },
-    title: {
-      margin: "0 0 10px 0",
-      color: "#333",
-      fontSize: "2rem",
-      fontWeight: "800",
-    },
-    subtitle: {
-      color: "#666",
-      marginBottom: "30px",
-      fontSize: "0.95rem",
-    },
-    studentBtn: {
-      width: "100%",
-      padding: "16px",
-      fontSize: "1.1rem",
-      fontWeight: "600",
-      color: "white",
-      background: "#10B981", // Bright Green
-      border: "none",
-      borderRadius: "12px",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      marginBottom: "16px",
-      boxShadow: "0 4px 6px rgba(16, 185, 129, 0.3)",
-      transition: "transform 0.1s",
-    },
-    teacherBtn: {
-      width: "100%",
-      padding: "12px",
-      fontSize: "0.95rem",
-      color: "#555",
-      background: "#f3f4f6",
-      border: "1px solid #e5e7eb",
-      borderRadius: "12px",
-      cursor: "pointer",
-      fontWeight: "500",
-    },
-    input: {
-      width: "100%",
-      padding: "12px",
-      marginBottom: "12px",
-      borderRadius: "8px",
-      border: "1px solid #ddd",
-      fontSize: "1rem",
-      boxSizing: "border-box", 
-    }
-  };
+  async function redeemIndividual(classId, studentId, rewardId) {
+    return runMutation({
+      loadingMessage: "Redeeming reward...",
+      successMessage: "Reward redeemed.",
+      errorMessage: "Could not redeem reward.",
+      action: async () => {
+        await redeemIndividualService({
+          db,
+          classId,
+          studentId,
+          rewardId,
+          rewards,
+          students,
+          cards,
+          alertFn: (data) => {
+            if (typeof data === "object" && data !== null && data.cards) {
+              notifyLevelUp(data);
+            } else {
+              notify(data);
+            }
+          },
+          confirmFn: askConfirmation,
+        });
+      },
+    });
+  }
+
+  async function redeemGroup(classId, rewardId, participants) {
+    return runMutation({
+      loadingMessage: "Redeeming group reward...",
+      successMessage: "Group reward redeemed.",
+      errorMessage: "Could not redeem group reward.",
+      confirmMessage: "Redeem this reward for the selected group?",
+      action: async () => {
+        await redeemGroupService({
+          db,
+          classId,
+          rewardId,
+          participants,
+          rewards,
+          students,
+          cards,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
+    });
+  }
 
   // ----- IMPROVED LOGIN SCREEN -----
   if (!mode) {
-    return (
-      <div style={loginStyles.container}>
-        <div style={loginStyles.card}>
-          <h1 style={loginStyles.title}>CBA Card System</h1>
-
-          {/* 1. LOADING SPINNER (If Auth isn't ready) */}
-          {(!authChecked || checkingAdmin) ? (
-             <div style={{ color: "#666", padding: 20 }}>Cargando...</div>
-          ) : !showAdminForm ? (
-            
-            // 2. CHOICE SCREEN (Student vs Teacher)
-            <>
-              <p style={loginStyles.subtitle}>Selecciona cómo quieres entrar</p>
-              
-              <button 
-                style={loginStyles.studentBtn}
-                onClick={enterReader}
-                onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.02)"}
-                onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
-              >
-                🎒 Soy Alumno (Invitado)
-              </button>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0", opacity: 0.5 }}>
-                <div style={{ height: 1, background: "#ccc", flex: 1 }}></div>
-                <span style={{ fontSize: 12 }}>O</span>
-                <div style={{ height: 1, background: "#ccc", flex: 1 }}></div>
-              </div>
-
-              <button 
-                style={loginStyles.teacherBtn}
-                onClick={() => setShowAdminForm(true)}
-              >
-                👨‍🏫 Soy Profe (Admin)
-              </button>
-            </>
-
-          ) : (
-            
-            // 3. ADMIN LOGIN FORM (Only visible after clicking "Soy Profe")
-            <>
-              <p style={loginStyles.subtitle}>Acceso para profesores</p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  loginAdminEmailPassword();
-                }}
-              >
-                <input
-                  style={loginStyles.input}
-                  type="email"
-                  placeholder="Email"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                  autoFocus
-                />
-                <input
-                  style={loginStyles.input}
-                  type="password"
-                  placeholder="Password"
-                  value={adminPass}
-                  onChange={(e) => setAdminPass(e.target.value)}
-                />
-                
-                {adminError && (
-                  <div style={{ color: "crimson", fontSize: "0.9rem", marginBottom: 12 }}>
-                    {adminError}
-                  </div>
-                )}
-
-                <button 
-                  type="submit" 
-                  style={{ ...loginStyles.studentBtn, background: "#4F46E5", boxShadow: "0 4px 6px rgba(79, 70, 229, 0.3)" }}
-                >
-                  Entrar
-                </button>
-              </form>
-
-              <button
-                style={{ background: "none", border: "none", color: "#666", cursor: "pointer", textDecoration: "underline", marginTop: 10 }}
-                onClick={() => {
-                  setShowAdminForm(false); // Go back to choice screen
-                  setAdminError("");
-                }}
-              >
-                ← Volver atrás
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
+    return <LoginScreen
+      authChecked={authChecked}
+      checkingAdmin={checkingAdmin}
+      showAdminForm={showAdminForm}
+      setShowAdminForm={setShowAdminForm}
+      adminEmail={adminEmail}
+      setAdminEmail={setAdminEmail}
+      adminPass={adminPass}
+      setAdminPass={setAdminPass}
+      adminError={adminError}
+      setAdminError={setAdminError}
+      enterReader={enterReader}
+      loginAdminEmailPassword={loginAdminEmailPassword}
+    />;
   }
 
   const filteredStudents = (() => {
@@ -2072,35 +678,6 @@ export default function App() {
     (sum, s) => sum + Number(s.currentPoints || 0),
     0
   );
-
-  const onRedeemConfirm = async () => { // <--- Note the "async" keyword here
-    if (!selectedClass || !rewardToRedeem) return;
-
-    if (redeemType === "individual") {
-      if (!selectedStudentId) return alert("No student selected");
-      
-      // Call Individual
-      await redeemIndividual(selectedClass.id, selectedStudentId, rewardToRedeem.id);
-      
-      // Close Modal
-      setRewardToRedeem(null);
-      
-    } else {
-      // Group: Convert Map to Array
-      const participantArray = Object.entries(redemptionMap).filter(([_, cost]) => Number(cost) > 0);
-      
-      if (participantArray.length === 0) return alert("No participants contributing!");
-      
-      // Call Group
-      const success = await redeemGroup(selectedClass.id, rewardToRedeem.id, participantArray);
-      
-      // Close Modal (ONLY if success)
-      if (success) {
-        setRewardToRedeem(null);
-        setRedeemType("individual"); // Reset type back to default
-      }
-    }
-  };
 
   return (
     <div
@@ -2135,7 +712,7 @@ export default function App() {
         {/* Visual cue for the admin */}
         <div style={{ marginBottom: 5, fontSize: "0.8rem", opacity: 0.7 }}>
           {activeClassId 
-            ? `Editing Background for: ${activeClass.name}` 
+            ? `Editing Background for: ${activeClass?.name || "selected class"}` 
             : "Editing Global Background"}
         </div>
   
@@ -2320,6 +897,11 @@ export default function App() {
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {mode === "admin" && (
+            <button className="btn" onClick={() => setShowRequestsPanel(true)}>
+              Peticiones{pendingCount > 0 ? ` (${pendingCount})` : ""}
+            </button>
+          )}
           {authUser ? (
             <button className="btn" onClick={logout}>
               Cerrar sesión
@@ -2338,703 +920,106 @@ export default function App() {
 
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 360px", gap: 14 }}>
         {/* LEFT: Classes */}
-        <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-          <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Classes</span></h3>
-
-          {loadingClasses ? (
-            <div className="muted">Loading classes...</div>
-          ) : classesList.length ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {classesList.map((c) => (
-                <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <button
-                    className="btn"
-                    style={{
-                      flex: 1,
-                      textAlign: "left",
-                      background: c.id === activeClassId ? "#eef" : "white",
-                    }}
-                    onClick={() => setActiveClassId((prev) => (prev === c.id ? null : c.id))}
-                  >
-                    {c.name}
-                  </button>
-
-                  {mode === "admin" && (
-                    <>
-                      <button className="btn" onClick={() => editClassName(c.id)}>
-                        Edit
-                      </button>
-                      <button className="btn" onClick={() => removeClass(c.id)}>
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="muted">No classes yet</div>
-          )}
-
-          {mode === "admin" && (
-            <div style={{ marginTop: 16 }}>
-              <h4 style={{ margin: "10px 0" }}>Add class</h4>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input className="input"
-                  ref={newClassNameRef}
-                  placeholder="Class name"
-                  style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
-                />
-                <button
-                  className="btn primary"
-                  onClick={() => {
-                    const name = newClassNameRef.current?.value?.trim();
-                    if (!name) return alert("Enter class name");
-                    createClass(name);
-                    if (newClassNameRef.current) newClassNameRef.current.value = "";
-                  }}
-                >
-                  Create
-                </button>
-              </div>
-            </div>
-          )}
-        </aside>
+        <ClassesPanel
+          loadingClasses={loadingClasses}
+          classesList={classesList}
+          activeClassId={activeClassId}
+          setActiveClassId={setActiveClassId}
+          mode={mode}
+          db={db}
+          newClassNameRef={newClassNameRef}
+          confirmFn={askConfirmation}
+          alertFn={notify}
+          onRenameClass={async (classId, currentName) => {
+            const nextName = await requestClassRename(currentName);
+            if (typeof nextName === "string" && nextName.trim()) {
+              await editClassName(db, classId, nextName.trim(), notify);
+            }
+          }}
+          onEndActivity={async (classId, className) => {
+            const archiveUrl = await requestClassArchiveUrl(className);
+            if (typeof archiveUrl === "string" && archiveUrl.trim()) {
+              await endClassActivity(db, classId, archiveUrl, notify);
+            }
+          }}
+        />
 
         {/* Only show these if a class is selected */}
-        {activeClassId && (
+        {activeClassId && activeClass?.archivedUrl ? (
+          <section className="ended-class-panel" aria-labelledby="ended-class-title">
+            <div className="ended-class-icon" aria-hidden="true">✦</div>
+            <p className="ended-class-eyebrow">Class archive</p>
+            <h2 id="ended-class-title">This class has ended</h2>
+            <p>The activity is over, but the memories are still here.</p>
+            <a className="btn primary ended-class-link" href={activeClass.archivedUrl} target="_blank" rel="noreferrer">
+              Open class archive
+            </a>
+          </section>
+        ) : activeClassId && (
           <>
-            {/* MIDDLE: Students */}
-            <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <h3 style={{ margin: 0 }}><span className="column-title-pill"> {activeClass?.name || "Select a class"} </span></h3>
-                  {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
-                </div>
+            <StudentsPanel
+              activeClass={activeClass}
+              activeClassId={activeClassId}
+              classTotalPoints={classTotalPoints}
+              filteredStudents={filteredStudents}
+              loadingStudents={loadingStudents}
+              mode={mode}
+              studentFilter={studentFilter}
+              setStudentFilter={setStudentFilter}
+              onAddStreak={() => setShowBulkStreaks(true)}
+              onManageStudent={setSelectedStudentId}
+              onProfileStudent={setProfileStudentId}
+              onChangeStudentStreak={(classId, studentId, streakId, delta, cfg) =>
+                changeStudentStreakValue({
+                  db,
+                  classId,
+                  studentId,
+                  streakId,
+                  delta,
+                  maxValueOrCfg: cfg,
+                  scheduleFn: requestFloatSchedule,
+                  alertFn: notify,
+                  getCardDataFast,
+                })
+              }
+              onQuickAddPoints={quickAddPoints}
+              onPreviewCard={setCardPreview}
+              onAddStudent={() => {
+                const name = newStudentRef.current?.value?.trim();
+                if (!name) return notify("Enter name");
+                addStudent(db, activeClassId, name, ensureClassSelected, newStudentRef, notify);
+                if (newStudentRef.current) newStudentRef.current.value = "";
+              }}
+              newStudentRef={newStudentRef}
+            />
 
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {mode === "admin" && activeClassId && (
-                    <button className="btn" onClick={() => addStreakTypeForClass(activeClassId)}>New streak</button>
-                  )}
-
-                  <input
-                    placeholder="Filter students..."
-                    value={studentFilter}
-                    onChange={(e) => setStudentFilter(e.target.value)}
-                    style={{
-                      padding: 8,
-                      fontSize: 13,
-                      borderRadius: 8,
-                      border: "1px solid #ddd",
-                      minWidth: 170,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginTop: 12 }}>
-                {!activeClassId ? (
-                  <div className="muted">Select a class first.</div>
-                ) : loadingStudents ? (
-                  <div className="muted">Loading students...</div>
-                ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-                    {filteredStudents.map((s) => {
-                      const bg = s.profileColor || "white";
-                      const displayName = `${s.name}${s.nameEmojis ? " " + s.nameEmojis : ""}`;
-
-                      // --- FLOATING + PARTY LOGIC (CLEAN) ---
-                      const cfgs = activeClass?.streakConfigs || [];
-                      const today = todayISODate();
-
-                      const isCelebratingToday = (cfg, stObj) => {
-                        const hitToday = (stObj?.maxAchievedOn || "") === today;
-                        if (!hitToday) return false;
-
-                        // Sticky = keep effects even after Reset (for the rest of the day)
-                        if (cfg.stickyCelebrate) return true;
-
-                        // Not sticky = only show while value is still at max
-                        return (stObj?.value || 0) >= (cfg.max || 0);
-                      };
-
-                      // Party (emoji shower)
-                      const partyStreaks = cfgs.filter((cfg) => {
-                        const stObj =
-                          (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
-                        return isCelebratingToday(cfg, stObj);
-                      });
-
-                      // Floating (earned per-student windows)
-                      const floatingEmojis = cfgs.filter((cfg) => {
-                        if (!cfg.float) return false;
-                        const stObj =
-                          (s.streaks && s.streaks[cfg.id]) || { value: 0, maxAchievedOn: "", floatWindows: [] };
-                        return isTodayInFloatWindows(today, stObj.floatWindows);
-                      });
-
-                      // --- END FLOATING + PARTY LOGIC ---
-
-                      return (
-                        <div
-                          key={s.id}
-                          style={{
-                            border: "1px solid #ddd",
-                            padding: 10,
-                            borderRadius: 10,
-                            background: bg,
-                            position: "relative",   
-                            overflow: "hidden",
-                          }}
-                        >
-
-                          {/* FLOATING EMOJIS */}
-                          {floatingEmojis.map((cfg) => (
-                            <div key={cfg.id} className="floating-emoji">
-                              <div className="floating-emoji-glow">
-                                {cfg.emoji}
-                              </div>
-                            </div>
-                          ))}
-
-                          {/* ✅ EMOJI PARTY (when max is achieved today) */}
-                          {partyStreaks.map((cfg) => (
-                            <EmojiParty
-                              key={`party_${s.id}_${cfg.id}_${today}`}
-                              emoji={cfg.emoji}
-                              seedKey={`${s.id}_${cfg.id}_${today}`}
-                              count={22}
-                            />
-                          ))}
-
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                            <div>
-                              <div style={{ fontWeight: 800 }}>{displayName}</div>
-
-                              {/* Visible for guests too */}
-                              <div className="muted" style={{ lineHeight: 1.35 }}>
-                                <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
-                                  {activeClass?.streakConfigs && activeClass.streakConfigs.length > 0 ? (
-                                    activeClass.streakConfigs.map((cfg) => {
-                                      const stObj =
-                                        (s.streaks && s.streaks[cfg.id]) || { value: 0, lastUpdated: "" };
-                                      let emojiLine = "";
-                                      if (stObj.value > 0) {
-                                        // active streak
-                                        emojiLine = (cfg.emoji || "").repeat(stObj.value);
-                                      } else {
-                                        // zero streak → crossed out emoji
-                                        emojiLine = (
-                                          <span style={{ textDecoration: "line-through", opacity: 0.5 }}>
-                                            {cfg.emoji}
-                                          </span>
-                                        );
-                                      }
-                                      const date = stObj.lastUpdated || "";
-                                      const isToday = date && date === todayISODate();
-                                      return (
-                                        <div
-                                          key={cfg.id}
-                                          style={{ display: "flex", alignItems: "center", gap: 8 }}
-                                        >
-                                          <div style={{ flex: 1 }}>
-                                            {emojiLine}
-                                            {date && (
-                                              <span
-                                                style={{
-                                                  marginLeft: 4,
-                                                  color: isToday ? "#16a34a" : "#dc2626",
-                                                  fontWeight: 600,
-                                                }}
-                                              >
-                                                {date}
-                                              </span>
-                                            )}
-                                          </div>
-
-                                          {/* ✅ Tiny quick +1, +5, +10 (ADMIN ONLY) */}
-                                          {mode === "admin" && (
-                                            <button
-                                              className="btn"
-                                              style={{
-                                                padding: "4px 8px",
-                                                fontSize: 12,
-                                                lineHeight: "12px",
-                                                borderRadius: 10,
-                                              }}
-                                              title="Add +1 to this streak"
-                                              onClick={() =>
-                                                changeStudentStreakValue(activeClassId, s.id, cfg.id, +1, cfg)
-                                              }
-                                            >
-                                              +1
-                                            </button>
-
-                                            
-                                          )}
-                                        </div>
-                                      );
-                                    })
-                                  ) : (
-                                    <span className="muted">No streaks defined for this class.</span>
-                                  )}
-                                </div>
-
-                                {s.multiplier && s.multiplier !== 1 && (
-                                  <div>
-                                    <span className="muted">Multiplier:</span>
-                                    <strong> x{s.multiplier}</strong>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div style={{ textAlign: "right" }}>
-                              <div style={{ fontWeight: 800 }}>{s.currentPoints || 0} pts</div>
-                              <div className="muted">XP: {s.xp || 0}</div>
-                            </div>
-                          </div>
-
-                          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", }}>
-                            {mode === "admin" && (
-                              <button className="btn" onClick={() => setSelectedStudentId(s.id)}>
-                                Manage
-                              </button>
-                            )}
-
-                            <button className="btn" onClick={() => setProfileStudentId(s.id)}>
-                              Perfil
-                            </button>
-
-                            {mode === "admin" && (
-                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                <span className="pill">Points</span>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 1)}>
-                                  +1
-                                </button>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 5)}>
-                                  +5
-                                </button>
-                                <button className="btn" style={{ padding: "6px 10px" }} onClick={() => quickAddPoints(activeClassId, s.id, 10)}>
-                                  +10
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          <div style={{ marginTop: 10 }}>
-                            <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
-
-                            {/* Scroll container so you can see all cards */}
-                            <div
-                              style={{
-                                marginTop: 8,
-                                maxHeight: 150,
-                                overflowY: "auto",
-                                paddingRight: 6,
-                                display: "flex",
-                                gap: 8,
-                                flexWrap: "wrap",
-                                alignContent: "flex-start",
-                              }}
-                            >
-                              {(() => {
-                                const groups = new Map();
-                                (s.cards || []).forEach((o) => {
-                                  const key = o.cardId || "unknown";
-                                  if (!groups.has(key)) {
-                                    groups.set(key, {
-                                      title: o.title || "—",
-                                      imageURL: o.imageURL || "",
-                                      count: 0,
-                                    });
-                                  }
-                                  groups.get(key).count += 1;
-                                });
-
-                                const arr = Array.from(groups.entries()).map(([cardId, g]) => ({
-                                  cardId,
-                                  ...g,
-                                }));
-
-                                const ownedUniqueList = arr.map((x) => ({
-                                  title: x.title,
-                                  imageURL: x.imageURL,
-                                }));
-
-                                return arr.map((g, idx) => (
-                                  <div
-                                    key={g.cardId}
-                                    className="card-thumb"
-                                    style={{
-                                      width: 80,
-                                      height: 110,
-                                      border: "1px solid #eee",
-                                      borderRadius: 10,
-                                      overflow: "hidden",
-                                      cursor: "pointer",
-                                      position: "relative",
-                                      background: "white",
-                                    }}
-                                    onClick={() =>
-                                      setCardPreview({
-                                        ownedList: ownedUniqueList,
-                                        ownedIndex: idx,
-                                        isLibraryCard: false,
-                                      })
-                                    }
-                                  >
-                                    {g.imageURL ? (
-                                      <img
-                                        src={g.imageURL}
-                                        alt={g.title}
-                                        style={{
-                                          width: "100%",
-                                          height: "100%",
-                                          objectFit: "cover",
-                                        }}
-                                      />
-                                    ) : (
-                                      <div style={{ padding: 6, fontSize: 11 }}>{g.title}</div>
-                                    )}
-
-                                    {g.count > 1 && (
-                                      <div
-                                        style={{
-                                          position: "absolute",
-                                          top: 6,
-                                          right: 6,
-                                          background: "rgba(0,0,0,0.75)",
-                                          color: "white",
-                                          borderRadius: 999,
-                                          padding: "2px 7px",
-                                          fontSize: 11,
-                                          fontWeight: 900,
-                                        }}
-                                      >
-                                        ×{g.count}
-                                      </div>
-                                    )}
-                                  </div>
-                                ));
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {mode === "admin" && (
-                      <div style={{ border: "1px dashed #ccc", padding: 12, borderRadius: 10 }}>
-                        <h4 style={{ marginTop: 0 }}>Add student</h4>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input
-                            ref={newStudentRef}
-                            placeholder="Student name"
-                            style={{
-                              flex: 1,
-                              padding: 8,
-                              borderRadius: 8,
-                              border: "1px solid #ddd",
-                            }}
-                          />
-                          <button
-                            className="btn primary"
-                            onClick={() => {
-                              const name = newStudentRef.current?.value?.trim();
-                              if (!name) return alert("Enter name");
-                              addStudent(name);
-                              if (newStudentRef.current) newStudentRef.current.value = "";
-                            }}
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </main>
-
-            {/* RIGHT: Library */}
-            <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-              <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Library</span></h3>
-              {!activeClassId ? (
-                <div className="muted">Select a class first</div>
-              ) : (
-                <>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
-                      gap: 6,
-                      margin: "8px 0 12px",
-                    }}
-                  >
-                    <button className="btn" onClick={() => setLibraryTab("points")} style={{ width: "100%", background: libraryTab === "points" ? "#def" : "white" }}>
-                      Points
-                    </button>
-                    <button className="btn" onClick={() => setLibraryTab("rewards")} style={{ width: "100%", background: libraryTab === "rewards" ? "#def" : "white" }}>
-                      Rewards
-                    </button>
-                    <button className="btn" onClick={() => setLibraryTab("experience")} style={{ width: "100%", background: libraryTab === "experience" ? "#def" : "white" }}>
-                      Experience
-                    </button>
-                    <button className="btn" onClick={() => setLibraryTab("extra")}  style={{ width: "100%", background: libraryTab === "extra" ? "#def" : "white" }}>
-                      Extra
-                    </button>
-                  </div>
-
-                  {mode === "admin" && (
-                    <div style={{ border: "1px dashed #ddd", padding: 10, borderRadius: 10, marginBottom: 12 }}>
-                      <h4 style={{ marginTop: 0 }}>Create new card</h4>
-                      <CardCreateForm
-                        onCreate={createCard}
-                        lockedInputRef={lockedFileInputRef}
-                        unlockedInputRef={unlockedFileInputRef}
-                        streakConfigs={activeClass?.streakConfigs || []}
-                      />
-                    </div>
-                  )}
-
-                  <div style={{ maxHeight: 560, overflow: "auto" }}>
-                    {libraryTab !== "rewards" ? (
-                      <div style={{ display: "grid" }}>
-                        {loadingCards ? (
-                          <div className="muted">Loading cards...</div>
-                        ) : (
-                          cards
-                            .filter((c) => (c.category || "points") === libraryTab)
-                            .map((c) => (
-                              <LibraryCardRow
-                                key={c.id}
-                                c={c}
-                                mode={mode}
-                                onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
-                                onGive={() => openBulkGive(c)}
-                                onEdit={() => setEditCard(c)}
-                                onDelete={() => deleteCard(c.id)}
-                              />
-                            ))
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {/* Reward cards (library) */}
-                        <div>
-                          {loadingCards ? (
-                            <div className="muted">Loading cards...</div>
-                          ) : (
-                            cards
-                              .filter((c) => (c.category || "points") === "rewards")
-                              .map((c) => (
-                                <LibraryCardRow
-                                  key={c.id}
-                                  c={c}
-                                  mode={mode}
-                                  onPreview={() => setCardPreview({ ...c, imageURL: c.lockedImageURL || c.imageURL, isLibraryCard: true })}
-                                  onGive={() => openBulkGive(c)}
-                                  onEdit={() => setEditCard(c)}
-                                  onDelete={() => deleteCard(c.id)}
-                                />
-                              ))
-                          )}
-                        </div>
-
-                        {/* Shop items */}
-                        <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
-                          {loadingRewards ? (
-                            <div className="muted">Loading rewards...</div>
-                          ) : (
-                            rewards.map((r) => {
-                              const cardMeta = cards.find((c) => c.id === r.cardId) || null;
-                              return (
-                                <div key={r.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa", marginBottom: 10 }}>
-                                  <div style={{ fontWeight: 900 }}>{r.title}</div>
-                                  <div className="muted">
-                                    Cost: <span className="pill">{r.cost} pts</span>{" "}
-                                    • Linked card: <span className="pill">{cardMeta ? cardMeta.title : "—"}</span>
-                                  </div>
-                                  {mode === "admin" && (
-                                    <div style={{ marginTop: 8 }}>
-                                      <button className="btn" onClick={() => deleteReward(r.id)}>
-                                        Delete reward
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })
-                          )}
-
-                          {mode === "admin" && (
-                            <div style={{ borderTop: "1px dashed #eee", paddingTop: 10, marginTop: 10 }}>
-                              <RewardCreateForm cards={cards} onCreate={createReward} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </aside>
+            <LibrarySection
+              mode={mode}
+              cards={cards}
+              rewards={rewards}
+              loadingCards={loadingCards}
+              loadingRewards={loadingRewards}
+              streakConfigs={activeClass?.streakConfigs || []}
+              lockedInputRef={lockedFileInputRef}
+              unlockedInputRef={unlockedFileInputRef}
+              onCreateCard={createCard}
+              onPreviewCard={setCardPreview}
+              onOpenBulkGive={openBulkGive}
+              onEditCard={setEditCard}
+              onDeleteCard={deleteCard}
+              onCreateReward={createReward}
+              onDeleteReward={deleteReward}
+              onValidationError={notify}
+            />
           </>
         )}
       </div>
 
-      {/* Card preview modal */}
-      {cardPreview && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setCardPreview(null)}
-        >
-          {/* If it comes from the library (locked card) -> show full info modal */}
-          {cardPreview.isLibraryCard ? (
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <div
-                  style={{
-                    width: 360,
-                    maxWidth: "100%",
-                    height: 500,
-                    maxHeight: "70vh",
-                    background: "#f6f6f6",
-                    borderRadius: 8,
-                    overflow: "hidden",
-                  }}
-                >
-                  {cardPreview.imageURL ? (
-                    <img
-                      src={cardPreview.imageURL}
-                      alt={cardPreview.title}
-                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                    />
-                  ) : (
-                    <div style={{ padding: 12 }}>{cardPreview.title}</div>
-                  )}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 220 }}>
-                  <h3 style={{ marginTop: 0 }}>{cardPreview.title}</h3>
-                  <div className="muted">{cardPreview.description}</div>
-                  <div style={{ marginTop: 8, fontWeight: 700 }}>
-                    {cardPreview.points || 0} pts
-                  </div>
-
-                  <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button className="btn" onClick={() => setCardPreview(null)}>
-                      Close
-                    </button>
-                    
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            (() => {
-              /* Owned card (unlocked) -> image only */
-              const ownedList = cardPreview.ownedList || null;
-              const ownedIndex = Number.isFinite(cardPreview.ownedIndex) ? cardPreview.ownedIndex : 0;
-              const currentOwned = ownedList ? ownedList[ownedIndex] : cardPreview;
-
-              return (
-                <div
-                 className="ownedCardModal"
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    maxWidth: "min(85vw, 720px)",
-                    width: "85vw",
-                    height: "min(70vh, 520px)",
-                    maxHeight: "70vh",
-                    borderRadius: 16,
-                    overflow: "hidden",
-                    background: "transparent",
-                    position: "relative",
-                    boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {currentOwned?.imageURL ? (
-                    <>
-                      <img
-                        src={currentOwned?.imageURL}
-                        alt=""
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          display: "block",
-                        }}
-                      />
-
-                      {/* Left button */}
-                      <button
-                        type="button"
-                        className="cardNavBtn cardNavLeft"
-                        disabled={!ownedList || ownedIndex <= 0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          ownedNav(-1);
-                        }}
-                        aria-label="Previous card"
-                      >
-                        <span className="cardNavIcon" aria-hidden="true">‹</span>
-                      </button>
-
-                      {/* Right button */}
-                      <button
-                        type="button"
-                        className="cardNavBtn cardNavRight"
-                        disabled={!ownedList || ownedIndex >= ownedList.length - 1}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          ownedNav(+1);
-                        }}
-                        aria-label="Next card"
-                      >
-                        <span className="cardNavIcon" aria-hidden="true">›</span>
-                      </button>
-
-                      {/* Counter (1 / N) */}
-                      {ownedList && ownedList.length > 0 && (
-                        <div className="cardNavCounter">
-                          {ownedIndex + 1} / {ownedList.length}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ padding: 16, color: "white", textAlign: "center" }}>
-                      {cardPreview.title || "Card"}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => setCardPreview(null)}
-                    style={{
-                      position: "absolute",
-                      top: 8,
-                      right: 8,
-                      borderRadius: "999px",
-                      border: "none",
-                      padding: "4px 8px",
-                      fontSize: 14,
-                      cursor: "pointer",
-                      background: "rgba(0,0,0,0.6)",
-                      color: "white",
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              );
-            })()
-          )}
-        </div>
-      )}
+      <CardPreviewModal
+        cardPreview={cardPreview}
+        onClose={() => setCardPreview(null)}
+        onNavigate={ownedNav}
+      />
 
       {/* Card edit modal */}
       {mode === "admin" && editCard && (
@@ -3049,8 +1034,87 @@ export default function App() {
         />
       )}
 
+      {/* PIN gate before opening a student's profile (guests only) */}
+      {profileStudent && profileNeedsPin && (
+        <PinGateModal
+          student={profileStudent}
+          onClose={() => setProfileStudentId(null)}
+          onSubmit={(pin) => {
+            if (verifyPin(profileStudent, pin)) {
+              setUnlockedProfileIds((prev) => new Set(prev).add(profileStudent.id));
+            } else {
+              notify("PIN incorrecto.");
+            }
+          }}
+        />
+      )}
+
+      {/* Bulk streak management (admin only, active class) */}
+      {mode === "admin" && showBulkStreaks && activeClassId && (
+        <BulkStreakModal
+          className={activeClass?.name || ""}
+          students={students}
+          streakConfigs={activeClass?.streakConfigs || []}
+          onClose={() => setShowBulkStreaks(false)}
+          onBulkChange={(cfg, delta, selectedIds) =>
+            runAction({
+              action: () =>
+                bulkChangeStreakValue({
+                  db,
+                  classId: activeClassId,
+                  studentIds: selectedIds,
+                  streakId: cfg.id,
+                  delta,
+                  cfg,
+                  scheduleFn: requestFloatSchedule,
+                  alertFn: notify,
+                  getCardDataFast,
+                }),
+              message: "Updating streaks...",
+              confirmMessage: `${delta > 0 ? "Add +1" : "Subtract -1"} to the ${cfg.emoji || ""} streak for ${selectedIds.length} student(s)?`,
+              errorMessage: "Could not update streaks.",
+            })
+          }
+          onBulkReset={(cfg, selectedIds) =>
+            runAction({
+              action: () =>
+                bulkResetStreak({
+                  db,
+                  classId: activeClassId,
+                  studentIds: selectedIds,
+                  streakId: cfg.id,
+                  alertFn: notify,
+                }),
+              message: "Resetting streaks...",
+              confirmMessage: `Reset the ${cfg.emoji || ""} streak to 0 for ${selectedIds.length} student(s)? This cannot be undone.`,
+              errorMessage: "Could not reset streaks.",
+            })
+          }
+          onCreateStreakType={() =>
+            addStreakTypeForClass({
+              db,
+              classId: activeClassId,
+              classesList,
+              cards,
+              formFn: requestStreakForm,
+              alertFn: notify,
+            })
+          }
+        />
+      )}
+
+      {/* Requests panel (admin only, global across classes) */}
+      {mode === "admin" && showRequestsPanel && (
+        <RequestsPanel
+          pendingRequests={pendingRequests}
+          onApprove={approveStudentRequest}
+          onReject={rejectStudentRequest}
+          onClose={() => setShowRequestsPanel(false)}
+        />
+      )}
+
       {/* Profile modal */}
-      {profileStudent && (
+      {profileStudent && !profileNeedsPin && (
         <ProfileModal
           mode={mode}
           student={profileStudent}
@@ -3059,6 +1123,19 @@ export default function App() {
           onSave={(cosmetics) =>
             saveStudentProfileCosmetics(activeClassId, profileStudent.id, cosmetics)
           }
+          onChangePin={(currentPin, newPin) =>
+            changePin(db, activeClassId, profileStudent.id, profileStudent, currentPin, newPin, notify)
+          }
+          onValidationError={notify}
+          giveableCards={giveableCardsForProfile}
+          allCards={cards}
+          rewards={rewards}
+          onRedeemReward={(rewardId) =>
+            redeemIndividual(activeClassId, profileStudent.id, rewardId)
+          }
+          myPendingRequests={myPendingRequests}
+          onCreateRequest={(payload) => createStudentRequest(activeClassId, profileStudent, payload)}
+          onCancelRequest={(request) => cancelStudentRequest(request)}
         />
       )}
 
@@ -3071,18 +1148,66 @@ export default function App() {
           cards={cards}
           rewards={rewards}
           streakConfigs={activeClass?.streakConfigs || []}
-          changeStudentStreakValue={changeStudentStreakValue}
-          resetStudentStreak={resetStudentStreak}
-          deleteStreakTypeForClass={deleteStreakTypeForClass}
-          setStickyCelebrateForClass={setStickyCelebrateForClass}
-          setStreakRewardCardsForClass={setStreakRewardCardsForClass}
+          changeStudentStreakValue={(classId, studentId, streakId, delta, cfg) =>
+            changeStudentStreakValue({
+              db,
+              classId,
+              studentId,
+              streakId,
+              delta,
+              maxValueOrCfg: cfg,
+              scheduleFn: requestFloatSchedule,
+              alertFn: notify,
+              getCardDataFast,
+            })
+          }
+          resetStudentStreak={(classId, studentId, streakId) =>
+            resetStudentStreak({ db, classId, studentId, streakId, alertFn: notify })
+          }
+          deleteStreakTypeForClass={(classId, streakId) =>
+            deleteStreakTypeForClass({ db, classId, streakId, alertFn: notify, confirmFn: askConfirmation })
+          }
+          setStickyCelebrateForClass={async (classId, streakId, stickyCelebrate) => {
+            try {
+              const classRef = doc(db, `classes/${classId}`);
+              const snap = await getDoc(classRef);
+              if (!snap.exists()) return;
+              const data = snap.data();
+              const list = data.streakConfigs || [];
+              const updated = list.map((cfg) =>
+                cfg.id === streakId ? { ...cfg, stickyCelebrate: !!stickyCelebrate } : cfg
+              );
+              await updateDoc(classRef, { streakConfigs: updated });
+            } catch (err) {
+              console.error("setStickyCelebrateForClass error", err);
+              notify("Could not update sticky celebration.");
+            }
+          }}
+          setStreakRewardCardsForClass={(classId, streakId, cfg) =>
+            setStreakRewardCardsForClass({
+              db,
+              classId,
+              classesList,
+              cards,
+              rewardCardPickerFn: requestRewardCardSelection,
+              alertFn: notify,
+              streakId,
+              cfg,
+            })
+          }
           mode={mode}
-          onEditStudent={(updates) => editStudent(activeClassId, selectedStudent.id, updates)}
+          onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates, notify)}
           onClose={() => setSelectedStudentId(null)}
-          onDeleteStudent={() => deleteStudent(activeClassId, selectedStudent.id)}
+          onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId, askConfirmation, notify)}
+          onResetPin={async () => {
+            if (!(await askConfirmation(`Reset PIN for ${selectedStudent.name} to 0000?`))) return;
+            const ok = await resetPin(db, activeClassId, selectedStudent.id, notify);
+            if (ok) notify("PIN reset to 0000.");
+          }}
           onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
           onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
           onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
+          confirmFn={askConfirmation}
           onRedeemIndividual={(rewardId) => {
             // Pass classId, studentId, rewardId
             redeemIndividual(activeClassId, selectedStudentId, rewardId);
@@ -3099,72 +1224,110 @@ export default function App() {
         />
       )}
 
-      {/* Bulk give modal */}
-      {bulkGiveCard && (
-        <div className="modal-backdrop" onClick={() => setBulkGiveCard(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0 }}>Give card</h3>
-            <div style={{ fontWeight: 900, marginTop: 6 }}>{bulkGiveCard.title}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              Select students to receive this card. Points will be multiplied by each student's multiplier.
-            </div>
+      <BulkGiveModal
+        card={bulkGiveCard}
+        students={students}
+        selectedStudentIds={bulkGiveSelectedIds}
+        onClose={() => setBulkGiveCard(null)}
+        onToggleStudent={toggleBulkGiveStudent}
+        onToggleSelectAll={toggleBulkGiveSelectAll}
+        onGive={async () => {
+          await giveCardToStudentsBulk(activeClassId, bulkGiveCard.id, bulkGiveSelectedIds);
+          setBulkGiveCard(null);
+        }}
+      />
 
-            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button className="btn" onClick={toggleBulkGiveSelectAll}>
-                {bulkGiveSelectedIds.length === students.length ? "Deselect all" : "Select all"}
-              </button>
-              <div className="muted">{bulkGiveSelectedIds.length} selected</div>
-            </div>
+      <FeedbackDialog
+        notice={notice}
+        levelUpNotice={levelUpNotice}
+        confirmation={confirmation}
+        pendingAction={pendingAction}
+        onDismissNotice={() => notify(null)}
+        onDismissLevelUp={() => notifyLevelUp(null)}
+        onResolveConfirmation={resolveConfirmation}
+      />
 
-            <div
-              style={{
-                marginTop: 12,
-                maxHeight: 320,
-                overflow: "auto",
-                border: "1px solid #eee",
-                borderRadius: 12,
-                padding: 10,
-                background: "#fff",
+      <StreakFormModal
+        request={streakFormRequest}
+        cards={cards}
+        onClose={() => resolveStreakForm(null)}
+        onSave={resolveStreakForm}
+      />
+
+      <RewardCardPickerModal
+        request={rewardPickerRequest}
+        cards={cards}
+        onClose={() => resolveRewardCardSelection(undefined)}
+        onSave={resolveRewardCardSelection}
+      />
+
+      <FloatScheduleModal
+        request={scheduleRequest}
+        onClose={() => resolveFloatSchedule(null)}
+        onSave={resolveFloatSchedule}
+      />
+
+      {classRenameRequest && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="rename-class-title">
+            <h3 id="rename-class-title" style={{ marginTop: 0 }}>Rename class</h3>
+            <input
+              className="input"
+              defaultValue={classRenameRequest.currentName}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const nextValue = e.currentTarget.value;
+                  resolveClassRename(nextValue);
+                }
               }}
-            >
-              {students.map((s) => (
-                <label
-                  key={s.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "8px 6px",
-                    borderBottom: "1px solid #f2f2f2",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={bulkGiveSelectedIds.includes(s.id)}
-                    onChange={() => toggleBulkGiveStudent(s.id)}
-                  />
-                  <span style={{ fontWeight: 800 }}>{s.name}</span>
-                  <span className="muted" style={{ marginLeft: "auto" }}>
-                    x{typeof s.multiplier === "number" ? s.multiplier : 1}
-                  </span>
-                </label>
-              ))}
-              {students.length === 0 && <div className="muted">No students in this class yet.</div>}
-            </div>
-
-            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="btn" onClick={() => setBulkGiveCard(null)}>
+            />
+            <div className="feedback-dialog-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn" onClick={() => resolveClassRename(null)}>
                 Cancel
               </button>
               <button
+                type="button"
                 className="btn primary"
-                disabled={bulkGiveSelectedIds.length === 0}
-                onClick={async () => {
-                  await giveCardToStudentsBulk(activeClassId, bulkGiveCard.id, bulkGiveSelectedIds);
-                  setBulkGiveCard(null);
+                onClick={(e) => {
+                  const input = e.currentTarget.parentElement?.previousElementSibling;
+                  resolveClassRename(input?.value ?? "");
                 }}
               >
-                Give to selected
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {classArchiveRequest && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="archive-class-title">
+            <h3 id="archive-class-title" style={{ marginTop: 0 }}>End class activity</h3>
+            <p className="muted">Enter the complete archive URL, including <strong>https://</strong>. Leaving it empty cancels the action.</p>
+            <input
+              className="input"
+              type="url"
+              placeholder="https://example.com/archive"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") resolveClassArchiveUrl(e.currentTarget.value);
+              }}
+            />
+            <div className="feedback-dialog-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn" onClick={() => resolveClassArchiveUrl(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={(e) => {
+                  const input = e.currentTarget.parentElement?.previousElementSibling;
+                  resolveClassArchiveUrl(input?.value ?? "");
+                }}
+              >
+                End activity
               </button>
             </div>
           </div>
