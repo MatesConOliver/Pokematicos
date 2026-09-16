@@ -41,6 +41,17 @@ export async function editClassName(db, classId, newName, alertFn = null) {
   }
 }
 
+export async function endClassActivity(db, classId, archivedUrl, alertFn = null) {
+  const safeUrl = (archivedUrl || "").trim();
+  if (!classId || !safeUrl) return;
+  try {
+    await updateDoc(doc(db, `classes/${classId}`), { archivedUrl: safeUrl });
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Could not end class activity.");
+  }
+}
+
 /**
  * Delete a class
  * @param {Object} db - Firestore database instance

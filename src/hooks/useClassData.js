@@ -40,10 +40,14 @@ export default function useClassData({ db, activeClassId }) {
   }, []);
 
   useEffect(() => {
-    if (!activeClassId) {
+    const activeClass = classesList.find((item) => item.id === activeClassId);
+    if (!activeClassId || activeClass?.archivedUrl) {
       setStudents([]);
       setCards([]);
       setRewards([]);
+      setLoadingStudents(false);
+      setLoadingCards(false);
+      setLoadingRewards(false);
       return;
     }
 
@@ -102,7 +106,7 @@ export default function useClassData({ db, activeClassId }) {
       unsubCards();
       unsubRewards();
     };
-  }, [activeClassId]);
+  }, [activeClassId, classesList]);
 
   return {
     classesList,

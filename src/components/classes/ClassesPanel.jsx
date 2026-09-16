@@ -12,6 +12,7 @@ export default function ClassesPanel({
   confirmFn,
   alertFn,
   onRenameClass,
+  onEndActivity,
 }) {
   return (
     <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
@@ -47,6 +48,9 @@ export default function ClassesPanel({
                     onClick={() => removeClass(db, c.id, activeClassId, setActiveClassId, confirmFn)}
                   >
                     Delete
+                  </button>
+                  <button className="btn" onClick={() => onEndActivity?.(c.id, c.name)}>
+                    End activity
                   </button>
                 </>
               )}
