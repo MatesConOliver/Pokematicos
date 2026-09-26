@@ -52,6 +52,7 @@ import {
   giveCardToStudentsBulk as giveCardToStudentsBulkService,
 } from "./services/cardService";
 import { safeLower, round2, PASTEL_COLORS } from "./utils/helpers";
+import { editClassName, endClassActivity } from "./services/classService";
 import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
 import useAuthMode from "./hooks/useAuthMode";
@@ -118,6 +119,7 @@ export default function App() {
   const [rewardPickerRequest, setRewardPickerRequest] = useState(null);
   const [scheduleRequest, setScheduleRequest] = useState(null);
   const [classRenameRequest, setClassRenameRequest] = useState(null);
+  const [classArchiveRequest, setClassArchiveRequest] = useState(null);
   const {
     notice,
     levelUpNotice,
@@ -277,6 +279,17 @@ export default function App() {
   function resolveClassRename(value) {
     classRenameRequest?.resolve(value);
     setClassRenameRequest(null);
+  }
+
+  function requestClassArchiveUrl(className = "") {
+    return new Promise((resolve) => {
+      setClassArchiveRequest({ className, resolve });
+    });
+  }
+
+  function resolveClassArchiveUrl(value) {
+    classArchiveRequest?.resolve(value);
+    setClassArchiveRequest(null);
   }
 
   // ----- Guards -----
@@ -922,10 +935,26 @@ export default function App() {
               await editClassName(db, classId, nextName.trim(), notify);
             }
           }}
+          onEndActivity={async (classId, className) => {
+            const archiveUrl = await requestClassArchiveUrl(className);
+            if (typeof archiveUrl === "string" && archiveUrl.trim()) {
+              await endClassActivity(db, classId, archiveUrl, notify);
+            }
+          }}
         />
 
         {/* Only show these if a class is selected */}
-        {activeClassId && (
+        {activeClassId && activeClass?.archivedUrl ? (
+          <section className="ended-class-panel" aria-labelledby="ended-class-title">
+            <div className="ended-class-icon" aria-hidden="true">✦</div>
+            <p className="ended-class-eyebrow">Class archive</p>
+            <h2 id="ended-class-title">This class has ended</h2>
+            <p>The activity is over, but the memories are still here.</p>
+            <a className="btn primary ended-class-link" href={activeClass.archivedUrl} target="_blank" rel="noreferrer">
+              Open class archive
+            </a>
+          </section>
+        ) : activeClassId && (
           <>
             <StudentsPanel
               activeClass={activeClass}
@@ -1265,6 +1294,39 @@ export default function App() {
                 }}
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {classArchiveRequest && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="archive-class-title">
+            <h3 id="archive-class-title" style={{ marginTop: 0 }}>End class activity</h3>
+            <p className="muted">Enter the complete archive URL, including <strong>https://</strong>. Leaving it empty cancels the action.</p>
+            <input
+              className="input"
+              type="url"
+              placeholder="https://example.com/archive"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") resolveClassArchiveUrl(e.currentTarget.value);
+              }}
+            />
+            <div className="feedback-dialog-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn" onClick={() => resolveClassArchiveUrl(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={(e) => {
+                  const input = e.currentTarget.parentElement?.previousElementSibling;
+                  resolveClassArchiveUrl(input?.value ?? "");
+                }}
+              >
+                End activity
               </button>
             </div>
           </div>
