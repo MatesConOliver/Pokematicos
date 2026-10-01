@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 
-export default function CardCreateForm({ onCreate, lockedInputRef, unlockedInputRef, streakConfigs = [] }) {
+export default function CardCreateForm({
+  onCreate,
+  lockedInputRef,
+  unlockedInputRef,
+  streakConfigs = [],
+  onValidationError,
+}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState(1);
@@ -12,7 +18,10 @@ export default function CardCreateForm({ onCreate, lockedInputRef, unlockedInput
   const [streakLookup, setStreakLookup] = useState("");
 
   function handleCreate() {
-    if (!title.trim()) return alert("Title required");
+    if (!title.trim()) {
+      if (onValidationError) onValidationError("Title required");
+      return;
+    }
     onCreate({ title, description, points, category, linkedStreakIds: category === "points" ? linkedStreakIds : [], lockedFile, unlockedFile });
     setTitle("");
     setDescription("");
