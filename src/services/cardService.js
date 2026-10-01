@@ -19,6 +19,7 @@ import { todayISODate, addDaysISO } from "../utils/dateUtils";
 import {
   parseFloatScheduleInput,
   normalizeFloatWindows,
+  computeEffectiveMultiplier,
 } from "../utils/floatWindowUtils";
 import { grantStreakMaxRewardCards } from "./rewardService";
 import {
@@ -207,7 +208,8 @@ export async function giveCardToStudent({
     if (!studentSnap.exists()) return alertFn ? alertFn("Student not found") : undefined;
     const sdata = studentSnap.data();
 
-    const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+    const today = todayISODate();
+    const multiplier = computeEffectiveMultiplier(sdata, today);
 
     let basePoints = 0;
     if (category === "points") basePoints = Number(cardData.points || 0);
@@ -246,6 +248,10 @@ export async function giveCardToStudent({
     if (crossedMaxIds.length) {
       const streakConfigs = activeClass?.streakConfigs || [];
       const givenRewardCardIds = new Set();
+      // Use the post-increment streaks so a window that just started today (delay 0) already counts.
+      const postMultiplier = nextStreaks
+        ? computeEffectiveMultiplier({ ...sdata, streaks: nextStreaks }, today)
+        : multiplier;
 
       for (const streakId of crossedMaxIds) {
         const cfg = streakConfigs.find((c) => c.id === streakId);
@@ -254,7 +260,7 @@ export async function giveCardToStudent({
           rewardCardIds: rewardIds,
           cardsArr: newEntries,
           currentPoints: pointsDelta,
-          multiplier,
+          multiplier: postMultiplier,
           streakId,
           classId,
           getCardDataFast,
@@ -292,6 +298,7 @@ export async function giveCardToStudentsBulk({
   activeClass,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   getCardDataFast,
+  scheduleFn,
 }) {
   if (!classId) return;
   if (!Array.isArray(studentIds) || studentIds.length === 0) return;
@@ -324,8 +331,8 @@ export async function giveCardToStudentsBulk({
       if (!studentSnap.exists()) continue;
       const sdata = studentSnap.data();
 
-      const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-      const effectivePoints = round2(basePoints * multiplier);
+      const baseMultiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+      const effectivePoints = round2(basePoints * computeEffectiveMultiplier(sdata, today));
 
       const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
       cardsArr.push({
@@ -354,7 +361,7 @@ export async function giveCardToStudentsBulk({
       pending.push({
         studentRef,
         studentName: sdata.name || studentId,
-        multiplier,
+        baseMultiplier,
         cardsArr,
         currentPoints,
         nextStreaks,
@@ -391,6 +398,7 @@ export async function giveCardToStudentsBulk({
       if (!schedule) continue;
 
       const { delayDays, durationDays } = schedule;
+      const multiplierBonus = Number(schedule.multiplierBonus || 0);
 
       const start = addDaysISO(today, delayDays);
       const end = addDaysISO(start, durationDays - 1);
@@ -406,7 +414,7 @@ export async function giveCardToStudentsBulk({
           floatWindows: [],
         };
         let floatWindows = Array.isArray(prevEntry.floatWindows) ? prevEntry.floatWindows : [];
-        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end, multiplierBonus }], today);
 
         item.nextStreaks = {
           ...item.nextStreaks,
@@ -436,7 +444,11 @@ export async function giveCardToStudentsBulk({
 
         item._rewardDone = item._rewardDone || new Set();
 
-        const mult = typeof item.multiplier === "number" ? item.multiplier : 1;
+        // Use post-increment streaks so a window starting today (delay 0) already counts.
+        const mult = computeEffectiveMultiplier(
+          { multiplier: item.baseMultiplier, streaks: item.nextStreaks || {} },
+          today
+        );
         item.currentPoints = await grantStreakMaxRewardCards({
           rewardCardIds: rewardIds,
           cardsArr: item.cardsArr,

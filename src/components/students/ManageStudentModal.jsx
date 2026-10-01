@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
+import { pickEditableFloatWindow } from "../../services/streakService";
 
 function todayISODate() {
   const d = new Date();
@@ -37,6 +39,7 @@ export default function ManageStudentModal({
   setCardPreview,
   onValidationError,
   onResetPin,
+  onEditFloatWindow,
 }) {
   const [redeemRewardId, setRedeemRewardId] = useState("");
   const [redeemMode, setRedeemMode] = useState("individual");
@@ -89,7 +92,7 @@ export default function ManageStudentModal({
   }, [student.id, student.name, student.currentPoints, student.xp]);
 
   function addQuickPoints(amount) {
-    const m = typeof student.multiplier === "number" ? student.multiplier : 1;
+    const m = computeEffectiveMultiplier(student, todayISODate());
     const effective = round2(Number(amount || 0) * m);
     const next = round2(Number(student.currentPoints || 0) + effective);
     setEditCurrentPoints(next);
@@ -209,6 +212,9 @@ export default function ManageStudentModal({
                       (cfg.emoji || "").repeat(stObj.value || 0) || cfg.emoji;
                     const date = stObj.lastUpdated || "";
                     const isToday = date && date === todayISODate();
+                    const editableWindow = cfg.float
+                      ? pickEditableFloatWindow(stObj.floatWindows, todayISODate())
+                      : null;
 
                     return (
                       <div
@@ -309,6 +315,23 @@ export default function ManageStudentModal({
                             >
                               Delete streak type
                             </button>
+
+                            {editableWindow && (
+                              <div className="muted" style={{ fontSize: 11, marginTop: 4, textAlign: "right" }}>
+                                Floating bonus: +{editableWindow.multiplierBonus || 0} (until {editableWindow.end})
+                                {onEditFloatWindow && (
+                                  <div>
+                                    <button
+                                      className="btn"
+                                      style={{ fontSize: 11, marginTop: 2 }}
+                                      onClick={() => onEditFloatWindow(cfg, student, editableWindow)}
+                                    >
+                                      Edit floating window
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

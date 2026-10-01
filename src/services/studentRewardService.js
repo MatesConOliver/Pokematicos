@@ -7,6 +7,8 @@ import {
 } from "firebase/firestore";
 
 import { pushOwnedCard, getNewExperienceCards } from "./rewardService";
+import { todayISODate } from "../utils/dateUtils";
+import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
 
 export async function quickAddPoints({
   db,
@@ -23,7 +25,7 @@ export async function quickAddPoints({
     const snap = await getDoc(studentRef);
     if (!snap.exists()) return;
     const sdata = snap.data();
-    const mult = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+    const mult = computeEffectiveMultiplier(sdata, todayISODate());
     const effective = Number((rawAmount * mult).toFixed(2));
     await updateDoc(studentRef, { currentPoints: increment(effective) });
   } catch (err) {

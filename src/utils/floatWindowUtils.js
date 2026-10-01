@@ -3,6 +3,7 @@
  */
 
 import { addDaysISO } from "./dateUtils";
+import { round2 } from "./helpers";
 
 function parseFloatScheduleInput(input, defaults = { delayDays: 7, durationDays: 7 }) {
   const fallback = {
@@ -63,21 +64,22 @@ function normalizeFloatWindows(windows, today) {
     .filter((w) => w && typeof w.start === "string" && typeof w.end === "string" && w.start && w.end)
     // prune windows fully in the past
     .filter((w) => !today || w.end >= today)
+    .map((w) => ({ start: w.start, end: w.end, multiplierBonus: Number(w.multiplierBonus || 0) }))
     .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
 
   const merged = [];
   for (const w of cleaned) {
     if (merged.length === 0) {
-      merged.push({ start: w.start, end: w.end });
+      merged.push({ ...w });
       continue;
     }
     const last = merged[merged.length - 1];
-    // merge if overlaps OR is adjacent (end + 1 day >= next.start)
+    // merge only if overlapping/adjacent AND carrying the same bonus (otherwise both bonuses would be lost)
     const lastEndPlus1 = addDaysISO(last.end, 1);
-    if (w.start <= lastEndPlus1) {
+    if (w.start <= lastEndPlus1 && w.multiplierBonus === last.multiplierBonus) {
       if (w.end > last.end) last.end = w.end;
     } else {
-      merged.push({ start: w.start, end: w.end });
+      merged.push({ ...w });
     }
   }
   return merged;
@@ -89,4 +91,22 @@ function isTodayInFloatWindows(today, windows) {
   return list.some((w) => w && w.start <= today && today <= w.end);
 }
 
-export { parseFloatScheduleInput, normalizeFloatWindows, isTodayInFloatWindows };
+// Base multiplier plus the sum of every streak's floating bonus currently active for this student.
+function computeEffectiveMultiplier(studentData, today) {
+  const base = typeof studentData?.multiplier === "number" ? studentData.multiplier : 1;
+  const streaks = studentData?.streaks || {};
+  let bonus = 0;
+
+  for (const entry of Object.values(streaks)) {
+    const windows = Array.isArray(entry?.floatWindows) ? entry.floatWindows : [];
+    for (const w of windows) {
+      if (w && w.start <= today && today <= w.end) {
+        bonus += Number(w.multiplierBonus || 0);
+      }
+    }
+  }
+
+  return round2(base + bonus);
+}
+
+export { parseFloatScheduleInput, normalizeFloatWindows, isTodayInFloatWindows, computeEffectiveMultiplier };

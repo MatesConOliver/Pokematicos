@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { todayISODate } from "../../utils/dateUtils";
+import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 
 export default function ProfileModal({
   mode,
@@ -35,6 +37,7 @@ export default function ProfileModal({
 
   const displayName = `${student.name}${emojis ? " " + emojis : ""}`;
   const currentPoints = Number(student.currentPoints || 0);
+  const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate());
 
   // Cards indexed for quick reward thumbnail/description lookup
   const cardsMap = useMemo(() => {
@@ -86,9 +89,9 @@ export default function ProfileModal({
               <span className="pill" style={{ background: "#fef3c7", color: "#92400e", fontWeight: 700 }}>
                 ✨ {student.xp || 0} XP
               </span>
-              {typeof student.multiplier === "number" && student.multiplier !== 1 && (
+              {effectiveMultiplier !== 1 && (
                 <span className="pill" style={{ background: "#ede9fe", color: "#6d28d9", fontWeight: 700 }}>
-                  ⚡ x{student.multiplier}
+                  ⚡ x{effectiveMultiplier}
                 </span>
               )}
             </div>

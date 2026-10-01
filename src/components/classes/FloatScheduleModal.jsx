@@ -1,18 +1,19 @@
 export default function FloatScheduleModal({ request, onClose, onSave }) {
   if (!request) return null;
 
-  const initial = request.initial || { delayDays: 7, durationDays: 7 };
+  const initial = request.initial || { delayDays: 7, durationDays: 7, multiplierBonus: 0 };
 
   function submit(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const delayDays = Number(form.get("delayDays"));
     const durationDays = Number(form.get("durationDays"));
+    const multiplierBonus = Number(form.get("multiplierBonus"));
 
     if (!Number.isInteger(delayDays) || delayDays < 0) return;
     if (!Number.isInteger(durationDays) || durationDays <= 0) return;
 
-    onSave({ delayDays, durationDays });
+    onSave({ delayDays, durationDays, multiplierBonus: Number.isFinite(multiplierBonus) ? multiplierBonus : 0 });
   }
 
   return (
@@ -32,6 +33,12 @@ export default function FloatScheduleModal({ request, onClose, onSave }) {
             <input className="input" name="durationDays" type="number" min="1" step="1" defaultValue={initial.durationDays} />
           </label>
         </div>
+
+        <label className="form-field">
+          <span>Multiplier bonus during this window</span>
+          <input className="input" name="multiplierBonus" type="number" step="0.01" defaultValue={initial.multiplierBonus ?? 0} />
+          <small className="muted">Added to the student's multiplier only while this window is active (e.g. 0.25).</small>
+        </label>
 
         <div className="feedback-dialog-actions">
           <button type="button" className="btn" onClick={onClose}>Cancel</button>

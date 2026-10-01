@@ -1,7 +1,7 @@
 import React from "react";
 import EmojiParty from "../common/EmojiParty";
 import { todayISODate } from "../../utils/dateUtils";
-import { isTodayInFloatWindows } from "../../utils/floatWindowUtils";
+import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 
 export default function StudentsPanel({
   activeClass,
@@ -152,12 +152,15 @@ export default function StudentsPanel({
                           )}
                         </div>
 
-                        {student.multiplier && student.multiplier !== 1 && (
-                          <div>
-                            <span className="muted">Multiplier:</span>
-                            <strong> x{student.multiplier}</strong>
-                          </div>
-                        )}
+                        {(() => {
+                          const effectiveMultiplier = computeEffectiveMultiplier(student, today);
+                          return effectiveMultiplier !== 1 ? (
+                            <div>
+                              <span className="muted">Multiplier:</span>
+                              <strong> x{effectiveMultiplier}</strong>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
 

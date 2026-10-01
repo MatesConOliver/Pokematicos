@@ -9,6 +9,7 @@ import FeedbackDialog from "./components/common/FeedbackDialog";
 import StreakFormModal from "./components/classes/StreakFormModal";
 import RewardCardPickerModal from "./components/classes/RewardCardPickerModal";
 import FloatScheduleModal from "./components/classes/FloatScheduleModal";
+import FloatWindowEditModal from "./components/classes/FloatWindowEditModal";
 import ProfileModal from "./components/profile/ProfileModal";
 import PinGateModal from "./components/profile/PinGateModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
@@ -33,6 +34,8 @@ import {
   setStreakRewardCardsForClass,
   bulkChangeStreakValue,
   bulkResetStreak,
+  editStudentFloatWindow,
+  pickEditableFloatWindow,
 } from "./services/streakService";
 import {
   createReward as createRewardService,
@@ -52,6 +55,7 @@ import {
   giveCardToStudentsBulk as giveCardToStudentsBulkService,
 } from "./services/cardService";
 import { safeLower, round2, PASTEL_COLORS } from "./utils/helpers";
+import { todayISODate } from "./utils/dateUtils";
 import { editClassName, endClassActivity } from "./services/classService";
 import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
@@ -118,6 +122,7 @@ export default function App() {
   const [streakFormRequest, setStreakFormRequest] = useState(null);
   const [rewardPickerRequest, setRewardPickerRequest] = useState(null);
   const [scheduleRequest, setScheduleRequest] = useState(null);
+  const [floatWindowEditRequest, setFloatWindowEditRequest] = useState(null);
   const [classRenameRequest, setClassRenameRequest] = useState(null);
   const [classArchiveRequest, setClassArchiveRequest] = useState(null);
   const {
@@ -268,6 +273,44 @@ export default function App() {
   function resolveFloatSchedule(value) {
     scheduleRequest?.resolve(value);
     setScheduleRequest(null);
+  }
+
+  function openFloatWindowEdit(cfg, student, editableWindow) {
+    const window =
+      editableWindow ||
+      pickEditableFloatWindow((student.streaks?.[cfg.id] || {}).floatWindows, todayISODate());
+    if (!window) return;
+
+    setFloatWindowEditRequest({
+      streakId: cfg.id,
+      studentId: student.id,
+      initial: { start: window.start, end: window.end, multiplierBonus: window.multiplierBonus || 0 },
+      message: `Edit the ${cfg.emoji || ""} floating window for ${student.name}.`,
+    });
+  }
+
+  async function saveFloatWindowEdit(values) {
+    const request = floatWindowEditRequest;
+    if (!request) return;
+    setFloatWindowEditRequest(null);
+
+    return runMutation({
+      loadingMessage: "Saving floating window...",
+      successMessage: "Floating window updated.",
+      errorMessage: "Could not update the floating window.",
+      action: async () => {
+        await editStudentFloatWindow({
+          db,
+          classId: activeClassId,
+          studentId: request.studentId,
+          streakId: request.streakId,
+          start: values.start,
+          end: values.end,
+          multiplierBonus: values.multiplierBonus,
+          alertFn: notify,
+        });
+      },
+    });
   }
 
   function requestClassRename(currentName = "") {
@@ -1220,6 +1263,7 @@ export default function App() {
             redeemGroup(activeClassId, rewardId, participants);
           }}
           setCardPreview={setCardPreview}
+          onEditFloatWindow={openFloatWindowEdit}
         />
       )}
 
@@ -1264,6 +1308,12 @@ export default function App() {
         request={scheduleRequest}
         onClose={() => resolveFloatSchedule(null)}
         onSave={resolveFloatSchedule}
+      />
+
+      <FloatWindowEditModal
+        request={floatWindowEditRequest}
+        onClose={() => setFloatWindowEditRequest(null)}
+        onSave={saveFloatWindowEdit}
       />
 
       {classRenameRequest && (

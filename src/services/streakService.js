@@ -9,7 +9,7 @@ import {
 
 import { uid } from "../utils/helpers";
 import { todayISODate, addDaysISO } from "../utils/dateUtils";
-import { normalizeFloatWindows } from "../utils/floatWindowUtils";
+import { normalizeFloatWindows, computeEffectiveMultiplier } from "../utils/floatWindowUtils";
 import { grantStreakMaxRewardCards } from "./rewardService";
 
 export async function addStreakTypeForClass({
@@ -201,9 +201,10 @@ export async function changeStudentStreakValue({
       if (schedule) {
         const delayDays = schedule.delayDays;
         const durationDays = schedule.durationDays;
+        const multiplierBonus = Number(schedule.multiplierBonus || 0);
         const start = addDaysISO(today, delayDays);
         const end = addDaysISO(start, durationDays - 1);
-        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end, multiplierBonus }], today);
       } else {
         floatWindows = normalizeFloatWindows(floatWindows, today);
       }
@@ -229,7 +230,7 @@ export async function changeStudentStreakValue({
     if (crossedToMax) {
       const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
       if (rewardIds.length) {
-        const multiplier = typeof data.multiplier === "number" ? data.multiplier : 1;
+        const multiplier = computeEffectiveMultiplier({ ...data, streaks: updatedStreaks }, today);
         const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
         const currentPoints = await grantStreakMaxRewardCards({
           rewardCardIds: rewardIds,
@@ -250,6 +251,58 @@ export async function changeStudentStreakValue({
   } catch (err) {
     console.error("changeStudentStreakValue error", err);
     if (alertFn) alertFn("Could not update streak. See console.");
+  }
+}
+
+// Picks the most relevant floatWindow for a streak to prefill/target an admin edit:
+// the currently active one, otherwise the soonest upcoming one.
+export function pickEditableFloatWindow(floatWindows, today) {
+  const list = Array.isArray(floatWindows) ? floatWindows : [];
+  const active = list.find((w) => w && w.start <= today && today <= w.end);
+  if (active) return active;
+  const upcoming = list
+    .filter((w) => w && w.start > today)
+    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+  return upcoming[0] || null;
+}
+
+export async function editStudentFloatWindow({
+  db,
+  classId,
+  studentId,
+  streakId,
+  start,
+  end,
+  multiplierBonus,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  try {
+    const today = todayISODate();
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const snap = await getDoc(studentRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    const streaks = data.streaks || {};
+    const entry = streaks[streakId] || {};
+    const floatWindows = Array.isArray(entry.floatWindows) ? entry.floatWindows : [];
+
+    const target = pickEditableFloatWindow(floatWindows, today);
+    if (!target) {
+      if (alertFn) alertFn("No active or upcoming floating window to edit for this streak.");
+      return;
+    }
+
+    const nextWindows = floatWindows.map((w) =>
+      w === target ? { start, end, multiplierBonus: Number(multiplierBonus || 0) } : w
+    );
+
+    await updateDoc(studentRef, {
+      streaks: { ...streaks, [streakId]: { ...entry, floatWindows: nextWindows } },
+    });
+  } catch (err) {
+    console.error("editStudentFloatWindow error", err);
+    if (alertFn) alertFn("Could not edit the floating window. See console.");
   }
 }
 
@@ -357,9 +410,10 @@ export async function bulkChangeStreakValue({
       if (crossedToMax && cfg?.float) {
         const delayDays = floatSchedule?.delayDays ?? 7;
         const durationDays = floatSchedule?.durationDays ?? 7;
+        const multiplierBonus = Number(floatSchedule?.multiplierBonus || 0);
         const start = addDaysISO(today, delayDays);
         const end = addDaysISO(start, durationDays - 1);
-        floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end, multiplierBonus }], today);
       } else {
         floatWindows = normalizeFloatWindows(floatWindows, today);
       }
@@ -377,7 +431,7 @@ export async function bulkChangeStreakValue({
       if (crossedToMax) {
         const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
         if (rewardIds.length) {
-          const multiplier = typeof data.multiplier === "number" ? data.multiplier : 1;
+          const multiplier = computeEffectiveMultiplier({ ...data, streaks: payload.streaks }, today);
           const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
           const currentPoints = await grantStreakMaxRewardCards({
             rewardCardIds: rewardIds,
@@ -547,6 +601,7 @@ export async function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}, a
     if (crossedToMax && cfg?.float) {
       let delayDays = defaultDelay;
       let durationDays = defaultDur;
+      let multiplierBonus = 0;
 
       if (allowPrompts && opts.scheduleFn) {
         const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
@@ -558,12 +613,13 @@ export async function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}, a
         if (parsed) {
           delayDays = parsed.delayDays;
           durationDays = parsed.durationDays;
+          multiplierBonus = Number(parsed.multiplierBonus || 0);
         }
       }
 
       const start = addDaysISO(today, delayDays);
       const end = addDaysISO(start, durationDays - 1);
-      floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+      floatWindows = normalizeFloatWindows([...floatWindows, { start, end, multiplierBonus }], today);
     }
 
     streaks[id] = {
