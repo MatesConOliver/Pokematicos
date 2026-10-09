@@ -114,7 +114,7 @@ export default function StudentsPanel({
                     style={{
                       display: "grid",
                       gridTemplateColumns: "minmax(0, 1fr) auto",
-                      gap: 12,
+                      gap: 8,
                       alignItems: "start",
                     }}
                   >
@@ -225,15 +225,27 @@ export default function StudentsPanel({
                   </div>
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontWeight: 800 }}>{student.currentPoints || 0} pts</div>
                         <div className="muted">XP: {student.xp || 0}</div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 6 }}>
-                        <button className="btn" onClick={() => onProfileStudent(student.id)}>Perfil</button>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4 }}>
+                        <button
+                          className="btn"
+                          style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
+                          onClick={() => onProfileStudent(student.id)}
+                        >
+                          Perfil
+                        </button>
                         {mode === "admin" && (
-                          <button className="btn" onClick={() => onManageStudent(student.id)}>Manage</button>
+                          <button
+                            className="btn"
+                            style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
+                            onClick={() => onManageStudent(student.id)}
+                          >
+                            Manage
+                          </button>
                         )}
                       </div>
                     </div>
