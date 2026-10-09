@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function RewardCreateForm({ cards, onCreate }) {
+export default function RewardCreateForm({ cards, onCreate, onValidationError }) {
   const [title, setTitle] = useState("");
   const [cost, setCost] = useState(5);
   const [cardId, setCardId] = useState(cards?.[0]?.id || "");
@@ -38,7 +38,10 @@ export default function RewardCreateForm({ cards, onCreate }) {
         <button
           className="btn"
           onClick={() => {
-            if (!title.trim()) return alert("Title required");
+            if (!title.trim()) {
+              if (onValidationError) onValidationError("Title required");
+              return;
+            }
             onCreate({ title, cost, linkedCardId: cardId });
             setTitle("");
             setCost(5);
