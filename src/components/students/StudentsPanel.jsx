@@ -120,23 +120,23 @@ export default function StudentsPanel({
                       }}
                     >
                       <div style={{ minWidth: 0, fontWeight: 800 }}>{displayName}</div>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4 }}>
-                      <button
-                        className="btn"
-                        style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
-                        onClick={() => onProfileStudent(student.id)}
-                      >
-                        Perfil
-                      </button>
-                      {mode === "admin" && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        {mode === "admin" && (
+                          <button
+                            className="btn"
+                            style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
+                            onClick={() => onManageStudent(student.id)}
+                          >
+                            Manage
+                          </button>
+                        )}
                         <button
                           className="btn"
                           style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
-                          onClick={() => onManageStudent(student.id)}
+                          onClick={() => onProfileStudent(student.id)}
                         >
-                          Manage
+                          Profile
                         </button>
-                      )}
                       </div>
                       <div style={{ textAlign: "right", whiteSpace: "nowrap", fontWeight: 800 }}>
                       {student.currentPoints || 0} pts
