@@ -110,16 +110,48 @@ export default function StudentsPanel({
                     />
                   ))}
 
-                  <div
-                    style={{
+                  <>
+                    <div
+                      style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 1fr) auto auto",
+                      gap: 8,
+                      alignItems: "start",
+                      }}
+                    >
+                      <div style={{ minWidth: 0, fontWeight: 800 }}>{displayName}</div>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4 }}>
+                      <button
+                        className="btn"
+                        style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
+                        onClick={() => onProfileStudent(student.id)}
+                      >
+                        Perfil
+                      </button>
+                      {mode === "admin" && (
+                        <button
+                          className="btn"
+                          style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
+                          onClick={() => onManageStudent(student.id)}
+                        >
+                          Manage
+                        </button>
+                      )}
+                      </div>
+                      <div style={{ textAlign: "right", whiteSpace: "nowrap", fontWeight: 800 }}>
+                      {student.currentPoints || 0} pts
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
                       display: "grid",
                       gridTemplateColumns: "minmax(0, 1fr) auto",
                       gap: 8,
                       alignItems: "start",
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 800 }}>{displayName}</div>
+                      marginTop: 8,
+                      }}
+                    >
                       <div className="muted" style={{ lineHeight: 1.35 }}>
                         <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
                           {streakConfigs.length > 0 ? (
@@ -169,6 +201,11 @@ export default function StudentsPanel({
                           ) : null;
                         })()}
                       </div>
+                      <div className="muted" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                        XP: {student.xp || 0}
+                      </div>
+                    </div>
+
                       {mode === "admin" && (
                         <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                           <span className="pill">Points</span>
@@ -223,33 +260,7 @@ export default function StudentsPanel({
                       })()}
                     </div>
                   </div>
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontWeight: 800 }}>{student.currentPoints || 0} pts</div>
-                        <div className="muted">XP: {student.xp || 0}</div>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4 }}>
-                        <button
-                          className="btn"
-                          style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
-                          onClick={() => onProfileStudent(student.id)}
-                        >
-                          Perfil
-                        </button>
-                        {mode === "admin" && (
-                          <button
-                            className="btn"
-                            style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
-                            onClick={() => onManageStudent(student.id)}
-                          >
-                            Manage
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                    </>
                 </div>
               );
             })}
