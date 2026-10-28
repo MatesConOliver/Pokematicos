@@ -6,6 +6,8 @@ import {
   query,
 } from "firebase/firestore";
 
+const studentNameCollator = new Intl.Collator("es", { sensitivity: "base" });
+
 export default function useClassData({ db, activeClassId }) {
   const [classesList, setClassesList] = useState([]);
   const [students, setStudents] = useState([]);
@@ -59,6 +61,9 @@ export default function useClassData({ db, activeClassId }) {
       (snap) => {
         const arr = [];
         snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+        arr.sort((a, b) =>
+          studentNameCollator.compare(String(a.name || ""), String(b.name || ""))
+        );
         setStudents(arr);
         setLoadingStudents(false);
       },
