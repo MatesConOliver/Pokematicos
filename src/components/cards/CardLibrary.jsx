@@ -15,6 +15,8 @@ export default function CardLibrary({
   lockedInputBRef,
   unlockedInputBRef,
   flagConfig,
+  viewFlag = "A",
+  onChangeViewFlag,
   onCreateCard,
   onPreviewCard,
   onOpenBulkGive,
@@ -25,27 +27,26 @@ export default function CardLibrary({
   onValidationError,
 }) {
   const [libraryTab, setLibraryTab] = useState("points");
-  const [previewFlag, setPreviewFlag] = useState("A");
-  const effectivePreviewFlag = flagConfig ? previewFlag : "A";
+  const effectivePreviewFlag = flagConfig ? viewFlag : "A";
 
   return (
     <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
       <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Library</span></h3>
-      {mode === "admin" && flagConfig && (
+      {flagConfig && (
         <div
           role="group"
-          aria-label="Preview card artwork for"
+          aria-label="Library and background option"
           style={{ display: "flex", gap: 6, alignItems: "center", margin: "8px 0 12px" }}
         >
-          <span className="muted" style={{ fontSize: 12 }}>Preview:</span>
+          <span className="muted" style={{ fontSize: 12 }}>View:</span>
           {[["A", flagConfig.optionA], ["B", flagConfig.optionB]].map(([value, label]) => (
             <button
               key={value}
               type="button"
               className="btn"
-              aria-pressed={previewFlag === value}
-              onClick={() => setPreviewFlag(value)}
-              style={{ background: previewFlag === value ? "#def" : "white" }}
+              aria-pressed={viewFlag === value}
+              onClick={() => onChangeViewFlag?.(value)}
+              style={{ background: viewFlag === value ? "#def" : "white" }}
             >
               {label}
             </button>

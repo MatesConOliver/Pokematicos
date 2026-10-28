@@ -13,6 +13,8 @@ export default function LibrarySection({
   lockedInputBRef,
   unlockedInputBRef,
   flagConfig,
+  viewFlag,
+  onChangeViewFlag,
   onCreateCard,
   onPreviewCard,
   onOpenBulkGive,
@@ -34,6 +36,8 @@ export default function LibrarySection({
       lockedInputBRef={lockedInputBRef}
       unlockedInputBRef={unlockedInputBRef}
       flagConfig={flagConfig}
+      viewFlag={viewFlag}
+      onChangeViewFlag={onChangeViewFlag}
       onCreateCard={onCreateCard}
       onPreviewCard={(card, flagValue = "A") => onPreviewCard({
         ...card,

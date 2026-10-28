@@ -1,3 +1,5 @@
+import EyeToggleButton from "../common/EyeToggleButton";
+
 export default function LoginScreen({
   authChecked,
   checkingAdmin,
@@ -11,6 +13,8 @@ export default function LoginScreen({
   setAdminError,
   enterReader,
   loginAdminEmailPassword,
+  focusMode = false,
+  onToggleFocus,
 }) {
   const loginStyles = {
     container: {
@@ -85,8 +89,20 @@ export default function LoginScreen({
     },
   };
 
+  if (focusMode) {
+    return (
+      <div style={{ ...loginStyles.container, alignItems: "flex-start", justifyContent: "flex-start", backgroundImage: loginStyles.container.backgroundImage.slice(loginStyles.container.backgroundImage.indexOf("url(")) }}>
+        <EyeToggleButton focusMode onToggle={onToggleFocus} />
+        <div style={{ padding: "4px 10px", borderRadius: 999, background: "rgba(255,255,255,0.96)", fontWeight: 800, fontSize: 18, boxShadow: "0 2px 6px rgba(15,23,42,0.25)" }}>
+          All classes
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={loginStyles.container}>
+      <EyeToggleButton focusMode={false} onToggle={onToggleFocus} />
       <div style={loginStyles.card}>
         <h1 style={loginStyles.title}>CBA Cards and Points System</h1>
 
