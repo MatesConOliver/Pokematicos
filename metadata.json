@@ -1,0 +1,8 @@
+{
+  "name": "Pokemáticos",
+  "description": "Gamified classroom management and reward card system",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

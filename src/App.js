@@ -80,6 +80,109 @@ import useStudentRequests from "./hooks/useStudentRequests";
  * otherwise saving will fail. See rule note at the bottom.
  */
 
+const firebaseConfig = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "pokematicos.firebaseapp.com",
+  databaseURL:
+    process.env.REACT_APP_FIREBASE_DATABASE_URL ||
+    "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "pokematicos",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "pokematicos.firebasestorage.app",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "101415606738",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:101415606738:web:c009f17005904490e9d00b",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+const auth = getAuth(app);
+
+
+function parseFloatScheduleInput(input, defaults = { delayDays: 7, durationDays: 7 }) {
+  const fallback = {
+    delayDays: Number.isFinite(defaults.delayDays) ? defaults.delayDays : 7,
+    durationDays: Number.isFinite(defaults.durationDays) ? defaults.durationDays : 7,
+  };
+
+  if (input == null) return fallback;
+  const s = String(input).trim();
+  if (!s) return fallback;
+
+  // 1) "a,b" format
+  if (s.includes(",")) {
+    const [a, b] = s.split(",").map((x) => x.trim());
+    const delay = parseInt(a, 10);
+    const dur = parseInt(b, 10);
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 2) key=value format: start=7 duration=10 (order doesn't matter)
+  const mStart = s.match(/(?:start|delay)\s*=\s*(-?\d+)/i);
+  const mDur = s.match(/(?:duration|days)\s*=\s*(-?\d+)/i);
+
+  if (mStart || mDur) {
+    const delay = mStart ? parseInt(mStart[1], 10) : fallback.delayDays;
+    const dur = mDur ? parseInt(mDur[1], 10) : fallback.durationDays;
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 3) two numbers: "7 14"
+  const nums = s.match(/-?\d+/g) || [];
+  if (nums.length >= 2) {
+    const delay = parseInt(nums[0], 10);
+    const dur = parseInt(nums[1], 10);
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 4) single number means delay; use default duration
+  const one = parseInt(nums[0], 10);
+  return {
+    delayDays: Number.isFinite(one) && one >= 0 ? one : fallback.delayDays,
+    durationDays: fallback.durationDays,
+  };
+}
+
+function normalizeFloatWindows(windows, today) {
+  const list = Array.isArray(windows) ? windows : [];
+  const cleaned = list
+    .filter((w) => w && typeof w.start === "string" && typeof w.end === "string" && w.start && w.end)
+    // prune windows fully in the past
+    .filter((w) => !today || w.end >= today)
+    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+
+  const merged = [];
+  for (const w of cleaned) {
+    if (merged.length === 0) {
+      merged.push({ start: w.start, end: w.end });
+      continue;
+    }
+    const last = merged[merged.length - 1];
+    // merge if overlaps OR is adjacent (end + 1 day >= next.start)
+    const lastEndPlus1 = addDaysISO(last.end, 1);
+    if (w.start <= lastEndPlus1) {
+      if (w.end > last.end) last.end = w.end;
+    } else {
+      merged.push({ start: w.start, end: w.end });
+    }
+  }
+  return merged;
+}
+
+function isTodayInFloatWindows(today, windows) {
+  if (!today) return false;
+  const list = Array.isArray(windows) ? windows : [];
+  return list.some((w) => w && w.start <= today && today <= w.end);
+}
+
 export default function App() {
   // ----- Mode -----
   const {
@@ -203,18 +306,26 @@ export default function App() {
 
   const [editCard, setEditCard] = useState(null);
 
-  const runMutation = useCallback(
-    async ({ action, loadingMessage, successMessage, errorMessage, confirmMessage }) => {
-      return runAction({
-        action,
-        message: loadingMessage || "Working...",
-        successMessage,
-        errorMessage: errorMessage || "Something went wrong.",
-        confirmMessage,
-      });
-    },
-    [runAction]
-  );
+  // ----- Subscribe: classes -----
+  useEffect(() => {
+    setLoadingClasses(true);
+    const q = query(collection(db, "classes"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const arr = [];
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+        setClassesList(arr);
+        setLoadingClasses(false);
+      },
+      (err) => {
+        console.error("Failed loading classes:", err);
+        setErrorMsg("Failed to load classes. Check console.");
+        setLoadingClasses(false);
+      }
+    );
+    return () => unsub();
+  }, []);
 
   function requestStreakForm(initial = {}) {
     return new Promise((resolve) => {
@@ -560,6 +671,63 @@ export default function App() {
         alertFn: notify,
         scheduleFn: requestFloatSchedule,
       });
+
+      let currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
+
+      const linkedIds =
+        category === "points"
+          ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
+          : [];
+
+      const res = incrementLinkedStreakIfNeeded(sdata, linkedIds, {
+        allowPrompts: true,
+        studentName: sdata.name || "",
+      });
+
+      const nextStreaks = res?.nextStreaks || null;
+      const crossedMaxIds = Array.isArray(res?.crossedMaxIds) ? res.crossedMaxIds : [];
+
+      // ✅ Auto-give rewards for streaks that just hit MAX
+      if (crossedMaxIds.length) {
+        const streakConfigs = activeClass?.streakConfigs || [];
+        const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+
+        const givenRewardCardIds = new Set(); // prevent duplicates in the same click
+
+        for (const streakId of crossedMaxIds) {
+          const cfg = streakConfigs.find((c) => c.id === streakId);
+          const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+          for (const rewardCardId of rewardIds) {
+            if (!rewardCardId || givenRewardCardIds.has(rewardCardId)) continue;
+
+            const rewardCard = await getCardDataFast(classId, rewardCardId);
+            if (!rewardCard) continue;
+
+            if ((rewardCard.category || "points") !== "points") continue; // only points cards add points
+
+            const base = Number(rewardCard.points || 0);
+            const pts = round2(base * multiplier);
+
+            pushOwnedCard({
+              cardsArr,
+              cardId: rewardCardId,
+              cardData: rewardCard,
+              pointsGranted: pts,
+              streakId,
+            });
+
+            currentPoints = round2(currentPoints + pts);
+            givenRewardCardIds.add(rewardCardId);
+          }
+        }
+      }
+
+      const payload = { cards: cardsArr, currentPoints };
+      if (nextStreaks) payload.streaks = nextStreaks;
+
+      await updateDoc(studentRef, payload);
+
+      // no success alert on purpose
     } catch (err) {
       // already reported to the user via alertFn inside the service
     }
@@ -568,16 +736,201 @@ export default function App() {
   // Bulk give: give ONE library card to MANY students (points are multiplied by each student's multiplier).
   // Uses per-student reads to keep it correct even if points/cards changed elsewhere.
   async function giveCardToStudentsBulk(classId, cardId, studentIds) {
-    await giveCardToStudentsBulkService({
-      db,
-      classId,
-      cardId,
-      studentIds,
-      activeClass,
-      getCardDataFast,
-      alertFn: notify,
-      scheduleFn: requestFloatSchedule,
-    });
+    if (!classId) return;
+    if (!Array.isArray(studentIds) || studentIds.length === 0) return;
+
+    const floatHitsByStreak = new Map(); // for scheduling float windows
+
+    try {
+      const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
+      if (!cardSnap.exists()) return alert("Card not found");
+      const cardData = cardSnap.data();
+
+      const category = cardData.category || "points";
+      if (category === "rewards") return alert("Rewards cards can't be given directly.");
+
+      const basePoints = category === "points" ? Number(cardData.points || 0) : 0;
+      const linkedIds =
+        category === "points" ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : []) : [];
+
+      const streakConfigs = activeClass?.streakConfigs || [];
+      const today = todayISODate();
+
+      // Phase 1: read + prepare updates, collect "who hit max" per streak
+      const pending = []; // { studentRef, cardsArr, currentPoints, nextStreaks }
+      const maxHitsByStreak = new Map(); // streakId -> array of { idx, name }
+
+      for (let i = 0; i < studentIds.length; i++) {
+        const studentId = studentIds[i];
+        const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+        const studentSnap = await getDoc(studentRef);
+        if (!studentSnap.exists()) continue;
+        const sdata = studentSnap.data();
+
+        const multiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+        const effectivePoints = round2(basePoints * multiplier);
+
+        const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
+        cardsArr.push({
+          id: uid("owned"),
+          cardId,
+          title: cardData.title,
+          imageURL: cardData.imageURL || "",
+          grantedAt: new Date().toISOString(),
+          pointsGranted: effectivePoints,
+        });
+
+        const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
+
+        let nextStreaks = null;
+        let crossedFloatIds = [];
+        let crossedMaxIds = [];
+
+        if (linkedIds.length > 0) {
+          const res = incrementStreaksNoFloatWindows(sdata, linkedIds, streakConfigs);
+          nextStreaks = res.nextStreaks;
+          crossedFloatIds = res.crossedFloatIds;
+          crossedMaxIds = Array.isArray(res.crossedMaxIds) ? res.crossedMaxIds : [];
+        }
+
+        const idx = pending.length;
+        pending.push({
+          studentRef,
+          studentName: sdata.name || studentId,
+          multiplier,
+          cardsArr,
+          currentPoints,
+          nextStreaks,
+        });
+
+        for (const streakId of crossedFloatIds) {
+          if (!floatHitsByStreak.has(streakId)) floatHitsByStreak.set(streakId, []);
+          floatHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
+        }
+
+        for (const streakId of crossedMaxIds) {
+          if (!maxHitsByStreak.has(streakId)) maxHitsByStreak.set(streakId, []);
+          maxHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
+        }
+      }
+
+      // Phase 2: ONE prompt per streak that had max hits, then apply to all those students
+      const defaultDelay = 7;
+      const defaultDur = 7;
+
+      for (const [streakId, hits] of maxHitsByStreak.entries()) {
+        const cfg = streakConfigs.find((c) => c.id === streakId) || null;
+        const emoji = cfg?.emoji || "⭐";
+
+        const names = hits.map((h) => h.name);
+        const preview = names.slice(0, 12).join(", ");
+        const more = names.length > 12 ? ` (+${names.length - 12} more)` : "";
+
+        const input = prompt(
+          `🎉 Bulk give: ${emoji} streak reached MAX today by ${names.length} students:\n` +
+            `${preview}${more}\n\n` +
+            `Floating emoji schedule (applies to ALL above students for this streak)\n` +
+            `Type: delay,duration  (examples: 0,7  or  7,14  or  start=3 duration=10)`,
+          `${defaultDelay},${defaultDur}`
+        );
+
+        const { delayDays, durationDays } = parseFloatScheduleInput(input, {
+          delayDays: defaultDelay,
+          durationDays: defaultDur,
+        });
+
+        const start = addDaysISO(today, delayDays);
+        const end = addDaysISO(start, durationDays - 1);
+
+        for (const h of hits) {
+          const item = pending[h.idx];
+          if (!item?.nextStreaks) continue;
+
+          const prevEntry = item.nextStreaks[streakId] || { value: 0, lastUpdated: today, maxAchievedOn: today, floatWindows: [] };
+          let floatWindows = Array.isArray(prevEntry.floatWindows) ? prevEntry.floatWindows : [];
+          floatWindows = normalizeFloatWindows([...floatWindows, { start, end }], today);
+
+          item.nextStreaks = {
+            ...item.nextStreaks,
+            [streakId]: { ...prevEntry, floatWindows },
+          };
+        }
+      }
+
+      // Phase 2B: award reward cards for everyone who reached MAX (per streak)
+      const rewardCache = new Map(); // cardId -> cardData
+
+      for (const [streakId, hits] of maxHitsByStreak.entries()) {
+        const cfg = streakConfigs.find((c) => c.id === streakId) || null;
+        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+        if (rewardIds.length === 0) continue;
+
+        for (const rewardCardId of rewardIds) {
+          if (!rewardCardId) continue;
+
+          if (!rewardCache.has(rewardCardId)) {
+            const cd = await getCardDataFast(classId, rewardCardId);
+            rewardCache.set(rewardCardId, cd || null);
+          }
+        }
+
+        for (const h of hits) {
+          const item = pending[h.idx];
+          if (!item) continue;
+
+          item._rewardDone = item._rewardDone || new Set(); // per-student dedupe during this bulk click
+
+          for (const rewardCardId of rewardIds) {
+            if (!rewardCardId || item._rewardDone.has(rewardCardId)) continue;
+
+            const rewardCard = rewardCache.get(rewardCardId);
+            if (!rewardCard) continue;
+            if ((rewardCard.category || "points") !== "points") continue;
+
+            const base = Number(rewardCard.points || 0);
+            const mult = typeof item.multiplier === "number" ? item.multiplier : 1;
+            const pts = round2(base * mult);
+
+            pushOwnedCard({
+              cardsArr: item.cardsArr,
+              cardId: rewardCardId,
+              cardData: rewardCard,
+              pointsGranted: pts,
+              streakId,
+            });
+
+            item.currentPoints = round2(item.currentPoints + pts);
+            item._rewardDone.add(rewardCardId);
+          }
+        }
+      }
+
+      // Phase 3: write updates in Firestore batches
+      let batch = writeBatch(db);
+      let writes = 0;
+      let given = 0;
+
+      for (const item of pending) {
+        const payload = { cards: item.cardsArr, currentPoints: item.currentPoints };
+        if (item.nextStreaks) payload.streaks = item.nextStreaks;
+
+        batch.update(item.studentRef, payload);
+        writes += 1;
+        given += 1;
+
+        if (writes >= 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          writes = 0;
+        }
+      }
+
+      if (writes > 0) await batch.commit();
+      alert(`Card given to ${given} student${given === 1 ? "" : "s"}.`);
+    } catch (err) {
+      console.error("giveCardToStudentsBulk error", err);
+      alert("Failed to give card to students. See console.");
+    }
   }
 
   function openBulkGive(card) {
