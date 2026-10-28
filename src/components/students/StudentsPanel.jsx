@@ -232,8 +232,7 @@ export default function StudentsPanel({
                       )}
 
                       <div style={{ marginTop: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
-                    <div style={{ marginTop: 8, maxHeight: 150, overflowY: "auto", paddingRight: 6, display: "flex", gap: 8, flexWrap: "wrap", alignContent: "flex-start" }}>
+                    <div style={{ maxHeight: 150, overflowY: "auto", paddingRight: 6, display: "flex", gap: 8, flexWrap: "wrap", alignContent: "flex-start" }}>
                       {(() => {
                         const groups = new Map();
                         (student.cards || []).forEach((ownedCard) => {
