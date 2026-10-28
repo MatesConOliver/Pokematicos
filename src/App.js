@@ -59,14 +59,15 @@ import { todayISODate, addDaysISO } from "./utils/dateUtils";
  */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
-  authDomain: "pokematicos.firebaseapp.com",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "pokematicos.firebaseapp.com",
   databaseURL:
+    process.env.REACT_APP_FIREBASE_DATABASE_URL ||
     "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pokematicos",
-  storageBucket: "pokematicos.firebasestorage.app",
-  messagingSenderId: "101415606738",
-  appId: "1:101415606738:web:c009f17005904490e9d00b",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "pokematicos",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "pokematicos.firebasestorage.app",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "101415606738",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:101415606738:web:c009f17005904490e9d00b",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -298,7 +299,6 @@ export default function App() {
       }
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep listening to the global default background
@@ -1354,7 +1354,7 @@ export default function App() {
         pointsGranted: effectivePoints,
       });
 
-      const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
+      let currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
 
       const linkedIds =
         category === "points"
@@ -1424,7 +1424,6 @@ export default function App() {
     if (!Array.isArray(studentIds) || studentIds.length === 0) return;
 
     const floatHitsByStreak = new Map(); // for scheduling float windows
-    const maxHitsByStreak = new Map();   // for rewards (reached MAX even if float disabled)
 
     try {
       const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
@@ -2072,35 +2071,6 @@ export default function App() {
     (sum, s) => sum + Number(s.currentPoints || 0),
     0
   );
-
-  const onRedeemConfirm = async () => { // <--- Note the "async" keyword here
-    if (!selectedClass || !rewardToRedeem) return;
-
-    if (redeemType === "individual") {
-      if (!selectedStudentId) return alert("No student selected");
-      
-      // Call Individual
-      await redeemIndividual(selectedClass.id, selectedStudentId, rewardToRedeem.id);
-      
-      // Close Modal
-      setRewardToRedeem(null);
-      
-    } else {
-      // Group: Convert Map to Array
-      const participantArray = Object.entries(redemptionMap).filter(([_, cost]) => Number(cost) > 0);
-      
-      if (participantArray.length === 0) return alert("No participants contributing!");
-      
-      // Call Group
-      const success = await redeemGroup(selectedClass.id, rewardToRedeem.id, participantArray);
-      
-      // Close Modal (ONLY if success)
-      if (success) {
-        setRewardToRedeem(null);
-        setRedeemType("individual"); // Reset type back to default
-      }
-    }
-  };
 
   return (
     <div
