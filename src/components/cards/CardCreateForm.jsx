@@ -4,6 +4,9 @@ export default function CardCreateForm({
   onCreate,
   lockedInputRef,
   unlockedInputRef,
+  lockedInputBRef,
+  unlockedInputBRef,
+  flagConfig,
   streakConfigs = [],
   onValidationError,
 }) {
@@ -13,16 +16,29 @@ export default function CardCreateForm({
   const [category, setCategory] = useState("points");
   const [lockedFile, setLockedFile] = useState(null);
   const [unlockedFile, setUnlockedFile] = useState(null);
+  const [lockedFile_B, setLockedFileB] = useState(null);
+  const [unlockedFile_B, setUnlockedFileB] = useState(null);
   const [linkedStreakIds, setLinkedStreakIds] = useState([]);
   const [streakPick, setStreakPick] = useState("");
   const [streakLookup, setStreakLookup] = useState("");
 
-  function handleCreate() {
+  async function handleCreate() {
     if (!title.trim()) {
       if (onValidationError) onValidationError("Title required");
       return;
     }
-    onCreate({ title, description, points, category, linkedStreakIds: category === "points" ? linkedStreakIds : [], lockedFile, unlockedFile });
+    const result = await onCreate({
+      title,
+      description,
+      points,
+      category,
+      linkedStreakIds: category === "points" ? linkedStreakIds : [],
+      lockedFile,
+      unlockedFile,
+      lockedFile_B,
+      unlockedFile_B,
+    });
+    if (result === false) return;
     setTitle("");
     setDescription("");
     setPoints(1);
@@ -32,8 +48,12 @@ export default function CardCreateForm({
     setStreakLookup("");
     setLockedFile(null);
     setUnlockedFile(null);
+    setLockedFileB(null);
+    setUnlockedFileB(null);
     if (lockedInputRef?.current) lockedInputRef.current.value = "";
     if (unlockedInputRef?.current) unlockedInputRef.current.value = "";
+    if (lockedInputBRef?.current) lockedInputBRef.current.value = "";
+    if (unlockedInputBRef?.current) unlockedInputBRef.current.value = "";
   }
 
   function addStreakId(id) {
@@ -169,6 +189,11 @@ export default function CardCreateForm({
         </div>
       )}
 
+      {flagConfig && (
+        <div style={{ fontWeight: 800, marginTop: 10 }}>
+          Option A ({flagConfig.optionA}) images
+        </div>
+      )}
       <div style={{ marginTop: 10, fontSize: 13 }}>
         <div style={{ marginBottom: 4 }}>Locked card (grey with lock)</div>
         <input
@@ -188,6 +213,32 @@ export default function CardCreateForm({
           onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)}
         />
       </div>
+
+      {flagConfig && (
+        <div style={{ borderTop: "1px solid #eee", marginTop: 12, paddingTop: 10 }}>
+          <div style={{ fontWeight: 800, marginBottom: 8 }}>
+            Option B ({flagConfig.optionB}) images (optional)
+          </div>
+          <div style={{ marginTop: 8, fontSize: 13 }}>
+            <div style={{ marginBottom: 4 }}>Locked card</div>
+            <input
+              ref={lockedInputBRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setLockedFileB(e.target.files?.[0] || null)}
+            />
+          </div>
+          <div style={{ marginTop: 10, fontSize: 13 }}>
+            <div style={{ marginBottom: 4 }}>Unlocked card</div>
+            <input
+              ref={unlockedInputBRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setUnlockedFileB(e.target.files?.[0] || null)}
+            />
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: 10 }}>
         <button className="btn primary" onClick={handleCreate}>

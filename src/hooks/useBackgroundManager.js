@@ -11,6 +11,7 @@ export default function useBackgroundManager({
   storage,
   activeClassId,
   activeClass,
+  backgroundFlagValue = "A",
   notify,
 }) {
   const [globalBackgroundUrl, setGlobalBackgroundUrl] = useState("");
@@ -38,13 +39,20 @@ export default function useBackgroundManager({
   }, [globalBackgroundUrl]);
 
   useEffect(() => {
-    if (activeClassId) {
-      const nextBg = activeClass?.backgroundUrl || "";
-      setStickyBackground(nextBg);
+    if (!activeClassId) {
+      setStickyBackground(globalBackgroundUrl || "");
+      return;
     }
-  }, [activeClassId, activeClass]);
 
-  async function uploadBackgroundImage(file) {
+    const nextBg =
+      (backgroundFlagValue === "B" && activeClass?.backgroundUrl_B) ||
+      activeClass?.backgroundUrl ||
+      globalBackgroundUrl ||
+      "";
+    setStickyBackground(nextBg);
+  }, [activeClassId, activeClass, backgroundFlagValue, globalBackgroundUrl]);
+
+  async function uploadBackgroundImage(file, variant = "A") {
     if (!file) return;
 
     try {
@@ -67,8 +75,9 @@ export default function useBackgroundManager({
       const url = await getDownloadURL(snapshot.ref);
 
       if (activeClassId) {
-        await updateDoc(firestoreRef, { backgroundUrl: url });
-        notify(`Background updated for ${activeClass.name}!`);
+        const field = variant === "B" ? "backgroundUrl_B" : "backgroundUrl";
+        await updateDoc(firestoreRef, { [field]: url });
+        notify(`Option ${variant} background updated for ${activeClass?.name || "selected class"}!`);
       } else {
         await setDoc(firestoreRef, { url });
         notify("Global default background updated!");
@@ -79,13 +88,18 @@ export default function useBackgroundManager({
     }
   }
 
-  async function clearBackgroundImage() {
+  async function clearBackgroundImage(variant = "A") {
     try {
       if (activeClassId) {
+        const field = variant === "B" ? "backgroundUrl_B" : "backgroundUrl";
         await updateDoc(doc(db, "classes", activeClassId), {
-          backgroundUrl: "",
+          [field]: "",
         });
-        notify(`Removed background for ${activeClass.name}. Now using default.`);
+        notify(
+          variant === "B"
+            ? `Removed Option B background for ${activeClass?.name || "selected class"}.`
+            : `Removed Option A background for ${activeClass?.name || "selected class"}. Now using default.`
+        );
       } else {
         await setDoc(doc(db, "config", "background"), { url: "" });
         notify("Global background removed!");

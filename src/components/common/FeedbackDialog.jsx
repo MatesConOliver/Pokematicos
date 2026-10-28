@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
+
 export default function FeedbackDialog({
   notice,
   confirmation,
@@ -63,7 +65,7 @@ export default function FeedbackDialog({
                 }}
               >
                 {levelUpNotice.cards.map((c) => {
-                  const img = c.imageURL || c.lockedImageURL;
+                  const img = getCardDisplayImage(c, levelUpNotice.flagValue, false);
                   return (
                     <div
                       key={c.id || c.cardId}

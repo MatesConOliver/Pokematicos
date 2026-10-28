@@ -33,14 +33,13 @@ export async function updateCard({
   classId,
   cardId,
   updates,
-  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
 }) {
-  if (!classId) return;
+  if (!classId) throw new Error("Class not selected");
 
   try {
     const cardRef = doc(db, `classes/${classId}/cards/${cardId}`);
     const snap = await getDoc(cardRef);
-    if (!snap.exists()) return alertFn ? alertFn("Card not found") : undefined;
+    if (!snap.exists()) throw new Error("Card not found");
 
     const prev = snap.data();
     const {
@@ -51,10 +50,14 @@ export async function updateCard({
       linkedStreakIds,
       lockedFile,
       unlockedFile,
+      lockedFile_B,
+      unlockedFile_B,
     } = updates || {};
 
     let lockedImageURL = prev.lockedImageURL || "";
     let unlockedImageURL = prev.imageURL || "";
+    let lockedImageURL_B = prev.lockedImageURL_B || "";
+    let unlockedImageURL_B = prev.imageURL_B || "";
 
     const baseKey = uid(`cardedit_${cardId}`);
 
@@ -72,8 +75,24 @@ export async function updateCard({
       unlockedImageURL = await getDownloadURL(up.ref);
     }
 
+    if (lockedFile_B) {
+      const keyLocked = `${baseKey}_locked_B_${lockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refLocked = storageRef(storage, `classes/${classId}/cards/${keyLocked}`);
+      const up = await uploadBytes(refLocked, lockedFile_B);
+      lockedImageURL_B = await getDownloadURL(up.ref);
+    }
+
+    if (unlockedFile_B) {
+      const keyUnlocked = `${baseKey}_unlocked_B_${unlockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refUnlocked = storageRef(storage, `classes/${classId}/cards/${keyUnlocked}`);
+      const up = await uploadBytes(refUnlocked, unlockedFile_B);
+      unlockedImageURL_B = await getDownloadURL(up.ref);
+    }
+
     if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
     if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+    if (!unlockedImageURL_B && lockedImageURL_B) unlockedImageURL_B = lockedImageURL_B;
+    if (!lockedImageURL_B && unlockedImageURL_B) lockedImageURL_B = unlockedImageURL_B;
 
     const nextCategory = category || prev.category || "points";
     const cleanIds =
@@ -95,11 +114,13 @@ export async function updateCard({
       linkedStreakIds: cleanIds,
       imageURL: unlockedImageURL,
       lockedImageURL,
+      imageURL_B: unlockedImageURL_B,
+      lockedImageURL_B,
       updatedAt: Date.now(),
     });
   } catch (err) {
     console.error("updateCard error", err);
-    if (alertFn) alertFn("Failed to update card. See console.");
+    throw err;
   }
 }
 
@@ -114,20 +135,24 @@ export async function createCard({
   linkedStreakIds = [],
   lockedFile,
   unlockedFile,
+  lockedFile_B,
+  unlockedFile_B,
   lockedFileInputRef,
   unlockedFileInputRef,
-  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  lockedFileBInputRef,
+  unlockedFileBInputRef,
 }) {
   if (!classId) return;
   if (!title?.trim()) {
-    if (alertFn) alertFn("Card title required");
-    return;
+    throw new Error("Card title required");
   }
 
   try {
     const baseKey = uid("card");
     let lockedImageURL = "";
     let unlockedImageURL = "";
+    let lockedImageURL_B = "";
+    let unlockedImageURL_B = "";
 
     if (lockedFile) {
       const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
@@ -143,8 +168,24 @@ export async function createCard({
       unlockedImageURL = await getDownloadURL(snapUnlocked.ref);
     }
 
+    if (lockedFile_B) {
+      const keyLocked = `${baseKey}_locked_B_${lockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refLocked = storageRef(storage, `classes/${classId}/cards/${keyLocked}`);
+      const snapLocked = await uploadBytes(refLocked, lockedFile_B);
+      lockedImageURL_B = await getDownloadURL(snapLocked.ref);
+    }
+
+    if (unlockedFile_B) {
+      const keyUnlocked = `${baseKey}_unlocked_B_${unlockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refUnlocked = storageRef(storage, `classes/${classId}/cards/${keyUnlocked}`);
+      const snapUnlocked = await uploadBytes(refUnlocked, unlockedFile_B);
+      unlockedImageURL_B = await getDownloadURL(snapUnlocked.ref);
+    }
+
     if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
     if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+    if (!unlockedImageURL_B && lockedImageURL_B) unlockedImageURL_B = lockedImageURL_B;
+    if (!lockedImageURL_B && unlockedImageURL_B) lockedImageURL_B = unlockedImageURL_B;
 
     const cleanLinked = Array.isArray(linkedStreakIds) ? linkedStreakIds.filter(Boolean) : [];
 
@@ -156,6 +197,8 @@ export async function createCard({
       linkedStreakIds: category === "points" ? cleanLinked : [],
       imageURL: unlockedImageURL,
       lockedImageURL,
+      imageURL_B: unlockedImageURL_B,
+      lockedImageURL_B,
       createdAt: Date.now(),
     };
 
@@ -163,9 +206,11 @@ export async function createCard({
 
     if (lockedFileInputRef?.current) lockedFileInputRef.current.value = "";
     if (unlockedFileInputRef?.current) unlockedFileInputRef.current.value = "";
+    if (lockedFileBInputRef?.current) lockedFileBInputRef.current.value = "";
+    if (unlockedFileBInputRef?.current) unlockedFileBInputRef.current.value = "";
   } catch (err) {
     console.error("createCard err:", err);
-    if (alertFn) alertFn("Failed to add card. Check Storage permissions or console.");
+    throw err;
   }
 }
 

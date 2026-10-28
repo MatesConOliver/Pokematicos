@@ -1,7 +1,8 @@
 import React from "react";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
 
-export default function LibraryCardRow({ c, mode, onPreview, onGive = () => {}, onDelete, onEdit = () => {} }) {
-  const showURL = c.lockedImageURL || c.imageURL;
+export default function LibraryCardRow({ c, mode, flagValue = "A", onPreview, onGive = () => {}, onDelete, onEdit = () => {} }) {
+  const showURL = getCardDisplayImage(c, flagValue, true);
   return (
     <div
       style={{

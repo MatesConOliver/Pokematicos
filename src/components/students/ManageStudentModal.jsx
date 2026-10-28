@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { pickEditableFloatWindow } from "../../services/streakService";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
 
 function todayISODate() {
   const d = new Date();
@@ -19,6 +20,7 @@ export default function ManageStudentModal({
   classId,
   students,
   cards,
+  flagConfig,
   rewards,
   streakConfigs,
   changeStudentStreakValue,
@@ -61,17 +63,22 @@ export default function ManageStudentModal({
     (student.cards || []).forEach((o) => {
       const key = o.cardId || "unknown";
       if (!map.has(key)) {
+        const card = cards.find((item) => item.id === key);
         map.set(key, {
           cardId: key,
-          title: o.title || "—",
-          imageURL: o.imageURL || "",
+          title: card?.title || o.title || "—",
+          imageURL: getCardDisplayImage(
+            card || o,
+            flagConfig ? student.flagValue : "A",
+            false
+          ),
           ownedIds: [],
         });
       }
       map.get(key).ownedIds.push(o.id);
     });
     return Array.from(map.values());
-  }, [student.cards]);
+  }, [student.cards, student.flagValue, cards, flagConfig]);
 
   const giveableCards = useMemo(() => {
     return (cards || []).filter((c) => (c.category || "points") !== "rewards");
@@ -526,9 +533,9 @@ export default function ManageStudentModal({
                       cursor: "pointer",
                     }}
                   >
-                    {(c.lockedImageURL || c.imageURL) ? (
+                    {getCardDisplayImage(c, flagConfig ? student.flagValue : "A", true) ? (
                       <img
-                        src={(c.lockedImageURL || c.imageURL)}
+                        src={getCardDisplayImage(c, flagConfig ? student.flagValue : "A", true)}
                         alt={c.title}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />

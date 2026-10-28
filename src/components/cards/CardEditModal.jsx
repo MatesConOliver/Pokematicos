@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function CardEditModal({ card, streakConfigs = [], onClose, onSave, onValidationError }) {
+export default function CardEditModal({ card, streakConfigs = [], flagConfig, onClose, onSave, onValidationError }) {
   const [title, setTitle] = useState(card.title || "");
   const [description, setDescription] = useState(card.description || "");
   const [points, setPoints] = useState(card.points ?? 0);
@@ -14,6 +14,8 @@ export default function CardEditModal({ card, streakConfigs = [], onClose, onSav
 
   const [lockedFile, setLockedFile] = useState(null);
   const [unlockedFile, setUnlockedFile] = useState(null);
+  const [lockedFile_B, setLockedFileB] = useState(null);
+  const [unlockedFile_B, setUnlockedFileB] = useState(null);
 
   function addStreakId(id) {
     if (!id) return;
@@ -155,11 +157,28 @@ export default function CardEditModal({ card, streakConfigs = [], onClose, onSav
             </div>
           )}
 
+          {flagConfig && (
+            <div style={{ fontWeight: 800, marginTop: 4 }}>
+              Option A ({flagConfig.optionA}) images
+            </div>
+          )}
           <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
           <input type="file" onChange={(e) => setLockedFile(e.target.files?.[0] || null)} />
 
           <div className="muted" style={{ marginTop: 2 }}>Replace UNLOCKED image (optional)</div>
           <input type="file" onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)} />
+
+          {flagConfig && (
+            <div style={{ borderTop: "1px solid #eee", paddingTop: 10 }}>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>
+                Option B ({flagConfig.optionB}) images (optional)
+              </div>
+              <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
+              <input type="file" accept="image/*" onChange={(e) => setLockedFileB(e.target.files?.[0] || null)} />
+              <div className="muted" style={{ marginTop: 8 }}>Replace UNLOCKED image (optional)</div>
+              <input type="file" accept="image/*" onChange={(e) => setUnlockedFileB(e.target.files?.[0] || null)} />
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
             <button
@@ -173,6 +192,8 @@ export default function CardEditModal({ card, streakConfigs = [], onClose, onSav
                   linkedStreakIds: category === "points" ? linkedStreakIds : [],
                   lockedFile,
                   unlockedFile,
+                  lockedFile_B,
+                  unlockedFile_B,
                 })
               }
             >

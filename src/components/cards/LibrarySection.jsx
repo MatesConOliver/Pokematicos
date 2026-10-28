@@ -1,4 +1,5 @@
 import CardLibrary from "./CardLibrary";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
 
 export default function LibrarySection({
   mode,
@@ -9,6 +10,9 @@ export default function LibrarySection({
   streakConfigs,
   lockedInputRef,
   unlockedInputRef,
+  lockedInputBRef,
+  unlockedInputBRef,
+  flagConfig,
   onCreateCard,
   onPreviewCard,
   onOpenBulkGive,
@@ -27,10 +31,13 @@ export default function LibrarySection({
       streakConfigs={streakConfigs}
       lockedInputRef={lockedInputRef}
       unlockedInputRef={unlockedInputRef}
+      lockedInputBRef={lockedInputBRef}
+      unlockedInputBRef={unlockedInputBRef}
+      flagConfig={flagConfig}
       onCreateCard={onCreateCard}
-      onPreviewCard={(card) => onPreviewCard({
+      onPreviewCard={(card, flagValue = "A") => onPreviewCard({
         ...card,
-        imageURL: card.lockedImageURL || card.imageURL,
+        imageURL: getCardDisplayImage(card, flagValue, true),
         isLibraryCard: true,
       })}
       onOpenBulkGive={onOpenBulkGive}

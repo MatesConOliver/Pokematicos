@@ -2,10 +2,13 @@ import React from "react";
 import EmojiParty from "../common/EmojiParty";
 import { todayISODate } from "../../utils/dateUtils";
 import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
 
 export default function StudentsPanel({
   activeClass,
   activeClassId,
+  cards = [],
+  flagConfig,
   classTotalPoints,
   filteredStudents,
   loadingStudents,
@@ -13,6 +16,7 @@ export default function StudentsPanel({
   studentFilter,
   setStudentFilter,
   onAddStreak,
+  onManageFlag,
   onManageStudent,
   onProfileStudent,
   onChangeStudentStreak,
@@ -32,6 +36,11 @@ export default function StudentsPanel({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {mode === "admin" && activeClassId && (
+            <button className="btn" onClick={onManageFlag}>
+              {flagConfig ? "🚩 Flag" : "+ Add Flag"}
+            </button>
+          )}
           {mode === "admin" && activeClassId && (
             <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
           )}
@@ -230,7 +239,16 @@ export default function StudentsPanel({
                         (student.cards || []).forEach((ownedCard) => {
                           const key = ownedCard.cardId || "unknown";
                           if (!groups.has(key)) {
-                            groups.set(key, { title: ownedCard.title || "—", imageURL: ownedCard.imageURL || "", count: 0 });
+                            const card = cards.find((item) => item.id === key);
+                            groups.set(key, {
+                              title: card?.title || ownedCard.title || "—",
+                              imageURL: getCardDisplayImage(
+                                card || ownedCard,
+                                flagConfig ? student.flagValue : "A",
+                                false
+                              ),
+                              count: 0,
+                            });
                           }
                           groups.get(key).count += 1;
                         });
