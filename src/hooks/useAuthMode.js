@@ -45,7 +45,7 @@ export default function useAuthMode({ auth, db }) {
     });
 
     return () => unsub();
-  }, []);
+  }, [auth, db]);
 
   async function loginAdminEmailPassword() {
     setAdminError("");

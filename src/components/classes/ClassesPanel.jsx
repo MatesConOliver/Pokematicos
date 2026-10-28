@@ -1,5 +1,5 @@
 import React from "react";
-import { createClass, editClassName, removeClass } from "../../services/classService";
+import { createClass, removeClass } from "../../services/classService";
 
 export default function ClassesPanel({
   loadingClasses,

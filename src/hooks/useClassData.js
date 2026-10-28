@@ -37,7 +37,7 @@ export default function useClassData({ db, activeClassId }) {
       }
     );
     return () => unsub();
-  }, []);
+  }, [db]);
 
   useEffect(() => {
     const activeClass = classesList.find((item) => item.id === activeClassId);
@@ -106,7 +106,7 @@ export default function useClassData({ db, activeClassId }) {
       unsubCards();
       unsubRewards();
     };
-  }, [activeClassId, classesList]);
+  }, [activeClassId, classesList, db]);
 
   return {
     classesList,
