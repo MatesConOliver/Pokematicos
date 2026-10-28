@@ -80,24 +80,6 @@ import useStudentRequests from "./hooks/useStudentRequests";
  * otherwise saving will fail. See rule note at the bottom.
  */
 
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "pokematicos.firebaseapp.com",
-  databaseURL:
-    process.env.REACT_APP_FIREBASE_DATABASE_URL ||
-    "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "pokematicos",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "pokematicos.firebasestorage.app",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "101415606738",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:101415606738:web:c009f17005904490e9d00b",
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-const auth = getAuth(app);
-
-
 function parseFloatScheduleInput(input, defaults = { delayDays: 7, durationDays: 7 }) {
   const fallback = {
     delayDays: Number.isFinite(defaults.delayDays) ? defaults.delayDays : 7,
