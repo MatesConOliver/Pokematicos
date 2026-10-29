@@ -856,7 +856,6 @@ export default function App() {
 
   return (
     <div style={backgroundStyle}>
-      <EyeToggleButton focusMode={false} onToggle={() => setFocusMode(true)} />
       {mode === "admin" && (
       <>
         <input
@@ -1092,6 +1091,7 @@ export default function App() {
               Requests{pendingCount > 0 ? ` (${pendingCount})` : ""}
             </button>
           )}
+          <EyeToggleButton inline focusMode={false} onToggle={() => setFocusMode(true)} />
           {authUser ? (
             <button className="btn" onClick={logout}>
               Switch role (now Admin)

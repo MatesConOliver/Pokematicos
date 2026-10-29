@@ -1,7 +1,7 @@
 import React from "react";
 
 // Eye icon; crossed with a red line when the interface is visible ("hide" action).
-export default function EyeToggleButton({ focusMode, onToggle }) {
+export default function EyeToggleButton({ focusMode, onToggle, inline = false }) {
   const label = focusMode ? "Show interface" : "Hide interface (background only)";
   return (
     <button
@@ -10,10 +10,9 @@ export default function EyeToggleButton({ focusMode, onToggle }) {
       title={label}
       aria-label={label}
       style={{
-        position: "fixed",
-        right: 12,
-        bottom: 12,
-        zIndex: 2000,
+        ...(inline
+          ? { flexShrink: 0 }
+          : { position: "fixed", top: 12, right: 12, zIndex: 2000 }),
         width: 40,
         height: 40,
         borderRadius: 999,
