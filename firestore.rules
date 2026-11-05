@@ -25,9 +25,7 @@ service cloud.firestore {
     function isStudentRedeemingReward() {
       return request.resource.data.diff(resource.data)
         .affectedKeys()
-        .hasOnly(['currentPoints', 'xp', 'rewardsHistory', 'cards'])
-        && request.resource.data.currentPoints >= 0
-        && request.resource.data.xp >= resource.data.xp;
+        .hasOnly(['currentPoints', 'xp', 'rewardsHistory', 'cards']);
     }
 
     function validRequestCreate() {
