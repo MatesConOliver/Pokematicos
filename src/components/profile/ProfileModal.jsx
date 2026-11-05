@@ -2,12 +2,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { todayISODate } from "../../utils/dateUtils";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { PublicStudentIdDisplay } from "./PublicStudentIdDisplay";
+import { RewardCodeRedemption } from "./RewardCodeRedemption";
 
 export default function ProfileModal({
   mode,
   student,
   onClose,
   onSave,
+  db,
+  classId,
   flagConfig,
   onChangeFlagValue,
   onChangePin,
@@ -21,7 +25,7 @@ export default function ProfileModal({
   onCreateRequest,
   onCancelRequest,
 }) {
-  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "history" | "settings"
+  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "history" | "settings" | "redeem"
 
   // Profile customization state
   const [emojis, setEmojis] = useState(student.nameEmojis || "");
@@ -211,6 +215,24 @@ export default function ProfileModal({
             }}
           >
             ⚙️ Settings & PIN
+          </button>
+
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setActiveTab("redeem")}
+            style={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: activeTab === "redeem" ? "3px solid #2563eb" : "3px solid transparent",
+              background: activeTab === "redeem" ? "#eff6ff" : "transparent",
+              color: activeTab === "redeem" ? "#1d4ed8" : "#4b5563",
+              fontWeight: activeTab === "redeem" ? 700 : 500,
+              padding: "8px 14px",
+              fontSize: 13,
+            }}
+          >
+            🏆 Redeem Code
           </button>
         </div>
 
@@ -851,6 +873,9 @@ export default function ProfileModal({
           {/* ================= TAB 4: SETTINGS & PIN ================= */}
           {activeTab === "settings" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Public Student ID Display */}
+              <PublicStudentIdDisplay studentId={student.id} />
+
               {flagConfig && (
                 <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, background: "#ffffff" }}>
                   <div
@@ -1076,6 +1101,20 @@ export default function ProfileModal({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ================= TAB 5: REDEEM CODE ================= */}
+          {activeTab === "redeem" && (
+            <div>
+              <RewardCodeRedemption
+                db={db}
+                classId={classId}
+                studentId={student.id}
+                onSuccess={() => {
+                  onValidationError("Achievement redeemed successfully! ✨");
+                }}
+              />
             </div>
           )}
         </div>

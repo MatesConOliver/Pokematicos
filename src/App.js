@@ -1320,6 +1320,8 @@ export default function App() {
           mode={mode}
           student={profileStudent}
           onClose={() => setProfileStudentId(null)}
+          db={db}
+          classId={activeClassId}
           pastelColors={PASTEL_COLORS}
           onSave={(cosmetics) =>
             saveStudentProfileCosmetics(activeClassId, profileStudent.id, cosmetics)

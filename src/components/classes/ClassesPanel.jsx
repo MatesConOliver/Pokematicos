@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { createClass, removeClass } from "../../services/classService";
+import { ActivityCatalogueManager } from "../admin/ActivityCatalogueManager";
 
 export default function ClassesPanel({
   loadingClasses,
@@ -14,6 +15,7 @@ export default function ClassesPanel({
   onRenameClass,
   onEndActivity,
 }) {
+  const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
   return (
     <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
       <h3 style={{ marginTop: 0 }}>
@@ -82,6 +84,36 @@ export default function ClassesPanel({
             >
               Create
             </button>
+          </div>
+
+          {/* Activity Catalogue Management */}
+          <div style={{ marginTop: 16 }}>
+            <button
+              className="btn"
+              onClick={() => setShowActivityCatalogue(!showActivityCatalogue)}
+              style={{
+                width: "100%",
+                padding: 10,
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                background: showActivityCatalogue ? "#eff6ff" : "#ffffff",
+                color: showActivityCatalogue ? "#1d4ed8" : "#4b5563",
+                fontWeight: showActivityCatalogue ? 700 : 500,
+              }}
+            >
+              {showActivityCatalogue ? "▼" : "▶"} Activity Catalogue
+            </button>
+
+            {showActivityCatalogue && activeClassId && (
+              <div style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 8, background: "#fafbfc" }}>
+                <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
+              </div>
+            )}
+            {showActivityCatalogue && !activeClassId && (
+              <div className="muted" style={{ marginTop: 12, fontSize: 12 }}>
+                Select a class to manage activities
+              </div>
+            )}
           </div>
         </div>
       )}
