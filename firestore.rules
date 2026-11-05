@@ -94,6 +94,14 @@ service cloud.firestore {
           allow create: if request.auth.uid == studentId;
           allow update, delete: if isAdmin();
         }
+
+        // Student's personal card collection (from rewards) - students can add their own
+        match /cards/{cardId} {
+          allow read: if true;
+          allow create: if request.auth.uid == studentId;
+          allow update, delete: if isAdmin();
+        }
+        }
       }
 
       match /cards/{cardId} {
