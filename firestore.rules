@@ -1,85 +1,122 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if user is global admin
-    function isGlobalAdmin(userId) {
-      return exists(/databases/$(database)/documents/admins/$(userId));
-    }
-    
-    // Helper function to check if user is admin of a class
-    function isAdmin(userId, classId) {
-      return exists(/databases/$(database)/documents/classes/$(classId)/admins/$(userId));
+
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // ============= CLASSES =============
-    match /classes/{classId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin(request.auth.uid, classId);
-
-      // Admins subcollection
-      match /admins/{userId} {
-        allow read: if request.auth != null;
-        // Allow write if already admin, OR if creating your own entry (bootstrap)
-        allow write: if isAdmin(request.auth.uid, classId) || 
-                        (request.auth.uid == userId && request.method in ['create']);
-      }
-
-      // Students subcollection
-      match /students/{studentId} {
-        // Students can read their own data
-        allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
-        allow write: if isAdmin(request.auth.uid, classId);
-
-        // Achievements (redeemed reward codes)
-        match /achievements/{achievement} {
-          // Students can read their own achievements
-          allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
-          // Students can write their own achievements (for code redemption)
-          // Admins can also write achievements
-          allow write: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
-        }
-
-        // Student cards (obtained from rewards)
-        match /cards/{cardId} {
-          // Students can read their own cards
-          allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
-          // Students can write their own cards (for reward redemption)
-          // Admins can also write cards
-          allow write: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
-        }
-
-        // Student document fields
-        match /{document=**} {
-          allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
-          allow write: if isAdmin(request.auth.uid, classId);
-        }
-      }
-
-      // Activity Catalogue (rewardable activities, per class)
-      match /activityCatalogue/{activity} {
-        // Everyone can read the catalogue
-        allow read: if request.auth != null;
-        // Only class admins or global admins can write activities
-        allow write: if isAdmin(request.auth.uid, classId) || isGlobalAdmin(request.auth.uid);
-      }
-
-      // Cards subcollection
-      match /cards/{cardId} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin(request.auth.uid, classId);
-      }
-
-      // Requests subcollection
-      match /requests/{requestId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null;
-      }
+    function onlyProfileCosmeticsChanged() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasOnly(['nameEmojis', 'profileColor', 'pin']);
     }
 
-    // Deny everything else by default
+    function validProfileCosmetics() {
+      return (request.resource.data.nameEmojis is string)
+        && (request.resource.data.nameEmojis.size() <= 3)
+        && (request.resource.data.profileColor is string)
+        && (request.resource.data.profileColor.size() <= 20)
+        && (request.resource.data.pin is string)
+        && (request.resource.data.pin.matches('^[0-9]{4}$'));
+    }
+
+    function isStudentRedeemingReward() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasOnly(['currentPoints', 'xp', 'rewardsHistory', 'cards'])
+        && request.resource.data.currentPoints >= 0
+        && request.resource.data.xp >= resource.data.xp;
+    }
+
+    function validRequestCreate() {
+      let d = request.resource.data;
+      return d.studentId is string
+        && d.status == 'pending'
+        && d.type in ['points', 'card']
+        && d.createdAt is number
+        && d.studentName is string && d.studentName.size() <= 60
+        && d.className is string && d.className.size() <= 60
+        && (!('note' in d) || (d.note is string && d.note.size() <= 200))
+        && (d.type != 'points' || (d.amount is number && d.amount > 0 && d.amount <= 1000))
+        && (d.type != 'card' || (d.cardId is string && d.cardId.size() > 0));
+    }
+
+    function onlyFlagPreferenceChanged() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasOnly(['flagValue']);
+    }
+
+    function validFlagPreference() {
+      return 'flagValue' in request.resource.data
+        && request.resource.data.flagValue in ['A', 'B'];
+    }
+
+    // Default: everyone can read; nobody can write.
     match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Hide admin list from clients (console still works).
+    match /admins/{uid} {
       allow read, write: if false;
+    }
+
+    // Background config used in your app
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Your main data model
+    match /classes/{classId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+
+      match /students/{studentId} {
+        allow read: if true;
+
+        // admin can do everything
+        allow create, delete: if isAdmin();
+
+        // guests can update profile cosmetics (incl. PIN) OR redeem rewards directly
+        allow update: if isAdmin()
+          || (onlyProfileCosmeticsChanged() && validProfileCosmetics())
+          || (onlyFlagPreferenceChanged() && validFlagPreference())
+          || isStudentRedeemingReward();
+
+        // Achievements (redeemed reward codes) - students can create their own
+        match /achievements/{achievement} {
+          allow read: if true;
+          allow create: if request.auth.uid == studentId;
+          allow update, delete: if isAdmin();
+        }
+      }
+
+      match /cards/{cardId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+      }
+
+      match /rewards/{rewardId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+      }
+
+      match /activityCatalogue/{activity} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+      }
+
+      match /requests/{requestId} {
+        allow read: if true;
+        allow create: if validRequestCreate();
+        allow delete: if true;
+        allow update: if isAdmin();
+      }
     }
   }
 }
