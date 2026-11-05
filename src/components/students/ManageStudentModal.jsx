@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { pickEditableFloatWindow } from "../../services/streakService";
-import { getCardDisplayImage } from "../../utils/cardImageUtils";
 
 function todayISODate() {
   const d = new Date();
@@ -20,7 +19,6 @@ export default function ManageStudentModal({
   classId,
   students,
   cards,
-  flagConfig,
   rewards,
   streakConfigs,
   changeStudentStreakValue,
@@ -63,22 +61,17 @@ export default function ManageStudentModal({
     (student.cards || []).forEach((o) => {
       const key = o.cardId || "unknown";
       if (!map.has(key)) {
-        const card = cards.find((item) => item.id === key);
         map.set(key, {
           cardId: key,
-          title: card?.title || o.title || "—",
-          imageURL: getCardDisplayImage(
-            card || o,
-            flagConfig ? student.flagValue : "A",
-            false
-          ),
+          title: o.title || "—",
+          imageURL: o.imageURL || "",
           ownedIds: [],
         });
       }
       map.get(key).ownedIds.push(o.id);
     });
     return Array.from(map.values());
-  }, [student.cards, student.flagValue, cards, flagConfig]);
+  }, [student.cards]);
 
   const giveableCards = useMemo(() => {
     return (cards || []).filter((c) => (c.category || "points") !== "rewards");
@@ -96,7 +89,7 @@ export default function ManageStudentModal({
     setEditCurrentPoints(student.currentPoints || 0);
     setEditXP(student.xp || 0);
     setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
-  }, [student.id, student.name, student.currentPoints, student.xp, student.multiplier]);
+  }, [student.id, student.name, student.currentPoints, student.xp]);
 
   function addQuickPoints(amount) {
     const m = computeEffectiveMultiplier(student, todayISODate());
@@ -533,9 +526,9 @@ export default function ManageStudentModal({
                       cursor: "pointer",
                     }}
                   >
-                    {getCardDisplayImage(c, flagConfig ? student.flagValue : "A", true) ? (
+                    {(c.lockedImageURL || c.imageURL) ? (
                       <img
-                        src={getCardDisplayImage(c, flagConfig ? student.flagValue : "A", true)}
+                        src={(c.lockedImageURL || c.imageURL)}
                         alt={c.title}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />
