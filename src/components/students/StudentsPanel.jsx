@@ -3,10 +3,13 @@ import EmojiParty from "../common/EmojiParty";
 import { todayISODate } from "../../utils/dateUtils";
 import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { ActivityCatalogueManager } from "../admin/ActivityCatalogueManager";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
 
 export default function StudentsPanel({
   activeClass,
   activeClassId,
+  cards,
+  flagConfig,
   classTotalPoints,
   filteredStudents,
   loadingStudents,
@@ -228,7 +231,11 @@ export default function StudentsPanel({
                         (student.cards || []).forEach((ownedCard) => {
                           const key = ownedCard.cardId || "unknown";
                           if (!groups.has(key)) {
-                            groups.set(key, { title: ownedCard.title || "—", imageURL: ownedCard.imageURL || "", count: 0 });
+                            // Look up full card data to get both imageURL variants
+                            const fullCard = cards.find(c => c.id === key);
+                            const studentFlagValue = student.flagValue || "A";
+                            const displayImageURL = fullCard ? getCardDisplayImage(fullCard, studentFlagValue) : (ownedCard.imageURL || "");
+                            groups.set(key, { title: ownedCard.title || "—", imageURL: ownedCard.imageURL || "", displayImageURL, count: 0 });
                           }
                           groups.get(key).count += 1;
                         });
@@ -243,8 +250,8 @@ export default function StudentsPanel({
                             style={{ width: 80, height: 110, border: "1px solid #eee", borderRadius: 10, overflow: "hidden", cursor: "pointer", position: "relative", background: "white" }}
                             onClick={() => onPreviewCard({ ownedList: ownedUniqueList, ownedIndex: index, isLibraryCard: false })}
                           >
-                            {group.imageURL ? (
-                              <img src={group.imageURL} alt={group.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            {group.displayImageURL ? (
+                              <img src={group.displayImageURL} alt={group.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                             ) : (
                               <div style={{ padding: 6, fontSize: 11 }}>{group.title}</div>
                             )}
