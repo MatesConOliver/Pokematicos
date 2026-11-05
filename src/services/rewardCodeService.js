@@ -9,6 +9,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   collection,
   getDocs,
   writeBatch,
@@ -410,10 +411,17 @@ export async function updateActivityInCatalogue({
       `classes/${classId}/activityCatalogue/${sourceId}_${activityId}`
     );
 
-    await updateDoc(activityRef, {
+    const payload = {
       ...updates,
       updatedAt: serverTimestamp(),
-    });
+    };
+
+    // If changing to points-only reward, clear cardId
+    if (updates.rewardType === "points") {
+      payload.cardId = null;
+    }
+
+    await updateDoc(activityRef, payload);
   } catch (err) {
     console.error("updateActivityInCatalogue error:", err);
     throw err;
@@ -446,7 +454,7 @@ export async function getActivityCatalogue({ db, classId }) {
 }
 
 /**
- * Delete an activity from the catalogue
+ * Delete an activity from the catalogue permanently
  *
  * @param {Object} params
  * @param {*} params.db - Firestore instance
@@ -470,7 +478,7 @@ export async function deleteActivityFromCatalogue({
       db,
       `classes/${classId}/activityCatalogue/${sourceId}_${activityId}`
     );
-    await updateDoc(activityRef, { isActive: false });
+    await deleteDoc(activityRef);
   } catch (err) {
     console.error("deleteActivityFromCatalogue error:", err);
     throw err;
