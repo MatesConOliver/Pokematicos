@@ -18,7 +18,7 @@
  * @returns {number} CRC-8 value (8-bit unsigned)
  */
 function crc8(buffer) {
-  let crc = 0x00;
+  let crc = 0xFF;
   for (let i = 0; i < buffer.length; i++) {
     crc ^= buffer[i];
     for (let j = 0; j < 8; j++) {
@@ -29,7 +29,7 @@ function crc8(buffer) {
       }
     }
   }
-  return crc;
+  return crc ^ 0xFF;
 }
 
 /**
