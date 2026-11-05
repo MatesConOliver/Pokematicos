@@ -63,7 +63,7 @@ export default function ClassesPanel({
         <div className="muted">No classes yet</div>
       )}
 
-      {mode === "admin" && (
+      {mode === "admin" && !activeClassId && (
         <div style={{ marginTop: 16 }}>
           <h4 style={{ margin: "10px 0" }}>Add class</h4>
           <div style={{ display: "flex", gap: 8 }}>
@@ -85,36 +85,32 @@ export default function ClassesPanel({
               Create
             </button>
           </div>
+        </div>
+      )}
 
-          {/* Activity Catalogue Management */}
-          <div style={{ marginTop: 16 }}>
-            <button
-              className="btn"
-              onClick={() => setShowActivityCatalogue(!showActivityCatalogue)}
-              style={{
-                width: "100%",
-                padding: 10,
-                borderRadius: 8,
-                border: "1px solid #ddd",
-                background: showActivityCatalogue ? "#eff6ff" : "#ffffff",
-                color: showActivityCatalogue ? "#1d4ed8" : "#4b5563",
-                fontWeight: showActivityCatalogue ? 700 : 500,
-              }}
-            >
-              {showActivityCatalogue ? "▼" : "▶"} Activity Catalogue
-            </button>
+      {mode === "admin" && activeClassId && (
+        <div style={{ marginTop: 16 }}>
+          <button
+            className="btn"
+            onClick={() => setShowActivityCatalogue(!showActivityCatalogue)}
+            style={{
+              width: "100%",
+              padding: 10,
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              background: showActivityCatalogue ? "#eff6ff" : "#ffffff",
+              color: showActivityCatalogue ? "#1d4ed8" : "#4b5563",
+              fontWeight: showActivityCatalogue ? 700 : 500,
+            }}
+          >
+            {showActivityCatalogue ? "▼" : "▶"} Activity Catalogue
+          </button>
 
-            {showActivityCatalogue && activeClassId && (
-              <div style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 8, background: "#fafbfc" }}>
-                <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
-              </div>
-            )}
-            {showActivityCatalogue && !activeClassId && (
-              <div className="muted" style={{ marginTop: 12, fontSize: 12 }}>
-                Select a class to manage activities
-              </div>
-            )}
-          </div>
+          {showActivityCatalogue && activeClassId && (
+            <div style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 8, background: "#fafbfc" }}>
+              <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
+            </div>
+          )}
         </div>
       )}
     </aside>
