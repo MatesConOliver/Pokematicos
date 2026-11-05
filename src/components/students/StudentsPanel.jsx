@@ -13,6 +13,7 @@ export default function StudentsPanel({
   studentFilter,
   setStudentFilter,
   onAddStreak,
+  onManageFlag,
   onManageStudent,
   onProfileStudent,
   onChangeStudentStreak,
@@ -33,7 +34,10 @@ export default function StudentsPanel({
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {mode === "admin" && activeClassId && (
-            <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
+            <>
+              <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
+              <button className="btn" onClick={onManageFlag}>🚩 Flag</button>
+            </>
           )}
 
           <input
