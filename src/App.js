@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db, storage, auth } from "./firebase";
 import LibrarySection from "./components/cards/LibrarySection";
@@ -7,6 +7,7 @@ import CardPreviewModal from "./components/cards/CardPreviewModal";
 import BulkGiveModal from "./components/cards/BulkGiveModal";
 import FeedbackDialog from "./components/common/FeedbackDialog";
 import StreakFormModal from "./components/classes/StreakFormModal";
+import ClassFlagModal from "./components/classes/ClassFlagModal";
 import RewardCardPickerModal from "./components/classes/RewardCardPickerModal";
 import FloatScheduleModal from "./components/classes/FloatScheduleModal";
 import FloatWindowEditModal from "./components/classes/FloatWindowEditModal";
@@ -14,6 +15,7 @@ import ProfileModal from "./components/profile/ProfileModal";
 import PinGateModal from "./components/profile/PinGateModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
 import BulkStreakModal from "./components/classes/BulkStreakModal";
+import EyeToggleButton from "./components/common/EyeToggleButton";
 import RequestsPanel from "./components/requests/RequestsPanel";
 import LoginScreen from "./components/auth/LoginScreen";
 import ClassesPanel from "./components/classes/ClassesPanel";
@@ -125,6 +127,9 @@ export default function App() {
   const [floatWindowEditRequest, setFloatWindowEditRequest] = useState(null);
   const [classRenameRequest, setClassRenameRequest] = useState(null);
   const [classArchiveRequest, setClassArchiveRequest] = useState(null);
+  const [showClassFlagModal, setShowClassFlagModal] = useState(false);
+  const [viewFlag, setViewFlag] = useState("A");
+  const appliedFlagClassRef = useRef(null);
   const {
     notice,
     levelUpNotice,
@@ -146,8 +151,27 @@ export default function App() {
   // Profile modal selection (guest + admin)
   const [profileStudentId, setProfileStudentId] = useState(null);
   // Students whose PIN has already been verified this session
-  const [unlockedProfileIds, setUnlockedProfileIds] = useState(() => new Set());
+  // Ordered oldest -> most recently opened; remembered by this browser.
+  const [unlockedProfileList, setUnlockedProfileList] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem("unlockedProfileIds") || "[]");
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  });
+  const unlockedProfileIds = useMemo(() => new Set(unlockedProfileList), [unlockedProfileList]);
+  const rememberUnlockedProfile = useCallback((id) => {
+    setUnlockedProfileList((prev) => {
+      const next = [...prev.filter((x) => x !== id), id];
+      try {
+        localStorage.setItem("unlockedProfileIds", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
   const [showRequestsPanel, setShowRequestsPanel] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const [showBulkStreaks, setShowBulkStreaks] = useState(false);
 
   const { pendingRequests, pendingCount } = useStudentRequests({ db });
@@ -158,6 +182,8 @@ export default function App() {
   // two file inputs for cards
   const lockedFileInputRef = useRef(null);
   const unlockedFileInputRef = useRef(null);
+  const lockedFileBInputRef = useRef(null);
+  const unlockedFileBInputRef = useRef(null);
 
   const activeClass = useMemo(
     () => classesList.find((c) => c.id === activeClassId) || null,
@@ -176,6 +202,33 @@ export default function App() {
 
   const profileNeedsPin =
     !!profileStudent && mode !== "admin" && !unlockedProfileIds.has(profileStudent.id);
+
+  // Entering a class: guests start on the option of the most recently opened remembered profile.
+  useEffect(() => {
+    if (!activeClassId) {
+      appliedFlagClassRef.current = null;
+      return;
+    }
+    if (loadingStudents || appliedFlagClassRef.current === activeClassId) return;
+    appliedFlagClassRef.current = activeClassId;
+    let next = "A";
+    if (mode !== "admin") {
+      for (let i = unlockedProfileList.length - 1; i >= 0; i--) {
+        const s = students.find((st) => st.id === unlockedProfileList[i]);
+        if (s) {
+          next = s.flagValue === "B" ? "B" : "A";
+          break;
+        }
+      }
+    }
+    setViewFlag(next);
+  }, [activeClassId, loadingStudents, students, mode, unlockedProfileList]);
+
+  // Opening (or changing the option of) an unlocked profile points the view at its option.
+  const openProfileFlag = profileStudent && !profileNeedsPin ? (profileStudent.flagValue === "B" ? "B" : "A") : null;
+  useEffect(() => {
+    if (openProfileFlag && mode !== "admin") setViewFlag(openProfileFlag);
+  }, [openProfileFlag, profileStudentId, mode]);
 
   const giveableCardsForProfile = useMemo(
     () => (cards || []).filter((c) => (c.category || "points") === "points"),
@@ -198,6 +251,7 @@ export default function App() {
     storage,
     activeClassId,
     activeClass,
+    backgroundFlagValue: activeClass?.flagConfig ? viewFlag : "A",
     notify,
   });
 
@@ -360,13 +414,17 @@ export default function App() {
   }
 
   async function updateCard(cardId, updates) {
-    await updateCardService({
-      db,
-      storage,
-      classId: activeClassId,
-      cardId,
-      updates,
-      alertFn: notify,
+    return runMutation({
+      loadingMessage: "Updating card...",
+      successMessage: "Card updated.",
+      errorMessage: "Could not update card.",
+      action: () => updateCardService({
+        db,
+        storage,
+        classId: activeClassId,
+        cardId,
+        updates,
+      }),
     });
   }
 
@@ -418,6 +476,45 @@ export default function App() {
         });
       },
     });
+  }
+
+  async function saveStudentFlagPreference(flagValue) {
+    return runMutation({
+      loadingMessage: "Saving preference...",
+      successMessage: "Preference updated.",
+      errorMessage: "Could not save your preference. (Check Firestore rules)",
+      action: async () => {
+        await updateDoc(doc(db, `classes/${activeClassId}/students/${profileStudent.id}`), {
+          flagValue,
+        });
+      },
+    });
+  }
+
+  async function saveClassFlag(flagConfig) {
+    if (!activeClassId) return false;
+    const result = await runMutation({
+      loadingMessage: "Saving class flag...",
+      successMessage: "Class flag saved.",
+      errorMessage: "Could not save class flag.",
+      action: () =>
+        updateDoc(doc(db, `classes/${activeClassId}`), { flagConfig }),
+    });
+    if (result !== false) setShowClassFlagModal(false);
+    return result;
+  }
+
+  async function deleteClassFlag() {
+    if (!activeClassId) return false;
+    const result = await runAction({
+      action: () => updateDoc(doc(db, `classes/${activeClassId}`), { flagConfig: null }),
+      message: "Deleting class flag...",
+      successMessage: "Class flag deleted.",
+      errorMessage: "Could not delete class flag.",
+      confirmMessage: "Delete this class flag? Card artwork and student records will remain unchanged.",
+    });
+    if (result !== false) setShowClassFlagModal(false);
+    return result;
   }
 
   // ----- Student requests (card / points, pending professor approval) -----
@@ -502,6 +599,8 @@ export default function App() {
     linkedStreakIds = [],
     lockedFile,
     unlockedFile,
+    lockedFile_B,
+    unlockedFile_B,
   }) {
     if (!ensureClassSelected()) return;
 
@@ -521,9 +620,12 @@ export default function App() {
           linkedStreakIds,
           lockedFile,
           unlockedFile,
+          lockedFile_B,
+          unlockedFile_B,
           lockedFileInputRef,
           unlockedFileInputRef,
-          alertFn: notify,
+          lockedFileBInputRef,
+          unlockedFileBInputRef,
         });
       },
     });
@@ -660,7 +762,12 @@ export default function App() {
           cards,
           alertFn: (data) => {
             if (typeof data === "object" && data !== null && data.cards) {
-              notifyLevelUp(data);
+              const studentFlagValue =
+                activeClass?.flagConfig &&
+                students.find((student) => student.id === studentId)?.flagValue === "B"
+                  ? "B"
+                  : "A";
+              notifyLevelUp({ ...data, flagValue: studentFlagValue });
             } else {
               notify(data);
             }
@@ -708,6 +815,8 @@ export default function App() {
       setAdminError={setAdminError}
       enterReader={enterReader}
       loginAdminEmailPassword={loginAdminEmailPassword}
+      focusMode={focusMode}
+      onToggleFocus={() => setFocusMode((v) => !v)}
     />;
   }
 
@@ -721,20 +830,32 @@ export default function App() {
     students.reduce((sum, s) => sum + Number(s.currentPoints || 0), 0)
   );
 
+  const backgroundStyle = {
+    fontFamily: "Inter, system-ui, sans-serif",
+    minHeight: "100vh",
+    padding: 12,
+    backgroundImage: stickyBackground ? `url(${stickyBackground})` : "none",
+    backgroundSize: "cover",
+    backgroundAttachment: "fixed",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    transition: "background-image 1s ease-in-out" // Optional: makes the switch smooth
+  };
+
+  if (focusMode) {
+    return (
+      <div style={backgroundStyle}>
+        <EyeToggleButton focusMode onToggle={() => setFocusMode(false)} />
+        <div className="column-title-pill" style={{ fontSize: 18, fontWeight: 800 }}>
+          {activeClassId ? activeClass?.name || "Class" : "All classes"}
+        </div>
+        <style>{`.column-title-pill{display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.96);box-shadow:0 2px 6px rgba(15,23,42,.25)}`}</style>
+      </div>
+    );
+  }
+
   return (
-    <div
-      style={{
-        fontFamily: "Inter, system-ui, sans-serif",
-        minHeight: "100vh",
-        padding: 12,
-        backgroundImage: stickyBackground ? `url(${stickyBackground})` : "none",
-        backgroundSize: "cover",
-        backgroundAttachment: "fixed",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        transition: "background-image 1s ease-in-out" // Optional: makes the switch smooth
-      }}
-    >
+    <div style={backgroundStyle}>
       {mode === "admin" && (
       <>
         <input
@@ -745,7 +866,7 @@ export default function App() {
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
-              uploadBackgroundImage(file);
+              uploadBackgroundImage(file, activeClass?.flagConfig ? viewFlag : "A");
               e.target.value = "";
             }
           }}
@@ -762,16 +883,41 @@ export default function App() {
           className="btn"
           onClick={() => bgInputRef.current?.click()}
         >
-          {activeClassId ? "Set Class Background" : "Set Global Background"}
+          {activeClassId
+            ? `Set Class Background (Option ${activeClass?.flagConfig ? viewFlag : "A"})`
+            : "Set Global Background"}
         </button>
   
+        {activeClassId && activeClass?.flagConfig && (
+          <div style={{ display: "inline-flex", gap: 6, marginLeft: 8 }} role="group" aria-label="Background option">
+            {[["A", activeClass.flagConfig.optionA], ["B", activeClass.flagConfig.optionB]].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="btn"
+                aria-pressed={viewFlag === value}
+                onClick={() => setViewFlag(value)}
+                style={{ background: viewFlag === value ? "#def" : "white" }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Show "Remove" if the CURRENT context has a background set */}
-        {((activeClassId && activeClass?.backgroundUrl) || (!activeClassId && globalBackgroundUrl)) && (
+        {((activeClassId &&
+          ((activeClass?.flagConfig && viewFlag === "B")
+            ? activeClass?.backgroundUrl_B
+            : activeClass?.backgroundUrl)) ||
+          (!activeClassId && globalBackgroundUrl)) && (
           <button
             className="btn"
-            onClick={clearBackgroundImage}
+            onClick={() => clearBackgroundImage(activeClass?.flagConfig ? viewFlag : "A")}
           >
-            {activeClassId ? "Revert to Global" : "Remove Global Bg"}
+            {activeClassId
+              ? `Clear Option ${viewFlag} Background`
+              : "Remove Global Bg"}
           </button>
         )}
       </>
@@ -932,25 +1078,27 @@ export default function App() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0 }}>CBA card system</h1>
-          <div style={{ color: "#555" }}>
-            {mode === "admin" ? "Admin mode" : "Guest mode"}
-          </div>
+          {activeClassId && (
+            <button className="btn" onClick={() => setActiveClassId(null)}>
+              ← All classes
+            </button>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {mode === "admin" && (
             <button className="btn" onClick={() => setShowRequestsPanel(true)}>
-              Peticiones{pendingCount > 0 ? ` (${pendingCount})` : ""}
+              Requests{pendingCount > 0 ? ` (${pendingCount})` : ""}
             </button>
           )}
+          <EyeToggleButton inline focusMode={false} onToggle={() => setFocusMode(true)} />
           {authUser ? (
             <button className="btn" onClick={logout}>
-              Cerrar sesión
+              Switch role (now Admin)
             </button>
           ) : (
             <button className="btn" onClick={() => setMode(null)}>
-              Cambiar rol
+              Switch role (now Guest)
             </button>
           )}
         </div>
@@ -960,9 +1108,9 @@ export default function App() {
         <div style={{ marginBottom: 12, color: "crimson" }}>{errorMsg}</div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 360px", gap: 14 }}>
-        {/* LEFT: Classes */}
-        <ClassesPanel
+      <div style={{ display: "grid", gridTemplateColumns: activeClassId ? "1fr 360px" : "260px", gap: 14 }}>
+        {/* Classes: only on the main screen */}
+        {!activeClassId && <ClassesPanel
           loadingClasses={loadingClasses}
           classesList={classesList}
           activeClassId={activeClassId}
@@ -984,7 +1132,7 @@ export default function App() {
               await endClassActivity(db, classId, archiveUrl, notify);
             }
           }}
-        />
+        />}
 
         {/* Only show these if a class is selected */}
         {activeClassId && activeClass?.archivedUrl ? (
@@ -1002,6 +1150,8 @@ export default function App() {
             <StudentsPanel
               activeClass={activeClass}
               activeClassId={activeClassId}
+              cards={cards}
+              flagConfig={activeClass?.flagConfig}
               classTotalPoints={classTotalPoints}
               filteredStudents={filteredStudents}
               loadingStudents={loadingStudents}
@@ -1009,6 +1159,7 @@ export default function App() {
               studentFilter={studentFilter}
               setStudentFilter={setStudentFilter}
               onAddStreak={() => setShowBulkStreaks(true)}
+              onManageFlag={() => setShowClassFlagModal(true)}
               onManageStudent={setSelectedStudentId}
               onProfileStudent={setProfileStudentId}
               onChangeStudentStreak={(classId, studentId, streakId, delta, cfg) =>
@@ -1044,6 +1195,11 @@ export default function App() {
               streakConfigs={activeClass?.streakConfigs || []}
               lockedInputRef={lockedFileInputRef}
               unlockedInputRef={unlockedFileInputRef}
+              lockedInputBRef={lockedFileBInputRef}
+              unlockedInputBRef={unlockedFileBInputRef}
+              flagConfig={activeClass?.flagConfig}
+              viewFlag={viewFlag}
+              onChangeViewFlag={setViewFlag}
               onCreateCard={createCard}
               onPreviewCard={setCardPreview}
               onOpenBulkGive={openBulkGive}
@@ -1068,10 +1224,11 @@ export default function App() {
         <CardEditModal
           card={editCard}
           streakConfigs={activeClass?.streakConfigs || []}
+          flagConfig={activeClass?.flagConfig}
           onClose={() => setEditCard(null)}
           onSave={async (updates) => {
-            await updateCard(editCard.id, updates);
-            setEditCard(null);
+            const result = await updateCard(editCard.id, updates);
+            if (result !== false) setEditCard(null);
           }}
         />
       )}
@@ -1083,7 +1240,7 @@ export default function App() {
           onClose={() => setProfileStudentId(null)}
           onSubmit={(pin) => {
             if (verifyPin(profileStudent, pin)) {
-              setUnlockedProfileIds((prev) => new Set(prev).add(profileStudent.id));
+              rememberUnlockedProfile(profileStudent.id);
             } else {
               notify("PIN incorrecto.");
             }
@@ -1149,6 +1306,8 @@ export default function App() {
       {mode === "admin" && showRequestsPanel && (
         <RequestsPanel
           pendingRequests={pendingRequests}
+          classesList={classesList}
+          activeClassId={activeClassId}
           onApprove={approveStudentRequest}
           onReject={rejectStudentRequest}
           onClose={() => setShowRequestsPanel(false)}
@@ -1167,6 +1326,8 @@ export default function App() {
           onSave={(cosmetics) =>
             saveStudentProfileCosmetics(activeClassId, profileStudent.id, cosmetics)
           }
+          flagConfig={activeClass?.flagConfig}
+          onChangeFlagValue={saveStudentFlagPreference}
           onChangePin={(currentPin, newPin) =>
             changePin(db, activeClassId, profileStudent.id, profileStudent, currentPin, newPin, notify)
           }
@@ -1190,6 +1351,7 @@ export default function App() {
           classId={activeClassId}
           students={students}
           cards={cards}
+          flagConfig={activeClass?.flagConfig}
           rewards={rewards}
           streakConfigs={activeClass?.streakConfigs || []}
           changeStudentStreakValue={(classId, studentId, streakId, delta, cfg) =>
@@ -1291,6 +1453,15 @@ export default function App() {
         onDismissLevelUp={() => notifyLevelUp(null)}
         onResolveConfirmation={resolveConfirmation}
       />
+
+      {mode === "admin" && showClassFlagModal && activeClassId && (
+        <ClassFlagModal
+          flagConfig={activeClass?.flagConfig}
+          onClose={() => setShowClassFlagModal(false)}
+          onSave={saveClassFlag}
+          onDelete={deleteClassFlag}
+        />
+      )}
 
       <StreakFormModal
         request={streakFormRequest}
@@ -1397,7 +1568,8 @@ export default function App() {
  * match /classes/{classId}/students/{studentId} {
  *   allow read: if true;
  *   // only allow updating profile cosmetics for guests
- *   allow update: if request.resource.data.diff(resource.data).changedKeys().hasOnly(['nameEmojis','profileColor']);
+ *   allow update: if request.resource.data.diff(resource.data).changedKeys().hasOnly(['nameEmojis','profileColor','flagValue'])
+ *     && (!('flagValue' in request.resource.data) || request.resource.data.flagValue in ['A','B']);
  * }
  *
  * With Auth later, you can lock this down properly per-student.
