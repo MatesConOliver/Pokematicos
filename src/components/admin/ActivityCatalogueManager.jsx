@@ -56,7 +56,6 @@ export function ActivityCatalogueManager({ db, classId }) {
       rewardType: "points",
       isActive: true,
     });
-    setEditingId(null);
   };
 
   const handleAddActivity = async (e) => {
