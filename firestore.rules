@@ -28,6 +28,21 @@ service cloud.firestore {
         .hasOnly(['currentPoints', 'xp', 'rewardsHistory', 'cards']);
     }
 
+    function validAchievementCreate() {
+      let d = request.resource.data;
+      return d.sourceId is string
+        && d.activityId is string
+        && d.pointsAwarded is number
+        && d.effectivePointsAwarded is number
+        && d.rewardType is string
+        && d.activityName is string;
+    }
+
+    function validStudentCardCreate() {
+      let d = request.resource.data;
+      return d.cardId is string;
+    }
+
     function validRequestCreate() {
       let d = request.resource.data;
       return d.studentId is string
@@ -86,17 +101,17 @@ service cloud.firestore {
           || (onlyFlagPreferenceChanged() && validFlagPreference())
           || isStudentRedeemingReward();
 
-        // Achievements (redeemed reward codes) - students can create their own
+        // Achievements (redeemed reward codes)
         match /achievements/{achievement} {
           allow read: if true;
-          allow create: if request.auth.uid == studentId;
+          allow create: if validAchievementCreate() || isAdmin();
           allow update, delete: if isAdmin();
         }
 
-        // Student's personal card collection (from rewards) - students can add their own
+        // Student's personal card collection (from rewards)
         match /cards/{cardId} {
           allow read: if true;
-          allow create: if request.auth.uid == studentId;
+          allow create: if validStudentCardCreate() || isAdmin();
           allow update, delete: if isAdmin();
         }
       }

@@ -19,6 +19,7 @@ import {
 import { decodeRewardCode, getStudentHash } from "../utils/rewardCodeUtils.js";
 import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
 import { todayISODate } from "../utils/dateUtils";
+import { uid } from "../utils/helpers";
 
 /**
  * Redeem a reward code for the current student
@@ -233,11 +234,11 @@ export async function recordAndAwardAchievement({
       sourceId,
       activityId,
       redeemedAt: serverTimestamp(),
-      pointsAwarded: activity.pointsAwarded,
+      pointsAwarded: Number(activity.pointsAwarded || 0),
       effectivePointsAwarded: effectivePoints,
       rewardType: activity.rewardType || "points",
-      activityName: activity.name,
-      activityDescription: activity.description,
+      activityName: String(activity.name || ""),
+      activityDescription: String(activity.description || ""),
     };
 
     // Update/create achievement document
@@ -247,10 +248,16 @@ export async function recordAndAwardAchievement({
     );
     batch.set(achievementRef, achievement);
 
-    // Update student's points
-    batch.update(studentRef, {
-      currentPoints: increment(effectivePoints),
-    });
+    // Prepare student document updates
+    const currentCards = Array.isArray(studentData.cards) ? [...studentData.cards] : [];
+    const history = Array.isArray(studentData.rewardsHistory) ? [...studentData.rewardsHistory] : [];
+
+    const rewardEntry = {
+      type: "achievement",
+      name: activity.name || "Activity",
+      pointsAwarded: effectivePoints,
+      redeemedAt: Date.now(),
+    };
 
     // Handle card reward if applicable
     if (activity.rewardType === "card" && activity.cardId) {
@@ -261,7 +268,22 @@ export async function recordAndAwardAchievement({
         throw new Error(`Card not found: ${activity.cardId}`);
       }
 
-      // Give the card to the student
+      const cardData = cardSnap.data() || {};
+      const cardTitle = cardData.title || cardData.name || activity.cardId;
+
+      // Add to student's native cards array so it shows in the UI deck
+      currentCards.push({
+        id: uid("owned"),
+        cardId: activity.cardId,
+        title: cardTitle,
+        imageURL: cardData.imageURL || "",
+        imageURL2: cardData.imageURL2 || "",
+        grantedAt: new Date().toISOString(),
+        pointsGranted: effectivePoints,
+        obtainedFrom: `activity_${sourceId}_${activityId}`,
+      });
+
+      // Also set the subcollection for backward-compatibility
       const studentCardsRef = doc(
         db,
         `classes/${classId}/students/${studentId}/cards/${activity.cardId}`
@@ -272,37 +294,30 @@ export async function recordAndAwardAchievement({
           cardId: activity.cardId,
           obtainedAt: serverTimestamp(),
           obtainedFrom: `activity_${sourceId}_${activityId}`,
-          ...cardSnap.data(),
+          ...cardData,
         },
         { merge: true }
       );
 
-      // Update achievement record to include cardId
+      // Update achievement record and reward entry to include card details
       achievement.cardId = activity.cardId;
-      achievement.cardName = cardSnap.data().name || activity.cardId;
+      achievement.cardName = cardTitle;
+      rewardEntry.cardId = activity.cardId;
+      rewardEntry.type = "card";
     }
 
-    // Record in rewards history (for display)
-    if (studentData.rewardsHistory) {
-      const rewardEntry = {
-        type: "achievement",
-        name: activity.name,
-        pointsAwarded: effectivePoints,
-        redeemedAt: Date.now(),
-      };
+    history.push(rewardEntry);
 
-      if (activity.rewardType === "card") {
-        rewardEntry.cardId = activity.cardId;
-        rewardEntry.type = "card";
-      }
-
-      batch.update(studentRef, {
-        rewardsHistory: [
-          ...studentData.rewardsHistory,
-          rewardEntry,
-        ],
-      });
+    // Update student document in one single batch operation
+    const studentUpdates = {
+      currentPoints: increment(effectivePoints),
+      rewardsHistory: history,
+    };
+    if (activity.rewardType === "card" && activity.cardId) {
+      studentUpdates.cards = currentCards;
     }
+
+    batch.update(studentRef, studentUpdates);
 
     await batch.commit();
 
