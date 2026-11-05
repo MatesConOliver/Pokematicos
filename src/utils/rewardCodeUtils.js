@@ -8,6 +8,7 @@
  * Version (1) + StudentIDHash/CRC-32 (4) + SourceID/6chars (6) + ActivityID/6chars (6) + CRC-16 (2)
  * Total: 18 bytes → base36 → 28 characters
  */
+/* global BigInt */
 
 /**
  * Calculate CRC-8 checksum (ATM polynomial)

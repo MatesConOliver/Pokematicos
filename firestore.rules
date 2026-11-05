@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin of a class
+    function isAdmin(userId, classId) {
+      return exists(/databases/$(database)/documents/classes/$(classId)/admins/$(userId));
+    }
+
+    // ============= CLASSES =============
+    match /classes/{classId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin(request.auth.uid, classId);
+
+      // Admins subcollection
+      match /admins/{userId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin(request.auth.uid, classId);
+      }
+
+      // Students subcollection
+      match /students/{studentId} {
+        // Students can read their own data
+        allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
+        allow write: if isAdmin(request.auth.uid, classId);
+
+        // Achievements (redeemed reward codes)
+        match /achievements/{achievement} {
+          // Students can read their own achievements
+          allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
+          // Only admins (or backend) can write achievements
+          allow write: if isAdmin(request.auth.uid, classId);
+        }
+
+        // Student document fields
+        match /{document=**} {
+          allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
+          allow write: if isAdmin(request.auth.uid, classId);
+        }
+      }
+
+      // Activity Catalogue (rewardable activities, per class)
+      match /activityCatalogue/{activity} {
+        // Everyone can read the catalogue
+        allow read: if request.auth != null;
+        // Only admins can write activities
+        allow write: if isAdmin(request.auth.uid, classId);
+      }
+
+      // Cards subcollection
+      match /cards/{cardId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin(request.auth.uid, classId);
+      }
+
+      // Requests subcollection
+      match /requests/{requestId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+      }
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

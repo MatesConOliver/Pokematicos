@@ -2,13 +2,10 @@ import React from "react";
 import EmojiParty from "../common/EmojiParty";
 import { todayISODate } from "../../utils/dateUtils";
 import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
-import { getCardDisplayImage } from "../../utils/cardImageUtils";
 
 export default function StudentsPanel({
   activeClass,
   activeClassId,
-  cards = [],
-  flagConfig,
   classTotalPoints,
   filteredStudents,
   loadingStudents,
@@ -16,7 +13,6 @@ export default function StudentsPanel({
   studentFilter,
   setStudentFilter,
   onAddStreak,
-  onManageFlag,
   onManageStudent,
   onProfileStudent,
   onChangeStudentStreak,
@@ -36,11 +32,6 @@ export default function StudentsPanel({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {mode === "admin" && activeClassId && (
-            <button className="btn" onClick={onManageFlag}>
-              {flagConfig ? "🚩 Flag" : "+ Add Flag"}
-            </button>
-          )}
           {mode === "admin" && activeClassId && (
             <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
           )}
@@ -119,48 +110,9 @@ export default function StudentsPanel({
                     />
                   ))}
 
-                  <>
-                    <div
-                      style={{
-                      display: "grid",
-                      gridTemplateColumns: "minmax(0, 1fr) auto auto",
-                      gap: 8,
-                      alignItems: "start",
-                      }}
-                    >
-                      <div style={{ minWidth: 0, fontWeight: 800 }}>{displayName}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        {mode === "admin" && (
-                          <button
-                            className="btn"
-                            style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
-                            onClick={() => onManageStudent(student.id)}
-                          >
-                            Manage
-                          </button>
-                        )}
-                        <button
-                          className="btn"
-                          style={{ padding: "4px 7px", fontSize: 12, lineHeight: 1.2 }}
-                          onClick={() => onProfileStudent(student.id)}
-                        >
-                          Profile
-                        </button>
-                      </div>
-                      <div style={{ textAlign: "right", whiteSpace: "nowrap", fontWeight: 800 }}>
-                      {student.currentPoints || 0} pts
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                      display: "grid",
-                      gridTemplateColumns: "minmax(0, 1fr) auto",
-                      gap: 8,
-                      alignItems: "start",
-                      marginTop: 8,
-                      }}
-                    >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 800 }}>{displayName}</div>
                       <div className="muted" style={{ lineHeight: 1.35 }}>
                         <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
                           {streakConfigs.length > 0 ? (
@@ -210,44 +162,45 @@ export default function StudentsPanel({
                           ) : null;
                         })()}
                       </div>
-                      <div className="muted" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                        XP: {student.xp || 0}
-                      </div>
                     </div>
 
-                      {mode === "admin" && (
-                        <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                          <span className="pill">Points</span>
-                          {[1, 5, 10].map((amount) => (
-                            <button
-                              key={amount}
-                              className="btn"
-                              style={{ padding: "6px 10px" }}
-                              onClick={() => onQuickAddPoints(activeClassId, student.id, amount)}
-                            >
-                              +{amount}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontWeight: 800 }}>{student.currentPoints || 0} pts</div>
+                      <div className="muted">XP: {student.xp || 0}</div>
+                    </div>
+                  </div>
 
-                      <div style={{ marginTop: 10 }}>
-                    <div style={{ maxHeight: 150, overflowY: "auto", paddingRight: 6, display: "flex", gap: 8, flexWrap: "wrap", alignContent: "flex-start" }}>
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    {mode === "admin" && (
+                      <button className="btn" onClick={() => onManageStudent(student.id)}>Manage</button>
+                    )}
+                    <button className="btn" onClick={() => onProfileStudent(student.id)}>Perfil</button>
+                    {mode === "admin" && (
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <span className="pill">Points</span>
+                        {[1, 5, 10].map((amount) => (
+                          <button
+                            key={amount}
+                            className="btn"
+                            style={{ padding: "6px 10px" }}
+                            onClick={() => onQuickAddPoints(activeClassId, student.id, amount)}
+                          >
+                            +{amount}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
+                    <div style={{ marginTop: 8, maxHeight: 150, overflowY: "auto", paddingRight: 6, display: "flex", gap: 8, flexWrap: "wrap", alignContent: "flex-start" }}>
                       {(() => {
                         const groups = new Map();
                         (student.cards || []).forEach((ownedCard) => {
                           const key = ownedCard.cardId || "unknown";
                           if (!groups.has(key)) {
-                            const card = cards.find((item) => item.id === key);
-                            groups.set(key, {
-                              title: card?.title || ownedCard.title || "—",
-                              imageURL: getCardDisplayImage(
-                                card || ownedCard,
-                                flagConfig ? student.flagValue : "A",
-                                false
-                              ),
-                              count: 0,
-                            });
+                            groups.set(key, { title: ownedCard.title || "—", imageURL: ownedCard.imageURL || "", count: 0 });
                           }
                           groups.get(key).count += 1;
                         });
@@ -277,7 +230,6 @@ export default function StudentsPanel({
                       })()}
                     </div>
                   </div>
-                    </>
                 </div>
               );
             })}

@@ -11,8 +11,6 @@ import {
   updateDoc,
   collection,
   getDocs,
-  query,
-  where,
   writeBatch,
   increment,
   serverTimestamp,

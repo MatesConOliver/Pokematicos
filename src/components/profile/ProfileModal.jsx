@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { todayISODate } from "../../utils/dateUtils";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
-import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { PublicStudentIdDisplay } from "./PublicStudentIdDisplay";
 import { RewardCodeRedemption } from "./RewardCodeRedemption";
 
@@ -10,12 +9,10 @@ export default function ProfileModal({
   student,
   onClose,
   onSave,
-  db,
-  classId,
-  flagConfig,
-  onChangeFlagValue,
   onChangePin,
   onValidationError,
+  db,
+  classId,
   pastelColors = [],
   giveableCards = [],
   allCards = [],
@@ -30,12 +27,6 @@ export default function ProfileModal({
   // Profile customization state
   const [emojis, setEmojis] = useState(student.nameEmojis || "");
   const [color, setColor] = useState(student.profileColor || "");
-  const [flagValue, setFlagValue] = useState(student.flagValue === "B" ? "B" : "A");
-  const [savingFlagValue, setSavingFlagValue] = useState(false);
-
-  useEffect(() => {
-    setFlagValue(student.flagValue === "B" ? "B" : "A");
-  }, [student.flagValue]);
 
   // PIN change state
   const [currentPin, setCurrentPin] = useState("");
@@ -49,7 +40,6 @@ export default function ProfileModal({
   const [requestNote, setRequestNote] = useState("");
 
   const displayName = `${student.name}${emojis ? " " + emojis : ""}`;
-  const displayFlagValue = flagConfig ? flagValue : "A";
   const currentPoints = Number(student.currentPoints || 0);
   const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate());
 
@@ -402,7 +392,7 @@ export default function ProfileModal({
                         >
                           {giveableCards.map((c) => {
                             const isSelected = requestCardId === c.id;
-                            const img = getCardDisplayImage(c, displayFlagValue, true);
+                            const img = c.lockedImageURL || c.imageURL || "";
                             return (
                               <div
                                 key={c.id}
@@ -646,7 +636,7 @@ export default function ProfileModal({
                     const cost = Number(r.cost || 0);
                     const canAfford = currentPoints >= cost;
                     const linkedCard = r.cardId ? cardsMap.get(r.cardId) : null;
-                    const cardImg = getCardDisplayImage(linkedCard, displayFlagValue, false);
+                    const cardImg = linkedCard?.imageURL || linkedCard?.lockedImageURL || "";
                     const desc = linkedCard?.description || r.description || "";
 
                     return (
@@ -799,19 +789,10 @@ export default function ProfileModal({
                             gap: 4,
                           }}
                         >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                                  {h.cardId && getCardDisplayImage(cardsMap.get(h.cardId), displayFlagValue, false) && (
-                                    <img
-                                      src={getCardDisplayImage(cardsMap.get(h.cardId), displayFlagValue, false)}
-                                      alt=""
-                                      style={{ width: 30, height: 40, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
-                                    />
-                                  )}
-                                  <div style={{ fontWeight: 700, color: "#111827", fontSize: 14 }}>
-                                    {h.title}
-                                  </div>
-                                </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ fontWeight: 700, color: "#111827", fontSize: 14 }}>
+                              {h.title}
+                            </div>
                             <div
                               style={{
                                 background: "#fee2e2",
@@ -875,58 +856,6 @@ export default function ProfileModal({
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               {/* Public Student ID Display */}
               <PublicStudentIdDisplay studentId={student.id} />
-
-              {flagConfig && (
-                <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, background: "#ffffff" }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                      color: "#6b7280",
-                      fontWeight: 700,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {flagConfig.label} preference
-                  </div>
-                  <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
-                    Choose which card artwork and class background you see.
-                  </div>
-                  <div role="group" aria-label={`${flagConfig.label} preference`} style={{ display: "flex", gap: 8 }}>
-                    {[["A", flagConfig.optionA], ["B", flagConfig.optionB]].map(([value, label]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className="btn"
-                        aria-pressed={flagValue === value}
-                        disabled={savingFlagValue || !onChangeFlagValue}
-                        onClick={async () => {
-                          if (value === flagValue) return;
-                          setFlagValue(value);
-                          setSavingFlagValue(true);
-                          try {
-                            const result = await onChangeFlagValue(value);
-                            if (result === false) setFlagValue(student.flagValue === "B" ? "B" : "A");
-                          } catch (error) {
-                            setFlagValue(student.flagValue === "B" ? "B" : "A");
-                            throw error;
-                          } finally {
-                            setSavingFlagValue(false);
-                          }
-                        }}
-                        style={{
-                          flex: 1,
-                          background: flagValue === value ? "#def" : "white",
-                          borderColor: flagValue === value ? "#93c5fd" : undefined,
-                        }}
-                      >
-                        {label}{value === "A" ? " (Default)" : ""}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Profile Customization */}
               <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, background: "#ffffff" }}>
