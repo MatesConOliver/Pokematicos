@@ -9,6 +9,7 @@ export default function ClassesPanel({
   setActiveClassId,
   mode,
   db,
+  authUser,
   newClassNameRef,
   confirmFn,
   alertFn,
@@ -78,7 +79,7 @@ export default function ClassesPanel({
               onClick={() => {
                 const name = newClassNameRef.current?.value?.trim();
                 if (!name) return alertFn("Enter class name");
-                createClass(db, name, setActiveClassId);
+                createClass(db, name, setActiveClassId, alertFn, authUser?.uid);
                 if (newClassNameRef.current) newClassNameRef.current.value = "";
               }}
             >

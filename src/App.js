@@ -1117,6 +1117,7 @@ export default function App() {
           setActiveClassId={setActiveClassId}
           mode={mode}
           db={db}
+          authUser={authUser}
           newClassNameRef={newClassNameRef}
           confirmFn={askConfirmation}
           alertFn={notify}

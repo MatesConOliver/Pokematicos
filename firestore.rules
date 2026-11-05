@@ -15,7 +15,9 @@ service cloud.firestore {
       // Admins subcollection
       match /admins/{userId} {
         allow read: if request.auth != null;
-        allow write: if isAdmin(request.auth.uid, classId);
+        // Allow write if already admin, OR if creating your own entry (bootstrap)
+        allow write: if isAdmin(request.auth.uid, classId) || 
+                        (request.auth.uid == userId && request.method in ['create']);
       }
 
       // Students subcollection

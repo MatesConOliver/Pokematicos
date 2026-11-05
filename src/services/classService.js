@@ -4,6 +4,8 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 /**
@@ -11,12 +13,28 @@ import {
  * @param {Object} db - Firestore database instance
  * @param {string} name - Name of the class to create
  * @param {Function} onClassCreated - Callback receiving the new classId
+ * @param {string} userId - UID of the user creating the class (to add as admin)
  */
-export async function createClass(db, name, onClassCreated, alertFn = null) {
+export async function createClass(db, name, onClassCreated, alertFn = null, userId = null) {
   if (!name?.trim()) return;
   try {
     const payload = { name: name.trim(), createdAt: Date.now() };
     const ref = await addDoc(collection(db, "classes"), payload);
+    
+    // Add the creator as an admin
+    if (userId) {
+      try {
+        const adminRef = doc(db, `classes/${ref.id}/admins/${userId}`);
+        await setDoc(adminRef, {
+          uid: userId,
+          addedAt: serverTimestamp(),
+        });
+      } catch (adminErr) {
+        console.error("Failed to add creator as admin:", adminErr);
+        // Don't fail the whole operation if admin setup fails
+      }
+    }
+    
     if (onClassCreated) onClassCreated(ref.id);
   } catch (err) {
     console.error("createClass err:", err);

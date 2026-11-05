@@ -79,7 +79,7 @@ export function ActivityCatalogueManager({ db, classId }) {
       await loadActivities();
     } catch (err) {
       console.error("Failed to add activity:", err);
-      setMessage({ type: "error", text: "Failed to add activity." });
+      setMessage({ type: "error", text: `Failed to add activity: ${err.message || "Unknown error"}` });
     }
   };
 
@@ -100,7 +100,7 @@ export function ActivityCatalogueManager({ db, classId }) {
       await loadActivities();
     } catch (err) {
       console.error("Failed to toggle activity:", err);
-      setMessage({ type: "error", text: "Failed to update activity." });
+      setMessage({ type: "error", text: `Failed to update activity: ${err.message || "Unknown error"}` });
     }
   };
 
