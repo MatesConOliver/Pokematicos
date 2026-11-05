@@ -4,19 +4,17 @@
  * Admin interface for adding, editing, and disabling activities
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   getActivityCatalogue,
   addActivityToCatalogue,
   updateActivityInCatalogue,
-  deleteActivityFromCatalogue,
 } from "../../services/rewardCodeService.js";
 
 export function ActivityCatalogueManager({ db, classId }) {
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState(null);
 
   // Form state for new/edit activity
@@ -31,11 +29,7 @@ export function ActivityCatalogueManager({ db, classId }) {
   });
 
   // Load activities on mount
-  useEffect(() => {
-    loadActivities();
-  }, [db, classId]);
-
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await getActivityCatalogue({ db, classId });
@@ -46,7 +40,11 @@ export function ActivityCatalogueManager({ db, classId }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [db, classId]);
+
+  useEffect(() => {
+    loadActivities();
+  }, [loadActivities]);
 
   const resetForm = () => {
     setFormData({
