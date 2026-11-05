@@ -1109,8 +1109,8 @@ export default function App() {
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: activeClassId ? "1fr 360px" : "260px", gap: 14 }}>
-        {/* Classes: always visible, but different behavior when class selected */}
-        <ClassesPanel
+        {/* Classes: only on the main screen */}
+        {!activeClassId && <ClassesPanel
           loadingClasses={loadingClasses}
           classesList={classesList}
           activeClassId={activeClassId}
@@ -1132,7 +1132,7 @@ export default function App() {
               await endClassActivity(db, classId, archiveUrl, notify);
             }
           }}
-        />
+        />}
 
         {/* Only show these if a class is selected */}
         {activeClassId && activeClass?.archivedUrl ? (
@@ -1184,6 +1184,9 @@ export default function App() {
                 if (newStudentRef.current) newStudentRef.current.value = "";
               }}
               newStudentRef={newStudentRef}
+              db={db}
+              setActiveClassId={setActiveClassId}
+              alertFn={notify}
             />
 
             <LibrarySection

@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import EmojiParty from "../common/EmojiParty";
 import { todayISODate } from "../../utils/dateUtils";
 import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
+import { ActivityCatalogueManager } from "../admin/ActivityCatalogueManager";
 
 export default function StudentsPanel({
   activeClass,
@@ -21,13 +22,20 @@ export default function StudentsPanel({
   onPreviewCard,
   onAddStudent,
   newStudentRef,
+  db,
+  setActiveClassId,
+  alertFn,
 }) {
+  const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
   const today = todayISODate();
 
   return (
     <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <button className="btn" onClick={() => setActiveClassId(null)} style={{ padding: "4px 8px", fontSize: 12 }}>
+            ← Back
+          </button>
           <h3 style={{ margin: 0 }}><span className="column-title-pill"> {activeClass?.name || "Select a class"} </span></h3>
           {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
         </div>
@@ -37,6 +45,7 @@ export default function StudentsPanel({
             <>
               <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
               <button className="btn" onClick={onManageFlag}>🚩 Flag</button>
+              <button className="btn" onClick={() => setShowActivityCatalogue(!showActivityCatalogue)}>📚 Activities</button>
             </>
           )}
 
@@ -56,6 +65,12 @@ export default function StudentsPanel({
           />
         </div>
       </div>
+
+      {showActivityCatalogue && (
+        <div style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 8, background: "#fafbfc", padding: 12 }}>
+          <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
+        </div>
+      )}
 
       <div style={{ marginTop: 12 }}>
         {!activeClassId ? (
