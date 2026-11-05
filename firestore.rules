@@ -35,8 +35,18 @@ service cloud.firestore {
         match /achievements/{achievement} {
           // Students can read their own achievements
           allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
-          // Only admins (or backend) can write achievements
-          allow write: if isAdmin(request.auth.uid, classId);
+          // Students can write their own achievements (for code redemption)
+          // Admins can also write achievements
+          allow write: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
+        }
+
+        // Student cards (obtained from rewards)
+        match /cards/{cardId} {
+          // Students can read their own cards
+          allow read: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
+          // Students can write their own cards (for reward redemption)
+          // Admins can also write cards
+          allow write: if request.auth.uid == studentId || isAdmin(request.auth.uid, classId);
         }
 
         // Student document fields
