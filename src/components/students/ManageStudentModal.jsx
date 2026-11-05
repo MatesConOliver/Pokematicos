@@ -89,7 +89,7 @@ export default function ManageStudentModal({
     setEditCurrentPoints(student.currentPoints || 0);
     setEditXP(student.xp || 0);
     setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
-  }, [student.id, student.name, student.currentPoints, student.xp]);
+  }, [student.id, student.name, student.currentPoints, student.xp, student.multiplier]);
 
   function addQuickPoints(amount) {
     const m = computeEffectiveMultiplier(student, todayISODate());
