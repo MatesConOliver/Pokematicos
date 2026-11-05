@@ -25,14 +25,14 @@ export default function StudentsPanel({
   const today = todayISODate();
 
   return (
-    <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10, minWidth: 0 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           <h3 style={{ margin: 0 }}><span className="column-title-pill"> {activeClass?.name || "Select a class"} </span></h3>
           {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {mode === "admin" && activeClassId && (
             <>
               <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
@@ -114,9 +114,29 @@ export default function StudentsPanel({
                     />
                   ))}
 
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 6 }}>
+                        {displayName}
+                        {mode === "admin" && (
+                          <button className="btn" onClick={() => onManageStudent(student.id)} style={{ padding: "4px 8px", fontSize: 12 }}>
+                            Manage
+                          </button>
+                        )}
+                        <button className="btn" onClick={() => onProfileStudent(student.id)} style={{ padding: "4px 8px", fontSize: 12 }}>
+                          Profile
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <div style={{ fontWeight: 800 }}>{student.currentPoints || 0} pts</div>
+                      <div className="muted">XP: {student.xp || 0}</div>
+                    </div>
+                  </div>
+
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <div>
-                      <div style={{ fontWeight: 800 }}>{displayName}</div>
+                    <div style={{ flex: 1 }}>
                       <div className="muted" style={{ lineHeight: 1.35 }}>
                         <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
                           {streakConfigs.length > 0 ? (
@@ -167,34 +187,23 @@ export default function StudentsPanel({
                         })()}
                       </div>
                     </div>
+                  </div>
 
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 800 }}>{student.currentPoints || 0} pts</div>
-                      <div className="muted">XP: {student.xp || 0}</div>
+                  {mode === "admin" && (
+                    <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center" }}>
+                      <span className="pill">Quick add:</span>
+                      {[1, 5, 10].map((amount) => (
+                        <button
+                          key={amount}
+                          className="btn"
+                          style={{ padding: "6px 10px" }}
+                          onClick={() => onQuickAddPoints(activeClassId, student.id, amount)}
+                        >
+                          +{amount}
+                        </button>
+                      ))}
                     </div>
-                  </div>
-
-                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    {mode === "admin" && (
-                      <button className="btn" onClick={() => onManageStudent(student.id)}>Manage</button>
-                    )}
-                    <button className="btn" onClick={() => onProfileStudent(student.id)}>Perfil</button>
-                    {mode === "admin" && (
-                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        <span className="pill">Points</span>
-                        {[1, 5, 10].map((amount) => (
-                          <button
-                            key={amount}
-                            className="btn"
-                            style={{ padding: "6px 10px" }}
-                            onClick={() => onQuickAddPoints(activeClassId, student.id, amount)}
-                          >
-                            +{amount}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   <div style={{ marginTop: 10 }}>
                     <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>

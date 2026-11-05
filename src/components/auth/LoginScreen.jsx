@@ -169,7 +169,7 @@ export default function LoginScreen({
                 type="submit"
                 style={{ ...loginStyles.studentBtn, background: "#4F46E5", boxShadow: "0 4px 6px rgba(79, 70, 229, 0.3)" }}
               >
-                Entrar
+                Login
               </button>
             </form>
 
@@ -180,7 +180,7 @@ export default function LoginScreen({
                 setAdminError("");
               }}
             >
-              ← Volver atrás
+              ← Back
             </button>
           </>
         )}
