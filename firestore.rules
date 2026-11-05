@@ -2,6 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Helper function to check if user is global admin
+    function isGlobalAdmin(userId) {
+      return exists(/databases/$(database)/documents/admins/$(userId));
+    }
+    
     // Helper function to check if user is admin of a class
     function isAdmin(userId, classId) {
       return exists(/databases/$(database)/documents/classes/$(classId)/admins/$(userId));
@@ -45,8 +50,8 @@ service cloud.firestore {
       match /activityCatalogue/{activity} {
         // Everyone can read the catalogue
         allow read: if request.auth != null;
-        // Only admins can write activities
-        allow write: if isAdmin(request.auth.uid, classId);
+        // Only class admins or global admins can write activities
+        allow write: if isAdmin(request.auth.uid, classId) || isGlobalAdmin(request.auth.uid);
       }
 
       // Cards subcollection
