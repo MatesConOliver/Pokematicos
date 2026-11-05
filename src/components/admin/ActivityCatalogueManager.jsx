@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import { collection, getDocs } from "firebase/firestore";
 import {
   getActivityCatalogue,
   addActivityToCatalogue,
@@ -13,6 +14,7 @@ import {
 
 export function ActivityCatalogueManager({ db, classId }) {
   const [activities, setActivities] = useState([]);
+  const [cards, setCards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [message, setMessage] = useState(null);
@@ -25,6 +27,7 @@ export function ActivityCatalogueManager({ db, classId }) {
     description: "",
     pointsAwarded: 10,
     rewardType: "points",
+    cardId: "",
     isActive: true,
   });
 
@@ -42,9 +45,26 @@ export function ActivityCatalogueManager({ db, classId }) {
     }
   }, [db, classId]);
 
+  // Load available cards
+  const loadCards = useCallback(async () => {
+    try {
+      const cardsRef = collection(db, `classes/${classId}/cards`);
+      const snapshot = await getDocs(cardsRef);
+      const cardsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.data().name || doc.id,
+        ...doc.data(),
+      }));
+      setCards(cardsData);
+    } catch (err) {
+      console.error("Failed to load cards:", err);
+    }
+  }, [db, classId]);
+
   useEffect(() => {
     loadActivities();
-  }, [loadActivities]);
+    loadCards();
+  }, [loadActivities, loadCards]);
 
   const resetForm = () => {
     setFormData({
@@ -54,6 +74,7 @@ export function ActivityCatalogueManager({ db, classId }) {
       description: "",
       pointsAwarded: 10,
       rewardType: "points",
+      cardId: "",
       isActive: true,
     });
   };
@@ -63,6 +84,11 @@ export function ActivityCatalogueManager({ db, classId }) {
 
     if (!formData.sourceId.trim() || !formData.activityId.trim()) {
       setMessage({ type: "error", text: "Source ID and Activity ID are required." });
+      return;
+    }
+
+    if (formData.rewardType === "card" && !formData.cardId.trim()) {
+      setMessage({ type: "error", text: "Please select a card for card rewards." });
       return;
     }
 
@@ -288,7 +314,7 @@ export function ActivityCatalogueManager({ db, classId }) {
               </label>
               <select
                 value={formData.rewardType}
-                onChange={(e) => setFormData({ ...formData, rewardType: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, rewardType: e.target.value, cardId: "" })}
                 style={{
                   width: "100%",
                   padding: "8px 12px",
@@ -303,6 +329,42 @@ export function ActivityCatalogueManager({ db, classId }) {
               </select>
             </div>
           </div>
+
+          {(formData.rewardType === "card" || formData.rewardType === "both") && (
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                Select Card *
+              </label>
+              <select
+                value={formData.cardId}
+                onChange={(e) => setFormData({ ...formData, cardId: e.target.value })}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: cards.length === 0 ? "2px solid #ef4444" : "1px solid #d1d5db",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  backgroundColor: cards.length === 0 ? "#fee2e2" : "#ffffff",
+                }}
+              >
+                <option value="">-- Choose a card --</option>
+                {cards.length === 0 ? (
+                  <option disabled>No cards available in this class</option>
+                ) : (
+                  cards.map((card) => (
+                    <option key={card.id} value={card.id}>
+                      {card.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {cards.length === 0 && (
+                <div style={{ fontSize: 12, color: "#dc2626", marginTop: 4 }}>
+                  ⚠️ No cards found. Create cards first before using card rewards.
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

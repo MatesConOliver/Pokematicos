@@ -41,16 +41,12 @@ function crc8(buffer) {
  */
 function crc32(str) {
   let crc = 0xFFFFFFFF;
-  const poly = 0x04C11DB7;
 
   for (let i = 0; i < str.length; i++) {
-    crc ^= str.charCodeAt(i) << 24;
+    const byte = str.charCodeAt(i) & 0xFF;
+    crc ^= byte;
     for (let j = 0; j < 8; j++) {
-      if (crc & 0x80000000) {
-        crc = ((crc << 1) ^ poly) >>> 0;
-      } else {
-        crc = (crc << 1) >>> 0;
-      }
+      crc = (crc >>> 1) ^ ((crc & 1) ? 0xEDB88320 : 0);
     }
   }
 

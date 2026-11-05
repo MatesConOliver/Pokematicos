@@ -252,17 +252,54 @@ export async function recordAndAwardAchievement({
       currentPoints: increment(effectivePoints),
     });
 
+    // Handle card reward if applicable
+    if (activity.rewardType === "card" && activity.cardId) {
+      // Get the card to ensure it exists
+      const cardRef = doc(db, `classes/${classId}/cards/${activity.cardId}`);
+      const cardSnap = await getDoc(cardRef);
+      if (!cardSnap.exists()) {
+        throw new Error(`Card not found: ${activity.cardId}`);
+      }
+
+      // Give the card to the student
+      const studentCardsRef = doc(
+        db,
+        `classes/${classId}/students/${studentId}/cards/${activity.cardId}`
+      );
+      batch.set(
+        studentCardsRef,
+        {
+          cardId: activity.cardId,
+          obtainedAt: serverTimestamp(),
+          obtainedFrom: `activity_${sourceId}_${activityId}`,
+          ...cardSnap.data(),
+        },
+        { merge: true }
+      );
+
+      // Update achievement record to include cardId
+      achievement.cardId = activity.cardId;
+      achievement.cardName = cardSnap.data().name || activity.cardId;
+    }
+
     // Record in rewards history (for display)
     if (studentData.rewardsHistory) {
+      const rewardEntry = {
+        type: "achievement",
+        name: activity.name,
+        pointsAwarded: effectivePoints,
+        redeemedAt: Date.now(),
+      };
+
+      if (activity.rewardType === "card") {
+        rewardEntry.cardId = activity.cardId;
+        rewardEntry.type = "card";
+      }
+
       batch.update(studentRef, {
         rewardsHistory: [
           ...studentData.rewardsHistory,
-          {
-            type: "achievement",
-            name: activity.name,
-            pointsAwarded: effectivePoints,
-            redeemedAt: Date.now(),
-          },
+          rewardEntry,
         ],
       });
     }
@@ -288,11 +325,16 @@ export async function recordAndAwardAchievement({
 export async function addActivityToCatalogue({ db, classId, activity }) {
   if (!db || !classId || !activity) throw new Error("Missing required parameters");
 
-  const { sourceId, activityId, name, description, pointsAwarded, rewardType, isActive } =
+  const { sourceId, activityId, name, description, pointsAwarded, rewardType, isActive, cardId } =
     activity;
 
   if (!sourceId || !activityId) {
     throw new Error("sourceId and activityId are required");
+  }
+
+  // Validate that card activities have a cardId
+  if (rewardType === "card" && !cardId) {
+    throw new Error("cardId is required when rewardType is 'card'");
   }
 
   try {
@@ -301,21 +343,24 @@ export async function addActivityToCatalogue({ db, classId, activity }) {
       `classes/${classId}/activityCatalogue/${sourceId}_${activityId}`
     );
 
-    await setDoc(
-      activityRef,
-      {
-        sourceId,
-        activityId,
-        name: name || `${sourceId}/${activityId}`,
-        description: description || "",
-        pointsAwarded: Number(pointsAwarded) || 10,
-        rewardType: rewardType || "points",
-        isActive: isActive !== false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: false }
-    );
+    const activityData = {
+      sourceId,
+      activityId,
+      name: name || `${sourceId}/${activityId}`,
+      description: description || "",
+      pointsAwarded: Number(pointsAwarded) || 10,
+      rewardType: rewardType || "points",
+      isActive: isActive !== false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    // Include cardId if reward type is card
+    if (rewardType === "card" && cardId) {
+      activityData.cardId = cardId;
+    }
+
+    await setDoc(activityRef, activityData, { merge: false });
   } catch (err) {
     console.error("addActivityToCatalogue error:", err);
     throw err;
