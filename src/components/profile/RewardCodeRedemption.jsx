@@ -33,9 +33,9 @@ export function RewardCodeRedemption({ db, classId, studentId, onSuccess }) {
 
       if (result.success) {
         setMessageType("success");
-        setMessage(
-          `✓ ${result.message} You earned ${result.achievement.effectivePointsAwarded} points!`
-        );
+        const pts = result.achievement?.effectivePointsAwarded;
+        const ptsText = pts ? ` You earned ${pts} points!` : "";
+        setMessage(`✓ ${result.message}${ptsText}`);
         setCodeInput(""); // Clear input on success
 
         // Notify parent to refresh data

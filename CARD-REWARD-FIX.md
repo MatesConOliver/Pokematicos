@@ -41,20 +41,21 @@ Changes:
 
 Changes:
 1. Extract `cardId` from activity object
-2. Validate that `cardId` is required when `rewardType` is "card"
-3. Store `cardId` in the activity document when reward type is card
+2. Validate that `cardId` is required when `rewardType` is "card" or "both"
+3. Store `cardId` in the activity document whenever a card is linked
 
 ### Fix 3: Actually Give the Card on Redemption
 
-**File:** `src/services/rewardCodeService.js` - `recordAndAwardAchievement()` function
+**File:** `src/services/rewardCodeService.js` - `recordAndAwardAchievement()` and `redeemRewardCode()` functions
 
 Changes:
-1. Check if `activity.rewardType === "card"` and `activity.cardId` exists
+1. Check if `activity.cardId` exists and reward type awards a card ("card" or "both")
 2. Verify the card exists in the database before giving it
-3. Create a card entry in `classes/{classId}/students/{studentId}/cards/{cardId}`
-4. Copy card data and add metadata (`obtainedAt`, `obtainedFrom`)
+3. Add the card directly to the student's `student.cards` array (with `uid("owned")`, title, images, and origin) so it immediately displays in their student panel deck
+4. Create a card entry in `classes/{classId}/students/{studentId}/cards/{cardId}` for backwards compatibility
 5. Update the achievement record to include the card info
 6. Update rewards history to show card rewards with card ID
+7. Added recovery check in `redeemRewardCode`: If a code was already redeemed previously before the card fix, re-entering the code will safely deliver the missing card to the student's album without erroring or duplicating points.
 
 ## How to Use
 
