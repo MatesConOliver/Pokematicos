@@ -43,7 +43,6 @@ export default function ProfileModal({
   const [newPinConfirm, setNewPinConfirm] = useState("");
 
   // Request creation state
-  const [requestType, setRequestType] = useState("card"); // "card" | "points"
   const [requestCardId, setRequestCardId] = useState("");
   const [requestAmount, setRequestAmount] = useState("");
   const [requestNote, setRequestNote] = useState("");
@@ -274,7 +273,11 @@ export default function ProfileModal({
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ fontWeight: 700, fontSize: 14 }}>
-                              {r.type === "card" ? `🃏 ${r.cardTitle || r.cardId}` : `⭐ ${r.amount} pts`}
+                              {r.type === "both"
+                                ? `🃏 ${r.cardTitle || r.cardId} + ⭐ ${r.amount} pts`
+                                : r.type === "card"
+                                  ? `🃏 ${r.cardTitle || r.cardId}`
+                                  : `⭐ ${r.amount} pts`}
                             </span>
                             <span
                               style={{
@@ -338,201 +341,201 @@ export default function ProfileModal({
                       marginBottom: 10,
                     }}
                   >
-                    Request a Card or Points
+                    Request a Card, Points, or Both
                   </div>
 
-                  {/* Type Selector Pills */}
-                  <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={() => setRequestType("card")}
-                      style={{
-                        flex: 1,
-                        padding: "10px",
-                        fontWeight: 700,
-                        background: requestType === "card" ? "#2563eb" : "#f3f4f6",
-                        color: requestType === "card" ? "#ffffff" : "#374151",
-                        border: "none",
-                      }}
-                    >
-                      🃏 Request Card
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={() => setRequestType("points")}
-                      style={{
-                        flex: 1,
-                        padding: "10px",
-                        fontWeight: 700,
-                        background: requestType === "points" ? "#2563eb" : "#f3f4f6",
-                        color: requestType === "points" ? "#ffffff" : "#374151",
-                        border: "none",
-                      }}
-                    >
-                      ⭐ Request Points
-                    </button>
-                  </div>
-
-                  {/* Card Selection Grid */}
-                  {requestType === "card" && (
-                    <div style={{ marginBottom: 14 }}>
-                      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
-                        Choose a card from the points category:
+                  {/* Section 1: Card Selection */}
+                  <div style={{ marginBottom: 14, border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#ffffff" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: "#1f2937" }}>
+                          🃏 Request a Card
+                        </span>
+                        <span className="muted" style={{ fontSize: 12, marginLeft: 6 }}>
+                          (optional)
+                        </span>
                       </div>
-
-                      {giveableCards.length === 0 ? (
-                        <div className="muted" style={{ padding: 12, textAlign: "center" }}>
-                          No point cards available to request.
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
-                            gap: 10,
-                            maxHeight: 250,
-                            overflowY: "auto",
-                            padding: 4,
-                            border: "1px solid #e5e7eb",
-                            borderRadius: 10,
-                            background: "#fafafa",
-                          }}
+                      {requestCardId && (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => setRequestCardId("")}
+                          style={{ padding: "2px 8px", fontSize: 11, color: "#dc2626" }}
                         >
-                          {giveableCards.map((c) => {
-                            const isSelected = requestCardId === c.id;
-                            const img = getCardDisplayImage(c, displayFlagValue, true);
-                            return (
-                              <div
-                                key={c.id}
-                                onClick={() => setRequestCardId(c.id)}
-                                style={{
-                                  border: isSelected ? "2px solid #2563eb" : "1px solid #e5e7eb",
-                                  background: isSelected ? "#eff6ff" : "#ffffff",
-                                  borderRadius: 10,
-                                  padding: 8,
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 6,
-                                  transition: "all 0.15s ease",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: "100%",
-                                    height: 90,
-                                    borderRadius: 6,
-                                    background: "#f3f4f6",
-                                    overflow: "hidden",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  {img ? (
-                                    <img
-                                      src={img}
-                                      alt={c.title}
-                                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                    />
-                                  ) : (
-                                    <span style={{ fontSize: 28 }}>🃏</span>
-                                  )}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: 700, fontSize: 13, lineHeight: "1.2em" }}>
-                                    {c.title}
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-                                    <span
-                                      className="pill"
-                                      style={{
-                                        fontSize: 11,
-                                        background: "#dbeafe",
-                                        color: "#1e40af",
-                                        fontWeight: 700,
-                                        padding: "1px 6px",
-                                      }}
-                                    >
-                                      +{c.points || 0} pts
-                                    </span>
-                                  </div>
-                                  {c.description && (
-                                    <div
-                                      style={{
-                                        fontSize: 11,
-                                        color: "#6b7280",
-                                        marginTop: 4,
-                                        lineHeight: "1.3em",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        display: "-webkit-box",
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: "vertical",
-                                      }}
-                                    >
-                                      {c.description}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                          ✕ Remove card
+                        </button>
                       )}
+                    </div>
 
-                      {selectedCard && (
-                        <div
-                          style={{
-                            marginTop: 10,
-                            padding: 10,
-                            borderRadius: 8,
-                            background: "#f0fdf4",
-                            border: "1px solid #bbf7d0",
-                            fontSize: 12,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <span>Selected:</span>
+                    {selectedCard && (
+                      <div
+                        style={{
+                          marginBottom: 10,
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          background: "#eff6ff",
+                          border: "1px solid #bfdbfe",
+                          fontSize: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 8,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span>Selected card:</span>
                           <strong>{selectedCard.title}</strong>
                           <span className="pill">+{selectedCard.points || 0} pts</span>
                         </div>
+                      </div>
+                    )}
+
+                    {giveableCards.length === 0 ? (
+                      <div className="muted" style={{ padding: 10, textAlign: "center", fontSize: 12 }}>
+                        No point cards available to request.
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                          gap: 10,
+                          maxHeight: 180,
+                          overflowY: "auto",
+                          padding: 4,
+                          border: "1px solid #f1f5f9",
+                          borderRadius: 8,
+                          background: "#f8fafc",
+                        }}
+                      >
+                        {giveableCards.map((c) => {
+                          const isSelected = requestCardId === c.id;
+                          const img = getCardDisplayImage(c, displayFlagValue, true);
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => setRequestCardId((prev) => (prev === c.id ? "" : c.id))}
+                              style={{
+                                border: isSelected ? "2px solid #2563eb" : "1px solid #e5e7eb",
+                                background: isSelected ? "#eff6ff" : "#ffffff",
+                                borderRadius: 8,
+                                padding: 6,
+                                cursor: "pointer",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 4,
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "100%",
+                                  height: 70,
+                                  borderRadius: 6,
+                                  background: "#f3f4f6",
+                                  overflow: "hidden",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {img ? (
+                                  <img
+                                    src={img}
+                                    alt={c.title}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                ) : (
+                                  <span style={{ fontSize: 24 }}>🃏</span>
+                                )}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 12, lineHeight: "1.2em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {c.title}
+                                </div>
+                                <div style={{ marginTop: 2 }}>
+                                  <span
+                                    className="pill"
+                                    style={{
+                                      fontSize: 10,
+                                      background: "#dbeafe",
+                                      color: "#1e40af",
+                                      fontWeight: 700,
+                                      padding: "1px 5px",
+                                    }}
+                                  >
+                                    +{c.points || 0} pts
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 2: Points Request */}
+                  <div style={{ marginBottom: 14, border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#ffffff" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: "#1f2937" }}>
+                          ⭐ Request Points
+                        </span>
+                        <span className="muted" style={{ fontSize: 12, marginLeft: 6 }}>
+                          (optional)
+                        </span>
+                      </div>
+                      {requestAmount && (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => setRequestAmount("")}
+                          style={{ padding: "2px 8px", fontSize: 11, color: "#dc2626" }}
+                        >
+                          ✕ Clear points
+                        </button>
                       )}
                     </div>
-                  )}
-
-                  {/* Points Input */}
-                  {requestType === "points" && (
-                    <div style={{ marginBottom: 14 }}>
-                      <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
-                        Points amount:
-                      </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <input
-                          type="number"
-                          min="1"
-                          max="1000"
-                          placeholder="e.g. 5"
-                          value={requestAmount}
-                          onChange={(e) => setRequestAmount(e.target.value)}
-                          style={{
-                            flex: 1,
-                            padding: 10,
-                            borderRadius: 10,
-                            border: "1px solid #ddd",
-                            fontSize: 15,
-                          }}
-                        />
-                        <button type="button" className="btn" onClick={() => setRequestAmount("1")}>+1</button>
-                        <button type="button" className="btn" onClick={() => setRequestAmount("5")}>+5</button>
-                        <button type="button" className="btn" onClick={() => setRequestAmount("10")}>+10</button>
-                      </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        placeholder="Points amount (e.g. 5)"
+                        value={requestAmount}
+                        onChange={(e) => setRequestAmount(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: 10,
+                          borderRadius: 8,
+                          border: "1px solid #ddd",
+                          fontSize: 14,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setRequestAmount(String((Number(requestAmount) || 0) + 1))}
+                      >
+                        +1
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setRequestAmount(String((Number(requestAmount) || 0) + 5))}
+                      >
+                        +5
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setRequestAmount(String((Number(requestAmount) || 0) + 10))}
+                      >
+                        +10
+                      </button>
                     </div>
-                  )}
+                  </div>
 
                   {/* Optional Note */}
                   <div style={{ marginBottom: 14 }}>
@@ -555,40 +558,66 @@ export default function ProfileModal({
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    className="btn primary"
-                    style={{ width: "100%", padding: 12, fontSize: 14 }}
-                    onClick={async () => {
-                      if (requestType === "points") {
-                        const amt = Number(requestAmount);
-                        if (!amt || amt <= 0) {
-                          if (onValidationError) onValidationError("Please enter a valid amount of points.");
-                          return;
-                        }
-                      }
-                      if (requestType === "card" && !requestCardId) {
-                        if (onValidationError) onValidationError("Please select a card to request.");
-                        return;
-                      }
+                  {/* Submit Button */}
+                  {(() => {
+                    const parsedAmt = Number(requestAmount);
+                    const hasValidPoints = parsedAmt > 0;
+                    const hasCard = Boolean(requestCardId && selectedCard);
 
-                      const ok = await onCreateRequest({
-                        type: requestType,
-                        amount: requestType === "points" ? Number(requestAmount) : undefined,
-                        cardId: requestType === "card" ? requestCardId : undefined,
-                        cardTitle: requestType === "card" ? selectedCard?.title : undefined,
-                        note: requestNote,
-                      });
+                    let label = "Send Request to Teacher";
+                    if (hasCard && hasValidPoints) {
+                      label = `Send Request (🃏 ${selectedCard.title} + ⭐ ${parsedAmt} pts)`;
+                    } else if (hasCard) {
+                      label = `Send Request (🃏 ${selectedCard.title})`;
+                    } else if (hasValidPoints) {
+                      label = `Send Request (⭐ ${parsedAmt} pts)`;
+                    }
 
-                      if (ok) {
-                        setRequestAmount("");
-                        setRequestCardId("");
-                        setRequestNote("");
-                      }
-                    }}
-                  >
-                    Send Request to Teacher
-                  </button>
+                    return (
+                      <button
+                        type="button"
+                        className="btn primary"
+                        style={{ width: "100%", padding: 12, fontSize: 14, fontWeight: 700 }}
+                        onClick={async () => {
+                          const amt = Number(requestAmount);
+                          const hasPts = amt > 0;
+                          const hasCd = Boolean(requestCardId && selectedCard);
+
+                          if (!hasCd && !hasPts) {
+                            if (onValidationError) {
+                              onValidationError("Please select a card, enter points, or both.");
+                            }
+                            return;
+                          }
+
+                          if (requestAmount && amt <= 0) {
+                            if (onValidationError) {
+                              onValidationError("Please enter a valid amount of points (greater than 0).");
+                            }
+                            return;
+                          }
+
+                          const finalType = hasCd && hasPts ? "both" : hasCd ? "card" : "points";
+
+                          const ok = await onCreateRequest({
+                            type: finalType,
+                            amount: hasPts ? amt : undefined,
+                            cardId: hasCd ? requestCardId : undefined,
+                            cardTitle: hasCd ? selectedCard?.title : undefined,
+                            note: requestNote,
+                          });
+
+                          if (ok) {
+                            setRequestAmount("");
+                            setRequestCardId("");
+                            setRequestNote("");
+                          }
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })()}
                 </div>
               ) : null}
             </div>

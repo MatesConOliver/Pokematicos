@@ -37,8 +37,8 @@ export async function createRequest(
       status: "pending",
       createdAt: Date.now(),
     };
-    if (type === "points") payload.amount = Number(amount || 0);
-    if (type === "card") {
+    if (type === "points" || type === "both") payload.amount = Number(amount || 0);
+    if (type === "card" || type === "both") {
       payload.cardId = cardId;
       payload.cardTitle = cardTitle || "";
     }

@@ -47,13 +47,13 @@ service cloud.firestore {
       let d = request.resource.data;
       return d.studentId is string
         && d.status == 'pending'
-        && d.type in ['points', 'card']
+        && d.type in ['points', 'card', 'both']
         && d.createdAt is number
         && d.studentName is string && d.studentName.size() <= 60
         && d.className is string && d.className.size() <= 60
         && (!('note' in d) || (d.note is string && d.note.size() <= 200))
-        && (d.type != 'points' || (d.amount is number && d.amount > 0 && d.amount <= 1000))
-        && (d.type != 'card' || (d.cardId is string && d.cardId.size() > 0));
+        && (d.type == 'card' || (d.amount is number && d.amount > 0 && d.amount <= 1000))
+        && (d.type == 'points' || (d.cardId is string && d.cardId.size() > 0));
     }
 
     function onlyFlagPreferenceChanged() {
