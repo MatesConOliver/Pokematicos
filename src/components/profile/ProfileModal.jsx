@@ -273,9 +273,9 @@ export default function ProfileModal({
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ fontWeight: 700, fontSize: 14 }}>
-                              {r.type === "both"
+                              {r.type === "both" || (r.cardId && r.amount)
                                 ? `🃏 ${r.cardTitle || r.cardId} + ⭐ ${r.amount} pts`
-                                : r.type === "card"
+                                : r.cardId || r.type === "card"
                                   ? `🃏 ${r.cardTitle || r.cardId}`
                                   : `⭐ ${r.amount} pts`}
                             </span>

@@ -92,9 +92,9 @@ export default function RequestsPanel({
                     </div>
                   </label>
                   <div className="pill">
-                    {r.type === "both"
+                    {r.type === "both" || (r.cardId && r.amount)
                       ? `Card: ${r.cardTitle || r.cardId} + ${r.amount} pts`
-                      : r.type === "card"
+                      : r.cardId || r.type === "card"
                         ? `Card: ${r.cardTitle || r.cardId}`
                         : `${r.amount} pts`}
                   </div>

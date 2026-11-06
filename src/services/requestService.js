@@ -28,17 +28,23 @@ export async function createRequest(
       return false;
     }
 
+    // Determine Firestore-compatible type:
+    // If a card is requested (whether card-only or combined with points), use "card"
+    // as the primary document type so it complies with live Firestore security rules
+    // that require d.type in ['points', 'card'].
+    const docType = cardId ? "card" : "points";
+
     const payload = {
       studentId,
       studentName: studentName || "",
       className: className || "",
-      type,
+      type: docType,
       note: (note || "").toString().slice(0, 200),
       status: "pending",
       createdAt: Date.now(),
     };
-    if (type === "points" || type === "both") payload.amount = Number(amount || 0);
-    if (type === "card" || type === "both") {
+    if (amount) payload.amount = Number(amount || 0);
+    if (cardId) {
       payload.cardId = cardId;
       payload.cardTitle = cardTitle || "";
     }

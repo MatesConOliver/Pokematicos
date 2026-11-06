@@ -554,32 +554,28 @@ export default function App() {
       successMessage: "Petición aprobada.",
       errorMessage: "No se pudo aprobar la petición.",
       action: async () => {
-        if (request.type === "points" || request.type === "both") {
-          if (request.amount) {
-            await quickAddPointsService({
-              db,
-              classId: request.classId,
-              studentId: request.studentId,
-              amount: request.amount,
-              alertFn: notify,
-            });
-          }
+        if (request.amount && (request.type === "points" || request.type === "both" || request.cardId)) {
+          await quickAddPointsService({
+            db,
+            classId: request.classId,
+            studentId: request.studentId,
+            amount: request.amount,
+            alertFn: notify,
+          });
         }
-        if (request.type === "card" || request.type === "both") {
-          if (request.cardId) {
-            const classSnap = await getDoc(doc(db, `classes/${request.classId}`));
-            const requestClass = classSnap.exists() ? { id: request.classId, ...classSnap.data() } : null;
-            await giveCardToStudentService({
-              db,
-              classId: request.classId,
-              studentId: request.studentId,
-              cardId: request.cardId,
-              activeClass: requestClass,
-              getCardDataFast,
-              alertFn: notify,
-              scheduleFn: requestFloatSchedule,
-            });
-          }
+        if (request.cardId && (request.type === "card" || request.type === "both" || request.cardTitle)) {
+          const classSnap = await getDoc(doc(db, `classes/${request.classId}`));
+          const requestClass = classSnap.exists() ? { id: request.classId, ...classSnap.data() } : null;
+          await giveCardToStudentService({
+            db,
+            classId: request.classId,
+            studentId: request.studentId,
+            cardId: request.cardId,
+            activeClass: requestClass,
+            getCardDataFast,
+            alertFn: notify,
+            scheduleFn: requestFloatSchedule,
+          });
         }
         await resolveRequestApproved(db, request.classId, request.id, notify);
       },
