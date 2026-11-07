@@ -33,29 +33,43 @@ export default function ClassesPanel({
                 className="btn"
                 style={{
                   flex: 1,
+                  minWidth: 0,
                   textAlign: "left",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                   background: c.id === activeClassId ? "#eef" : "white",
                 }}
                 onClick={() => setActiveClassId((prev) => (prev === c.id ? null : c.id))}
+                title={c.name}
               >
                 {c.name}
               </button>
 
               {mode === "admin" && (
-                <>
-                  <button className="btn" onClick={() => onRenameClass?.(c.id, c.name)}>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                  <button
+                    className="btn"
+                    style={{ whiteSpace: "nowrap" }}
+                    onClick={() => onRenameClass?.(c.id, c.name)}
+                  >
                     Edit
                   </button>
                   <button
                     className="btn"
+                    style={{ whiteSpace: "nowrap" }}
                     onClick={() => removeClass(db, c.id, activeClassId, setActiveClassId, confirmFn)}
                   >
                     Delete
                   </button>
-                  <button className="btn" onClick={() => onEndActivity?.(c.id, c.name)}>
+                  <button
+                    className="btn"
+                    style={{ whiteSpace: "nowrap" }}
+                    onClick={() => onEndActivity?.(c.id, c.name)}
+                  >
                     End activity
                   </button>
-                </>
+                </div>
               )}
             </div>
           ))}

@@ -857,72 +857,6 @@ export default function App() {
 
   return (
     <div style={backgroundStyle}>
-      {mode === "admin" && (
-      <>
-        <input
-          type="file"
-          accept="image/*"
-          ref={bgInputRef}
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              uploadBackgroundImage(file, activeClass?.flagConfig ? viewFlag : "A");
-              e.target.value = "";
-            }
-          }}
-        />
-        
-        {/* Visual cue for the admin */}
-        <div style={{ marginBottom: 5, fontSize: "0.8rem", opacity: 0.7 }}>
-          {activeClassId 
-            ? `Editing Background for: ${activeClass?.name || "selected class"}` 
-            : "Editing Global Background"}
-        </div>
-  
-        <button
-          className="btn"
-          onClick={() => bgInputRef.current?.click()}
-        >
-          {activeClassId
-            ? `Set Class Background (Option ${activeClass?.flagConfig ? viewFlag : "A"})`
-            : "Set Global Background"}
-        </button>
-  
-        {activeClassId && activeClass?.flagConfig && (
-          <div style={{ display: "inline-flex", gap: 6, marginLeft: 8 }} role="group" aria-label="Background option">
-            {[["A", activeClass.flagConfig.optionA], ["B", activeClass.flagConfig.optionB]].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className="btn"
-                aria-pressed={viewFlag === value}
-                onClick={() => setViewFlag(value)}
-                style={{ background: viewFlag === value ? "#def" : "white" }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Show "Remove" if the CURRENT context has a background set */}
-        {((activeClassId &&
-          ((activeClass?.flagConfig && viewFlag === "B")
-            ? activeClass?.backgroundUrl_B
-            : activeClass?.backgroundUrl)) ||
-          (!activeClassId && globalBackgroundUrl)) && (
-          <button
-            className="btn"
-            onClick={() => clearBackgroundImage(activeClass?.flagConfig ? viewFlag : "A")}
-          >
-            {activeClassId
-              ? `Clear Option ${viewFlag} Background`
-              : "Remove Global Bg"}
-          </button>
-        )}
-      </>
-    )}
       <style>{`
         .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
         .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
@@ -1076,23 +1010,88 @@ export default function App() {
           alignItems: "center",
           marginBottom: 12,
           gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        <div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {activeClassId && (
             <button className="btn" onClick={() => setActiveClassId(null)}>
               ← All classes
             </button>
           )}
+
+          {mode === "admin" && (
+            <>
+              <input
+                type="file"
+                accept="image/*"
+                ref={bgInputRef}
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    uploadBackgroundImage(file, activeClass?.flagConfig ? viewFlag : "A");
+                    e.target.value = "";
+                  }
+                }}
+              />
+
+              <button
+                className="btn"
+                onClick={() => bgInputRef.current?.click()}
+                title={
+                  activeClassId
+                    ? `Editing Background for: ${activeClass?.name || "selected class"}`
+                    : "Editing Global Background"
+                }
+              >
+                {activeClassId
+                  ? `Set Class Background (Option ${activeClass?.flagConfig ? viewFlag : "A"})`
+                  : "Set Global Background"}
+              </button>
+
+              {activeClassId && activeClass?.flagConfig && (
+                <div style={{ display: "inline-flex", gap: 6 }} role="group" aria-label="Background option">
+                  {[["A", activeClass.flagConfig.optionA], ["B", activeClass.flagConfig.optionB]].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className="btn"
+                      aria-pressed={viewFlag === value}
+                      onClick={() => setViewFlag(value)}
+                      style={{ background: viewFlag === value ? "#def" : "white" }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Show "Remove" if the CURRENT context has a background set */}
+              {((activeClassId &&
+                ((activeClass?.flagConfig && viewFlag === "B")
+                  ? activeClass?.backgroundUrl_B
+                  : activeClass?.backgroundUrl)) ||
+                (!activeClassId && globalBackgroundUrl)) && (
+                <button
+                  className="btn"
+                  onClick={() => clearBackgroundImage(activeClass?.flagConfig ? viewFlag : "A")}
+                >
+                  {activeClassId
+                    ? `Clear Option ${viewFlag} Background`
+                    : "Remove Global Bg"}
+                </button>
+              )}
+            </>
+          )}
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
           {mode === "admin" && (
             <button className="btn" onClick={() => setShowRequestsPanel(true)}>
               Requests{pendingCount > 0 ? ` (${pendingCount})` : ""}
             </button>
           )}
-          <EyeToggleButton inline focusMode={false} onToggle={() => setFocusMode(true)} />
           {authUser ? (
             <button className="btn" onClick={logout}>
               Switch role (now Admin)
@@ -1102,6 +1101,7 @@ export default function App() {
               Switch role (now Guest)
             </button>
           )}
+          <EyeToggleButton inline focusMode={false} onToggle={() => setFocusMode(true)} />
         </div>
       </header>
 
@@ -1109,7 +1109,17 @@ export default function App() {
         <div style={{ marginBottom: 12, color: "crimson" }}>{errorMsg}</div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: activeClassId ? "1fr 360px" : "260px", gap: 14 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: activeClassId
+            ? "1fr 360px"
+            : mode === "admin"
+            ? "min(600px, 100%)"
+            : "min(360px, 100%)",
+          gap: 14,
+        }}
+      >
         {/* Classes: only on the main screen */}
         {!activeClassId && <ClassesPanel
           loadingClasses={loadingClasses}
