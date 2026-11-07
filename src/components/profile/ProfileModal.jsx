@@ -52,7 +52,7 @@ export default function ProfileModal({
     return () => {
       isCancelled = true;
     };
-  }, [db, classId, student.id, student.rewardsHistory, student.cards]);
+  }, [db, classId, student]);
 
   useEffect(() => {
     setFlagValue(student.flagValue === "B" ? "B" : "A");
