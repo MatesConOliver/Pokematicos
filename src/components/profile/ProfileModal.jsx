@@ -4,6 +4,7 @@ import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { PublicStudentIdDisplay } from "./PublicStudentIdDisplay";
 import { RewardCodeRedemption } from "./RewardCodeRedemption";
+import { reconcileAndEnrichStudentHistory } from "../../services/rewardCodeService.js";
 
 export default function ProfileModal({
   mode,
@@ -33,6 +34,26 @@ export default function ProfileModal({
   const [flagValue, setFlagValue] = useState(student.flagValue === "B" ? "B" : "A");
   const [savingFlagValue, setSavingFlagValue] = useState(false);
 
+  // Enriched history state for retrocompatibility
+  const [enrichedHistory, setEnrichedHistory] = useState(student.rewardsHistory || []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    reconcileAndEnrichStudentHistory({ db, classId, student })
+      .then((history) => {
+        if (!isCancelled && Array.isArray(history)) {
+          setEnrichedHistory(history);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to reconcile history:", err);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [db, classId, student.id, student.rewardsHistory, student.cards]);
+
   useEffect(() => {
     setFlagValue(student.flagValue === "B" ? "B" : "A");
   }, [student.flagValue]);
@@ -56,8 +77,14 @@ export default function ProfileModal({
   const cardsMap = useMemo(() => {
     const map = new Map();
     (allCards || []).forEach((c) => map.set(c.id, c));
+    (student.cards || []).forEach((c) => {
+      const id = c.cardId || c.id;
+      if (id && !map.has(id)) {
+        map.set(id, c);
+      }
+    });
     return map;
-  }, [allCards]);
+  }, [allCards, student.cards]);
 
   const selectedCard = useMemo(
     () => giveableCards.find((c) => c.id === requestCardId) || null,
@@ -809,82 +836,171 @@ export default function ProfileModal({
                   marginBottom: 12,
                 }}
               >
-                Reward History
+                Reward & Code History
               </div>
 
-              {(!student.rewardsHistory || student.rewardsHistory.length === 0) ? (
+              {((enrichedHistory && enrichedHistory.length > 0 ? enrichedHistory : (student.rewardsHistory || [])).length === 0) ? (
                 <div style={{ textAlign: "center", padding: "30px", color: "#9ca3af", fontStyle: "italic" }}>
-                  No rewards redeemed yet.
+                  No rewards or codes redeemed yet.
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {[...(student.rewardsHistory || [])]
-                    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[...(enrichedHistory.length > 0 ? enrichedHistory : (student.rewardsHistory || []))]
+                    .sort((a, b) => {
+                      const timeA = a.redeemedAt || (a.date ? new Date(a.date).getTime() : 0);
+                      const timeB = b.redeemedAt || (b.date ? new Date(b.date).getTime() : 0);
+                      return timeB - timeA;
+                    })
                     .map((h) => {
                       const isGroup = h.type === "group" || h.mode === "group";
+                      const isCode = Boolean(
+                        h.isCodeRedemption ||
+                        h.type === "achievement" ||
+                        h.type === "achievement_card" ||
+                        (!h.cost && (h.pointsAwarded !== undefined || h.source || h.sourceId))
+                      );
+
+                      const linkedCard = h.cardId ? cardsMap.get(h.cardId) : null;
+                      const cardImg = h.cardId
+                        ? getCardDisplayImage(linkedCard, displayFlagValue, false) || linkedCard?.imageURL || linkedCard?.displayImageURL
+                        : null;
+
                       return (
                         <div
                           key={h.id || Math.random()}
                           style={{
                             background: "#ffffff",
                             border: "1px solid #e5e7eb",
-                            borderRadius: 10,
-                            padding: "10px 14px",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                            borderRadius: 12,
+                            padding: "12px 14px",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                             display: "flex",
                             flexDirection: "column",
-                            gap: 4,
+                            gap: 6,
                           }}
                         >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                                  {h.cardId && getCardDisplayImage(cardsMap.get(h.cardId), displayFlagValue, false) && (
-                                    <img
-                                      src={getCardDisplayImage(cardsMap.get(h.cardId), displayFlagValue, false)}
-                                      alt=""
-                                      style={{ width: 30, height: 40, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
-                                    />
-                                  )}
-                                  <div style={{ fontWeight: 700, color: "#111827", fontSize: 14 }}>
-                                    {h.title}
-                                  </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                              {cardImg && (
+                                <img
+                                  src={cardImg}
+                                  alt=""
+                                  style={{
+                                    width: 34,
+                                    height: 46,
+                                    objectFit: "cover",
+                                    borderRadius: 6,
+                                    flexShrink: 0,
+                                    border: "1px solid #e2e8f0",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                                  }}
+                                />
+                              )}
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontWeight: 700, color: "#111827", fontSize: 14, wordBreak: "break-word" }}>
+                                  {isCode
+                                    ? (h.activityName || h.title || h.name || "Activity")
+                                    : (h.title || "Reward")}
                                 </div>
-                            <div
-                              style={{
-                                background: "#fee2e2",
-                                color: "#991b1b",
-                                fontWeight: 800,
-                                fontSize: 12,
-                                padding: "2px 8px",
-                                borderRadius: 999,
-                              }}
-                            >
-                              -{h.cost}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    fontSize: 11,
+                                    color: "#6b7280",
+                                    marginTop: 3,
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {isCode ? (
+                                    <>
+                                      <span
+                                        style={{
+                                          background: "#f1f5f9",
+                                          color: "#334155",
+                                          padding: "1px 7px",
+                                          borderRadius: 4,
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        Source: {h.source || h.sourceId || "Code"}
+                                      </span>
+                                      <span>•</span>
+                                      <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                                      {h.cardId && (
+                                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
+                                          • 🃏 Card: {linkedCard?.title || h.cardTitle || h.cardId}
+                                        </span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                                      {isGroup && (
+                                        <span
+                                          style={{
+                                            background: "#e0f2fe",
+                                            color: "#0369a1",
+                                            padding: "1px 6px",
+                                            borderRadius: 4,
+                                            fontWeight: 600,
+                                            fontSize: 10,
+                                          }}
+                                        >
+                                          👥 GROUP
+                                        </span>
+                                      )}
+                                      {h.cardId && (
+                                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
+                                          • 🃏 Linked Card
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
 
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#6b7280" }}>
-                            <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
-                            {isGroup && (
-                              <span
+                            {isCode ? (
+                              <div
                                 style={{
-                                  background: "#e0f2fe",
-                                  color: "#0369a1",
-                                  padding: "1px 6px",
-                                  borderRadius: 4,
-                                  fontWeight: 600,
-                                  fontSize: 10,
+                                  background: "#dcfce7",
+                                  color: "#15803d",
+                                  border: "1px solid #bbf7d0",
+                                  fontWeight: 800,
+                                  fontSize: 12,
+                                  padding: "3px 10px",
+                                  borderRadius: 999,
+                                  whiteSpace: "nowrap",
+                                  flexShrink: 0,
                                 }}
                               >
-                                👥 GROUP
-                              </span>
+                                +{h.pointsAwarded ?? 0} pts
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  background: "#fee2e2",
+                                  color: "#991b1b",
+                                  border: "1px solid #fecaca",
+                                  fontWeight: 800,
+                                  fontSize: 12,
+                                  padding: "3px 10px",
+                                  borderRadius: 999,
+                                  whiteSpace: "nowrap",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                -{h.cost} pts
+                              </div>
                             )}
                           </div>
 
-                          {isGroup && h.contributors && (
+                          {!isCode && isGroup && h.contributors && (
                             <div
                               style={{
-                                marginTop: 6,
+                                marginTop: 4,
                                 paddingTop: 6,
                                 borderTop: "1px dashed #e5e7eb",
                                 fontSize: 11,
@@ -1147,6 +1263,11 @@ export default function ProfileModal({
                 studentId={student.id}
                 onSuccess={() => {
                   onValidationError("Achievement redeemed successfully! ✨");
+                  reconcileAndEnrichStudentHistory({ db, classId, student })
+                    .then((h) => {
+                      if (Array.isArray(h)) setEnrichedHistory(h);
+                    })
+                    .catch((e) => console.warn("History update error:", e));
                 }}
               />
             </div>
