@@ -936,68 +936,205 @@ export default function App() {
           100% { transform: translate(-50%, -160px) scale(1.15); opacity: 0; }
         }
 
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
-        .modal { background: white; border-radius: 10px; padding: 12px; max-width: 980px; width: 92%; max-height: 90vh; overflow:auto; }
+        .modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.38);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        .modal {
+          background: rgba(255, 255, 255, 0.84);
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          border: 1px solid rgba(255, 255, 255, 0.75);
+          border-radius: 18px;
+          padding: 18px;
+          max-width: 980px;
+          width: 92%;
+          max-height: 90vh;
+          overflow: auto;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
 
         .muted { color:#6b7280; font-size:13px; }
 
         .btn{
-          padding: 9px 12px;
-          border-radius: 10px;
-          border: 1px solid #e5e7eb;
-          background: white;
+          padding: 8px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.75);
+          background: rgba(255, 255, 255, 0.72);
+          backdrop-filter: blur(12px) saturate(160%);
+          -webkit-backdrop-filter: blur(12px) saturate(160%);
           cursor: pointer;
           font-weight: 600;
+          color: #1e293b;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+          transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .btn:hover{ background:#f9fafb; }
+        .btn:hover{
+          background: rgba(255, 255, 255, 0.9);
+          border-color: rgba(255, 255, 255, 0.95);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+          transform: translateY(-1px);
+        }
+        .btn:active{
+          transform: translateY(0);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        }
         .btn.primary{
-          background:#2563eb;
-          color:white;
-          border:none;
-          box-shadow: 0 6px 16px rgba(37,99,235,.22);
+          background: rgba(37, 99, 235, 0.82);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
-        .btn.primary:hover{ filter: brightness(0.98); }
+        .btn.primary:hover{
+          background: rgba(29, 78, 216, 0.92);
+          border-color: rgba(255, 255, 255, 0.5);
+          box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+          transform: translateY(-1px);
+        }
+        .btn.danger{
+          background: rgba(220, 38, 38, 0.82);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          box-shadow: 0 4px 16px rgba(220, 38, 38, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+        .btn.danger:hover{
+          background: rgba(185, 28, 28, 0.92);
+          transform: translateY(-1px);
+        }
 
-        .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; border: 1px solid #e5e7eb; }
+        .pill {
+          font-size: 12px;
+          padding: 3px 10px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.75);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.7);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+          color: #334155;
+          font-weight: 600;
+        }
         .column-title-pill {
           display: inline-block;
-          padding: 4px 10px;
+          padding: 4px 12px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.96);
-          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(12px) saturate(160%);
+          -webkit-backdrop-filter: blur(12px) saturate(160%);
+          border: 1px solid rgba(255, 255, 255, 0.75);
+          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
           font-size: 14px;
+          font-weight: 700;
+          color: #0f172a;
         }
 
         .input, .select, textarea{
           width: 100%;
           padding: 10px 12px;
           border-radius: 12px;
-          border: 1px solid #e5e7eb;
-          background: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.72);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
           outline: none;
+          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+          color: #0f172a;
+          transition: all 150ms ease;
         }
         .input:focus, .select:focus, textarea:focus{
           border-color: #93c5fd;
-          box-shadow: 0 0 0 4px rgba(147,197,253,.35);
+          background: rgba(255, 255, 255, 0.94);
+          box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.35);
         }
 
         .panel{
-          border: 1px solid #eee;
-          background: white;
+          border: 1px solid rgba(255, 255, 255, 0.65);
+          background: rgba(255, 255, 255, 0.72);
+          backdrop-filter: blur(16px) saturate(160%);
+          -webkit-backdrop-filter: blur(16px) saturate(160%);
           border-radius: 14px;
-          padding: 12px;
+          padding: 14px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
 
         .chip{
-          display:inline-flex;
-          align-items:center;
-          gap:6px;
-          padding: 4px 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 12px;
           border-radius: 999px;
-          background:#f3f4f6;
+          background: rgba(255, 255, 255, 0.75);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.7);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
           font-size: 12px;
           font-weight: 700;
-          color:#111827;
+          color: #111827;
+        }
+
+        /* Direction 3: Tactile Holo-Foil Card & Sheen Animation */
+        .holo-foil-card {
+          position: relative;
+          overflow: hidden;
+          transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s ease, border-color 0.24s ease;
+          will-change: transform;
+        }
+        .holo-foil-card:hover {
+          transform: translateY(-4px) scale(1.04) rotate(0.4deg);
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45), 0 0 18px rgba(56, 189, 248, 0.55) !important;
+        }
+        .holo-foil-card::after {
+          content: "";
+          position: absolute;
+          inset: -60%;
+          background: linear-gradient(
+            115deg,
+            transparent 22%,
+            rgba(255, 255, 255, 0.45) 45%,
+            rgba(56, 189, 248, 0.55) 50%,
+            rgba(236, 72, 153, 0.45) 55%,
+            rgba(251, 191, 36, 0.45) 60%,
+            transparent 78%
+          );
+          opacity: 0;
+          transform: translateX(-100%) rotate(25deg);
+          pointer-events: none;
+          transition: opacity 0.2s ease;
+        }
+        .holo-foil-card:hover::after {
+          opacity: 1;
+          animation: holoSheen 1.3s ease-in-out infinite alternate;
+        }
+        @keyframes holoSheen {
+          0% { transform: translateX(-50%) translateY(-20%) rotate(25deg); }
+          100% { transform: translateX(50%) translateY(20%) rotate(25deg); }
+        }
+
+        /* Direction 2: Selective Glass with 1px inner glow */
+        .selective-glass {
+          background: rgba(255, 255, 255, 0.78);
+          backdrop-filter: blur(14px) saturate(160%);
+          -webkit-backdrop-filter: blur(14px) saturate(160%);
+          border: 1px solid rgba(255, 255, 255, 0.65);
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        }
+
+        /* Direction 3: Dark Bento Card */
+        .bento-dark-container {
+          background: rgba(15, 23, 42, 0.92);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(56, 189, 248, 0.28);
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+          color: #f8fafc;
         }
 
         input, textarea, select { font-family: inherit; }
@@ -1014,12 +1151,6 @@ export default function App() {
         }}
       >
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {activeClassId && (
-            <button className="btn" onClick={() => setActiveClassId(null)}>
-              ← All classes
-            </button>
-          )}
-
           {mode === "admin" && (
             <>
               <input
@@ -1086,7 +1217,7 @@ export default function App() {
           )}
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto", flexWrap: "wrap" }}>
           {mode === "admin" && (
             <button className="btn" onClick={() => setShowRequestsPanel(true)}>
               Requests{pendingCount > 0 ? ` (${pendingCount})` : ""}

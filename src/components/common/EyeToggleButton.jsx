@@ -16,13 +16,16 @@ export default function EyeToggleButton({ focusMode, onToggle, inline = false })
         width: 40,
         height: 40,
         borderRadius: 999,
-        border: "1px solid #e5e7eb",
-        background: "rgba(255,255,255,0.95)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+        border: "1px solid rgba(255, 255, 255, 0.75)",
+        background: "rgba(255, 255, 255, 0.72)",
+        backdropFilter: "blur(12px) saturate(160%)",
+        WebkitBackdropFilter: "blur(12px) saturate(160%)",
+        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9)",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        transition: "all 160ms ease",
       }}
     >
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">

@@ -30,29 +30,49 @@ export default function CardLibrary({
   const effectivePreviewFlag = flagConfig ? viewFlag : "A";
 
   return (
-    <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
-      <h3 style={{ marginTop: 0 }}><span className="column-title-pill">Library</span></h3>
-      {flagConfig && (
-        <div
-          role="group"
-          aria-label="Library and background option"
-          style={{ display: "flex", gap: 6, alignItems: "center", margin: "8px 0 12px" }}
-        >
-          <span className="muted" style={{ fontSize: 12 }}>View:</span>
-          {[["A", flagConfig.optionA], ["B", flagConfig.optionB]].map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              className="btn"
-              aria-pressed={viewFlag === value}
-              onClick={() => onChangeViewFlag?.(value)}
-              style={{ background: viewFlag === value ? "#def" : "white" }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+    <aside style={{ border: "none", background: "transparent", padding: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          margin: "0 0 10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <h3 style={{ margin: 0, display: "inline-flex", alignItems: "center" }}>
+          <span className="column-title-pill">Library</span>
+        </h3>
+        {flagConfig && (
+          <div
+            role="group"
+            aria-label="Library and background option"
+            style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+          >
+            {[["A", flagConfig.optionA], ["B", flagConfig.optionB]].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="btn"
+                aria-pressed={viewFlag === value}
+                onClick={() => onChangeViewFlag?.(value)}
+                style={{
+                  background: viewFlag === value ? "rgba(219, 234, 254, 0.9)" : "rgba(255, 255, 255, 0.75)",
+                  border: viewFlag === value ? "1px solid #93c5fd" : "1px solid rgba(255, 255, 255, 0.8)",
+                  fontWeight: viewFlag === value ? 700 : 500,
+                  fontSize: 13,
+                  padding: "4px 10px",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div
         style={{
           display: "grid",
@@ -61,22 +81,42 @@ export default function CardLibrary({
           margin: "8px 0 12px",
         }}
       >
-        <button className="btn" onClick={() => setLibraryTab("points")} style={{ width: "100%", background: libraryTab === "points" ? "#def" : "white" }}>
-          Points
-        </button>
-        <button className="btn" onClick={() => setLibraryTab("rewards")} style={{ width: "100%", background: libraryTab === "rewards" ? "#def" : "white" }}>
-          Rewards
-        </button>
-        <button className="btn" onClick={() => setLibraryTab("experience")} style={{ width: "100%", background: libraryTab === "experience" ? "#def" : "white" }}>
-          Experience
-        </button>
-        <button className="btn" onClick={() => setLibraryTab("extra")} style={{ width: "100%", background: libraryTab === "extra" ? "#def" : "white" }}>
-          Extra
-        </button>
+        {["points", "rewards", "experience", "extra"].map((tab) => {
+          const isActive = libraryTab === tab;
+          const label = tab.charAt(0).toUpperCase() + tab.slice(1);
+          return (
+            <button
+              key={tab}
+              className="btn"
+              onClick={() => setLibraryTab(tab)}
+              style={{
+                width: "100%",
+                background: isActive ? "#eff6ff" : "#ffffff",
+                border: isActive ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+                color: isActive ? "#1d4ed8" : "#1e293b",
+                fontWeight: isActive ? 700 : 600,
+                boxShadow: "0 2px 6px rgba(15, 23, 42, 0.05)",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {mode === "admin" && (
-        <div style={{ border: "1px dashed #ddd", padding: 10, borderRadius: 10, marginBottom: 12 }}>
+        <div
+          style={{
+            border: "1px dashed rgba(255, 255, 255, 0.75)",
+            background: "rgba(255, 255, 255, 0.5)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            padding: 12,
+            borderRadius: 12,
+            marginBottom: 12,
+            boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+          }}
+        >
           <h4 style={{ marginTop: 0 }}>Create new card</h4>
           <CardCreateForm
             onCreate={onCreateCard}
@@ -136,22 +176,41 @@ export default function CardLibrary({
               )}
             </div>
 
-            <div style={{ borderTop: "2px solid #ddd", paddingTop: 12 }}>
+            <div style={{ borderTop: "2px solid #e2e8f0", paddingTop: 12 }}>
               {loadingRewards ? (
                 <div className="muted">Loading rewards...</div>
               ) : (
                 rewards.map((reward) => {
                   const cardMeta = cards.find((card) => card.id === reward.cardId) || null;
                   return (
-                    <div key={reward.id} style={{ border: "1px solid #eee", padding: 10, borderRadius: 10, background: "#fafafa", marginBottom: 10 }}>
-                      <div style={{ fontWeight: 900 }}>{reward.title}</div>
-                      <div className="muted">
+                    <div
+                      key={reward.id}
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        padding: 12,
+                        borderRadius: 14,
+                        background: "#ffffff",
+                        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
+                        marginBottom: 10,
+                        color: "#0f172a",
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, fontSize: 15, color: "#0f172a" }}>{reward.title}</div>
+                      <div className="muted" style={{ color: "#64748b", marginTop: 4 }}>
                         Cost: <span className="pill">{reward.cost} pts</span>{" "}
                         • Linked card: <span className="pill">{cardMeta ? cardMeta.title : "—"}</span>
                       </div>
                       {mode === "admin" && (
                         <div style={{ marginTop: 8 }}>
-                          <button className="btn" onClick={() => onDeleteReward(reward.id)}>
+                          <button
+                            className="btn"
+                            style={{
+                              background: "#ffffff",
+                              border: "1px solid #fecaca",
+                              color: "#dc2626",
+                            }}
+                            onClick={() => onDeleteReward(reward.id)}
+                          >
                             Delete reward
                           </button>
                         </div>

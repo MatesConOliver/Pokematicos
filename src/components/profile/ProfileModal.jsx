@@ -84,8 +84,14 @@ export default function ProfileModal({
         <div
           style={{
             padding: "16px 20px",
-            borderBottom: "1px solid #e5e7eb",
-            background: color || "#f8fafc",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.6)",
+            background: color
+              ? (color.startsWith("#") && color.length === 7
+                  ? `${color}cc`
+                  : `color-mix(in srgb, ${color} 75%, rgba(255, 255, 255, 0.7))`)
+              : "rgba(248, 250, 252, 0.8)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -96,14 +102,14 @@ export default function ProfileModal({
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{displayName}</h3>
-              <span className="pill" style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700 }}>
+              <span className="pill" style={{ background: "rgba(224, 242, 254, 0.85)", color: "#0369a1", fontWeight: 700 }}>
                 ⭐ {currentPoints} pts
               </span>
-              <span className="pill" style={{ background: "#fef3c7", color: "#92400e", fontWeight: 700 }}>
+              <span className="pill" style={{ background: "rgba(254, 243, 199, 0.85)", color: "#92400e", fontWeight: 700 }}>
                 ✨ {student.xp || 0} XP
               </span>
               {effectiveMultiplier !== 1 && (
-                <span className="pill" style={{ background: "#ede9fe", color: "#6d28d9", fontWeight: 700 }}>
+                <span className="pill" style={{ background: "rgba(237, 233, 254, 0.85)", color: "#6d28d9", fontWeight: 700 }}>
                   ⚡ x{effectiveMultiplier}
                 </span>
               )}
@@ -119,8 +125,10 @@ export default function ProfileModal({
         <div
           style={{
             display: "flex",
-            borderBottom: "1px solid #e5e7eb",
-            background: "#ffffff",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.6)",
+            background: "rgba(255, 255, 255, 0.65)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
             padding: "8px 16px 0 16px",
             gap: 6,
             overflowX: "auto",

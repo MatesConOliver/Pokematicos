@@ -15,10 +15,12 @@ html, body, #root { height: 100%; }
   gap: 14px;
   max-width: min(420px, calc(100vw - 40px));
   padding: 14px 16px;
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.75);
   border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   color: #172033;
   font-weight: 700;
   animation: feedbackNoticeIn 180ms ease-out;
@@ -36,10 +38,12 @@ html, body, #root { height: 100%; }
 .feedback-dialog {
   width: min(430px, calc(100vw - 32px));
   padding: 26px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.75);
   border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.95);
   color: #172033;
   animation: feedbackDialogIn 180ms ease-out;
 }

@@ -17,8 +17,9 @@ export default function ClassesPanel({
   onEndActivity,
 }) {
   const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
+
   return (
-    <aside style={{ border: "1px solid #eee", padding: 12, borderRadius: 10 }}>
+    <aside style={{ border: "none", background: "transparent", padding: 0 }}>
       <h3 style={{ marginTop: 0 }}>
         <span className="column-title-pill">Classes</span>
       </h3>
@@ -27,52 +28,77 @@ export default function ClassesPanel({
         <div className="muted">Loading classes...</div>
       ) : classesList.length ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {classesList.map((c) => (
-            <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button
-                className="btn"
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  textAlign: "left",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  background: c.id === activeClassId ? "#eef" : "white",
-                }}
-                onClick={() => setActiveClassId((prev) => (prev === c.id ? null : c.id))}
-                title={c.name}
-              >
-                {c.name}
-              </button>
+          {classesList.map((c) => {
+            const isActive = c.id === activeClassId;
+            return (
+              <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    textAlign: "left",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    fontWeight: isActive ? 700 : 600,
+                    transition: "all 150ms ease",
+                    background: isActive ? "#eff6ff" : "#ffffff",
+                    border: isActive ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+                    color: isActive ? "#1d4ed8" : "#1e293b",
+                    boxShadow: "0 2px 6px rgba(15, 23, 42, 0.05)",
+                  }}
+                  onClick={() => setActiveClassId((prev) => (prev === c.id ? null : c.id))}
+                  title={c.name}
+                >
+                  {c.name}
+                </button>
 
-              {mode === "admin" && (
-                <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
-                  <button
-                    className="btn"
-                    style={{ whiteSpace: "nowrap" }}
-                    onClick={() => onRenameClass?.(c.id, c.name)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn"
-                    style={{ whiteSpace: "nowrap" }}
-                    onClick={() => removeClass(db, c.id, activeClassId, setActiveClassId, confirmFn)}
-                  >
-                    Delete
-                  </button>
-                  <button
-                    className="btn"
-                    style={{ whiteSpace: "nowrap" }}
-                    onClick={() => onEndActivity?.(c.id, c.name)}
-                  >
-                    End activity
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+                {mode === "admin" && (
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                    <button
+                      className="btn"
+                      style={{
+                        whiteSpace: "nowrap",
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        color: "#1e293b",
+                      }}
+                      onClick={() => onRenameClass?.(c.id, c.name)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn"
+                      style={{
+                        whiteSpace: "nowrap",
+                        background: "#ffffff",
+                        border: "1px solid #fecaca",
+                        color: "#dc2626",
+                      }}
+                      onClick={() => removeClass(db, c.id, activeClassId, setActiveClassId, confirmFn)}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      className="btn"
+                      style={{
+                        whiteSpace: "nowrap",
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        color: "#1e293b",
+                      }}
+                      onClick={() => onEndActivity?.(c.id, c.name)}
+                    >
+                      End activity
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="muted">No classes yet</div>

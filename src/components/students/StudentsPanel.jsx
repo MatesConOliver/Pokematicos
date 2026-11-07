@@ -33,14 +33,20 @@ export default function StudentsPanel({
   const today = todayISODate();
 
   return (
-    <main style={{ border: "1px solid #eee", padding: 12, borderRadius: 10, minWidth: 0 }}>
+    <main style={{ border: "none", background: "transparent", padding: 0, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           <button className="btn" onClick={() => setActiveClassId(null)} style={{ padding: "4px 8px", fontSize: 12 }}>
             ← Back
           </button>
-          <h3 style={{ margin: 0 }}><span className="column-title-pill"> {activeClass?.name || "Select a class"} </span></h3>
-          {activeClassId && <span className="chip">Total class pts: {classTotalPoints}</span>}
+          <h3 style={{ margin: 0 }}>
+            <span className="column-title-pill">{activeClass?.name || "Select a class"}</span>
+          </h3>
+          {activeClassId && (
+            <span className="chip">
+              Total class pts: {classTotalPoints}
+            </span>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -53,17 +59,18 @@ export default function StudentsPanel({
           )}
 
           <input
+            className="input"
             placeholder="Filter students..."
             name="studentNameFilter"
             autoComplete="off"
             value={studentFilter}
             onChange={(e) => setStudentFilter(e.target.value)}
             style={{
-              padding: 8,
+              padding: "7px 12px",
               fontSize: 13,
-              borderRadius: 8,
-              border: "1px solid #ddd",
+              borderRadius: 12,
               minWidth: 170,
+              width: "auto",
             }}
           />
         </div>
@@ -83,7 +90,7 @@ export default function StudentsPanel({
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
             {filteredStudents.map((student) => {
-              const bg = student.profileColor || "white";
+              const solidBg = student.profileColor || "#ffffff";
               const displayName = `${student.name}${student.nameEmojis ? " " + student.nameEmojis : ""}`;
               const streakConfigs = activeClass?.streakConfigs || [];
 
@@ -109,12 +116,18 @@ export default function StudentsPanel({
                 <div
                   key={student.id}
                   style={{
-                    border: "1px solid #ddd",
-                    padding: 10,
-                    borderRadius: 10,
-                    background: bg,
+                    border: "1px solid #e2e8f0",
+                    padding: "8px 12px 12px 12px",
+                    borderRadius: 14,
+                    background: solidBg,
+                    boxShadow: "0 3px 12px rgba(15, 23, 42, 0.06)",
+                    color: "#0f172a",
                     position: "relative",
                     overflow: "hidden",
+                    transition: "all 180ms ease",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
                   }}
                 >
                   {floatingEmojis.map((cfg) => (
@@ -132,89 +145,101 @@ export default function StudentsPanel({
                     />
                   ))}
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 6 }}>
-                        {displayName}
+                  {/* Header Row: Student Name and Current Points */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 16, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", color: "#0f172a" }}>
+                        <span>{displayName}</span>
                         {mode === "admin" && (
-                          <button className="btn" onClick={() => onManageStudent(student.id)} style={{ padding: "4px 8px", fontSize: 12 }}>
+                          <button
+                            className="btn"
+                            onClick={() => onManageStudent(student.id)}
+                            style={{ padding: "2px 7px", fontSize: 11 }}
+                          >
                             Manage
                           </button>
                         )}
-                        <button className="btn" onClick={() => onProfileStudent(student.id)} style={{ padding: "4px 8px", fontSize: 12 }}>
+                        <button
+                          className="btn"
+                          onClick={() => onProfileStudent(student.id)}
+                          style={{ padding: "2px 7px", fontSize: 11 }}
+                        >
                           Profile
                         </button>
                       </div>
                     </div>
 
-                    <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      <div style={{ fontWeight: 800 }}>{student.currentPoints || 0} pts</div>
-                      <div className="muted">XP: {student.xp || 0}</div>
+                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14, whiteSpace: "nowrap" }}>
+                      {student.currentPoints || 0} pts
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <div style={{ flex: 1 }}>
-                      <div className="muted" style={{ lineHeight: 1.35 }}>
-                        <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
-                          {streakConfigs.length > 0 ? (
-                            streakConfigs.map((cfg) => {
-                              const streak = (student.streaks && student.streaks[cfg.id]) || { value: 0, lastUpdated: "" };
-                              const emojiLine = streak.value > 0 ? (cfg.emoji || "").repeat(streak.value) : (
-                                <span style={{ textDecoration: "line-through", opacity: 0.5 }}>{cfg.emoji}</span>
-                              );
-                              const date = streak.lastUpdated || "";
-                              const isToday = date && date === today;
+                  {/* Row 2: Streaks on the left, XP on the right (same Y level!) */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0, fontSize: 12 }}>
+                      {streakConfigs.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          {streakConfigs.map((cfg) => {
+                            const streak = (student.streaks && student.streaks[cfg.id]) || { value: 0, lastUpdated: "" };
+                            const emojiLine = streak.value > 0 ? (cfg.emoji || "").repeat(streak.value) : (
+                              <span style={{ textDecoration: "line-through", opacity: 0.5 }}>{cfg.emoji}</span>
+                            );
+                            const date = streak.lastUpdated || "";
+                            const isToday = date && date === today;
 
-                              return (
-                                <div key={cfg.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                  <div style={{ flex: 1 }}>
-                                    {emojiLine}
-                                    {date && (
-                                      <span style={{ marginLeft: 4, color: isToday ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
-                                        {date}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {mode === "admin" && (
-                                    <button
-                                      className="btn"
-                                      style={{ padding: "4px 8px", fontSize: 12, lineHeight: "12px", borderRadius: 10 }}
-                                      title="Add +1 to this streak"
-                                      onClick={() => onChangeStudentStreak(activeClassId, student.id, cfg.id, +1, cfg)}
-                                    >
-                                      +1
-                                    </button>
+                            return (
+                              <div key={cfg.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
+                                  {emojiLine}
+                                  {date && (
+                                    <span style={{ marginLeft: 2, color: isToday ? "#16a34a" : "#dc2626", fontWeight: 700, fontSize: 11 }}>
+                                      {date}
+                                    </span>
                                   )}
                                 </div>
-                              );
-                            })
-                          ) : (
-                            <span className="muted">No streaks defined for this class.</span>
-                          )}
+                                {mode === "admin" && (
+                                  <button
+                                    className="btn"
+                                    style={{ padding: "1px 6px", fontSize: 11, lineHeight: "14px", borderRadius: 6 }}
+                                    title="Add +1 to this streak"
+                                    onClick={() => onChangeStudentStreak(activeClassId, student.id, cfg.id, +1, cfg)}
+                                  >
+                                    +1
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
+                      ) : (
+                        <span className="muted" style={{ fontSize: 12 }}>No streaks</span>
+                      )}
+                    </div>
 
-                        {(() => {
-                          const effectiveMultiplier = computeEffectiveMultiplier(student, today);
-                          return effectiveMultiplier !== 1 ? (
-                            <div>
-                              <span className="muted">Multiplier:</span>
-                              <strong> x{effectiveMultiplier}</strong>
-                            </div>
-                          ) : null;
-                        })()}
+                    <div style={{ textAlign: "right", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      <div className="muted" style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>
+                        XP: {student.xp || 0}
                       </div>
+                      {(() => {
+                        const effectiveMultiplier = computeEffectiveMultiplier(student, today);
+                        return effectiveMultiplier !== 1 ? (
+                          <div style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 700 }}>
+                            x{effectiveMultiplier}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
 
+                  {/* Admin Quick Add */}
                   {mode === "admin" && (
-                    <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                       <span className="pill">Quick add:</span>
                       {[1, 5, 10].map((amount) => (
                         <button
                           key={amount}
                           className="btn"
-                          style={{ padding: "6px 10px" }}
+                          style={{ padding: "3px 8px", fontSize: 12 }}
                           onClick={() => onQuickAddPoints(activeClassId, student.id, amount)}
                         >
                           +{amount}
@@ -223,54 +248,85 @@ export default function StudentsPanel({
                     </div>
                   )}
 
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800 }}>Cards</div>
-                    <div style={{ marginTop: 8, maxHeight: 150, overflowY: "auto", paddingRight: 6, display: "flex", gap: 8, flexWrap: "wrap", alignContent: "flex-start" }}>
-                      {(() => {
-                        const groups = new Map();
-                        (student.cards || []).forEach((ownedCard) => {
-                          const key = ownedCard.cardId || "unknown";
-                          if (!groups.has(key)) {
-                            // Look up full card data to get both imageURL variants
-                            const fullCard = cards.find(c => c.id === key);
-                            const studentFlagValue = student.flagValue || "A";
-                            const displayImageURL = fullCard ? getCardDisplayImage(fullCard, studentFlagValue) : (ownedCard.imageURL || "");
-                            groups.set(key, { title: ownedCard.title || "—", imageURL: ownedCard.imageURL || "", displayImageURL, count: 0 });
-                          }
-                          groups.get(key).count += 1;
-                        });
+                  {/* Cards Gallery: header removed per requirement 4, holo foil kept per requirement 5 */}
+                  <div style={{ marginTop: 2, maxHeight: 155, overflowY: "auto", paddingRight: 6, display: "flex", gap: 8, flexWrap: "wrap", alignContent: "flex-start" }}>
+                    {(() => {
+                      const groups = new Map();
+                      (student.cards || []).forEach((ownedCard) => {
+                        const key = ownedCard.cardId || "unknown";
+                        if (!groups.has(key)) {
+                          const fullCard = cards.find((c) => c.id === key);
+                          const studentFlagValue = student.flagValue || "A";
+                          const displayImageURL = fullCard ? getCardDisplayImage(fullCard, studentFlagValue) : (ownedCard.imageURL || "");
+                          groups.set(key, { title: ownedCard.title || "—", imageURL: ownedCard.imageURL || "", displayImageURL, count: 0 });
+                        }
+                        groups.get(key).count += 1;
+                      });
 
-                        const groupedCards = Array.from(groups.entries()).map(([cardId, group]) => ({ cardId, ...group }));
-                        const ownedUniqueList = groupedCards.map((card) => ({ title: card.title, imageURL: card.imageURL }));
+                      const groupedCards = Array.from(groups.entries()).map(([cardId, group]) => ({ cardId, ...group }));
+                      // Requirement 6: Use displayImageURL so full preview displays flag-specific image
+                      const ownedUniqueList = groupedCards.map((card) => ({ title: card.title, imageURL: card.displayImageURL || card.imageURL }));
 
-                        return groupedCards.map((group, index) => (
-                          <div
-                            key={group.cardId}
-                            className="card-thumb"
-                            style={{ width: 80, height: 110, border: "1px solid #eee", borderRadius: 10, overflow: "hidden", cursor: "pointer", position: "relative", background: "white" }}
-                            onClick={() => onPreviewCard({ ownedList: ownedUniqueList, ownedIndex: index, isLibraryCard: false })}
-                          >
-                            {group.displayImageURL ? (
-                              <img src={group.displayImageURL} alt={group.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            ) : (
-                              <div style={{ padding: 6, fontSize: 11 }}>{group.title}</div>
-                            )}
-                            {group.count > 1 && (
-                              <div style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.75)", color: "white", borderRadius: 999, padding: "2px 7px", fontSize: 11, fontWeight: 900 }}>
-                                ×{group.count}
-                              </div>
-                            )}
-                          </div>
-                        ));
-                      })()}
-                    </div>
+                      return groupedCards.map((group, index) => (
+                        <div
+                          key={group.cardId}
+                          className="card-thumb holo-foil-card"
+                          style={{
+                            width: 80,
+                            height: 110,
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 10,
+                            overflow: "hidden",
+                            cursor: "pointer",
+                            position: "relative",
+                            background: "#ffffff",
+                            boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
+                          }}
+                          title={`${group.title} (Click to preview)`}
+                          onClick={() => onPreviewCard({ ownedList: ownedUniqueList, ownedIndex: index, isLibraryCard: false })}
+                        >
+                          {group.displayImageURL ? (
+                            <img src={group.displayImageURL} alt={group.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <div style={{ padding: 6, fontSize: 11, color: "#1e293b" }}>{group.title}</div>
+                          )}
+                          {group.count > 1 && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 5,
+                                right: 5,
+                                background: "rgba(15, 23, 42, 0.85)",
+                                color: "white",
+                                borderRadius: 999,
+                                padding: "2px 6px",
+                                fontSize: 10,
+                                fontWeight: 900,
+                              }}
+                            >
+                              ×{group.count}
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
               );
             })}
 
             {mode === "admin" && (
-              <div style={{ border: "1px dashed #ccc", padding: 12, borderRadius: 10 }}>
+              <div
+                style={{
+                  border: "1px dashed rgba(255, 255, 255, 0.75)",
+                  background: "rgba(255, 255, 255, 0.5)",
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                  padding: 14,
+                  borderRadius: 14,
+                  boxShadow: "0 4px 14px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
+                }}
+              >
                 <h4 style={{ marginTop: 0 }}>Add student</h4>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input ref={newStudentRef} placeholder="Student name" style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }} />
