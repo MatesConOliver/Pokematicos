@@ -966,58 +966,76 @@ export default function App() {
         .btn{
           padding: 8px 14px;
           border-radius: 12px;
+          border: 1px solid rgba(226, 232, 240, 0.95);
+          background: #ffffff;
+          cursor: pointer;
+          font-weight: 600;
+          color: #1e293b;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+          transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+        }
+        .btn:hover{
+          background: #f8fafc;
+          border-color: #cbd5e1;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+          transform: translateY(-1px);
+        }
+        .btn:active{
+          transform: translateY(0);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        }
+        .btn.primary{
+          background: #2563eb;
+          color: white;
+          border: 1px solid #1d4ed8;
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+        .btn.primary:hover{
+          background: #1d4ed8;
+          border-color: #1e40af;
+          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+          transform: translateY(-1px);
+        }
+        .btn.danger{
+          background: #dc2626;
+          color: white;
+          border: 1px solid #b91c1c;
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.28);
+        }
+        .btn.danger:hover{
+          background: #b91c1c;
+          transform: translateY(-1px);
+        }
+        .btn-glass {
+          padding: 8px 14px;
+          border-radius: 12px;
           border: 1px solid rgba(255, 255, 255, 0.75);
-          background: rgba(255, 255, 255, 0.72);
+          background: rgba(255, 255, 255, 0.78);
           backdrop-filter: blur(12px) saturate(160%);
           -webkit-backdrop-filter: blur(12px) saturate(160%);
           cursor: pointer;
           font-weight: 600;
           color: #1e293b;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
           transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .btn:hover{
-          background: rgba(255, 255, 255, 0.9);
-          border-color: rgba(255, 255, 255, 0.95);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        .btn-glass:hover {
+          background: rgba(255, 255, 255, 0.92);
           transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1);
         }
-        .btn:active{
+        .btn-glass:active {
           transform: translateY(0);
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-        }
-        .btn.primary{
-          background: rgba(37, 99, 235, 0.82);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.35);
-          box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-        }
-        .btn.primary:hover{
-          background: rgba(29, 78, 216, 0.92);
-          border-color: rgba(255, 255, 255, 0.5);
-          box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-          transform: translateY(-1px);
-        }
-        .btn.danger{
-          background: rgba(220, 38, 38, 0.82);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.35);
-          box-shadow: 0 4px 16px rgba(220, 38, 38, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-        }
-        .btn.danger:hover{
-          background: rgba(185, 28, 28, 0.92);
-          transform: translateY(-1px);
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
         }
 
         .pill {
           font-size: 12px;
           padding: 3px 10px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.75);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.7);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
           color: #334155;
           font-weight: 600;
         }
@@ -1039,10 +1057,8 @@ export default function App() {
           width: 100%;
           padding: 10px 12px;
           border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.7);
-          background: rgba(255, 255, 255, 0.72);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
           outline: none;
           box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
           color: #0f172a;
@@ -1050,8 +1066,8 @@ export default function App() {
         }
         .input:focus, .select:focus, textarea:focus{
           border-color: #93c5fd;
-          background: rgba(255, 255, 255, 0.94);
-          box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.35);
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.35);
         }
 
         .panel{
@@ -1070,11 +1086,9 @@ export default function App() {
           gap: 6px;
           padding: 4px 12px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.75);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.7);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
           font-size: 12px;
           font-weight: 700;
           color: #111827;
@@ -1145,7 +1159,7 @@ export default function App() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 12,
+          marginBottom: 14,
           gap: 12,
           flexWrap: "wrap",
         }}
@@ -1168,7 +1182,7 @@ export default function App() {
               />
 
               <button
-                className="btn"
+                className="btn-glass"
                 onClick={() => bgInputRef.current?.click()}
                 title={
                   activeClassId
@@ -1182,7 +1196,21 @@ export default function App() {
               </button>
 
               {activeClassId && activeClass?.flagConfig && (
-                <div style={{ display: "inline-flex", gap: 6 }} role="group" aria-label="Background option">
+                <div
+                  style={{
+                    display: "inline-flex",
+                    gap: 6,
+                    padding: 3,
+                    borderRadius: 12,
+                    background: "rgba(255, 255, 255, 0.75)",
+                    backdropFilter: "blur(12px) saturate(160%)",
+                    WebkitBackdropFilter: "blur(12px) saturate(160%)",
+                    border: "1px solid rgba(255, 255, 255, 0.75)",
+                    boxShadow: "0 4px 14px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95)",
+                  }}
+                  role="group"
+                  aria-label="Background option"
+                >
                   {[["A", activeClass.flagConfig.optionA], ["B", activeClass.flagConfig.optionB]].map(([value, label]) => (
                     <button
                       key={value}
@@ -1190,7 +1218,15 @@ export default function App() {
                       className="btn"
                       aria-pressed={viewFlag === value}
                       onClick={() => setViewFlag(value)}
-                      style={{ background: viewFlag === value ? "#def" : "white" }}
+                      style={{
+                        padding: "5px 12px",
+                        fontSize: 13,
+                        fontWeight: viewFlag === value ? 700 : 500,
+                        background: viewFlag === value ? "#dbeafe" : "transparent",
+                        border: viewFlag === value ? "1px solid #93c5fd" : "1px solid transparent",
+                        color: viewFlag === value ? "#1d4ed8" : "#334155",
+                        boxShadow: viewFlag === value ? "0 1px 3px rgba(15, 23, 42, 0.08)" : "none",
+                      }}
                     >
                       {label}
                     </button>
@@ -1205,7 +1241,7 @@ export default function App() {
                   : activeClass?.backgroundUrl)) ||
                 (!activeClassId && globalBackgroundUrl)) && (
                 <button
-                  className="btn"
+                  className="btn-glass"
                   onClick={() => clearBackgroundImage(activeClass?.flagConfig ? viewFlag : "A")}
                 >
                   {activeClassId
@@ -1219,16 +1255,16 @@ export default function App() {
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto", flexWrap: "wrap" }}>
           {mode === "admin" && (
-            <button className="btn" onClick={() => setShowRequestsPanel(true)}>
+            <button className="btn-glass" onClick={() => setShowRequestsPanel(true)}>
               Requests{pendingCount > 0 ? ` (${pendingCount})` : ""}
             </button>
           )}
           {authUser ? (
-            <button className="btn" onClick={logout}>
+            <button className="btn-glass" onClick={logout}>
               Switch role (now Admin)
             </button>
           ) : (
-            <button className="btn" onClick={() => setMode(null)}>
+            <button className="btn-glass" onClick={() => setMode(null)}>
               Switch role (now Guest)
             </button>
           )}

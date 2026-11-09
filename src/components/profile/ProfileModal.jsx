@@ -117,8 +117,6 @@ export default function ProfileModal({
                   ? `${color}cc`
                   : `color-mix(in srgb, ${color} 75%, rgba(255, 255, 255, 0.7))`)
               : "rgba(248, 250, 252, 0.8)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -154,8 +152,6 @@ export default function ProfileModal({
             display: "flex",
             borderBottom: "1px solid rgba(255, 255, 255, 0.6)",
             background: "rgba(255, 255, 255, 0.65)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
             padding: "8px 16px 0 16px",
             gap: 6,
             overflowX: "auto",

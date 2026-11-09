@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import EmojiParty from "../common/EmojiParty";
 import { todayISODate } from "../../utils/dateUtils";
 import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
@@ -31,6 +31,7 @@ export default function StudentsPanel({
 }) {
   const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
   const today = todayISODate();
+  const cardsById = useMemo(() => new Map((cards || []).map((c) => [c.id, c])), [cards]);
 
   return (
     <main style={{ border: "none", background: "transparent", padding: 0, minWidth: 0 }}>
@@ -128,6 +129,8 @@ export default function StudentsPanel({
                     display: "flex",
                     flexDirection: "column",
                     gap: 6,
+                    contentVisibility: "auto",
+                    containIntrinsicSize: "0 180px",
                   }}
                 >
                   {floatingEmojis.map((cfg) => (
@@ -252,13 +255,13 @@ export default function StudentsPanel({
                   <div style={{ marginTop: 2, maxHeight: 155, overflowY: "auto", paddingRight: 6, display: "flex", gap: 8, flexWrap: "wrap", alignContent: "flex-start" }}>
                     {(() => {
                       const groups = new Map();
+                      const studentFlagValue = student.flagValue || "A";
                       (student.cards || []).forEach((ownedCard) => {
                         const key = ownedCard.cardId || "unknown";
                         if (!groups.has(key)) {
-                          const fullCard = cards.find((c) => c.id === key);
-                          const studentFlagValue = student.flagValue || "A";
+                          const fullCard = cardsById.get(key);
                           const displayImageURL = fullCard ? getCardDisplayImage(fullCard, studentFlagValue) : (ownedCard.imageURL || "");
-                          groups.set(key, { title: ownedCard.title || "—", imageURL: ownedCard.imageURL || "", displayImageURL, count: 0 });
+                          groups.set(key, { title: ownedCard.title || fullCard?.title || "—", imageURL: ownedCard.imageURL || "", displayImageURL, count: 0 });
                         }
                         groups.get(key).count += 1;
                       });
@@ -281,12 +284,20 @@ export default function StudentsPanel({
                             position: "relative",
                             background: "#ffffff",
                             boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
+                            contentVisibility: "auto",
+                            containIntrinsicSize: "80px 110px",
                           }}
                           title={`${group.title} (Click to preview)`}
                           onClick={() => onPreviewCard({ ownedList: ownedUniqueList, ownedIndex: index, isLibraryCard: false })}
                         >
                           {group.displayImageURL ? (
-                            <img src={group.displayImageURL} alt={group.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img
+                              src={group.displayImageURL}
+                              alt={group.title}
+                              loading="lazy"
+                              decoding="async"
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
                           ) : (
                             <div style={{ padding: 6, fontSize: 11, color: "#1e293b" }}>{group.title}</div>
                           )}
@@ -318,13 +329,11 @@ export default function StudentsPanel({
             {mode === "admin" && (
               <div
                 style={{
-                  border: "1px dashed rgba(255, 255, 255, 0.75)",
-                  background: "rgba(255, 255, 255, 0.5)",
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
+                  border: "1px dashed #cbd5e1",
+                  background: "#ffffff",
                   padding: 14,
                   borderRadius: 14,
-                  boxShadow: "0 4px 14px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
+                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
                 }}
               >
                 <h4 style={{ marginTop: 0 }}>Add student</h4>

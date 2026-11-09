@@ -25,6 +25,8 @@ export default function LibraryCardRow({
         boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
         marginBottom: 10,
         color: "#0f172a",
+        contentVisibility: "auto",
+        containIntrinsicSize: "0 110px",
       }}
     >
       <div

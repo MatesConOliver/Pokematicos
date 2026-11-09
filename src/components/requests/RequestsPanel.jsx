@@ -77,7 +77,18 @@ export default function RequestsPanel({
             <div className="muted">No pending requests.</div>
           ) : (
             visible.map((r) => (
-              <div key={r.id} style={{ border: "1px solid #eee", borderRadius: 10, padding: 10 }}>
+              <div
+                key={r.id}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: "#ffffff",
+                  contentVisibility: "auto",
+                  containIntrinsicSize: "0 100px",
+                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                   <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer" }}>
                     <input

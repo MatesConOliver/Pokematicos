@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { pickEditableFloatWindow } from "../../services/streakService";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
 
 function todayISODate() {
   const d = new Date();
@@ -44,6 +45,7 @@ export default function ManageStudentModal({
   const [redeemRewardId, setRedeemRewardId] = useState("");
   const [redeemMode, setRedeemMode] = useState("individual");
   const [shares, setShares] = useState({});
+  const [giveSearch, setGiveSearch] = useState("");
 
   useEffect(() => {
     setShares({});
@@ -56,26 +58,45 @@ export default function ManageStudentModal({
     return Object.values(shares).reduce((acc, v) => acc + Number(v || 0), 0);
   }, [shares]);
 
+  const cardsMap = useMemo(() => {
+    const map = new Map();
+    (cards || []).forEach((c) => map.set(c.id, c));
+    return map;
+  }, [cards]);
+
   const groupedOwned = useMemo(() => {
     const map = new Map();
+    const studentFlag = student.flagValue || "A";
     (student.cards || []).forEach((o) => {
       const key = o.cardId || "unknown";
       if (!map.has(key)) {
+        const fullCard = cardsMap.get(key);
+        const displayImageURL = fullCard ? getCardDisplayImage(fullCard, studentFlag) : (o.imageURL || "");
         map.set(key, {
           cardId: key,
-          title: o.title || "—",
-          imageURL: o.imageURL || "",
+          title: o.title || fullCard?.title || "—",
+          imageURL: displayImageURL || o.imageURL || "",
           ownedIds: [],
         });
       }
       map.get(key).ownedIds.push(o.id);
     });
     return Array.from(map.values());
-  }, [student.cards]);
+  }, [student.cards, cardsMap, student.flagValue]);
 
   const giveableCards = useMemo(() => {
     return (cards || []).filter((c) => (c.category || "points") !== "rewards");
   }, [cards]);
+
+  const filteredGiveableCards = useMemo(() => {
+    if (!giveSearch.trim()) return giveableCards;
+    const q = giveSearch.toLowerCase();
+    return giveableCards.filter(
+      (c) =>
+        (c.title && c.title.toLowerCase().includes(q)) ||
+        (c.description && c.description.toLowerCase().includes(q))
+    );
+  }, [giveableCards, giveSearch]);
 
   const [editName, setEditName] = useState(student.name || "");
   const [editCurrentPoints, setEditCurrentPoints] = useState(student.currentPoints || 0);
@@ -342,39 +363,85 @@ export default function ManageStudentModal({
             )}
 
             <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-              <h4 style={{ marginTop: 0 }}>Owned cards (grouped)</h4>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <h4 style={{ margin: 0 }}>
+                  Owned cards ({groupedOwned.reduce((sum, g) => sum + g.ownedIds.length, 0)} total, {groupedOwned.length} unique)
+                </h4>
+              </div>
               {!groupedOwned.length ? (
                 <div className="muted">No cards yet</div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gap: 10,
+                    maxHeight: 320,
+                    overflowY: "auto",
+                    paddingRight: 6,
+                  }}
+                >
                   {groupedOwned.map((g) => (
-                    <div key={g.cardId} style={{ border: "1px solid #eee", borderRadius: 12, padding: 10 }}>
+                    <div
+                      key={g.cardId}
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: 10,
+                        background: "#ffffff",
+                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                        contentVisibility: "auto",
+                        containIntrinsicSize: "0 120px",
+                      }}
+                    >
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                         <div
                           className="card-thumb"
-                          style={{ width: 70, height: 92, borderRadius: 10, overflow: "hidden", background: "#fafafa", cursor: "pointer" }}
+                          style={{
+                            width: 60,
+                            height: 80,
+                            borderRadius: 8,
+                            overflow: "hidden",
+                            background: "#f8fafc",
+                            cursor: "pointer",
+                            flexShrink: 0,
+                            border: "1px solid #e2e8f0",
+                          }}
                           onClick={() => setCardPreview({ title: g.title, imageURL: g.imageURL, description: "" })}
                         >
                           {g.imageURL ? (
-                            <img src={g.imageURL} alt={g.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img
+                              src={g.imageURL}
+                              alt={g.title}
+                              loading="lazy"
+                              decoding="async"
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
                           ) : (
-                            <div style={{ padding: 6 }}>{g.title}</div>
+                            <div style={{ padding: 6, fontSize: 11 }}>{g.title}</div>
                           )}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 900 }}>{g.title}</div>
-                          <div className="muted">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {g.title}
+                          </div>
+                          <div className="muted" style={{ marginTop: 2 }}>
                             Copies: <span className="pill">×{g.ownedIds.length}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                        <button className="btn" onClick={() => onRemoveOne(g.ownedIds[0])}>
+                      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                        <button
+                          className="btn"
+                          style={{ padding: "3px 8px", fontSize: 11 }}
+                          onClick={() => onRemoveOne(g.ownedIds[0])}
+                        >
                           Remove 1
                         </button>
                         <button
                           className="btn"
+                          style={{ padding: "3px 8px", fontSize: 11, color: "#dc2626", borderColor: "#fecaca" }}
                           onClick={async () => {
                             if (confirmFn && !(await confirmFn(`Remove ALL ${g.ownedIds.length} copies of "${g.title}"?`))) return;
                             onRemoveAll(g.ownedIds);
@@ -498,53 +565,89 @@ export default function ManageStudentModal({
             </div>
           </div>
 
-          <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-            <h4 style={{ marginTop: 0 }}>Give card (not rewards)</h4>
-            <div className="muted" style={{ marginBottom: 8 }}>
+          <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column" }}>
+            <h4 style={{ marginTop: 0, marginBottom: 4 }}>Give card (not rewards)</h4>
+            <div className="muted" style={{ marginBottom: 8, fontSize: 12 }}>
               Reward cards do not appear here. They are only obtained by redeeming rewards.
             </div>
-            <div style={{ display: "grid", gap: 10 }}>
-              {giveableCards.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    border: "1px solid #eee",
-                    borderRadius: 12,
-                    padding: 10,
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "center",
-                  }}
-                >
+            {giveableCards.length > 5 && (
+              <input
+                placeholder="Search cards to give..."
+                value={giveSearch}
+                onChange={(e) => setGiveSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  marginBottom: 8,
+                  boxSizing: "border-box",
+                }}
+              />
+            )}
+            <div style={{ display: "grid", gap: 8, maxHeight: 460, overflowY: "auto", paddingRight: 6 }}>
+              {!filteredGiveableCards.length ? (
+                <div className="muted" style={{ padding: 8 }}>No matching cards</div>
+              ) : (
+                filteredGiveableCards.map((c) => (
                   <div
+                    key={c.id}
                     style={{
-                      width: 68,
-                      height: 86,
+                      border: "1px solid #e2e8f0",
                       borderRadius: 10,
-                      overflow: "hidden",
-                      background: "#fafafa",
-                      cursor: "pointer",
+                      padding: 8,
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "center",
+                      background: "#ffffff",
+                      boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                      contentVisibility: "auto",
+                      containIntrinsicSize: "0 86px",
                     }}
                   >
-                    {(c.lockedImageURL || c.imageURL) ? (
-                      <img
-                        src={(c.lockedImageURL || c.imageURL)}
-                        alt={c.title}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                    ) : (
-                      <div style={{ padding: 6 }}>{c.title}</div>
-                    )}
+                    <div
+                      style={{
+                        width: 56,
+                        height: 72,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        background: "#f8fafc",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      {(c.lockedImageURL || c.imageURL) ? (
+                        <img
+                          src={(c.lockedImageURL || c.imageURL)}
+                          alt={c.title}
+                          loading="lazy"
+                          decoding="async"
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <div style={{ padding: 6, fontSize: 10 }}>{c.title}</div>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.title}
+                      </div>
+                      <div className="muted" style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.description || "—"}
+                      </div>
+                    </div>
+                    <button
+                      className="btn primary"
+                      style={{ padding: "4px 10px", fontSize: 12, flexShrink: 0 }}
+                      onClick={() => onGiveCard(c.id)}
+                    >
+                      Give
+                    </button>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 900 }}>{c.title}</div>
-                    <div className="muted">{c.description}</div>
-                  </div>
-                  <button className="btn primary" onClick={() => onGiveCard(c.id)}>
-                    Give
-                  </button>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

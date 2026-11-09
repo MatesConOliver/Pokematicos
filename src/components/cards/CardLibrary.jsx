@@ -57,13 +57,12 @@ export default function CardLibrary({
                 aria-pressed={viewFlag === value}
                 onClick={() => onChangeViewFlag?.(value)}
                 style={{
-                  background: viewFlag === value ? "rgba(219, 234, 254, 0.9)" : "rgba(255, 255, 255, 0.75)",
-                  border: viewFlag === value ? "1px solid #93c5fd" : "1px solid rgba(255, 255, 255, 0.8)",
+                  background: viewFlag === value ? "#dbeafe" : "#ffffff",
+                  border: viewFlag === value ? "1px solid #93c5fd" : "1px solid #e2e8f0",
                   fontWeight: viewFlag === value ? 700 : 500,
                   fontSize: 13,
                   padding: "4px 10px",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
+                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
                 }}
               >
                 {label}
@@ -107,14 +106,12 @@ export default function CardLibrary({
       {mode === "admin" && (
         <div
           style={{
-            border: "1px dashed rgba(255, 255, 255, 0.75)",
-            background: "rgba(255, 255, 255, 0.5)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            border: "1px dashed #cbd5e1",
+            background: "#ffffff",
             padding: 12,
             borderRadius: 12,
             marginBottom: 12,
-            boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
           }}
         >
           <h4 style={{ marginTop: 0 }}>Create new card</h4>
