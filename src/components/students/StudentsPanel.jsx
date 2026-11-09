@@ -34,8 +34,30 @@ export default function StudentsPanel({
   const cardsById = useMemo(() => new Map((cards || []).map((c) => [c.id, c])), [cards]);
 
   return (
-    <main style={{ border: "none", background: "transparent", padding: 0, minWidth: 0 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <main
+      style={{
+        border: "none",
+        background: "transparent",
+        padding: 0,
+        minWidth: 0,
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          flexShrink: 0,
+          paddingBottom: 10,
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           <button className="btn" onClick={() => setActiveClassId(null)} style={{ padding: "4px 8px", fontSize: 12 }}>
             ← Back
@@ -78,12 +100,21 @@ export default function StudentsPanel({
       </div>
 
       {showActivityCatalogue && (
-        <div style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 8, background: "#fafbfc", padding: 12 }}>
+        <div style={{ marginBottom: 10, border: "1px solid #e5e7eb", borderRadius: 8, background: "#fafbfc", padding: 12, flexShrink: 0 }}>
           <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
         </div>
       )}
 
-      <div style={{ marginTop: 12 }}>
+      <div
+        style={{
+          flex: "1 1 0",
+          overflowY: "auto",
+          minHeight: 0,
+          paddingRight: 8,
+          paddingBottom: 24,
+          overscrollBehavior: "contain",
+        }}
+      >
         {!activeClassId ? (
           <div className="muted">Select a class first.</div>
         ) : loadingStudents ? (

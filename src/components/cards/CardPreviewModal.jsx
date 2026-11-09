@@ -1,4 +1,30 @@
+import React, { useEffect } from "react";
+
 export default function CardPreviewModal({ cardPreview, onClose, onNavigate }) {
+  useEffect(() => {
+    if (!cardPreview) return;
+
+    function handleKeyDown(event) {
+      if (event.target && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        onNavigate?.(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        onNavigate?.(1);
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        onClose?.();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [cardPreview, onNavigate, onClose]);
+
   if (!cardPreview) return null;
 
   return (

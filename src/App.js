@@ -834,6 +834,11 @@ export default function App() {
   const backgroundStyle = {
     fontFamily: "Inter, system-ui, sans-serif",
     minHeight: "100vh",
+    height: activeClassId ? "100vh" : "auto",
+    overflow: activeClassId ? "hidden" : "visible",
+    display: "flex",
+    flexDirection: "column",
+    boxSizing: "border-box",
     padding: 12,
     backgroundImage: stickyBackground ? `url(${stickyBackground})` : "none",
     backgroundSize: "cover",
@@ -1162,6 +1167,7 @@ export default function App() {
           marginBottom: 14,
           gap: 12,
           flexWrap: "wrap",
+          flexShrink: 0,
         }}
       >
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -1284,7 +1290,11 @@ export default function App() {
             : mode === "admin"
             ? "min(600px, 100%)"
             : "min(360px, 100%)",
+          gridTemplateRows: activeClassId ? "minmax(0, 1fr)" : "auto",
           gap: 14,
+          flex: activeClassId ? "1 1 0" : "none",
+          minHeight: 0,
+          height: activeClassId ? "100%" : "auto",
         }}
       >
         {/* Classes: only on the main screen */}

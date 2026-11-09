@@ -27,10 +27,11 @@ export default function CardLibrary({
   onValidationError,
 }) {
   const [libraryTab, setLibraryTab] = useState("points");
+  const [showCreateCard, setShowCreateCard] = useState(false);
   const effectivePreviewFlag = flagConfig ? viewFlag : "A";
 
   return (
-    <aside style={{ border: "none", background: "transparent", padding: 0 }}>
+    <aside style={{ border: "none", background: "transparent", padding: 0, height: "100%", display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
       <div
         style={{
           display: "flex",
@@ -38,6 +39,7 @@ export default function CardLibrary({
           gap: 10,
           margin: "0 0 10px",
           flexWrap: "wrap",
+          flexShrink: 0,
         }}
       >
         <h3 style={{ margin: 0, display: "inline-flex", alignItems: "center" }}>
@@ -75,9 +77,10 @@ export default function CardLibrary({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
           gap: 6,
           margin: "8px 0 12px",
+          flexShrink: 0,
         }}
       >
         {["points", "rewards", "experience", "extra"].map((tab) => {
@@ -101,22 +104,60 @@ export default function CardLibrary({
             </button>
           );
         })}
+        {mode === "admin" && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setShowCreateCard((prev) => !prev)}
+            aria-expanded={showCreateCard}
+            style={{
+              width: "100%",
+              background: showCreateCard ? "#dbeafe" : "#ffffff",
+              border: showCreateCard ? "1px solid #3b82f6" : "1px dashed #93c5fd",
+              color: showCreateCard ? "#1d4ed8" : "#2563eb",
+              fontWeight: 700,
+              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.08)",
+            }}
+          >
+            {showCreateCard ? "✕ Create" : "+ Create"}
+          </button>
+        )}
       </div>
 
-      {mode === "admin" && (
+      {mode === "admin" && showCreateCard && (
         <div
           style={{
-            border: "1px dashed #cbd5e1",
+            border: "1px dashed #93c5fd",
             background: "#ffffff",
             padding: 12,
             borderRadius: 12,
             marginBottom: 12,
             boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
+            flexShrink: 0,
+            maxHeight: 320,
+            overflowY: "auto",
           }}
         >
-          <h4 style={{ marginTop: 0 }}>Create new card</h4>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <h4 style={{ margin: 0 }}>Create new card</h4>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setShowCreateCard(false)}
+              style={{ padding: "2px 8px", fontSize: 12 }}
+              title="Close form"
+            >
+              ✕
+            </button>
+          </div>
           <CardCreateForm
-            onCreate={onCreateCard}
+            onCreate={async (cardData) => {
+              const res = await onCreateCard(cardData);
+              if (res !== false) {
+                setShowCreateCard(false);
+              }
+              return res;
+            }}
             lockedInputRef={lockedInputRef}
             unlockedInputRef={unlockedInputRef}
             lockedInputBRef={lockedInputBRef}
@@ -128,7 +169,7 @@ export default function CardLibrary({
         </div>
       )}
 
-      <div style={{ maxHeight: 560, overflow: "auto" }}>
+      <div style={{ flex: "1 1 0", overflowY: "auto", minHeight: 0, paddingRight: 4, paddingBottom: 16, overscrollBehavior: "contain" }}>
         {libraryTab !== "rewards" ? (
           <div style={{ display: "grid" }}>
             {loadingCards ? (
