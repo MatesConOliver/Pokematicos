@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import EmojiParty from "../common/EmojiParty";
 import { todayISODate } from "../../utils/dateUtils";
 import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
@@ -30,6 +30,7 @@ export default function StudentsPanel({
   alertFn,
 }) {
   const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
+  const scrollContainerRef = useRef(null);
   const today = todayISODate();
   const cardsById = useMemo(() => new Map((cards || []).map((c) => [c.id, c])), [cards]);
 
@@ -77,7 +78,24 @@ export default function StudentsPanel({
             <>
               <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
               <button className="btn" onClick={onManageFlag}>🚩 Flag</button>
-              <button className="btn" onClick={() => setShowActivityCatalogue(!showActivityCatalogue)}>📚 Activities</button>
+              <button
+                className="btn"
+                onClick={() => {
+                  const next = !showActivityCatalogue;
+                  setShowActivityCatalogue(next);
+                  if (next && scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+                style={{
+                  background: showActivityCatalogue ? "#dbeafe" : "#ffffff",
+                  border: showActivityCatalogue ? "1px solid #3b82f6" : "1px solid #e2e8f0",
+                  color: showActivityCatalogue ? "#1d4ed8" : "#1e293b",
+                  fontWeight: showActivityCatalogue ? 700 : 600,
+                }}
+              >
+                📚 Activities {showActivityCatalogue ? "▲" : "▼"}
+              </button>
             </>
           )}
 
@@ -99,13 +117,8 @@ export default function StudentsPanel({
         </div>
       </div>
 
-      {showActivityCatalogue && (
-        <div style={{ marginBottom: 10, border: "1px solid #e5e7eb", borderRadius: 8, background: "#fafbfc", padding: 12, flexShrink: 0 }}>
-          <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
-        </div>
-      )}
-
       <div
+        ref={scrollContainerRef}
         style={{
           flex: "1 1 0",
           overflowY: "auto",
@@ -115,6 +128,32 @@ export default function StudentsPanel({
           overscrollBehavior: "contain",
         }}
       >
+        {showActivityCatalogue && (
+          <div
+            style={{
+              marginBottom: 16,
+              border: "1px solid #cbd5e1",
+              borderRadius: 14,
+              background: "#ffffff",
+              padding: 16,
+              boxShadow: "0 4px 16px rgba(15, 23, 42, 0.06)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowActivityCatalogue(false)}
+                style={{ padding: "3px 10px", fontSize: 12 }}
+                title="Close activities panel"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
+          </div>
+        )}
+
         {!activeClassId ? (
           <div className="muted">Select a class first.</div>
         ) : loadingStudents ? (
