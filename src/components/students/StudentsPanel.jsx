@@ -4,6 +4,7 @@ import { todayISODate } from "../../utils/dateUtils";
 import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { ActivityCatalogueManager } from "../admin/ActivityCatalogueManager";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { formatPoints } from "../../utils/helpers";
 
 export default function StudentsPanel({
   activeClass,
@@ -68,7 +69,7 @@ export default function StudentsPanel({
           </h3>
           {activeClassId && (
             <span className="chip">
-              Total class pts: {classTotalPoints}
+              Total class pts: {formatPoints(classTotalPoints)}
             </span>
           )}
         </div>
@@ -243,7 +244,7 @@ export default function StudentsPanel({
                     </div>
 
                     <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14, whiteSpace: "nowrap" }}>
-                      {student.currentPoints || 0} pts
+                      {formatPoints(student.currentPoints)} pts
                     </div>
                   </div>
 

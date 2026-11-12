@@ -5,6 +5,7 @@ import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { PublicStudentIdDisplay } from "./PublicStudentIdDisplay";
 import { RewardCodeRedemption } from "./RewardCodeRedemption";
 import { reconcileAndEnrichStudentHistory } from "../../services/rewardCodeService.js";
+import { round2, formatPoints } from "../../utils/helpers";
 
 export default function ProfileModal({
   mode,
@@ -70,7 +71,7 @@ export default function ProfileModal({
 
   const displayName = `${student.name}${emojis ? " " + emojis : ""}`;
   const displayFlagValue = flagConfig ? flagValue : "A";
-  const currentPoints = Number(student.currentPoints || 0);
+  const currentPoints = formatPoints(student.currentPoints);
   const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate());
 
   // Cards indexed for quick reward thumbnail/description lookup
@@ -807,7 +808,7 @@ export default function ProfileModal({
                                 opacity: 0.9,
                               }}
                             >
-                              Need {cost - currentPoints} more pts
+                              Need {round2(cost - currentPoints)} more pts
                             </button>
                           )}
                         </div>

@@ -25,4 +25,8 @@ const PASTEL_COLORS = [
   { name: "Sand", value: "#F5F5DC" },
 ];
 
-export { uid, round2, safeLower, PASTEL_COLORS };
+function formatPoints(x) {
+  return round2(x);
+}
+
+export { uid, round2, formatPoints, safeLower, PASTEL_COLORS };

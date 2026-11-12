@@ -13,14 +13,13 @@ import {
   collection,
   getDocs,
   writeBatch,
-  increment,
   serverTimestamp,
 } from "firebase/firestore";
 
 import { decodeRewardCode, getStudentHash } from "../utils/rewardCodeUtils.js";
 import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
 import { todayISODate } from "../utils/dateUtils";
-import { uid } from "../utils/helpers";
+import { uid, round2 } from "../utils/helpers";
 
 /**
  * Redeem a reward code for the current student
@@ -403,7 +402,7 @@ export async function recordAndAwardAchievement({
 
     // Update student document in one single batch operation
     const studentUpdates = {
-      currentPoints: increment(effectivePoints),
+      currentPoints: round2(Number(studentData.currentPoints || 0) + effectivePoints),
       rewardsHistory: history,
     };
     if (shouldAwardCard && cardIdToGive) {

@@ -828,7 +828,7 @@ export default function App() {
   })();
 
   const classTotalPoints = round2(
-    students.reduce((sum, s) => sum + Number(s.currentPoints || 0), 0)
+    students.reduce((sum, s) => sum + round2(s.currentPoints || 0), 0)
   );
 
   const backgroundStyle = {

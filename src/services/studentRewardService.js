@@ -9,6 +9,7 @@ import {
 import { pushOwnedCard, getNewExperienceCards } from "./rewardService";
 import { todayISODate } from "../utils/dateUtils";
 import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
+import { round2 } from "../utils/helpers";
 
 export async function quickAddPoints({
   db,
@@ -27,7 +28,8 @@ export async function quickAddPoints({
     const sdata = snap.data();
     const mult = computeEffectiveMultiplier(sdata, todayISODate());
     const effective = Number((rawAmount * mult).toFixed(2));
-    await updateDoc(studentRef, { currentPoints: increment(effective) });
+    const nextPoints = round2(Number(sdata.currentPoints || 0) + effective);
+    await updateDoc(studentRef, { currentPoints: nextPoints });
   } catch (err) {
     console.error("quickAddPoints error", err);
     if (alertFn) alertFn("Could not add points.");
@@ -122,8 +124,10 @@ export async function redeemIndividual({
       });
     });
 
+    const nextPoints = round2(Math.max(0, Number(s.currentPoints || 0) - cost));
+
     await updateDoc(studentRef, {
-      currentPoints: increment(-cost),
+      currentPoints: nextPoints,
       xp: newXp,
       rewardsHistory: [...(s.rewardsHistory || []), historyEntry],
       cards: newCards,
@@ -219,9 +223,10 @@ export async function redeemGroup({
       });
 
       const nextHistory = [...(st.rewardsHistory || []), historyEntry];
+      const nextPoints = round2(Math.max(0, Number(st.currentPoints || 0) - costNum));
 
       batch.update(studentRef, {
-        currentPoints: increment(-costNum),
+        currentPoints: nextPoints,
         xp: increment(costNum),
         rewardsHistory: nextHistory,
         cards: newCards,

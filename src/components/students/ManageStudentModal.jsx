@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { pickEditableFloatWindow } from "../../services/streakService";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { round2, formatPoints } from "../../utils/helpers";
 
 function todayISODate() {
   const d = new Date();
@@ -9,10 +10,6 @@ function todayISODate() {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function round2(x) {
-  return Math.round((Number(x) || 0) * 100) / 100;
 }
 
 export default function ManageStudentModal({
@@ -99,7 +96,7 @@ export default function ManageStudentModal({
   }, [giveableCards, giveSearch]);
 
   const [editName, setEditName] = useState(student.name || "");
-  const [editCurrentPoints, setEditCurrentPoints] = useState(student.currentPoints || 0);
+  const [editCurrentPoints, setEditCurrentPoints] = useState(round2(student.currentPoints || 0));
   const [editXP, setEditXP] = useState(student.xp || 0);
   const [editMultiplier, setEditMultiplier] = useState(
     typeof student.multiplier === "number" ? student.multiplier : 1
@@ -107,7 +104,7 @@ export default function ManageStudentModal({
 
   useEffect(() => {
     setEditName(student.name || "");
-    setEditCurrentPoints(student.currentPoints || 0);
+    setEditCurrentPoints(round2(student.currentPoints || 0));
     setEditXP(student.xp || 0);
     setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
   }, [student.id, student.name, student.currentPoints, student.xp, student.multiplier]);
@@ -123,7 +120,7 @@ export default function ManageStudentModal({
   function saveEdits() {
     onEditStudent({
       name: editName.trim(),
-      currentPoints: Number(editCurrentPoints || 0),
+      currentPoints: round2(editCurrentPoints || 0),
       xp: Number(editXP || 0),
       multiplier: Number(parseFloat(editMultiplier) || 1),
     });
@@ -136,7 +133,7 @@ export default function ManageStudentModal({
           <div>
             <h3 style={{ margin: 0 }}>Manage: {student.name}</h3>
             <div className="muted">
-              Current: <span className="pill">{student.currentPoints || 0} pts</span>{" "}
+              Current: <span className="pill">{formatPoints(student.currentPoints)} pts</span>{" "}
               • XP: <span className="pill">{student.xp || 0}</span>
             </div>
           </div>
@@ -209,7 +206,7 @@ export default function ManageStudentModal({
                     className="btn"
                     onClick={() => {
                       setEditName(student.name || "");
-                      setEditCurrentPoints(student.currentPoints || 0);
+                      setEditCurrentPoints(round2(student.currentPoints || 0));
                       setEditXP(student.xp || 0);
                     }}
                   >
@@ -526,7 +523,7 @@ export default function ManageStudentModal({
                     {students.map((s) => (
                       <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", background: s.cosmetics?.color || "white", position: "relative", overflow: "hidden" }}>
                         <div style={{ flex: 1, fontWeight: 700 }}>
-                          {s.name} <span className="muted">(has {s.currentPoints || 0} pts)</span>
+                          {s.name} <span className="muted">(has {formatPoints(s.currentPoints)} pts)</span>
                         </div>
                         <input
                           type="number"
