@@ -1559,6 +1559,7 @@ export default function App() {
             <LibrarySection
               mode={mode}
               cards={cards}
+              students={students}
               rewards={rewards}
               loadingCards={loadingCards}
               loadingRewards={loadingRewards}

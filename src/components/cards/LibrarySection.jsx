@@ -5,6 +5,7 @@ import { isEvolutionCard, isCardUnlockedForStudent } from "../../services/cardEv
 export default function LibrarySection({
   mode,
   cards,
+  students = [],
   rewards,
   loadingCards,
   loadingRewards,
@@ -34,6 +35,7 @@ export default function LibrarySection({
     <CardLibrary
       mode={mode}
       cards={cards}
+      students={students}
       rewards={rewards}
       loadingCards={loadingCards}
       loadingRewards={loadingRewards}

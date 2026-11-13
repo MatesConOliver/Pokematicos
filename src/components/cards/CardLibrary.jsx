@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from "react";
 import CardCreateForm from "./CardCreateForm";
 import LibraryCardRow from "./LibraryCardRow";
+import NoticeBoardPanel from "./NoticeBoardPanel";
 import { isEvolutionCard } from "../../services/cardEvolutionService";
 
 export default function CardLibrary({
   mode,
   cards,
+  students = [],
   rewards,
   loadingCards,
   loadingRewards,
@@ -124,9 +126,12 @@ export default function CardLibrary({
           flexShrink: 0,
         }}
       >
-        {["points", "rewards", "experience", "extra"].map((tab) => {
+        {["points", "rewards", "experience", "extra", "notices"].map((tab) => {
           const isActive = libraryTab === tab;
-          const label = tab.charAt(0).toUpperCase() + tab.slice(1);
+          const label =
+            tab === "notices"
+              ? "Noticeboard"
+              : tab.charAt(0).toUpperCase() + tab.slice(1);
           return (
             <button
               key={tab}
@@ -139,6 +144,7 @@ export default function CardLibrary({
                 color: isActive ? "#1d4ed8" : "#1e293b",
                 fontWeight: isActive ? 700 : 600,
                 boxShadow: "0 2px 6px rgba(15, 23, 42, 0.05)",
+                whiteSpace: "nowrap",
               }}
             >
               {label}
@@ -255,7 +261,15 @@ export default function CardLibrary({
       )}
 
       <div style={{ flex: "1 1 0", overflowY: "auto", minHeight: 0, paddingRight: 4, paddingBottom: 16, overscrollBehavior: "contain" }}>
-        {libraryTab !== "rewards" ? (
+        {libraryTab === "notices" ? (
+          <NoticeBoardPanel
+            students={students}
+            cards={cards}
+            rewards={rewards}
+            streakConfigs={streakConfigs}
+            flagValue={effectivePreviewFlag}
+          />
+        ) : libraryTab !== "rewards" ? (
           <div style={{ display: "grid" }}>
             {loadingCards ? (
               <div className="muted">Loading cards...</div>

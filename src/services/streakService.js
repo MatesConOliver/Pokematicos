@@ -181,6 +181,7 @@ export async function changeStudentStreakValue({
 
     const today = todayISODate();
     const prevMaxAchievedOn = existingEntry.maxAchievedOn || "";
+    const prevMaxAchievedAt = existingEntry.maxAchievedAt || "";
 
     const reachedMaxNow = delta > 0 && typeof maxValue === "number" && maxValue > 0 && next === maxValue;
     const crossedToMax = reachedMaxNow && current < maxValue;
@@ -217,6 +218,7 @@ export async function changeStudentStreakValue({
       value: next,
       lastUpdated: delta > 0 ? today : (existingEntry.lastUpdated || ""),
       maxAchievedOn: reachedMaxNow ? today : prevMaxAchievedOn,
+      maxAchievedAt: reachedMaxNow ? new Date().toISOString() : prevMaxAchievedAt,
       floatWindows,
     };
 
@@ -325,6 +327,7 @@ export async function resetStudentStreak({
       value: 0,
       lastUpdated: "",
       maxAchievedOn: prev.maxAchievedOn || "",
+      maxAchievedAt: prev.maxAchievedAt || "",
       floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
     };
 
@@ -402,6 +405,7 @@ export async function bulkChangeStreakValue({
       if (maxValue > 0 && next > maxValue) next = maxValue;
 
       const prevMaxAchievedOn = existingEntry.maxAchievedOn || "";
+      const prevMaxAchievedAt = existingEntry.maxAchievedAt || "";
       const reachedMaxNow = delta > 0 && maxValue > 0 && next === maxValue;
       const crossedToMax = reachedMaxNow && current < maxValue;
 
@@ -423,6 +427,7 @@ export async function bulkChangeStreakValue({
         value: next,
         lastUpdated: delta > 0 ? today : (existingEntry.lastUpdated || ""),
         maxAchievedOn: reachedMaxNow ? today : prevMaxAchievedOn,
+        maxAchievedAt: reachedMaxNow ? new Date().toISOString() : prevMaxAchievedAt,
         floatWindows,
       };
 
@@ -495,6 +500,7 @@ export async function bulkResetStreak({
         value: 0,
         lastUpdated: "",
         maxAchievedOn: prev.maxAchievedOn || "",
+        maxAchievedAt: prev.maxAchievedAt || "",
         floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
       };
 
@@ -627,6 +633,7 @@ export async function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}, a
       value: nextVal,
       lastUpdated: today,
       maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
+      maxAchievedAt: crossedToMax ? new Date().toISOString() : (prev.maxAchievedAt || ""),
       floatWindows,
     };
 
@@ -668,6 +675,7 @@ export function incrementStreaksNoFloatWindows(sdata, ids, streakConfigs) {
       value: nextVal,
       lastUpdated: today,
       maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
+      maxAchievedAt: crossedToMax ? new Date().toISOString() : (prev.maxAchievedAt || ""),
       floatWindows,
     };
 
