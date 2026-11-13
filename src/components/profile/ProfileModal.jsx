@@ -104,6 +104,17 @@ export default function ProfileModal({
     [allCards]
   );
 
+  const defaultCatalystCard = useMemo(
+    () => (defaultCatalystCardId ? cardsMap.get(defaultCatalystCardId) || null : null),
+    [defaultCatalystCardId, cardsMap]
+  );
+
+  useEffect(() => {
+    if (evolutionCards.length === 0 && activeTab === "evolutions") {
+      setActiveTab("requests");
+    }
+  }, [evolutionCards.length, activeTab]);
+
   const readyToEvolveCount = useMemo(
     () =>
       evolutionCards.filter(
@@ -273,40 +284,42 @@ export default function ProfileModal({
             ⚙️ Settings & PIN
           </button>
 
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setActiveTab("evolutions")}
-            style={{
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              borderBottom: activeTab === "evolutions" ? "3px solid #7c3aed" : "3px solid transparent",
-              background: activeTab === "evolutions" ? "#f5f3ff" : "transparent",
-              color: activeTab === "evolutions" ? "#6d28d9" : "#4b5563",
-              fontWeight: activeTab === "evolutions" ? 700 : 500,
-              padding: "8px 14px",
-              fontSize: 13,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            🧬 Evoluciones
-            {readyToEvolveCount > 0 && (
-              <span
-                style={{
-                  background: "#7c3aed",
-                  color: "#fff",
-                  fontSize: 10,
-                  borderRadius: 999,
-                  padding: "1px 6px",
-                  fontWeight: 800,
-                }}
-              >
-                {readyToEvolveCount}
-              </span>
-            )}
-          </button>
+          {evolutionCards.length > 0 && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setActiveTab("evolutions")}
+              style={{
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderBottom: activeTab === "evolutions" ? "3px solid #7c3aed" : "3px solid transparent",
+                background: activeTab === "evolutions" ? "#f5f3ff" : "transparent",
+                color: activeTab === "evolutions" ? "#6d28d9" : "#4b5563",
+                fontWeight: activeTab === "evolutions" ? 700 : 500,
+                padding: "8px 14px",
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              🧬 Evolutions
+              {readyToEvolveCount > 0 && (
+                <span
+                  style={{
+                    background: "#7c3aed",
+                    color: "#fff",
+                    fontSize: 10,
+                    borderRadius: 999,
+                    padding: "1px 6px",
+                    fontWeight: 800,
+                  }}
+                >
+                  {readyToEvolveCount}
+                </span>
+              )}
+            </button>
+          )}
 
           <button
             type="button"
@@ -802,7 +815,7 @@ export default function ProfileModal({
                     const linkedCard = r.cardId ? cardsMap.get(r.cardId) : null;
                     const evoUnlocked = !linkedCard || isCardUnlockedForStudent(student, linkedCard);
                     const cardImg = getCardDisplayImage(linkedCard, displayFlagValue, !evoUnlocked);
-                    const desc = linkedCard?.description || r.description || "";
+                    const desc = evoUnlocked ? (linkedCard?.description || r.description || "") : "";
 
                     return (
                       <div
@@ -955,7 +968,7 @@ export default function ProfileModal({
           )}
 
           {/* ================= TAB: EVOLUTIONS ================= */}
-          {activeTab === "evolutions" && (
+          {activeTab === "evolutions" && evolutionCards.length > 0 && (
             <div>
               <div style={{ marginBottom: 14 }}>
                 <div
@@ -967,184 +980,180 @@ export default function ProfileModal({
                     fontWeight: 700,
                   }}
                 >
-                  Evoluciones Disponibles
+                  Available Evolutions
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>
-                  Consigue las copias de la carta base y 1 Catalizador consumible para desbloquear nuevas formas.
+                  Collect the required copies of the base card and 1{" "}
+                  <strong>{defaultCatalystCard?.title || "catalyst"}</strong> to unlock new forms.
                 </div>
               </div>
 
-              {evolutionCards.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "30px", color: "#9ca3af", fontStyle: "italic" }}>
-                  No hay cartas de evolución configuradas en esta clase todavía.
-                </div>
-              ) : (
-                <div style={{ display: "grid", gap: 12 }}>
-                  {evolutionCards.map((evoCard) => {
-                    const baseCard = cardsMap.get(evoCard.evolution?.baseCardId);
-                    const catalystId = evoCard.evolution?.catalystCardId || defaultCatalystCardId;
-                    const catalystCard = catalystId ? cardsMap.get(catalystId) : null;
-                    const eligibility = checkEvolutionEligibility({
-                      student,
-                      evolutionCard: evoCard,
-                      catalystCardId: defaultCatalystCardId,
-                    });
-                    const evoImg = getCardDisplayImage(evoCard, displayFlagValue, !eligibility.isAlreadyUnlocked);
+              <div style={{ display: "grid", gap: 12 }}>
+                {evolutionCards.map((evoCard) => {
+                  const baseCard = cardsMap.get(evoCard.evolution?.baseCardId);
+                  const catalystId = evoCard.evolution?.catalystCardId || defaultCatalystCardId;
+                  const catalystCard = catalystId ? cardsMap.get(catalystId) : null;
+                  const catalystLabel = catalystCard?.title || defaultCatalystCard?.title || "Catalyst";
+                  const eligibility = checkEvolutionEligibility({
+                    student,
+                    evolutionCard: evoCard,
+                    catalystCardId: defaultCatalystCardId,
+                  });
+                  const evoImg = getCardDisplayImage(evoCard, displayFlagValue, !eligibility.isAlreadyUnlocked);
 
-                    return (
+                  return (
+                    <div
+                      key={evoCard.id}
+                      style={{
+                        border: eligibility.canEvolve
+                          ? "2px solid #8b5cf6"
+                          : eligibility.isAlreadyUnlocked
+                          ? "1px solid #86efac"
+                          : "1px solid #e5e7eb",
+                        borderRadius: 12,
+                        padding: 12,
+                        background: eligibility.isAlreadyUnlocked ? "#f0fdf4" : "#ffffff",
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "center",
+                      }}
+                    >
                       <div
-                        key={evoCard.id}
                         style={{
-                          border: eligibility.canEvolve
-                            ? "2px solid #8b5cf6"
-                            : eligibility.isAlreadyUnlocked
-                            ? "1px solid #86efac"
-                            : "1px solid #e5e7eb",
-                          borderRadius: 12,
-                          padding: 12,
-                          background: eligibility.isAlreadyUnlocked ? "#f0fdf4" : "#ffffff",
-                          display: "flex",
-                          gap: 12,
-                          alignItems: "center",
+                          width: 66,
+                          height: 88,
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          background: "#f3f4f6",
+                          flexShrink: 0,
+                          position: "relative",
+                          border: "1px solid #e2e8f0",
                         }}
                       >
-                        <div
-                          style={{
-                            width: 66,
-                            height: 88,
-                            borderRadius: 8,
-                            overflow: "hidden",
-                            background: "#f3f4f6",
-                            flexShrink: 0,
-                            position: "relative",
-                            border: "1px solid #e2e8f0",
-                          }}
-                        >
-                          {evoImg ? (
-                            <img
-                              src={evoImg}
-                              alt={evoCard.title}
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                                filter: eligibility.isAlreadyUnlocked ? "none" : "grayscale(0.65)",
-                              }}
-                            />
-                          ) : (
-                            <div style={{ padding: 6, fontSize: 10 }}>{evoCard.title}</div>
-                          )}
-                          {!eligibility.isAlreadyUnlocked && (
-                            <div
-                              style={{
-                                position: "absolute",
-                                inset: 0,
-                                background: "rgba(15, 23, 42, 0.35)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: 18,
-                              }}
-                            >
-                              🔒
-                            </div>
-                          )}
-                        </div>
-
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                            <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
-                              {evoCard.title}
-                            </span>
-                            {eligibility.isAlreadyUnlocked ? (
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  padding: "2px 8px",
-                                  borderRadius: 999,
-                                  background: "#dcfce7",
-                                  color: "#166534",
-                                  fontWeight: 700,
-                                }}
-                              >
-                                ✅ Desbloqueada
-                              </span>
-                            ) : (
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  padding: "2px 8px",
-                                  borderRadius: 999,
-                                  background: "#ede9fe",
-                                  color: "#6d28d9",
-                                  fontWeight: 700,
-                                }}
-                              >
-                                🧬 de {baseCard?.title || "Carta Base"}
-                              </span>
-                            )}
+                        {evoImg ? (
+                          <img
+                            src={evoImg}
+                            alt={evoCard.title}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              filter: eligibility.isAlreadyUnlocked ? "none" : "grayscale(0.65)",
+                            }}
+                          />
+                        ) : (
+                          <div style={{ padding: 6, fontSize: 10 }}>{evoCard.title}</div>
+                        )}
+                        {!eligibility.isAlreadyUnlocked && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              background: "rgba(15, 23, 42, 0.35)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 18,
+                            }}
+                          >
+                            🔒
                           </div>
-
-                          <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                            <span
-                              style={{
-                                fontSize: 11,
-                                padding: "2px 7px",
-                                borderRadius: 6,
-                                background: eligibility.hasCopies ? "#dcfce7" : "#f1f5f9",
-                                color: eligibility.hasCopies ? "#15803d" : "#475569",
-                                fontWeight: 700,
-                              }}
-                            >
-                              🃏 {baseCard?.title || "Base"}: {eligibility.currentCopies}/{eligibility.requiredCopies}
-                            </span>
-
-                            <span
-                              style={{
-                                fontSize: 11,
-                                padding: "2px 7px",
-                                borderRadius: 6,
-                                background: eligibility.hasCatalyst ? "#e0e7ff" : "#fef2f2",
-                                color: eligibility.hasCatalyst ? "#4338ca" : "#b91c1c",
-                                fontWeight: 700,
-                              }}
-                            >
-                              🔮 {catalystCard?.title || "Catalizador"}:{" "}
-                              {eligibility.missingCatalystConfig
-                                ? "Sin configurar"
-                                : eligibility.hasCatalyst
-                                ? `${eligibility.catalystCount} disp. ✓`
-                                : "Falta canjear"}
-                            </span>
-                          </div>
-
-                          {eligibility.canEvolve && (
-                            <button
-                              type="button"
-                              className="btn"
-                              onClick={() => onEvolve?.(evoCard)}
-                              style={{
-                                marginTop: 8,
-                                padding: "6px 14px",
-                                fontSize: 12,
-                                fontWeight: 800,
-                                background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
-                                color: "#ffffff",
-                                border: "none",
-                                borderRadius: 999,
-                                boxShadow: "0 2px 8px rgba(139, 92, 246, 0.4)",
-                                cursor: "pointer",
-                              }}
-                            >
-                              ✨ ¡Evolucionar ahora! (Consume 1 catalizador)
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
+                            {evoCard.title}
+                          </span>
+                          {eligibility.isAlreadyUnlocked ? (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                padding: "2px 8px",
+                                borderRadius: 999,
+                                background: "#dcfce7",
+                                color: "#166534",
+                                fontWeight: 700,
+                              }}
+                            >
+                              ✅ Unlocked
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                padding: "2px 8px",
+                                borderRadius: 999,
+                                background: "#ede9fe",
+                                color: "#6d28d9",
+                                fontWeight: 700,
+                              }}
+                            >
+                              🧬 From {baseCard?.title || "Base Card"}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              background: eligibility.hasCopies ? "#dcfce7" : "#f1f5f9",
+                              color: eligibility.hasCopies ? "#15803d" : "#475569",
+                              fontWeight: 700,
+                            }}
+                          >
+                            🃏 {baseCard?.title || "Base"}: {eligibility.currentCopies}/{eligibility.requiredCopies}
+                          </span>
+
+                          <span
+                            style={{
+                              fontSize: 11,
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              background: eligibility.hasCatalyst ? "#e0e7ff" : "#fef2f2",
+                              color: eligibility.hasCatalyst ? "#4338ca" : "#b91c1c",
+                              fontWeight: 700,
+                            }}
+                          >
+                            🔮 {catalystLabel}:{" "}
+                            {eligibility.missingCatalystConfig
+                              ? "Not configured"
+                              : eligibility.hasCatalyst
+                              ? `${eligibility.catalystCount} owned ✓`
+                              : "Missing"}
+                          </span>
+                        </div>
+
+                        {eligibility.canEvolve && (
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => onEvolve?.(evoCard)}
+                            style={{
+                              marginTop: 8,
+                              padding: "6px 14px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: 999,
+                              boxShadow: "0 2px 8px rgba(139, 92, 246, 0.4)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            ✨ Evolve now! (Uses 1 {catalystLabel})
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

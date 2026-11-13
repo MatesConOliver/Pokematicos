@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import CardCreateForm from "./CardCreateForm";
 import LibraryCardRow from "./LibraryCardRow";
-import RewardCreateForm from "../rewards/RewardCreateForm";
 import { isEvolutionCard } from "../../services/cardEvolutionService";
 
 export default function CardLibrary({
@@ -23,7 +22,6 @@ export default function CardLibrary({
   onOpenBulkGive,
   onEditCard,
   onDeleteCard,
-  onCreateReward,
   onDeleteReward,
   onValidationError,
   cardsById,
@@ -51,6 +49,15 @@ export default function CardLibrary({
     () => (cards || []).some((c) => isEvolutionCard(c)),
     [cards]
   );
+
+  const unmatchedLegacyRewards = useMemo(() => {
+    const rewardCardIds = new Set(
+      (cards || [])
+        .filter((c) => (c?.category || "points") === "rewards")
+        .map((c) => c.id)
+    );
+    return (rewards || []).filter((r) => !r.cardId || !rewardCardIds.has(r.cardId));
+  }, [cards, rewards]);
 
   const evolutionsByBaseCardId = useMemo(() => {
     const map = new Map();
@@ -304,11 +311,12 @@ export default function CardLibrary({
               )}
             </div>
 
-            <div style={{ borderTop: "2px solid #e2e8f0", paddingTop: 12 }}>
-              {loadingRewards ? (
-                <div className="muted">Loading rewards...</div>
-              ) : (
-                rewards.map((reward) => {
+            {!loadingRewards && unmatchedLegacyRewards.length > 0 && (
+              <div style={{ borderTop: "2px solid #e2e8f0", paddingTop: 12 }}>
+                <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+                  Legacy shop rewards
+                </div>
+                {unmatchedLegacyRewards.map((reward) => {
                   const cardMeta = cards.find((card) => card.id === reward.cardId) || null;
                   return (
                     <div
@@ -345,19 +353,9 @@ export default function CardLibrary({
                       )}
                     </div>
                   );
-                })
-              )}
-
-              {mode === "admin" && (
-                <div style={{ borderTop: "1px dashed #eee", paddingTop: 10, marginTop: 10 }}>
-                  <RewardCreateForm
-                    cards={cards}
-                    onCreate={onCreateReward}
-                    onValidationError={onValidationError}
-                  />
-                </div>
-              )}
-            </div>
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

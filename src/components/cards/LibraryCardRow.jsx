@@ -148,9 +148,11 @@ export default function LibraryCardRow({
           )}
         </div>
 
-        <div className="muted" style={{ color: "#64748b", fontSize: 13, marginTop: 2 }}>
-          {c.description}
-        </div>
+        {(!isEvo || isUnlockedByStudent || mode === "admin") && (
+          <div className="muted" style={{ color: "#64748b", fontSize: 13, marginTop: 2 }}>
+            {c.description}
+          </div>
+        )}
 
         {/* Evolution requirements progress tracker */}
         {isEvo && (
@@ -198,7 +200,9 @@ export default function LibraryCardRow({
         {(c.category || "points") !== "extra" && (
           <div style={{ marginTop: 6, fontWeight: 900, color: "#0f172a", display: "flex", alignItems: "center", gap: 4 }}>
             <span>
-              {c.points || 0} {(c.category || "points") === "experience" ? "XP" : "pts"}
+              {(c.category || "points") === "rewards"
+                ? `Cost: ${c.points || 0} pts`
+                : `${c.points || 0} ${(c.category || "points") === "experience" ? "XP" : "pts"}`}
             </span>
           </div>
         )}

@@ -91,7 +91,13 @@ export default function CardEditModal({
                 value={points}
                 onChange={(e) => setPoints(e.target.value)}
                 style={{ width: 140 }}
-                placeholder={category === "experience" ? "XP" : "Points"}
+                placeholder={
+                  category === "experience"
+                    ? "XP"
+                    : category === "rewards"
+                    ? "Cost (pts)"
+                    : "Points"
+                }
               />
             )}
 

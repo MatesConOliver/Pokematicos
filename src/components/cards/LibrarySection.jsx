@@ -21,7 +21,6 @@ export default function LibrarySection({
   onOpenBulkGive,
   onEditCard,
   onDeleteCard,
-  onCreateReward,
   onDeleteReward,
   onValidationError,
   cardsById,
@@ -59,7 +58,6 @@ export default function LibrarySection({
       onOpenBulkGive={onOpenBulkGive}
       onEditCard={onEditCard}
       onDeleteCard={onDeleteCard}
-      onCreateReward={onCreateReward}
       onDeleteReward={onDeleteReward}
       onValidationError={onValidationError}
       cardsById={cardsById}

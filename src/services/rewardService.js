@@ -149,3 +149,45 @@ export function unlockExperienceCards({ allCards, cardsArr, xpAfter, nowISO }) {
 
   return next;
 }
+
+/**
+ * Combines `rewards`-category cards (automatically acting as redeemable shop items)
+ * with any legacy `classes/{classId}/rewards` documents.
+ * When a legacy reward links to a `rewards` card, it is merged without duplicating
+ * and always uses the reward card's own title, description, and points (cost).
+ */
+export function buildUnifiedRewards(cards = [], legacyRewards = []) {
+  const safeCards = Array.isArray(cards) ? cards : [];
+  const safeLegacy = Array.isArray(legacyRewards) ? legacyRewards : [];
+
+  const rewardCards = safeCards.filter((c) => (c?.category || "points") === "rewards");
+  const rewardCardIds = new Set(rewardCards.map((c) => c.id).filter(Boolean));
+  const legacyByCardId = new Map();
+  const unmatchedLegacy = [];
+
+  for (const r of safeLegacy) {
+    if (!r) continue;
+    if (r.cardId && rewardCardIds.has(r.cardId)) {
+      if (!legacyByCardId.has(r.cardId)) {
+        legacyByCardId.set(r.cardId, r);
+      }
+    } else {
+      unmatchedLegacy.push({ ...r, isLegacy: true });
+    }
+  }
+
+  const cardRewards = rewardCards.map((c) => {
+    const legacy = legacyByCardId.get(c.id) || null;
+    return {
+      id: c.id,
+      title: c.title || "",
+      description: c.description || "",
+      cost: Number(c.points || 0),
+      cardId: c.id,
+      legacyRewardId: legacy?.id || null,
+      isCardReward: true,
+    };
+  });
+
+  return [...cardRewards, ...unmatchedLegacy];
+}

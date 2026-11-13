@@ -41,7 +41,7 @@ import {
   pickEditableFloatWindow,
 } from "./services/streakService";
 import {
-  createReward as createRewardService,
+  buildUnifiedRewards,
   deleteReward as deleteRewardService,
 } from "./services/rewardService";
 import {
@@ -254,6 +254,11 @@ export default function App() {
   const cardsById = useMemo(
     () => new Map((cards || []).map((c) => [c.id, c])),
     [cards]
+  );
+
+  const unifiedRewards = useMemo(
+    () => buildUnifiedRewards(cards, rewards),
+    [cards, rewards]
   );
 
   const activeStudentForLibrary = useMemo(() => {
@@ -754,25 +759,6 @@ export default function App() {
   }
 
   // ----- Rewards -----
-  async function createReward({ title, cost, linkedCardId }) {
-    if (!ensureClassSelected()) return;
-    return runMutation({
-      loadingMessage: "Saving reward...",
-      successMessage: "Reward saved.",
-      errorMessage: "Could not save reward.",
-      action: async () => {
-        await createRewardService({
-          db,
-          classId: activeClassId,
-          title,
-          cost,
-          linkedCardId,
-          alertFn: notify,
-        });
-      },
-    });
-  }
-
   async function deleteReward(rewardId) {
     return runMutation({
       loadingMessage: "Deleting reward...",
@@ -802,7 +788,7 @@ export default function App() {
           classId,
           studentId,
           rewardId,
-          rewards,
+          rewards: unifiedRewards,
           students,
           cards,
           alertFn: (data) => {
@@ -835,7 +821,7 @@ export default function App() {
           classId,
           rewardId,
           participants,
-          rewards,
+          rewards: unifiedRewards,
           students,
           cards,
           alertFn: notify,
@@ -1589,7 +1575,6 @@ export default function App() {
               onOpenBulkGive={openBulkGive}
               onEditCard={setEditCard}
               onDeleteCard={deleteCard}
-              onCreateReward={createReward}
               onDeleteReward={deleteReward}
               onValidationError={notify}
               cardsById={cardsById}
@@ -1613,6 +1598,7 @@ export default function App() {
 
       <CardPreviewModal
         cardPreview={cardPreview}
+        mode={mode}
         onClose={() => setCardPreview(null)}
         onNavigate={ownedNav}
         cardsById={cardsById}
@@ -1846,7 +1832,7 @@ export default function App() {
           onValidationError={notify}
           giveableCards={giveableCardsForProfile}
           allCards={cards}
-          rewards={rewards}
+          rewards={unifiedRewards}
           defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
           onEvolve={(evoCard) => handleExecuteEvolution(profileStudent.id, evoCard.id)}
           onRedeemReward={(rewardId) =>
@@ -1866,7 +1852,7 @@ export default function App() {
           students={students}
           cards={cards}
           flagConfig={activeClass?.flagConfig}
-          rewards={rewards}
+          rewards={unifiedRewards}
           streakConfigs={activeClass?.streakConfigs || []}
           changeStudentStreakValue={(classId, studentId, streakId, delta, cfg) =>
             changeStudentStreakValue({

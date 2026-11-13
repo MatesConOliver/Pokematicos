@@ -3,6 +3,7 @@ import { isEvolutionCard, checkEvolutionEligibility } from "../../services/cardE
 
 export default function CardPreviewModal({
   cardPreview,
+  mode,
   onClose,
   onNavigate,
   cardsById,
@@ -101,7 +102,9 @@ export default function CardPreviewModal({
                 )}
               </div>
 
-              <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>{cardPreview.description}</div>
+              {(!isEvo || eligibility?.isAlreadyUnlocked || mode === "admin") && (
+                <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>{cardPreview.description}</div>
+              )}
               {(cardPreview.category || "points") !== "extra" && (
                 <div style={{ marginTop: 8, fontWeight: 800, fontSize: 14, color: "#0f172a" }}>
                   {cardPreview.points || 0} {(cardPreview.category || "points") === "experience" ? "XP" : "pts"}

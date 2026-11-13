@@ -121,7 +121,13 @@ export default function CardCreateForm({
             type="number"
             value={points}
             onChange={(e) => setPoints(e.target.value)}
-            placeholder={category === "experience" ? "XP" : "Points"}
+            placeholder={
+              category === "experience"
+                ? "XP"
+                : category === "rewards"
+                ? "Cost (pts)"
+                : "Points"
+            }
             style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
           />
         )}
