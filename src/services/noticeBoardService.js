@@ -91,6 +91,7 @@ export function buildNoticeBoardData({
   cards = [],
   rewards = [],
   streakConfigs = [],
+  newsMessages = [],
   flagValue = "A",
   now = Date.now(),
   maxItems = MAX_NOTICE_BOARD_ITEMS,
@@ -99,6 +100,7 @@ export function buildNoticeBoardData({
   const safeCards = Array.isArray(cards) ? cards : [];
   const safeRewards = Array.isArray(rewards) ? rewards : [];
   const safeStreakConfigs = Array.isArray(streakConfigs) ? streakConfigs : [];
+  const safeNewsMessages = Array.isArray(newsMessages) ? newsMessages : [];
 
   const todayParts = getMadridDateParts(now);
   const todayMadridKey = todayParts ? todayParts.dateKey : "";
@@ -377,18 +379,59 @@ export function buildNoticeBoardData({
     });
   }
 
-  // Sort newest first; keep top N (default 20)
+  // 5. Admin news messages (pinned appear at top; unpinned follow normal 20-item Today/Older logic)
+  const pinnedItems = [];
+  for (const msg of safeNewsMessages) {
+    if (!msg || typeof msg !== "object") continue;
+    const title = String(msg.title || "").trim();
+    const text = String(msg.text || "").trim();
+    if (!title && !text) continue;
+
+    const ts = parseNoticeTimestamp(msg.createdAt ?? msg.updatedAt);
+    if (ts === null) continue;
+    const mParts = getMadridDateParts(ts);
+    if (!mParts) continue;
+
+    const item = {
+      id: `adminMsg:${msg.id || ts}`,
+      messageId: msg.id || "",
+      type: "adminMessage",
+      timestamp: ts,
+      madridDateKey: mParts.dateKey,
+      formattedDateTime: mParts.displayDateTime,
+      hasExactTime: true,
+      title,
+      text,
+      pinned: Boolean(msg.pinned),
+      updatedAt: msg.updatedAt || null,
+    };
+
+    if (item.pinned) {
+      pinnedItems.push(item);
+    } else {
+      rawItems.push(item);
+    }
+  }
+
+  pinnedItems.sort((a, b) => {
+    if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  // Sort unpinned newest first; keep top N (default 20)
   rawItems.sort((a, b) => {
     if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
     return String(a.id).localeCompare(String(b.id));
   });
 
-  const items = rawItems.slice(0, maxItems);
-  const todayItems = items.filter((item) => item.madridDateKey === todayMadridKey);
-  const olderItems = items.filter((item) => item.madridDateKey !== todayMadridKey);
+  const unpinnedLimited = rawItems.slice(0, maxItems);
+  const todayItems = unpinnedLimited.filter((item) => item.madridDateKey === todayMadridKey);
+  const olderItems = unpinnedLimited.filter((item) => item.madridDateKey !== todayMadridKey);
 
   return {
-    items,
+    pinnedItems,
+    items: [...pinnedItems, ...unpinnedLimited],
+    unpinnedItems: unpinnedLimited,
     todayItems,
     olderItems,
     todayMadridKey,

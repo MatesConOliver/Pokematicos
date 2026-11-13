@@ -7,6 +7,7 @@ export default function LibrarySection({
   cards,
   students = [],
   rewards,
+  newsMessages = [],
   loadingCards,
   loadingRewards,
   streakConfigs,
@@ -30,6 +31,8 @@ export default function LibrarySection({
   onSetDefaultCatalyst,
   onDropCatalyst,
   onEvolve,
+  onSaveNewsMessages,
+  confirmFn,
 }) {
   return (
     <CardLibrary
@@ -37,6 +40,7 @@ export default function LibrarySection({
       cards={cards}
       students={students}
       rewards={rewards}
+      newsMessages={newsMessages}
       loadingCards={loadingCards}
       loadingRewards={loadingRewards}
       streakConfigs={streakConfigs}
@@ -68,6 +72,8 @@ export default function LibrarySection({
       onSetDefaultCatalyst={onSetDefaultCatalyst}
       onDropCatalyst={onDropCatalyst}
       onEvolve={onEvolve}
+      onSaveNewsMessages={onSaveNewsMessages}
+      confirmFn={confirmFn}
     />
   );
 }

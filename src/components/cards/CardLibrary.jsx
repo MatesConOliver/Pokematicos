@@ -9,9 +9,10 @@ export default function CardLibrary({
   cards,
   students = [],
   rewards,
+  streakConfigs,
+  newsMessages = [],
   loadingCards,
   loadingRewards,
-  streakConfigs,
   lockedInputRef,
   unlockedInputRef,
   lockedInputBRef,
@@ -32,6 +33,8 @@ export default function CardLibrary({
   onSetDefaultCatalyst,
   onDropCatalyst,
   onEvolve,
+  onSaveNewsMessages,
+  confirmFn,
 }) {
   const [libraryTab, setLibraryTab] = useState("points");
   const [showCreateCard, setShowCreateCard] = useState(false);
@@ -130,7 +133,7 @@ export default function CardLibrary({
           const isActive = libraryTab === tab;
           const label =
             tab === "notices"
-              ? "Noticeboard"
+              ? "News"
               : tab.charAt(0).toUpperCase() + tab.slice(1);
           return (
             <button
@@ -263,11 +266,16 @@ export default function CardLibrary({
       <div style={{ flex: "1 1 0", overflowY: "auto", minHeight: 0, paddingRight: 4, paddingBottom: 16, overscrollBehavior: "contain" }}>
         {libraryTab === "notices" ? (
           <NoticeBoardPanel
+            mode={mode}
             students={students}
             cards={cards}
             rewards={rewards}
             streakConfigs={streakConfigs}
+            newsMessages={newsMessages}
             flagValue={effectivePreviewFlag}
+            onSaveNewsMessages={onSaveNewsMessages}
+            confirmFn={confirmFn}
+            onValidationError={onValidationError}
           />
         ) : libraryTab !== "rewards" ? (
           <div style={{ display: "grid" }}>

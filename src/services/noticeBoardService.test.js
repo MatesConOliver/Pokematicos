@@ -228,4 +228,75 @@ describe("noticeBoardService", () => {
     expect(res.todayItems).toHaveLength(10); // Cards 25..16
     expect(res.olderItems).toHaveLength(10); // Cards 15..6
   });
+
+  test("handles admin News messages: multiple pinned at top, optional title/text, unpinned follow normal Today/Older 20-item logic", () => {
+    const now = Date.parse("2026-11-13T18:00:00.000Z");
+    const cards = Array.from({ length: 20 }, (_, i) => ({
+      id: `card_${i + 1}`,
+      title: `Card ${i + 1}`,
+      category: "points",
+      points: 1,
+      createdAt: Date.parse("2026-11-13T08:00:00.000Z") + i * 60000,
+    }));
+
+    const newsMessages = [
+      {
+        id: "m_pinned_old",
+        title: "Exam Friday",
+        text: "",
+        pinned: true,
+        createdAt: Date.parse("2026-11-10T10:00:00.000Z"),
+      },
+      {
+        id: "m_pinned_new",
+        title: "",
+        text: "Bring scissors tomorrow!",
+        pinned: true,
+        createdAt: Date.parse("2026-11-13T12:00:00.000Z"),
+      },
+      {
+        id: "m_unpinned_today",
+        title: "Bonus Reminder",
+        text: "Extra XP today",
+        pinned: false,
+        createdAt: Date.parse("2026-11-13T15:00:00.000Z"),
+      },
+      {
+        id: "m_unpinned_pushed_out",
+        title: "Very Old Unpinned",
+        text: "Should drop past 20",
+        pinned: false,
+        createdAt: Date.parse("2026-11-01T10:00:00.000Z"),
+      },
+      {
+        id: "m_empty",
+        title: "   ",
+        text: "",
+        pinned: true,
+        createdAt: Date.parse("2026-11-13T16:00:00.000Z"),
+      },
+    ];
+
+    const res = buildNoticeBoardData({
+      students: [],
+      cards,
+      streakConfigs: [],
+      newsMessages,
+      now,
+    });
+
+    // Multiple pinned messages stay at the top, newest pinned first; empty ignored
+    expect(res.pinnedItems.map((i) => i.messageId)).toEqual(["m_pinned_new", "m_pinned_old"]);
+    expect(res.pinnedItems[0]).toMatchObject({ title: "", text: "Bring scissors tomorrow!" });
+    expect(res.pinnedItems[1]).toMatchObject({ title: "Exam Friday", text: "" });
+
+    // Unpinned pool capped at 20: m_unpinned_today is newest, Card 1..Card 19 follow, m_unpinned_pushed_out dropped
+    expect(res.unpinnedItems).toHaveLength(20);
+    expect(res.todayItems[0]).toMatchObject({
+      type: "adminMessage",
+      messageId: "m_unpinned_today",
+      pinned: false,
+    });
+    expect(res.unpinnedItems.some((i) => i.messageId === "m_unpinned_pushed_out")).toBe(false);
+  });
 });

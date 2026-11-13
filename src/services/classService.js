@@ -82,6 +82,21 @@ export async function setDefaultCatalystForClass(db, classId, cardId, alertFn = 
   }
 }
 
+export async function saveClassNewsMessages(db, classId, newsMessages, alertFn = null) {
+  if (!classId) return false;
+  try {
+    const clean = (Array.isArray(newsMessages) ? newsMessages : []).slice(0, 60);
+    await updateDoc(doc(db, `classes/${classId}`), {
+      newsMessages: clean,
+    });
+    return true;
+  } catch (err) {
+    console.error("saveClassNewsMessages error:", err);
+    if (alertFn) alertFn("Could not save news message.");
+    return false;
+  }
+}
+
 /**
  * Delete a class
  * @param {Object} db - Firestore database instance
