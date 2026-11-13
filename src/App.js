@@ -162,25 +162,27 @@ export default function App() {
 
   // Profile modal selection (guest + admin)
   const [profileStudentId, setProfileStudentId] = useState(null);
-  // Students whose PIN has already been verified this session
-  // Ordered oldest -> most recently opened; remembered by this browser.
+  // Only the last PIN-verified student in THIS browser tab stays unlocked.
+  // Opening/verifying another profile forgets the previous one.
   const [unlockedProfileList, setUnlockedProfileList] = useState(() => {
     try {
-      const raw = JSON.parse(localStorage.getItem("unlockedProfileIds") || "[]");
-      return Array.isArray(raw) ? raw : [];
+      const activeId = sessionStorage.getItem("activeUnlockedProfileId");
+      return activeId ? [activeId] : [];
     } catch {
       return [];
     }
   });
   const unlockedProfileIds = useMemo(() => new Set(unlockedProfileList), [unlockedProfileList]);
   const rememberUnlockedProfile = useCallback((id) => {
-    setUnlockedProfileList((prev) => {
-      const next = [...prev.filter((x) => x !== id), id];
-      try {
-        localStorage.setItem("unlockedProfileIds", JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+    const next = id ? [id] : [];
+    setUnlockedProfileList(next);
+    try {
+      if (id) {
+        sessionStorage.setItem("activeUnlockedProfileId", id);
+      } else {
+        sessionStorage.removeItem("activeUnlockedProfileId");
+      }
+    } catch {}
   }, []);
   const [showRequestsPanel, setShowRequestsPanel] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
@@ -255,7 +257,7 @@ export default function App() {
   );
 
   const activeStudentForLibrary = useMemo(() => {
-    if (profileStudentId) {
+    if (profileStudentId && (mode === "admin" || unlockedProfileIds.has(profileStudentId))) {
       return students.find((s) => s.id === profileStudentId) || null;
     }
     if (mode === "admin" && selectedStudentId) {
@@ -266,7 +268,7 @@ export default function App() {
       return students.find((s) => s.id === lastId) || null;
     }
     return null;
-  }, [profileStudentId, selectedStudentId, mode, unlockedProfileList, students]);
+  }, [profileStudentId, selectedStudentId, mode, unlockedProfileIds, unlockedProfileList, students]);
 
   const myPendingRequests = useMemo(
     () => pendingRequests.filter((r) => r.studentId === profileStudentId),
@@ -1696,7 +1698,7 @@ export default function App() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 900, fontSize: 15, color: "#0f172a" }}>{evoCard.title}</div>
                       <div style={{ fontSize: 12, color: eligibility.hasCopies ? "#15803d" : "#b91c1c", fontWeight: 700, marginTop: 2 }}>
-                        🃏 Copias: {eligibility.currentCopies}/{eligibility.requiredCopies}
+                        🃏 Owned: {eligibility.currentCopies}/{eligibility.requiredCopies}
                       </div>
                     </div>
                     <button

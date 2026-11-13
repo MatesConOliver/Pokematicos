@@ -51,7 +51,7 @@ export default function CardCreateForm({
     const result = await onCreate({
       title,
       description,
-      points,
+      points: category === "extra" ? 0 : points,
       category,
       linkedStreakIds: category === "points" ? linkedStreakIds : [],
       lockedFile,
@@ -116,17 +116,23 @@ export default function CardCreateForm({
         style={{ width: "100%", padding: 8, height: 70, borderRadius: 8, border: "1px solid #ddd" }}
       />
       <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <input
-          type="number"
-          value={points}
-          onChange={(e) => setPoints(e.target.value)}
-          style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
-        />
+        {category !== "extra" && (
+          <input
+            type="number"
+            value={points}
+            onChange={(e) => setPoints(e.target.value)}
+            placeholder={category === "experience" ? "XP" : "Points"}
+            style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+          />
+        )}
         <select
           value={category}
           onChange={(e) => {
             const next = e.target.value;
             setCategory(next);
+            if (next === "extra") {
+              setPoints(0);
+            }
             if (next !== "points") {
               setLinkedStreakIds([]);
               setStreakPick("");
@@ -264,11 +270,18 @@ export default function CardCreateForm({
                 }}
               >
                 <option value="">Selecciona carta base...</option>
-                {cards.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title} ({c.points || 0} pts - {c.category || "points"})
-                  </option>
-                ))}
+                {cards.map((c) => {
+                  const cat = c.category || "points";
+                  const metric =
+                    cat === "extra"
+                      ? "extra"
+                      : `${c.points || 0} ${cat === "experience" ? "XP" : "pts"} - ${cat}`;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.title} ({metric})
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

@@ -102,9 +102,11 @@ export default function CardPreviewModal({
               </div>
 
               <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>{cardPreview.description}</div>
-              <div style={{ marginTop: 8, fontWeight: 800, fontSize: 14, color: "#0f172a" }}>
-                {cardPreview.points || 0} pts
-              </div>
+              {(cardPreview.category || "points") !== "extra" && (
+                <div style={{ marginTop: 8, fontWeight: 800, fontSize: 14, color: "#0f172a" }}>
+                  {cardPreview.points || 0} {(cardPreview.category || "points") === "experience" ? "XP" : "pts"}
+                </div>
+              )}
 
               {/* Evolution requirement details */}
               {isEvo && (

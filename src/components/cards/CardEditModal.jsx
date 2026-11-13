@@ -84,14 +84,16 @@ export default function CardEditModal({
           />
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <input
-              className="input"
-              type="number"
-              value={points}
-              onChange={(e) => setPoints(e.target.value)}
-              style={{ width: 140 }}
-              placeholder="Points"
-            />
+            {category !== "extra" && (
+              <input
+                className="input"
+                type="number"
+                value={points}
+                onChange={(e) => setPoints(e.target.value)}
+                style={{ width: 140 }}
+                placeholder={category === "experience" ? "XP" : "Points"}
+              />
+            )}
 
             <select
               className="select"
@@ -99,6 +101,9 @@ export default function CardEditModal({
               onChange={(e) => {
                 const next = e.target.value;
                 setCategory(next);
+                if (next === "extra") {
+                  setPoints(0);
+                }
                 if (next !== "points") {
                   setLinkedStreakIds([]);
                   setStreakPick("");
@@ -238,11 +243,18 @@ export default function CardEditModal({
                     <option value="">Selecciona carta base...</option>
                     {cards
                       .filter((c) => c.id !== card.id)
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title} ({c.points || 0} pts - {c.category || "points"})
-                        </option>
-                      ))}
+                      .map((c) => {
+                        const cat = c.category || "points";
+                        const metric =
+                          cat === "extra"
+                            ? "extra"
+                            : `${c.points || 0} ${cat === "experience" ? "XP" : "pts"} - ${cat}`;
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.title} ({metric})
+                          </option>
+                        );
+                      })}
                   </select>
                 </div>
 
@@ -334,7 +346,7 @@ export default function CardEditModal({
                 onSave({
                   title,
                   description,
-                  points,
+                  points: category === "extra" ? 0 : points,
                   category,
                   linkedStreakIds: category === "points" ? linkedStreakIds : [],
                   lockedFile,

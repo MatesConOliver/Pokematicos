@@ -6,7 +6,6 @@ export default function LibraryCardRow({
   c,
   mode,
   flagValue = "A",
-  cardsById,
   activeStudent,
   defaultCatalystCardId,
   childEvolutions = [],
@@ -20,7 +19,6 @@ export default function LibraryCardRow({
   const [isDragOver, setIsDragOver] = useState(false);
   const isEvo = isEvolutionCard(c);
   const hasChildEvolutions = Array.isArray(childEvolutions) && childEvolutions.length > 0;
-  const baseCard = isEvo && cardsById ? cardsById.get(c.evolution?.baseCardId) : null;
 
   const eligibility =
     isEvo && activeStudent
@@ -130,7 +128,7 @@ export default function LibraryCardRow({
                 fontWeight: 700,
               }}
             >
-              🧬 {isUnlockedByStudent ? "Evolución Desbloqueada" : `Evoluciona de ${baseCard?.title || "Carta Base"}`}
+              🧬 {isUnlockedByStudent ? "Evolution unlocked" : "Evolution"}
             </span>
           )}
           {hasChildEvolutions && (
@@ -143,9 +141,9 @@ export default function LibraryCardRow({
                 color: isDragOver ? "#5b21b6" : "#92400e",
                 fontWeight: 700,
               }}
-              title="Arrastra el catalizador sobre esta carta para evolucionar"
+              title="Drag the catalyst onto this card to evolve"
             >
-              🔮 Suelta catalizador aquí → {childEvolutions.map((ev) => ev.title).join(" / ")}
+              🔮 Can evolve
             </span>
           )}
         </div>
@@ -167,29 +165,9 @@ export default function LibraryCardRow({
                 fontWeight: 700,
                 border: "1px solid rgba(0,0,0,0.06)",
               }}
-              title="Copias de la carta base"
+              title="Copies of base card owned"
             >
-              🃏 Copias: {eligibility ? eligibility.currentCopies : 0}/{c.evolution?.requiredCopies || 1}
-            </span>
-
-            <span
-              style={{
-                fontSize: 11,
-                padding: "2px 6px",
-                borderRadius: 6,
-                background: eligibility?.hasCatalyst ? "#e0e7ff" : "#fef2f2",
-                color: eligibility?.hasCatalyst ? "#4338ca" : "#b91c1c",
-                fontWeight: 700,
-                border: "1px solid rgba(0,0,0,0.06)",
-              }}
-              title="Objeto catalizador consumible"
-            >
-              🔮 Catalizador:{" "}
-              {!c.evolution?.catalystCardId && !defaultCatalystCardId
-                ? "Sin configurar"
-                : eligibility?.hasCatalyst
-                ? "1 Disponible ✓"
-                : "Falta canjear"}
+              🃏 Owned: {eligibility ? eligibility.currentCopies : 0}/{c.evolution?.requiredCopies || 1}
             </span>
 
             {eligibility?.canEvolve && (
@@ -217,9 +195,13 @@ export default function LibraryCardRow({
           </div>
         )}
 
-        <div style={{ marginTop: 6, fontWeight: 900, color: "#0f172a", display: "flex", alignItems: "center", gap: 4 }}>
-          <span>{c.points || 0} pts</span>
-        </div>
+        {(c.category || "points") !== "extra" && (
+          <div style={{ marginTop: 6, fontWeight: 900, color: "#0f172a", display: "flex", alignItems: "center", gap: 4 }}>
+            <span>
+              {c.points || 0} {(c.category || "points") === "experience" ? "XP" : "pts"}
+            </span>
+          </div>
+        )}
       </div>
 
       {mode === "admin" && (
