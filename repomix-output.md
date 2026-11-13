@@ -1,0 +1,18367 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+# File Summary
+
+## Purpose
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+## File Format
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  a. A header with the file path (## File: path/to/file)
+  b. The full contents of the file in a code block
+
+## Usage Guidelines
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+## Notes
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+# Directory Structure
+````
+public/
+  index.html
+  logo.png
+scripts/
+  migrate-class-archive.js
+src/
+  components/
+    admin/
+      ActivityCatalogueManager.jsx
+    auth/
+      LoginScreen.jsx
+    cards/
+      BulkGiveModal.jsx
+      CardCreateForm.jsx
+      CardEditModal.jsx
+      CardLibrary.jsx
+      CardPreviewModal.jsx
+      EvolutionModal.jsx
+      LibraryCardRow.jsx
+      LibrarySection.jsx
+      NoticeBoardPanel.jsx
+    classes/
+      BulkStreakModal.jsx
+      ClassesPanel.jsx
+      ClassFlagModal.jsx
+      FloatScheduleModal.jsx
+      FloatWindowEditModal.jsx
+      RewardCardPickerModal.jsx
+      StreakFormModal.jsx
+    common/
+      EmojiParty.jsx
+      EyeToggleButton.jsx
+      FeedbackDialog.jsx
+    profile/
+      PinGateModal.jsx
+      ProfileModal.jsx
+      PublicStudentIdDisplay.jsx
+      RewardCodeRedemption.jsx
+    requests/
+      RequestsPanel.jsx
+    rewards/
+      RewardCreateForm.jsx
+    students/
+      ManageStudentModal.jsx
+      StudentsPanel.jsx
+  hooks/
+    useActionFeedback.js
+    useAuthMode.js
+    useBackgroundManager.js
+    useClassData.js
+    useStudentRequests.js
+  services/
+    cardEvolutionService.js
+    cardEvolutionService.test.js
+    cardService.js
+    classService.js
+    noticeBoardService.js
+    noticeBoardService.test.js
+    requestService.js
+    rewardCodeService.js
+    rewardService.js
+    rewardService.test.js
+    streakService.js
+    studentAuthService.js
+    studentRewardService.js
+    studentService.js
+  utils/
+    cardImageUtils.js
+    cardImageUtils.test.js
+    dateUtils.js
+    floatWindowUtils.js
+    helpers.js
+    helpers.test.js
+    rewardCodeUtils.js
+    rewardCodeUtils.test.js
+  App.js
+  firebase.js
+  index.css
+  index.js
+.env.example
+.gitignore
+CARD-REWARD-FIX.md
+firestore.rules
+INTEGRATION-GUIDE-REWARD-CODES.md
+metadata.json
+package.json
+POKEMATICOS-EXTERNAL-APP-GUIDE.md
+postcss.config.js
+tailwind.config.js
+````
+
+# Files
+
+## File: src/components/common/EmojiParty.jsx
+````javascript
+import React, { useMemo } from "react";
+
+function hashStrToInt(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export default function EmojiParty({ emoji, seedKey, count = 18 }) {
+  const particles = useMemo(() => {
+    const rnd = mulberry32(hashStrToInt(seedKey));
+    return Array.from({ length: count }).map((_, i) => {
+      const left = rnd() * 100;
+      const delay = rnd() * 1.4;
+      const dur = 1.2 + rnd() * 1.2;
+      const size = 18 + rnd() * 22;
+      const drift = (rnd() - 0.5) * 60;
+      return { i, left, delay, dur, size, drift };
+    });
+  }, [seedKey, count]);
+
+  return (
+    <div className="emoji-party-layer" aria-hidden="true">
+      {particles.map((p) => (
+        <span
+          key={p.i}
+          className="emoji-party-particle"
+          style={{
+            left: `${p.left}%`,
+            fontSize: p.size,
+            animationDuration: `${p.dur}s`,
+            animationDelay: `${p.delay}s`,
+            transform: `translate(-50%, 0) translateX(${p.drift}px)`,
+          }}
+        >
+          {emoji}
+        </span>
+      ))}
+    </div>
+  );
+}
+````
+
+## File: src/utils/dateUtils.js
+````javascript
+/**
+ * Date utility functions for ISO date handling
+ */
+
+function todayISODate() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`; // local YYYY-MM-DD
+}
+
+function addDaysISO(isoDate, days) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const dt = new Date(y, m - 1, d); // local date
+  dt.setDate(dt.getDate() + Number(days || 0));
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+export { todayISODate, addDaysISO };
+````
+
+## File: src/index.js
+````javascript
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./index.css";
+
+const container = document.getElementById("root");
+const root = createRoot(container);
+root.render(<App />);
+````
+
+## File: postcss.config.js
+````javascript
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+````
+
+## File: tailwind.config.js
+````javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "./public/index.html"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+````
+
+## File: public/index.html
+````html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Pokemáticos</title>
+    <meta name="description" content="Gamified classroom management and reward card system" />
+    <meta property="og:title" content="Pokemáticos" />
+    <meta property="og:description" content="Gamified classroom management and reward card system" />
+    <link rel="icon" href="/logo.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+````
+
+## File: scripts/migrate-class-archive.js
+````javascript
+/**
+ * One-off, READ-ONLY migration tool.
+ *
+ * Reads a class from Firestore/Storage and generates a static, self-contained
+ * HTML archive (with recompressed images) that can be uploaded anywhere
+ * (Cloudflare Pages, Netlify, etc.). It never writes, deletes or modifies
+ * anything in Firebase — deleting the original class/files is a manual,
+ * separate step the teacher does later, once happy with the result.
+ *
+ * Usage:
+ *   node scripts/migrate-class-archive.js --list
+ *   node scripts/migrate-class-archive.js <classId>
+ *
+ * Requires scripts/serviceAccountKey.json (Firebase Console > Project
+ * settings > Service accounts > Generate new private key). Never commit it.
+ * 
+ * in terminal, run: npm run migrate:archive -- CLASS_ID
+ * output in archive-output
+ * 
+ */
+
+const fs = require("fs");
+const path = require("path");
+const { initializeApp, cert } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const sharp = require("sharp");
+
+const STORAGE_BUCKET = "pokematicos.firebasestorage.app";
+const SERVICE_ACCOUNT_PATH =
+  process.env.SERVICE_ACCOUNT_PATH ||
+  path.join(__dirname, "serviceAccountKey.json");
+const OUTPUT_ROOT = path.join(__dirname, "..", "archive-output");
+
+// Max width/quality for the recompressed archive images. Plenty for the
+// small thumbnails these cards are ever displayed at.
+const IMAGE_MAX_WIDTH = 900;
+const IMAGE_QUALITY = 80;
+
+// Backgrounds are shown full-screen, so they need more resolution than a card thumbnail.
+const BG_MAX_WIDTH = 1600;
+const BG_QUALITY = 75;
+
+function initAdmin() {
+  if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
+    console.error(
+      `\nNo se encontró la clave de cuenta de servicio en:\n  ${SERVICE_ACCOUNT_PATH}\n` +
+        `Descárgala desde Firebase Console > Project settings > Service accounts > Generate new private key,\n` +
+        `y guárdala exactamente en esa ruta (o define SERVICE_ACCOUNT_PATH).\n`
+    );
+    process.exit(1);
+  }
+  const serviceAccount = require(SERVICE_ACCOUNT_PATH);
+  initializeApp({
+    credential: cert(serviceAccount),
+    storageBucket: STORAGE_BUCKET,
+  });
+}
+
+async function listClasses(db) {
+  const snap = await db.collection("classes").get();
+  if (snap.empty) {
+    console.log("No hay clases en Firestore.");
+    return;
+  }
+  console.log("\nClases disponibles:\n");
+  snap.forEach((d) => {
+    const data = d.data();
+    console.log(`  ${d.id}  ->  ${data.name || "(sin nombre)"}`);
+  });
+  console.log("\nEjecuta de nuevo con: node scripts/migrate-class-archive.js <classId>\n");
+}
+
+function escapeHtml(str) {
+  return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[c]));
+}
+
+// Incrusta la imagen como data: URI para que el HTML sea un fichero único y
+// autocontenido (no depende de rutas relativas ni de cómo se sirva/abra).
+async function downloadAndCompress(url, cache, { maxWidth = IMAGE_MAX_WIDTH, quality = IMAGE_QUALITY } = {}) {
+  if (!url) return "";
+  if (cache.has(url)) return cache.get(url);
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const compressed = await sharp(buffer)
+      .resize({ width: maxWidth, withoutEnlargement: true })
+      .jpeg({ quality })
+      .toBuffer();
+    const dataUri = `data:image/jpeg;base64,${compressed.toString("base64")}`;
+    cache.set(url, dataUri);
+    return dataUri;
+  } catch (err) {
+    console.warn(`  ! No se pudo descargar/comprimir ${url}: ${err.message}`);
+    cache.set(url, "");
+    return "";
+  }
+}
+
+function renderHtml({ className, students, cards, rewards, bgImg }) {
+  const cardById = new Map(cards.map((c) => [c.id, c]));
+
+  // Cada imagen se define UNA vez como regla CSS (por cardId) y se reutiliza por
+  // clase en todos los sitios donde aparece esa carta, en vez de repetir el
+  // base64 completo cada vez que un alumno posee esa carta.
+  const imageRules = cards
+    .filter((c) => c._img)
+    .map((c) => `.img-${c.id} { background-image: url("${c._img}"); }`)
+    .join("\n");
+
+  function renderCardGrid(list) {
+    return list
+      .map(
+        (c) => `
+        <div class="card">
+          <div class="thumb ${c._img ? `img-${c.id}` : ""}"></div>
+          <div class="card-title">${escapeHtml(c.title)}</div>
+          <div class="card-desc">${escapeHtml(c.description)}</div>
+          <div class="card-points">${c.points || 0} pts</div>
+        </div>`
+      )
+      .join("\n");
+  }
+
+  const CATEGORIES = [
+    { key: "points", label: "Points" },
+    { key: "rewards", label: "Rewards" },
+    { key: "experience", label: "Experience" },
+    { key: "extra", label: "Extra" },
+  ];
+
+  const libraryHtml = CATEGORIES.map(({ key, label }) => {
+    const list = cards.filter((c) => (c.category || "points") === key);
+    const grid = `<div class="grid">${renderCardGrid(list) || '<p class="muted">No cards.</p>'}</div>`;
+    const redeemable =
+      key === "rewards" && rewards.length
+        ? `<ul class="redeemable-list">${rewards
+            .map((r) => `<li>${escapeHtml(r.title)} — ${r.cost || 0} pts</li>`)
+            .join("\n")}</ul>`
+        : "";
+    return `
+      <div class="library-category">
+        <h3>${label}</h3>
+        ${grid}
+        ${redeemable}
+      </div>`;
+  }).join("\n");
+
+  const studentsHtml = students
+    .map((s) => {
+      const owned = Array.isArray(s.cards) ? s.cards : [];
+
+      // Agrupa instancias repetidas de la misma carta en una sola entrada con contador.
+      const grouped = new Map();
+      for (const o of owned) {
+        const key = o.cardId || o.title;
+        if (!grouped.has(key)) grouped.set(key, { title: o.title, cardId: o.cardId, count: 0 });
+        grouped.get(key).count += 1;
+      }
+
+      const ownedHtml = Array.from(grouped.values())
+        .map(({ title, cardId, count }) => {
+          const card = cardById.get(cardId);
+          const hasImg = !!card?._img;
+          return `
+            <div class="mini-card">
+              <div class="mini-thumb ${hasImg ? `img-${cardId}` : ""}"></div>
+              <span>${escapeHtml(title)}${count > 1 ? ` x${count}` : ""}</span>
+            </div>`;
+        })
+        .join("\n");
+
+      return `
+        <div class="student">
+          <h3>${escapeHtml(s.name)} ${escapeHtml(s.nameEmojis || "")}</h3>
+          <div class="student-stats">${s.currentPoints || 0} pts &middot; XP ${s.xp || 0}</div>
+          <div class="owned-grid">${ownedHtml || '<span class="muted">No cards.</span>'}</div>
+        </div>`;
+    })
+    .join("\n");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Archive: ${escapeHtml(className)}</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif; margin: 0; color: #222;
+    ${bgImg ? `background-image: url("${bgImg}"); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat;` : "background: #fafafa;"}
+  }
+  .page { max-width: 960px; margin: 0 auto; padding: 24px; ${bgImg ? "background: rgba(255,255,255,0.9); border-radius: 12px; margin-top: 24px; margin-bottom: 24px;" : ""} }
+  h1 { margin-bottom: 4px; }
+  .muted { color: #888; }
+  section { margin: 32px 0; }
+  .grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  .card, .student { background: white; border: 1px solid #eee; border-radius: 10px; padding: 12px; width: 160px; }
+  .thumb { width: 100%; height: 200px; border-radius: 6px; background-size: cover; background-position: center; background-color: #eee; }
+  .card-title { font-weight: 700; margin-top: 6px; }
+  .card-points { font-weight: 700; color: #b8860b; }
+  .student { width: 100%; max-width: 640px; }
+  .owned-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .mini-card { display: flex; flex-direction: column; align-items: center; width: 72px; font-size: 11px; text-align: center; }
+  .mini-thumb { width: 60px; height: 76px; border-radius: 6px; background-size: cover; background-position: center; background-color: #eee; }
+  .library-category { margin-bottom: 24px; }
+  .library-category h3 { margin-bottom: 8px; }
+  .redeemable-list { margin-top: 12px; padding-left: 20px; }
+  ${imageRules}
+</style>
+</head>
+<body>
+  <div class="page">
+  <h1>${escapeHtml(className)}</h1>
+  <p class="muted">Static archive generated on ${new Date().toLocaleDateString("en-GB")}. Frozen content, no longer interactive.</p>
+
+  <section>
+    <h2>Students</h2>
+    ${studentsHtml || '<p class="muted">No students.</p>'}
+  </section>
+
+  <section>
+    <h2>Library</h2>
+    ${libraryHtml}
+  </section>
+  </div>
+</body>
+</html>`;
+}
+
+async function migrateClass(db, classId) {
+  const classSnap = await db.doc(`classes/${classId}`).get();
+  if (!classSnap.exists) {
+    console.error(`No existe ninguna clase con id "${classId}".`);
+    process.exit(1);
+  }
+  const classData = classSnap.data();
+  const className = classData.name || classId;
+
+  const [studentsSnap, cardsSnap, rewardsSnap] = await Promise.all([
+    db.collection(`classes/${classId}/students`).get(),
+    db.collection(`classes/${classId}/cards`).orderBy("createdAt", "asc").get(),
+    db.collection(`classes/${classId}/rewards`).get(),
+  ]);
+
+  const students = studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const cards = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const rewards = rewardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  const outDir = path.join(OUTPUT_ROOT, classId);
+  fs.mkdirSync(outDir, { recursive: true });
+
+  console.log(`\nMigrando clase "${className}" (${classId})`);
+  console.log(`  ${students.length} alumnos, ${cards.length} cartas, ${rewards.length} rewards`);
+
+  const cache = new Map();
+  for (const c of cards) {
+    // Preferir la imagen desbloqueada (más representativa); usar la bloqueada solo si no existe.
+    const url = c.imageURL || c.lockedImageURL || "";
+    c._img = await downloadAndCompress(url, cache);
+  }
+
+  const bgImg = await downloadAndCompress(classData.backgroundUrl || "", cache, {
+    maxWidth: BG_MAX_WIDTH,
+    quality: BG_QUALITY,
+  });
+
+  const html = renderHtml({ className, students, cards, rewards, bgImg });
+  fs.writeFileSync(path.join(outDir, "index.html"), html, "utf8");
+
+  console.log(`\nListo. Nada se ha borrado ni modificado en Firebase.`);
+  console.log(`Carpeta generada en: ${outDir}`);
+  console.log(`Revísala localmente (abre index.html) y, si te gusta, súbela a Cloudflare Pages.\n`);
+}
+
+async function main() {
+  initAdmin();
+  const db = getFirestore();
+  const arg = process.argv[2];
+
+  if (!arg || arg === "--list") {
+    await listClasses(db);
+    return;
+  }
+
+  await migrateClass(db, arg);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+````
+
+## File: src/components/classes/ClassFlagModal.jsx
+````javascript
+import React, { useEffect, useState } from "react";
+
+export default function ClassFlagModal({ flagConfig, onClose, onSave, onDelete }) {
+  const [label, setLabel] = useState(flagConfig?.label || "");
+  const [optionA, setOptionA] = useState(flagConfig?.optionA || "");
+  const [optionB, setOptionB] = useState(flagConfig?.optionB || "");
+
+  useEffect(() => {
+    setLabel(flagConfig?.label || "");
+    setOptionA(flagConfig?.optionA || "");
+    setOptionB(flagConfig?.optionB || "");
+  }, [flagConfig]);
+
+  function save() {
+    const config = {
+      label: label.trim(),
+      optionA: optionA.trim(),
+      optionB: optionB.trim(),
+    };
+    if (!config.label || !config.optionA || !config.optionB) return;
+    onSave(config);
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="class-flag-title" onClick={(event) => event.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <h3 id="class-flag-title" style={{ margin: 0 }}>Class flag</h3>
+          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+        </div>
+        <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+          <label>
+            <div className="muted" style={{ marginBottom: 4 }}>Flag name</div>
+            <input className="input" value={label} onChange={(event) => setLabel(event.target.value)} placeholder="e.g. Theme" />
+          </label>
+          <label>
+            <div className="muted" style={{ marginBottom: 4 }}>Option A label (default)</div>
+            <input className="input" value={optionA} onChange={(event) => setOptionA(event.target.value)} placeholder="e.g. Fire" />
+          </label>
+          <label>
+            <div className="muted" style={{ marginBottom: 4 }}>Option B label</div>
+            <input className="input" value={optionB} onChange={(event) => setOptionB(event.target.value)} placeholder="e.g. Ice" />
+          </label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+            <button type="button" className="btn primary" onClick={save} disabled={!label.trim() || !optionA.trim() || !optionB.trim()}>
+              Save flag
+            </button>
+            {flagConfig && (
+              <button type="button" className="btn" onClick={onDelete} style={{ color: "#b91c1c" }}>
+                Delete flag
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/classes/FloatWindowEditModal.jsx
+````javascript
+export default function FloatWindowEditModal({ request, onClose, onSave }) {
+  if (!request) return null;
+
+  const initial = request.initial || {};
+
+  function submit(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const start = String(form.get("start") || "").trim();
+    const end = String(form.get("end") || "").trim();
+    const multiplierBonus = Number(form.get("multiplierBonus"));
+
+    if (!start || !end || end < start) return;
+
+    onSave({ start, end, multiplierBonus: Number.isFinite(multiplierBonus) ? multiplierBonus : 0 });
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <form className="modal form-modal schedule-modal" onSubmit={submit} onClick={(event) => event.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Edit floating window</h3>
+        <p className="muted">{request.message || "Edit the dates and the multiplier bonus for this student's floating emoji."}</p>
+
+        <div className="schedule-fields">
+          <label className="form-field">
+            <span>Start date</span>
+            <input className="input" name="start" type="date" defaultValue={initial.start} autoFocus required />
+          </label>
+          <label className="form-field">
+            <span>End date</span>
+            <input className="input" name="end" type="date" defaultValue={initial.end} required />
+          </label>
+        </div>
+
+        <label className="form-field">
+          <span>Multiplier bonus during this window</span>
+          <input className="input" name="multiplierBonus" type="number" step="0.01" defaultValue={initial.multiplierBonus ?? 0} />
+        </label>
+
+        <div className="feedback-dialog-actions">
+          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn primary">Save changes</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+````
+
+## File: src/components/classes/RewardCardPickerModal.jsx
+````javascript
+export default function RewardCardPickerModal({ request, cards, onClose, onSave }) {
+  if (!request) return null;
+
+  const selectedIds = request.selectedIds || [];
+  const pointCards = cards
+    .filter((card) => (card.category || "points") === "points")
+    .slice()
+    .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal form-modal" onClick={(event) => event.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Reward cards at the maximum</h3>
+        <p className="muted">Choose the cards to give automatically when this streak reaches its maximum.</p>
+
+        <div className="reward-picker-list">
+          {pointCards.map((card) => (
+            <label className="reward-picker-option" key={card.id}>
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(card.id)}
+                onChange={() => request.toggleCard(card.id)}
+              />
+              <span>{card.title || "Untitled card"}</span>
+              <strong>{Number(card.points || 0)} pts</strong>
+            </label>
+          ))}
+          {pointCards.length === 0 && <div className="muted">No points cards available.</div>}
+        </div>
+
+        <div className="feedback-dialog-actions">
+          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn primary" onClick={() => onSave(selectedIds)}>Save cards</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/classes/StreakFormModal.jsx
+````javascript
+export default function StreakFormModal({ request, cards, onClose, onSave }) {
+  if (!request) return null;
+
+  const initial = request.initial || {};
+  const selectedRewardIds = Array.isArray(request.rewardCardIds)
+    ? request.rewardCardIds
+    : Array.isArray(initial.rewardCardIds)
+      ? initial.rewardCardIds
+      : [];
+
+  function submit(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const emoji = String(form.get("emoji") || "").trim();
+    const max = Number(form.get("max"));
+
+    if (!emoji || !Number.isFinite(max) || max <= 0) return;
+
+    onSave({
+      emoji,
+      max,
+      float: form.get("float") === "on",
+      stickyCelebrate: form.get("stickyCelebrate") === "on",
+      rewardCardIds: selectedRewardIds,
+    });
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <form className="modal form-modal" onSubmit={submit} onClick={(event) => event.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>{request.title || "Create streak"}</h3>
+        <p className="muted">Set the goal and what happens when students reach it.</p>
+
+        <label className="form-field">
+          <span>Emoji</span>
+          <input className="input" name="emoji" defaultValue={initial.emoji || ""} placeholder="For example: 🔥" autoFocus required />
+        </label>
+
+        <label className="form-field">
+          <span>Maximum of the streak</span>
+          <input className="input" name="max" type="number" min="1" step="1" defaultValue={initial.max || ""} placeholder="For example: 5" required />
+        </label>
+
+        <label className="form-check">
+          <input name="float" type="checkbox" defaultChecked={!!initial.float} />
+          <span><strong>Floating emoji</strong><small>Show the emoji in the student's background after reaching the maximum.</small></span>
+        </label>
+
+        <label className="form-check">
+          <input name="stickyCelebrate" type="checkbox" defaultChecked={!!initial.stickyCelebrate} />
+          <span><strong>Persistent celebration</strong><small>Keep the celebration visible for the rest of the day after a reset.</small></span>
+        </label>
+
+        <fieldset className="reward-picker">
+          <legend>Reward cards at the maximum</legend>
+          <div className="muted">Choose any cards to give automatically. You can leave this empty.</div>
+          <div className="reward-picker-list">
+            {cards.filter((card) => (card.category || "points") === "points").map((card) => (
+              <label className="reward-picker-option" key={card.id}>
+                <input
+                  type="checkbox"
+                  checked={selectedRewardIds.includes(card.id)}
+                  onChange={() => request.toggleRewardCard(card.id)}
+                />
+                <span>{card.title || "Untitled card"}</span>
+                <strong>{Number(card.points || 0)} pts</strong>
+              </label>
+            ))}
+            {cards.filter((card) => (card.category || "points") === "points").length === 0 && (
+              <div className="muted">No points cards available.</div>
+            )}
+          </div>
+        </fieldset>
+
+        <div className="feedback-dialog-actions">
+          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn primary">Save streak</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+````
+
+## File: src/components/rewards/RewardCreateForm.jsx
+````javascript
+import React, { useState } from "react";
+
+export default function RewardCreateForm({ cards, onCreate, onValidationError }) {
+  const [title, setTitle] = useState("");
+  const [cost, setCost] = useState(5);
+  const [cardId, setCardId] = useState(cards?.[0]?.id || "");
+
+  return (
+    <div>
+      <h4 style={{ marginTop: 0 }}>Create shop item</h4>
+      <input
+        placeholder="Reward title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        style={{ width: "100%", padding: 8, marginBottom: 8, borderRadius: 8, border: "1px solid #ddd" }}
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          type="number"
+          value={cost}
+          onChange={(e) => setCost(e.target.value)}
+          style={{ padding: 8, width: 90, borderRadius: 8, border: "1px solid #ddd" }}
+        />
+        <select
+          value={cardId}
+          onChange={(e) => setCardId(e.target.value)}
+          style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+        >
+          <option value="">-- link card (optional) --</option>
+          {cards.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <button
+          className="btn"
+          onClick={() => {
+            if (!title.trim()) {
+              if (onValidationError) onValidationError("Title required");
+              return;
+            }
+            onCreate({ title, cost, linkedCardId: cardId });
+            setTitle("");
+            setCost(5);
+            setCardId(cards?.[0]?.id || "");
+          }}
+        >
+          Add reward
+        </button>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/hooks/useStudentRequests.js
+````javascript
+import { useEffect, useState } from "react";
+import { collectionGroup, onSnapshot, query, where } from "firebase/firestore";
+
+export default function useStudentRequests({ db }) {
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    const q = query(collectionGroup(db, "requests"), where("status", "==", "pending"));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const arr = [];
+        snap.forEach((d) => {
+          const classId = d.ref.parent.parent?.id || "";
+          arr.push({ id: d.id, classId, ...d.data() });
+        });
+        arr.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        setPendingRequests(arr);
+      },
+      (err) => {
+        console.error("useStudentRequests error", err);
+        setErrorMsg("Error loading requests.");
+      }
+    );
+    return () => unsub();
+  }, [db]);
+
+  return {
+    pendingRequests,
+    pendingCount: pendingRequests.length,
+    errorMsg,
+  };
+}
+````
+
+## File: src/services/rewardService.test.js
+````javascript
+import { buildUnifiedRewards } from "./rewardService";
+
+describe("buildUnifiedRewards", () => {
+  test("converts rewards-category cards into redeemable rewards using card points as cost", () => {
+    const cards = [
+      { id: "c_pts", title: "Point Card", category: "points", points: 10 },
+      {
+        id: "c_rew",
+        title: "Piedra Trueno",
+        description: "Evoluciona a Raichu",
+        category: "rewards",
+        points: 25,
+      },
+      { id: "c_xp", title: "Level 2", category: "experience", points: 50 },
+    ];
+
+    const result = buildUnifiedRewards(cards, []);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      id: "c_rew",
+      title: "Piedra Trueno",
+      description: "Evoluciona a Raichu",
+      cost: 25,
+      cardId: "c_rew",
+      legacyRewardId: null,
+      isCardReward: true,
+    });
+  });
+
+  test("merges matching legacy rewards without duplicating and always uses the reward card points", () => {
+    const cards = [
+      {
+        id: "c_rew1",
+        title: "Carta Recompensa 1",
+        description: "Desc 1",
+        category: "rewards",
+        points: 30,
+      },
+    ];
+    const legacyRewards = [
+      {
+        id: "leg_1",
+        title: "Old Title",
+        cost: 15,
+        cardId: "c_rew1",
+      },
+    ];
+
+    const result = buildUnifiedRewards(cards, legacyRewards);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      id: "c_rew1",
+      title: "Carta Recompensa 1",
+      description: "Desc 1",
+      cost: 30,
+      cardId: "c_rew1",
+      legacyRewardId: "leg_1",
+      isCardReward: true,
+    });
+  });
+
+  test("preserves unmatched legacy rewards if any exist", () => {
+    const cards = [
+      {
+        id: "c_rew1",
+        title: "Carta Recompensa 1",
+        description: "Desc 1",
+        category: "rewards",
+        points: 20,
+      },
+    ];
+    const legacyRewards = [
+      { id: "leg_orphan", title: "Legacy Reward", cost: 10, cardId: "deleted_card" },
+    ];
+
+    const result = buildUnifiedRewards(cards, legacyRewards);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe("c_rew1");
+    expect(result[1]).toMatchObject({
+      id: "leg_orphan",
+      title: "Legacy Reward",
+      cost: 10,
+      isLegacy: true,
+    });
+  });
+});
+````
+
+## File: src/services/studentAuthService.js
+````javascript
+import { doc, updateDoc } from "firebase/firestore";
+
+const DEFAULT_PIN = "0000";
+
+export function verifyPin(student, pin) {
+  const current = student?.pin || DEFAULT_PIN;
+  return String(pin || "") === String(current);
+}
+
+export async function changePin(
+  db,
+  classId,
+  studentId,
+  student,
+  currentPin,
+  newPin,
+  alertFn = null
+) {
+  if (!verifyPin(student, currentPin)) {
+    if (alertFn) alertFn("El PIN actual no es correcto.");
+    return false;
+  }
+  if (!/^\d{4}$/.test(String(newPin || ""))) {
+    if (alertFn) alertFn("El nuevo PIN debe tener 4 dígitos.");
+    return false;
+  }
+  try {
+    await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
+      pin: String(newPin),
+    });
+    return true;
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("No se pudo cambiar el PIN.");
+    return false;
+  }
+}
+
+export async function resetPin(db, classId, studentId, alertFn = null) {
+  try {
+    await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
+      pin: DEFAULT_PIN,
+    });
+    return true;
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("No se pudo resetear el PIN.");
+    return false;
+  }
+}
+````
+
+## File: src/utils/cardImageUtils.js
+````javascript
+export function getCardDisplayImage(card, flagValue = "A", isLocked = false) {
+  if (!card) return "";
+
+  if (isLocked) {
+    return flagValue === "B"
+      ? card.lockedImageURL_B || card.lockedImageURL || card.imageURL || ""
+      : card.lockedImageURL || card.imageURL || "";
+  }
+
+  return flagValue === "B"
+    ? card.imageURL_B || card.imageURL || ""
+    : card.imageURL || "";
+}
+````
+
+## File: src/utils/cardImageUtils.test.js
+````javascript
+import { getCardDisplayImage } from "./cardImageUtils";
+
+describe("getCardDisplayImage", () => {
+  const card = {
+    imageURL: "unlocked-a",
+    lockedImageURL: "locked-a",
+    imageURL_B: "unlocked-b",
+    lockedImageURL_B: "locked-b",
+  };
+
+  it("uses the selected variant and locked or unlocked artwork", () => {
+    expect(getCardDisplayImage(card, "A", false)).toBe("unlocked-a");
+    expect(getCardDisplayImage(card, "A", true)).toBe("locked-a");
+    expect(getCardDisplayImage(card, "B", false)).toBe("unlocked-b");
+    expect(getCardDisplayImage(card, "B", true)).toBe("locked-b");
+  });
+
+  it("falls back to Option A when Option B artwork is missing", () => {
+    const partialCard = { imageURL: "unlocked-a", lockedImageURL: "locked-a" };
+
+    expect(getCardDisplayImage(partialCard, "B", false)).toBe("unlocked-a");
+    expect(getCardDisplayImage(partialCard, "B", true)).toBe("locked-a");
+    expect(
+      getCardDisplayImage({ imageURL: "unlocked-a" }, "B", true)
+    ).toBe("unlocked-a");
+  });
+
+  it("returns an empty URL when the card is missing", () => {
+    expect(getCardDisplayImage(null, "B", false)).toBe("");
+  });
+});
+````
+
+## File: src/utils/floatWindowUtils.js
+````javascript
+/**
+ * Float window utilities for streak scheduling
+ */
+
+import { addDaysISO } from "./dateUtils";
+import { round2 } from "./helpers";
+
+function parseFloatScheduleInput(input, defaults = { delayDays: 7, durationDays: 7 }) {
+  const fallback = {
+    delayDays: Number.isFinite(defaults.delayDays) ? defaults.delayDays : 7,
+    durationDays: Number.isFinite(defaults.durationDays) ? defaults.durationDays : 7,
+  };
+
+  if (input == null) return fallback;
+  const s = String(input).trim();
+  if (!s) return fallback;
+
+  // 1) "a,b" format
+  if (s.includes(",")) {
+    const [a, b] = s.split(",").map((x) => x.trim());
+    const delay = parseInt(a, 10);
+    const dur = parseInt(b, 10);
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 2) key=value format: start=7 duration=10 (order doesn't matter)
+  const mStart = s.match(/(?:start|delay)\s*=\s*(-?\d+)/i);
+  const mDur = s.match(/(?:duration|days)\s*=\s*(-?\d+)/i);
+
+  if (mStart || mDur) {
+    const delay = mStart ? parseInt(mStart[1], 10) : fallback.delayDays;
+    const dur = mDur ? parseInt(mDur[1], 10) : fallback.durationDays;
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 3) two numbers: "7 14"
+  const nums = s.match(/-?\d+/g) || [];
+  if (nums.length >= 2) {
+    const delay = parseInt(nums[0], 10);
+    const dur = parseInt(nums[1], 10);
+    return {
+      delayDays: Number.isFinite(delay) && delay >= 0 ? delay : fallback.delayDays,
+      durationDays: Number.isFinite(dur) && dur > 0 ? dur : fallback.durationDays,
+    };
+  }
+
+  // 4) single number means delay; use default duration
+  const one = parseInt(nums[0], 10);
+  return {
+    delayDays: Number.isFinite(one) && one >= 0 ? one : fallback.delayDays,
+    durationDays: fallback.durationDays,
+  };
+}
+
+function normalizeFloatWindows(windows, today) {
+  const list = Array.isArray(windows) ? windows : [];
+  const cleaned = list
+    .filter((w) => w && typeof w.start === "string" && typeof w.end === "string" && w.start && w.end)
+    // prune windows fully in the past
+    .filter((w) => !today || w.end >= today)
+    .map((w) => ({ start: w.start, end: w.end, multiplierBonus: Number(w.multiplierBonus || 0) }))
+    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+
+  const merged = [];
+  for (const w of cleaned) {
+    if (merged.length === 0) {
+      merged.push({ ...w });
+      continue;
+    }
+    const last = merged[merged.length - 1];
+    // merge only if overlapping/adjacent AND carrying the same bonus (otherwise both bonuses would be lost)
+    const lastEndPlus1 = addDaysISO(last.end, 1);
+    if (w.start <= lastEndPlus1 && w.multiplierBonus === last.multiplierBonus) {
+      if (w.end > last.end) last.end = w.end;
+    } else {
+      merged.push({ ...w });
+    }
+  }
+  return merged;
+}
+
+function isTodayInFloatWindows(today, windows) {
+  if (!today) return false;
+  const list = Array.isArray(windows) ? windows : [];
+  return list.some((w) => w && w.start <= today && today <= w.end);
+}
+
+// Base multiplier plus the sum of every streak's floating bonus currently active for this student.
+function computeEffectiveMultiplier(studentData, today) {
+  const base = typeof studentData?.multiplier === "number" ? studentData.multiplier : 1;
+  const streaks = studentData?.streaks || {};
+  let bonus = 0;
+
+  for (const entry of Object.values(streaks)) {
+    const windows = Array.isArray(entry?.floatWindows) ? entry.floatWindows : [];
+    for (const w of windows) {
+      if (w && w.start <= today && today <= w.end) {
+        bonus += Number(w.multiplierBonus || 0);
+      }
+    }
+  }
+
+  return round2(base + bonus);
+}
+
+export { parseFloatScheduleInput, normalizeFloatWindows, isTodayInFloatWindows, computeEffectiveMultiplier };
+````
+
+## File: src/utils/helpers.js
+````javascript
+/**
+ * Utility helpers - pure, independent functions
+ */
+
+function uid(prefix = "id") {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function round2(x) {
+  return Math.round((Number(x) || 0) * 100) / 100;
+}
+
+function safeLower(s) {
+  return (s || "").toString().toLowerCase();
+}
+
+const PASTEL_COLORS = [
+  { name: "Mint", value: "#D1FAE5" },
+  { name: "Sky", value: "#DBEAFE" },
+  { name: "Lavender", value: "#EDE9FE" },
+  { name: "Peach", value: "#FFEDD5" },
+  { name: "Rose", value: "#FFE4E6" },
+  { name: "Lemon", value: "#FEF9C3" },
+  { name: "Aqua", value: "#CFFAFE" },
+  { name: "Sand", value: "#F5F5DC" },
+];
+
+function formatPoints(x) {
+  return round2(x);
+}
+
+export { uid, round2, formatPoints, safeLower, PASTEL_COLORS };
+````
+
+## File: src/utils/helpers.test.js
+````javascript
+import { round2, formatPoints, uid, safeLower } from "./helpers";
+
+describe("helpers", () => {
+  describe("round2 and formatPoints", () => {
+    test("handles normal numbers and integers", () => {
+      expect(round2(100)).toBe(100);
+      expect(formatPoints(100)).toBe(100);
+      expect(round2(50.5)).toBe(50.5);
+      expect(formatPoints(50.5)).toBe(50.5);
+    });
+
+    test("fixes IEEE 754 floating point precision drift", () => {
+      // 100.000000002 -> 100
+      expect(round2(100.000000002)).toBe(100);
+      expect(formatPoints(100.000000002)).toBe(100);
+
+      // 74.888888888889 -> 74.89
+      expect(round2(74.888888888889)).toBe(74.89);
+      expect(formatPoints(74.888888888889)).toBe(74.89);
+
+      // 0.1 + 0.2 = 0.30000000000000004
+      expect(round2(0.1 + 0.2)).toBe(0.3);
+      expect(formatPoints(0.1 + 0.2)).toBe(0.3);
+    });
+
+    test("handles null, undefined, strings, and zero gracefully", () => {
+      expect(round2(0)).toBe(0);
+      expect(formatPoints(0)).toBe(0);
+      expect(round2(null)).toBe(0);
+      expect(formatPoints(null)).toBe(0);
+      expect(round2(undefined)).toBe(0);
+      expect(formatPoints(undefined)).toBe(0);
+      expect(round2("42.75")).toBe(42.75);
+      expect(formatPoints("42.75")).toBe(42.75);
+    });
+  });
+
+  describe("safeLower", () => {
+    test("lowercases strings safely", () => {
+      expect(safeLower("HELLO")).toBe("hello");
+      expect(safeLower(null)).toBe("");
+      expect(safeLower(undefined)).toBe("");
+    });
+  });
+
+  describe("uid", () => {
+    test("generates prefixed unique ids", () => {
+      const id1 = uid("test");
+      const id2 = uid("test");
+      expect(id1.startsWith("test_")).toBe(true);
+      expect(id1).not.toBe(id2);
+    });
+  });
+});
+````
+
+## File: .gitignore
+````
+node_modules
+.env
+scripts/serviceAccountKey.json
+archive-output/
+````
+
+## File: INTEGRATION-GUIDE-REWARD-CODES.md
+````markdown
+# Integration Guide: PKM Reward Code System
+
+Complete step-by-step instructions for integrating the reward code components into Pokemáticos.
+
+---
+
+## Overview
+
+You're adding four components to your existing Pokemáticos application:
+
+1. **RewardCodeService** (backend) - Handles code validation, activity lookup, and achievement recording
+2. **PublicStudentIdDisplay** (UI) - Shows student's Public ID in profile settings
+3. **RewardCodeRedemption** (UI) - Allows students to paste codes and redeem rewards
+4. **ActivityCatalogueManager** (UI) - Admin panel for managing activity catalogue
+
+---
+
+## Step 1: Import Backend Service
+
+### File: `src/services/rewardCodeService.js`
+
+This file already exists and is complete. Verify it's in place:
+
+```bash
+ls -la src/services/rewardCodeService.js
+```
+
+**What it provides:**
+- `redeemRewardCode()` - Main redemption function
+- `addActivityToCatalogue()` - Add activities (admin)
+- `updateActivityInCatalogue()` - Edit activities (admin)
+- `getActivityFromCatalogue()` - Lookup activity details
+- `deleteActivityFromCatalogue()` - Remove activities (admin)
+
+---
+
+## Step 2: Add Student UI - PublicStudentIdDisplay
+
+### Location: Profile Modal → Settings Tab
+
+**File location:** `src/components/profile/PublicStudentIdDisplay.jsx` (already created)
+
+**1. Import in ProfileModal.jsx:**
+
+```javascript
+// At top of src/components/profile/ProfileModal.jsx
+import PublicStudentIdDisplay from "./PublicStudentIdDisplay";
+```
+
+**2. Add to Settings Tab:**
+
+Find the settings tab section (around line 833) and add the component before the Personalization section:
+
+```javascript
+{activeTab === "settings" && (
+  <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    {/* Add this block FIRST */}
+    <PublicStudentIdDisplay student={student} alertFn={onValidationError} />
+
+    {/* Existing Personalization section */}
+    <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, background: "#ffffff" }}>
+      <div style={{ ... }}>Personalization</div>
+      {/* ... rest of personalization ... */}
+    </div>
+    
+    {/* ... rest of settings ... */}
+  </div>
+)}
+```
+
+**3. Pass required props:**
+
+Make sure ProfileModal receives `onValidationError` (it already should):
+
+```javascript
+export default function ProfileModal({
+  mode,
+  student,
+  onClose,
+  onSave,
+  onChangePin,
+  onValidationError,  // ← Already present
+  // ... rest of props
+})
+```
+
+---
+
+## Step 3: Add Student UI - RewardCodeRedemption
+
+### Location: Profile Modal → New "Redeem" Tab (or existing "Rewards" Tab)
+
+**File location:** `src/components/profile/RewardCodeRedemption.jsx` (already created)
+
+### Option A: Create New "Redeem" Tab (Recommended)
+
+**1. Import in ProfileModal.jsx:**
+
+```javascript
+import RewardCodeRedemption from "./RewardCodeRedemption";
+```
+
+**2. Add new tab button (around line 191, after "history" tab):**
+
+```javascript
+<button
+  type="button"
+  className="btn"
+  onClick={() => setActiveTab("redeem")}
+  style={{
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottom: activeTab === "redeem" ? "3px solid #2563eb" : "3px solid transparent",
+    background: activeTab === "redeem" ? "#eff6ff" : "transparent",
+    color: activeTab === "redeem" ? "#1d4ed8" : "#4b5563",
+    fontWeight: activeTab === "redeem" ? 700 : 500,
+    padding: "8px 14px",
+    fontSize: 13,
+  }}
+>
+  🎁 Redeem
+</button>
+```
+
+**3. Update initial activeTab state (line 19):**
+
+```javascript
+const [activeTab, setActiveTab] = useState("requests"); 
+// Keep as "requests" for default
+// Tabs now: "requests" | "rewards" | "history" | "settings" | "redeem"
+```
+
+**4. Add tab content (end of content section, before closing div):**
+
+```javascript
+{activeTab === "redeem" && (
+  <div style={{ padding: "20px", flex: 1, overflowY: "auto" }}>
+    <RewardCodeRedemption
+      student={student}
+      onRedeemSuccess={() => {
+        // Refresh student data by closing/reopening modal
+        // Or call parent's onSave to refresh
+        onValidationError("Achievement redeemed! Refreshing...");
+      }}
+      alertFn={onValidationError}
+    />
+  </div>
+)}
+```
+
+### Option B: Add to Existing "Rewards" Tab
+
+If you prefer to keep it together with existing rewards, find the `{activeTab === "rewards"` section and add the component there.
+
+---
+
+## Step 4: Add Admin UI - ActivityCatalogueManager
+
+### Location: ClassesPanel → Admin Section
+
+**File location:** `src/components/admin/ActivityCatalogueManager.jsx` (already created)
+
+**1. Import in ClassesPanel.jsx:**
+
+```javascript
+import ActivityCatalogueManager from "../admin/ActivityCatalogueManager";
+```
+
+**2. Add state for showing/hiding the catalogue manager:**
+
+```javascript
+const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
+```
+
+**3. Add button in admin section (around line 64):**
+
+Find the `{mode === "admin" && (` section and add:
+
+```javascript
+{mode === "admin" && (
+  <div style={{ marginTop: 16 }}>
+    <button
+      className="btn primary"
+      onClick={() => setShowActivityCatalogue(!showActivityCatalogue)}
+      style={{ marginBottom: 16 }}
+    >
+      {showActivityCatalogue ? "Hide" : "Show"} Activity Catalogue
+    </button>
+    
+    {showActivityCatalogue && (
+      <div style={{ marginTop: 16, border: "1px solid #e5e7eb", borderRadius: 12 }}>
+        <ActivityCatalogueManager 
+          classId={activeClassId}
+          alertFn={alertFn}
+        />
+      </div>
+    )}
+  </div>
+)}
+```
+
+---
+
+## Step 5: Update Firestore Security Rules
+
+Add these rules to your Firestore security rules. Replace `YOUR_ADMIN_CHECK` with your existing admin check logic:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ... existing rules ...
+
+    // Activity Catalogue (per class)
+    match /classes/{classId}/activityCatalogue/{activity} {
+      // Admins can read/write
+      allow read, write: if YOUR_ADMIN_CHECK(resource.auth.uid, classId);
+    }
+
+    // Student Achievements (per student, per class)
+    match /classes/{classId}/students/{studentId}/achievements/{achievement} {
+      // Students can read their own achievements
+      allow read: if request.auth.uid == studentId;
+      // Backend can write (via Cloud Function or trusted client)
+      allow write: if YOUR_ADMIN_CHECK(request.auth.uid, classId);
+    }
+  }
+}
+```
+
+---
+
+## Step 6: Test End-to-End
+
+### Manual Testing Checklist
+
+**1. Student ID Display:**
+- [ ] Go to student profile → Settings tab
+- [ ] See "Public ID" section with Firestore UID displayed
+- [ ] Copy button works (copies ID to clipboard)
+
+**2. Admin Activity Catalogue:**
+- [ ] Log in as admin
+- [ ] Go to Classes panel
+- [ ] Click "Show Activity Catalogue" button
+- [ ] See form to add new activities
+- [ ] Fill: Source ID, Activity ID, Description, Points
+- [ ] Click "Add Activity"
+- [ ] Activity appears in the catalogue grid
+- [ ] Can edit and delete activities
+
+**3. Code Generation (External App):**
+- [ ] Use the code generation guide to create a test code
+- [ ] Example:
+  ```
+  Student ID: "user-abc123xyz456def789"
+  Source ID: "test_app"
+  Activity ID: "test001"
+  Generated code: "XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+  ```
+
+**4. Code Redemption:**
+- [ ] Student goes to Profile → Redeem tab
+- [ ] Paste test code
+- [ ] Code validates
+- [ ] Achievement recorded ✓
+- [ ] Points awarded ✓
+- [ ] Success message shown
+
+**5. Duplicate Prevention:**
+- [ ] Try redeeming the same code again
+- [ ] Should show: "You have already completed this activity"
+
+**6. Invalid Codes:**
+- [ ] Try a malformed code
+- [ ] Try a code for wrong student
+- [ ] Try a code for non-existent activity
+- [ ] Try a code for inactive activity
+- [ ] Each shows appropriate error message
+
+---
+
+## Step 7: Database Schema Reference
+
+The system uses these Firestore collections (auto-created):
+
+### Activity Catalogue
+```
+classes/{classId}/activityCatalogue/{sourceId}_{activityId}
+{
+  sourceId: string,
+  activityId: string,
+  description: string,
+  pointsAward: number,
+  rewardType: "points" | "card" | "both",
+  isActive: boolean,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+### Student Achievements
+```
+classes/{classId}/students/{studentId}/achievements/{sourceId}_{activityId}
+{
+  sourceId: string,
+  activityId: string,
+  pointsAwarded: number,
+  redeemedAt: timestamp,
+  rewardType: string
+}
+```
+
+---
+
+## Step 8: Troubleshooting
+
+### Issue: Build fails with missing component
+
+**Solution:** Ensure all files exist:
+```bash
+ls -la src/services/rewardCodeService.js
+ls -la src/components/profile/PublicStudentIdDisplay.jsx
+ls -la src/components/profile/RewardCodeRedemption.jsx
+ls -la src/components/admin/ActivityCatalogueManager.jsx
+```
+
+### Issue: Code validation fails with "Code is invalid"
+
+**Solutions:**
+1. Check code format: Must be 28 base36 chars, e.g., `XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`
+2. Check CRC-8 calculation: Use the test vectors in the specification
+3. Ensure student ID matches: Code must be generated with correct student Public ID
+
+### Issue: Activity not found in catalogue
+
+**Solutions:**
+1. Verify activity was added via ActivityCatalogueManager
+2. Check exact spelling of sourceId and activityId (case-insensitive, but spelling must match)
+3. Ensure activity is Active (toggle in catalogue)
+4. Verify you're in the correct class
+
+### Issue: Firestore quota exceeded
+
+**Solutions:**
+1. This system is optimized for ~100 students × 1000 activities = ~100K documents
+2. Each redemption = 3 reads + 1 batch write (4 Firestore operations)
+3. Normal usage: ~0.1€ per 1000 redemptions (well within budget)
+
+---
+
+## Deployment Checklist
+
+Before going live:
+
+- [ ] All components imported and placed in UI
+- [ ] Firestore security rules updated
+- [ ] Manual end-to-end test passed
+- [ ] Create test activity in catalogue
+- [ ] Generate test code from external app
+- [ ] Student can redeem test code
+- [ ] Achievement recorded and points awarded
+- [ ] Duplicate redemption prevented
+- [ ] External app guide shared with developers
+- [ ] Documentation up to date
+
+---
+
+## Files Modified
+
+```
+src/components/profile/ProfileModal.jsx
+  - Added imports for PublicStudentIdDisplay, RewardCodeRedemption
+  - Added "redeem" tab
+  - Added PublicStudentIdDisplay to settings tab
+  - Added RewardCodeRedemption to redeem tab
+
+src/components/classes/ClassesPanel.jsx
+  - Added import for ActivityCatalogueManager
+  - Added state for showing/hiding catalogue
+  - Added button and conditional render for ActivityCatalogueManager
+
+firestore.rules (Firestore Security Rules)
+  - Added rules for activityCatalogue collection
+  - Added rules for student achievements collection
+```
+
+## Files Created (Already Complete)
+
+```
+src/services/rewardCodeService.js
+src/components/profile/PublicStudentIdDisplay.jsx
+src/components/profile/RewardCodeRedemption.jsx
+src/components/admin/ActivityCatalogueManager.jsx
+```
+
+---
+
+## Next Steps
+
+1. Follow steps 1-7 above to integrate components
+2. Test using the checklist in Step 6
+3. Share the **External App Integration Guide** with developers building external applications
+4. Deploy to production
+5. Monitor Firestore usage in first month
+
+---
+
+**Questions?** Refer to:
+- `/home/codespace/.copilot/session-state/.../files/EXTERNAL-APP-INTEGRATION-GUIDE.md` - For external app developers
+- `/home/codespace/.copilot/session-state/.../files/pkm-reward-code-spec-revised.md` - Technical specification
+- `/home/codespace/.copilot/session-state/.../files/PHASE-2-COMPLETION-SUMMARY.md` - Feature overview
+````
+
+## File: metadata.json
+````json
+{
+  "name": "Pokemáticos",
+  "description": "Gamified classroom management and reward card system",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
+````
+
+## File: POKEMATICOS-EXTERNAL-APP-GUIDE.md
+````markdown
+# Pokemáticos External App Integration Guide
+
+This guide explains how any external educational app, quiz, or game can generate reward codes compatible with Pokemáticos.
+
+---
+
+## 1. How the Flow Works
+
+1. **Student Public ID**:
+   - In Pokemáticos, each student has a unique **Public ID** found under **Profile → Settings → Public ID**.
+   - In your external app, ask the student for their Public Student ID (or prompt them to enter/paste it).
+
+2. **Source ID & Activity ID (Max 6 Characters Each)**:
+   - `sourceId`: Identifies your app (up to 6 alphanumeric characters, e.g., `MATH01`, `TRIVIA`, `READ01`).
+   - `activityId`: Identifies the specific exercise or level (up to 6 alphanumeric characters, e.g., `EX0001`, `LVL002`, `QUIZ05`).
+   - *Important*: These exact IDs must be added to Pokemáticos under **Class Admin → Activity Catalogue** so Pokemáticos knows how many points or cards to award.
+
+3. **Code Generation**:
+   - When the student completes an exercise/quiz, your app runs the generator function with `(studentId, sourceId, activityId)`.
+   - It outputs a 28-character code formatted as: `XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`.
+
+4. **Redemption in Pokemáticos**:
+   - The student copies the code, opens Pokemáticos, and pastes it into **Profile → Redeem**.
+   - Points and/or cards are immediately credited, and the achievement is logged in their profile history.
+
+---
+
+## 2. Complete Code Generator (Copy & Paste into Your App)
+
+Here is the exact, zero-dependency JavaScript/TypeScript code generator used by Pokemáticos:
+
+```javascript
+/* global BigInt */
+
+/**
+ * Calculate CRC-8 checksum (ATM polynomial)
+ */
+function crc8(buffer) {
+  let crc = 0xff;
+  for (let i = 0; i < buffer.length; i++) {
+    crc ^= buffer[i];
+    for (let j = 0; j < 8; j++) {
+      if (crc & 0x80) {
+        crc = ((crc << 1) ^ 0x07) & 0xff;
+      } else {
+        crc = (crc << 1) & 0xff;
+      }
+    }
+  }
+  return crc ^ 0xff;
+}
+
+/**
+ * Calculate CRC-32 checksum
+ */
+function crc32(str) {
+  let crc = 0xffffffff;
+  for (let i = 0; i < str.length; i++) {
+    const byte = str.charCodeAt(i) & 0xff;
+    crc ^= byte;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+/**
+ * Convert bytes to a 28-character base36 string
+ */
+function toBase36(bytes) {
+  let n = 0n;
+  for (const byte of bytes) {
+    n = (n << 8n) | BigInt(byte);
+  }
+  let base36 = n.toString(36).toUpperCase();
+  return base36.padStart(28, '0');
+}
+
+/**
+ * Format base36 string into 7 groups of 4 characters
+ */
+function formatCode(base36) {
+  return (
+    base36.substring(0, 4) + '-' +
+    base36.substring(4, 8) + '-' +
+    base36.substring(8, 12) + '-' +
+    base36.substring(12, 16) + '-' +
+    base36.substring(16, 20) + '-' +
+    base36.substring(20, 24) + '-' +
+    base36.substring(24, 28)
+  );
+}
+
+/**
+ * Generate a valid Pokemáticos Reward Code
+ *
+ * @param {string} studentId - The student's Public ID from Pokemáticos
+ * @param {string} sourceId - App ID (max 6 characters, e.g. "MATH01")
+ * @param {string} activityId - Activity/Quiz ID (max 6 characters, e.g. "EX0001")
+ * @returns {string} Formatted code: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+ */
+export function generateRewardCode(studentId, sourceId, activityId) {
+  if (!studentId || !studentId.trim()) throw new Error('Student ID is required');
+  if (!sourceId || !sourceId.trim()) throw new Error('Source ID is required');
+  if (!activityId || !activityId.trim()) throw new Error('Activity ID is required');
+
+  const payload = [];
+
+  // Version: 1 byte (0x01)
+  payload.push(0x01);
+
+  // Student ID hash: CRC-32 (4 bytes, big-endian)
+  const studentHash = crc32(studentId.trim());
+  payload.push((studentHash >> 24) & 0xff);
+  payload.push((studentHash >> 16) & 0xff);
+  payload.push((studentHash >> 8) & 0xff);
+  payload.push(studentHash & 0xff);
+
+  // Source ID: 6 bytes (padded with spaces)
+  const sourceTrunc = sourceId.trim().substring(0, 6).padEnd(6, ' ');
+  for (let i = 0; i < 6; i++) {
+    payload.push(sourceTrunc.charCodeAt(i));
+  }
+
+  // Activity ID: 6 bytes (padded with spaces)
+  const actTrunc = activityId.trim().substring(0, 6).padEnd(6, ' ');
+  for (let i = 0; i < 6; i++) {
+    payload.push(actTrunc.charCodeAt(i));
+  }
+
+  // Checksum: CRC-8 (1 byte)
+  const checksum = crc8(new Uint8Array(payload));
+  payload.push(checksum);
+
+  // Encode to 28-character base36 and format
+  const base36 = toBase36(new Uint8Array(payload));
+  return formatCode(base36);
+}
+```
+
+---
+
+## 3. Python Version (if your external app runs in Python/Streamlit/Flask)
+
+```python
+import zlib
+
+def crc8(data: bytes) -> int:
+    crc = 0xFF
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            if crc & 0x80:
+                crc = ((crc << 1) ^ 0x07) & 0xFF
+            else:
+                crc = (crc << 1) & 0xFF
+    return crc ^ 0xFF
+
+def generate_reward_code(student_id: str, source_id: str, activity_id: str) -> str:
+    student_id = student_id.strip()
+    source_id = source_id.strip()[:6].ljust(6, ' ')
+    activity_id = activity_id.strip()[:6].ljust(6, ' ')
+    
+    payload = bytearray([0x01])
+    student_hash = zlib.crc32(student_id.encode('utf-8')) & 0xFFFFFFFF
+    payload.extend(student_hash.to_bytes(4, byteorder='big'))
+    payload.extend(source_id.encode('latin1'))
+    payload.extend(activity_id.encode('latin1'))
+    
+    checksum = crc8(payload)
+    payload.append(checksum)
+    
+    num = int.from_bytes(payload, byteorder='big')
+    chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    base36 = ""
+    while num > 0:
+        num, rem = divmod(num, 36)
+        base36 = chars[rem] + base36
+    base36 = base36.zfill(28)
+    
+    return "-".join([base36[i:i+4] for i in range(0, 28, 4)])
+```
+````
+
+## File: src/components/cards/BulkGiveModal.jsx
+````javascript
+import { isEvolutionCard, isCardUnlockedForStudent } from "../../services/cardEvolutionService";
+
+export default function BulkGiveModal({
+  card,
+  students,
+  selectedStudentIds,
+  onClose,
+  onToggleStudent,
+  onToggleSelectAll,
+  onGive,
+}) {
+  if (!card) return null;
+
+  const isEvo = isEvolutionCard(card);
+  const eligibleStudents = isEvo
+    ? students.filter((s) => isCardUnlockedForStudent(s, card))
+    : students;
+  const allEligibleSelected =
+    eligibleStudents.length > 0 &&
+    eligibleStudents.every((s) => selectedStudentIds.includes(s.id));
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(event) => event.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Give card</h3>
+        <div style={{ fontWeight: 900, marginTop: 6 }}>{card.title}</div>
+        <div className="muted" style={{ marginTop: 6 }}>
+          Select students to receive this card. Points will be multiplied by each student's multiplier.
+          {isEvo && (
+            <div style={{ marginTop: 4, color: "#6d28d9", fontWeight: 700, fontSize: 12 }}>
+              🧬 Carta de evolución: solo los alumnos que ya la hayan desbloqueado pueden recibirla.
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            className="btn"
+            onClick={() => onToggleSelectAll(eligibleStudents.map((s) => s.id))}
+            disabled={eligibleStudents.length === 0}
+          >
+            {allEligibleSelected ? "Deselect all" : "Select all"}
+          </button>
+          <div className="muted">{selectedStudentIds.length} selected</div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 12,
+            maxHeight: 320,
+            overflow: "auto",
+            border: "1px solid #eee",
+            borderRadius: 12,
+            padding: 10,
+            background: "#fff",
+          }}
+        >
+          {students.map((student) => {
+            const unlocked = isCardUnlockedForStudent(student, card);
+            return (
+              <label
+                key={student.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "8px 6px",
+                  borderBottom: "1px solid #f2f2f2",
+                  opacity: unlocked ? 1 : 0.55,
+                  cursor: unlocked ? "pointer" : "not-allowed",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  disabled={!unlocked}
+                  checked={selectedStudentIds.includes(student.id)}
+                  onChange={() => unlocked && onToggleStudent(student.id)}
+                />
+                <span style={{ fontWeight: 800 }}>{student.name}</span>
+                {!unlocked && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      padding: "1px 6px",
+                      borderRadius: 999,
+                      background: "#fee2e2",
+                      color: "#b91c1c",
+                      fontWeight: 700,
+                    }}
+                  >
+                    🔒 Evolución bloqueada
+                  </span>
+                )}
+                <span className="muted" style={{ marginLeft: "auto" }}>
+                  x{typeof student.multiplier === "number" ? student.multiplier : 1}
+                </span>
+              </label>
+            );
+          })}
+          {students.length === 0 && <div className="muted">No students in this class yet.</div>}
+        </div>
+
+        <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn primary"
+            disabled={selectedStudentIds.length === 0}
+            onClick={onGive}
+          >
+            Give to selected
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/cards/EvolutionModal.jsx
+````javascript
+import React, { useEffect, useState, useMemo } from "react";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
+
+function playEvolutionChime() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const notes = [261.63, 329.63, 392.0, 523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.12);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.4);
+    });
+  } catch {
+    // Audio optional / silenced safely if autoplay policy blocks
+  }
+}
+
+export default function EvolutionModal({
+  baseCard,
+  evolvedCard,
+  flagValue = "A",
+  onClose,
+}) {
+  // Stages: 0 = intro, 1 = glowing/morphing, 2 = evolved celebration
+  const [stage, setStage] = useState(0);
+
+  const baseImage = useMemo(
+    () => (baseCard ? getCardDisplayImage(baseCard, flagValue, false) : ""),
+    [baseCard, flagValue]
+  );
+  const evolvedImage = useMemo(
+    () => (evolvedCard ? getCardDisplayImage(evolvedCard, flagValue, false) : ""),
+    [evolvedCard, flagValue]
+  );
+
+  useEffect(() => {
+    // Stage sequence
+    const t1 = setTimeout(() => {
+      setStage(1);
+    }, 1200);
+
+    const t2 = setTimeout(() => {
+      setStage(2);
+      playEvolutionChime();
+    }, 3600);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99999,
+        background: "radial-gradient(circle at center, #1e1b4b 0%, #09090b 100%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+        color: "#ffffff",
+        userSelect: "none",
+        animation: "fadeIn 0.4s ease-out",
+      }}
+    >
+      <style>{`
+        @keyframes evoPulse {
+          0% { transform: scale(1); filter: brightness(1); }
+          50% { transform: scale(1.08); filter: brightness(2.2) drop-shadow(0 0 35px #a855f7); }
+          100% { transform: scale(1); filter: brightness(1); }
+        }
+        @keyframes evoFlash {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.2; }
+        }
+        @keyframes popIn {
+          0% { transform: scale(0.6) rotate(-5deg); opacity: 0; }
+          70% { transform: scale(1.1) rotate(2deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes raysRotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Rotating ray background during morphing and celebration */}
+      {stage >= 1 && (
+        <div
+          style={{
+            position: "absolute",
+            width: 600,
+            height: 600,
+            borderRadius: "50%",
+            background:
+              stage === 1
+                ? "conic-gradient(from 0deg, rgba(168, 85, 247, 0.25), transparent 60deg, rgba(236, 72, 153, 0.25) 120deg, transparent 180deg, rgba(168, 85, 247, 0.25) 240deg, transparent 300deg)"
+                : "conic-gradient(from 0deg, rgba(234, 179, 8, 0.35), transparent 45deg, rgba(59, 130, 246, 0.35) 90deg, transparent 135deg, rgba(234, 179, 8, 0.35) 180deg, transparent 225deg, rgba(236, 72, 153, 0.35) 270deg, transparent 315deg)",
+            animation: "raysRotate 8s linear infinite",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
+      {/* Title Header */}
+      <div style={{ textAlign: "center", marginBottom: 24, zIndex: 2 }}>
+        {stage === 0 && (
+          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: "#e0e7ff" }}>
+            El poder de la evolución despierta...
+          </h2>
+        )}
+        {stage === 1 && (
+          <h2 style={{ fontSize: 28, fontWeight: 900, margin: 0, color: "#fef08a", textShadow: "0 0 20px #eab308" }}>
+            ¡¿Qué?! ¡{baseCard?.title || "La carta"} está evolucionando!
+          </h2>
+        )}
+        {stage === 2 && (
+          <div>
+            <span
+              style={{
+                display: "inline-block",
+                padding: "6px 16px",
+                background: "linear-gradient(90deg, #ec4899, #8b5cf6)",
+                borderRadius: 999,
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: 1.5,
+                textTransform: "uppercase",
+                marginBottom: 8,
+              }}
+            >
+              ¡Evolución Desbloqueada!
+            </span>
+            <h1
+              style={{
+                fontSize: 32,
+                fontWeight: 900,
+                margin: 0,
+                color: "#fde047",
+                textShadow: "0 0 25px rgba(253, 224, 71, 0.8)",
+              }}
+            >
+              ¡Has desbloqueado a {evolvedCard?.title}!
+            </h1>
+          </div>
+        )}
+      </div>
+
+      {/* Card stage display */}
+      <div
+        style={{
+          width: 250,
+          height: 350,
+          borderRadius: 20,
+          overflow: "hidden",
+          position: "relative",
+          background: "#18181b",
+          boxShadow:
+            stage === 2
+              ? "0 0 50px rgba(234, 179, 8, 0.7), 0 0 20px rgba(255, 255, 255, 0.5)"
+              : "0 0 30px rgba(168, 85, 247, 0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 2,
+          animation:
+            stage === 1
+              ? "evoPulse 1.2s ease-in-out infinite"
+              : stage === 2
+              ? "popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+              : "none",
+        }}
+      >
+        {stage < 2 ? (
+          <div style={{ width: "100%", height: "100%", position: "relative" }}>
+            {baseImage ? (
+              <img
+                src={baseImage}
+                alt={baseCard?.title}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  filter: stage === 1 ? "brightness(1.5) contrast(1.2)" : "none",
+                }}
+              />
+            ) : (
+              <div style={{ padding: 20, textAlign: "center", color: "#fff" }}>
+                {baseCard?.title}
+              </div>
+            )}
+            {stage === 1 && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "radial-gradient(circle, rgba(255,255,255,0.85) 0%, rgba(168,85,247,0.5) 100%)",
+                  animation: "evoFlash 0.35s ease-in-out infinite",
+                  mixBlendMode: "screen",
+                }}
+              />
+            )}
+          </div>
+        ) : (
+          <div style={{ width: "100%", height: "100%", position: "relative" }}>
+            {evolvedImage ? (
+              <img
+                src={evolvedImage}
+                alt={evolvedCard?.title}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div style={{ padding: 20, textAlign: "center", color: "#fff", fontWeight: 800 }}>
+                {evolvedCard?.title}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer Notes and Action */}
+      <div style={{ textAlign: "center", marginTop: 24, zIndex: 2, maxWidth: 440 }}>
+        {stage === 2 && (
+          <div
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              backdropFilter: "blur(10px)",
+              padding: "10px 16px",
+              borderRadius: 12,
+              marginBottom: 16,
+              fontSize: 13,
+              color: "#e2e8f0",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+            }}
+          >
+            🔮 Se ha consumido <b>1 Catalizador</b>. Tus cartas base se conservan y ya puedes solicitar o conseguir <b>{evolvedCard?.title}</b>.
+          </div>
+        )}
+
+        {stage === 2 ? (
+          <button
+            className="btn"
+            onClick={onClose}
+            style={{
+              padding: "12px 32px",
+              fontSize: 16,
+              fontWeight: 800,
+              borderRadius: 999,
+              background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+              color: "#ffffff",
+              border: "none",
+              boxShadow: "0 4px 15px rgba(245, 158, 11, 0.5)",
+              cursor: "pointer",
+            }}
+          >
+            ¡Genial! Continuar
+          </button>
+        ) : (
+          <div style={{ fontSize: 13, color: "#a1a1aa", fontStyle: "italic" }}>
+            Canalizando energía evolutiva...
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/cards/NoticeBoardPanel.jsx
+````javascript
+import React, { useMemo, useState } from "react";
+import { buildNoticeBoardData } from "../../services/noticeBoardService";
+import { uid } from "../../utils/helpers";
+
+function getItemMeta(item) {
+  switch (item.type) {
+    case "streakMax": {
+      const count = item.studentNames?.length || 0;
+      const namesText = (item.studentNames || []).join(", ");
+      return {
+        icon: item.emoji || "🔥",
+        accentBg: "#f0fdf4",
+        accentBorder: "#bbf7d0",
+        badgeText: "Max streak",
+        badgeColor: "#16a34a",
+        title:
+          count > 1
+            ? `${namesText} reached max streak`
+            : `${namesText} reached max streak`,
+        detail: item.streakMax ? `Goal: ${item.streakMax}` : "",
+      };
+    }
+    case "rewardRedeemed": {
+      if (item.redeemKind === "group") {
+        const n = Number(item.contributorCount || 0);
+        return {
+          icon: "🤝",
+          accentBg: "#fff7ed",
+          accentBorder: "#fed7aa",
+          badgeText: "Group reward",
+          badgeColor: "#fb923c",
+          title: `Group redeemed: ${item.rewardTitle}`,
+          detail: `${n} ${n === 1 ? "person" : "people"} contributed (1+ pt)`,
+        };
+      }
+      return {
+        icon: "🎁",
+        accentBg: "#fefce8",
+        accentBorder: "#fde047",
+        badgeText: "Reward redeemed",
+        badgeColor: "#ca8a04",
+        title: `${item.studentName} redeemed ${item.rewardTitle}`,
+        detail: item.cost > 0 ? `${item.cost} pts` : "",
+      };
+    }
+    case "experienceCard": {
+      return {
+        icon: "✨",
+        accentBg: "#f5f3ff",
+        accentBorder: "#ddd6fe",
+        badgeText: "Experience card",
+        badgeColor: "#7c3aed",
+        title: `${item.studentName} achieved ${item.cardTitle}`,
+        detail:
+          item.xp !== null && item.xp !== undefined && Number.isFinite(item.xp)
+            ? `${item.xp} XP`
+            : "",
+      };
+    }
+    case "newCard": {
+      const catLabel =
+        item.category === "rewards"
+          ? "Rewards"
+          : item.category === "experience"
+          ? "Experience"
+          : "Points";
+      return {
+        icon: "🃏",
+        accentBg: "#f0f9ff",
+        accentBorder: "#bae6fd",
+        badgeText: `New ${catLabel} card`,
+        badgeColor: "#0284c7",
+        title: item.cardTitle,
+        detail:
+          item.category === "experience"
+            ? `${item.points} XP`
+            : item.points
+            ? `${item.points} pts`
+            : "",
+      };
+    }
+    default:
+      return {
+        icon: "📢",
+        accentBg: "#f8fafc",
+        accentBorder: "#e2e8f0",
+        badgeText: "News",
+        badgeColor: "#475569",
+        title: "",
+        detail: "",
+      };
+  }
+}
+
+function AdminMessageCard({
+  item,
+  isAdmin,
+  onSaveEdit,
+  onTogglePin,
+  onDelete,
+  onValidationError,
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(item.title || "");
+  const [draftText, setDraftText] = useState(item.text || "");
+  const [draftPinned, setDraftPinned] = useState(Boolean(item.pinned));
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setDraftTitle(item.title || "");
+    setDraftText(item.text || "");
+    setDraftPinned(Boolean(item.pinned));
+    setIsEditing(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    const cleanTitle = draftTitle.trim();
+    const cleanText = draftText.trim();
+    if (!cleanTitle && !cleanText) {
+      onValidationError?.("Enter a title or message text.");
+      return;
+    }
+    setSaving(true);
+    const ok = await onSaveEdit(item.messageId, {
+      title: cleanTitle,
+      text: cleanText,
+      pinned: draftPinned,
+    });
+    setSaving(false);
+    if (ok !== false) setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <form
+        onSubmit={handleSave}
+        style={{
+          padding: 12,
+          borderRadius: 12,
+          background: "linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%)",
+          border: "1.5px solid #ef4444",
+          boxShadow: "0 3px 10px rgba(220, 38, 38, 0.14)",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <input
+          type="text"
+          value={draftTitle}
+          onChange={(e) => setDraftTitle(e.target.value)}
+          placeholder="Title (optional)"
+          style={{
+            width: "100%",
+            padding: "6px 8px",
+            borderRadius: 8,
+            border: "1px solid #fca5a5",
+            fontSize: 13,
+            fontWeight: 700,
+            color: "#dc2626",
+            background: "#ffffff",
+            boxSizing: "border-box",
+          }}
+        />
+        <textarea
+          value={draftText}
+          onChange={(e) => setDraftText(e.target.value)}
+          placeholder="Message text (optional)"
+          rows={3}
+          style={{
+            width: "100%",
+            padding: "6px 8px",
+            borderRadius: 8,
+            border: "1px solid #fca5a5",
+            fontSize: 12.5,
+            color: "#0f172a",
+            background: "#ffffff",
+            resize: "vertical",
+            boxSizing: "border-box",
+            fontFamily: "inherit",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              fontWeight: 700,
+              color: "#991b1b",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={draftPinned}
+              onChange={(e) => setDraftPinned(e.target.checked)}
+              style={{ accentColor: "#dc2626" }}
+            />
+            📌 Pin to top
+          </label>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              className="btn"
+              disabled={saving}
+              onClick={() => setIsEditing(false)}
+              style={{ padding: "4px 10px", fontSize: 12 }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn"
+              disabled={saving}
+              style={{
+                padding: "4px 10px",
+                fontSize: 12,
+                background: "#dc2626",
+                color: "#ffffff",
+                border: "1px solid #b91c1c",
+                fontWeight: 700,
+              }}
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        padding: "10px 12px",
+        borderRadius: 12,
+        background: "linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%)",
+        border: "1.5px solid #ef4444",
+        boxShadow: "0 3px 10px rgba(220, 38, 38, 0.14)",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          width: 36,
+          height: 44,
+          borderRadius: 8,
+          background: "#ffffff",
+          border: "1px solid #fecaca",
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+          overflow: "hidden",
+          padding: 3,
+          boxSizing: "border-box",
+        }}
+      >
+        <img
+          src="/logo.png"
+          alt=""
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 6,
+            flexWrap: "wrap",
+            marginBottom: 3,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: "#dc2626",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            {item.pinned ? "📌 Pinned" : "Admin"}
+          </span>
+          <span style={{ fontSize: 11, color: "#7f1d1d", fontWeight: 600 }}>
+            {item.formattedDateTime}
+          </span>
+        </div>
+
+        {item.title && (
+          <div
+            style={{
+              fontSize: 13.5,
+              fontWeight: 800,
+              color: "#dc2626",
+              lineHeight: 1.35,
+              wordBreak: "break-word",
+            }}
+          >
+            {item.title}
+          </div>
+        )}
+
+        {item.text && (
+          <div
+            style={{
+              fontSize: 12.5,
+              color: "#1e293b",
+              lineHeight: 1.4,
+              marginTop: item.title ? 3 : 0,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {item.text}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              marginTop: 8,
+              justifyContent: "flex-end",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="button"
+              className="btn"
+              onClick={() => onTogglePin(item.messageId)}
+              title={item.pinned ? "Unpin message" : "Pin message to top"}
+              style={{
+                padding: "2px 7px",
+                fontSize: 11,
+                background: item.pinned ? "#fee2e2" : "#ffffff",
+                border: "1px solid #fca5a5",
+                color: "#991b1b",
+                fontWeight: 700,
+              }}
+            >
+              {item.pinned ? "Unpin" : "📌 Pin"}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={startEdit}
+              style={{
+                padding: "2px 7px",
+                fontSize: 11,
+                background: "#ffffff",
+                border: "1px solid #fca5a5",
+                color: "#991b1b",
+                fontWeight: 700,
+              }}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => onDelete(item.messageId)}
+              style={{
+                padding: "2px 7px",
+                fontSize: 11,
+                background: "#ffffff",
+                border: "1px solid #fecaca",
+                color: "#dc2626",
+                fontWeight: 700,
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NoticeCard({ item }) {
+  const meta = getItemMeta(item);
+  const showCardArt = item.type !== "streakMax" && Boolean(item.imageURL);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        padding: "10px 12px",
+        borderRadius: 12,
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        boxShadow: "0 2px 6px rgba(15, 23, 42, 0.04)",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          width: 36,
+          height: 44,
+          borderRadius: 8,
+          background: showCardArt ? "#f8fafc" : meta.accentBg,
+          border: `1px solid ${showCardArt ? "#e2e8f0" : meta.accentBorder}`,
+          display: "grid",
+          placeItems: "center",
+          fontSize: 18,
+          flexShrink: 0,
+          overflow: "hidden",
+          padding: showCardArt ? 2 : 0,
+          boxSizing: "border-box",
+        }}
+      >
+        {showCardArt ? (
+          <img
+            src={item.imageURL}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              display: "block",
+            }}
+          />
+        ) : (
+          meta.icon
+        )}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 6,
+            flexWrap: "wrap",
+            marginBottom: 3,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: meta.badgeColor,
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+            }}
+          >
+            {meta.badgeText}
+          </span>
+          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+            {item.formattedDateTime}
+          </span>
+        </div>
+
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "#0f172a",
+            lineHeight: 1.35,
+            wordBreak: "break-word",
+          }}
+        >
+          {meta.title}
+        </div>
+
+        {meta.detail && (
+          <div style={{ fontSize: 12, color: "#475569", marginTop: 2 }}>
+            {meta.detail}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NoticeGroup({
+  heading,
+  items,
+  isAdmin,
+  onSaveEdit,
+  onTogglePin,
+  onDelete,
+  onValidationError,
+}) {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <section style={{ display: "grid", gap: 8 }}>
+      <div>
+        <span
+          style={{
+            display: "inline-block",
+            fontSize: 11,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            color: "#0f172a",
+            background: "rgba(255, 255, 255, 0.94)",
+            border: "1px solid #cbd5e1",
+            borderRadius: 999,
+            padding: "4px 10px",
+            boxShadow: "0 2px 6px rgba(15, 23, 42, 0.14)",
+          }}
+        >
+          {heading}
+        </span>
+      </div>
+      {items.map((item) =>
+        item.type === "adminMessage" ? (
+          <AdminMessageCard
+            key={item.id}
+            item={item}
+            isAdmin={isAdmin}
+            onSaveEdit={onSaveEdit}
+            onTogglePin={onTogglePin}
+            onDelete={onDelete}
+            onValidationError={onValidationError}
+          />
+        ) : (
+          <NoticeCard key={item.id} item={item} />
+        )
+      )}
+    </section>
+  );
+}
+
+export default function NoticeBoardPanel({
+  mode,
+  students = [],
+  cards = [],
+  rewards = [],
+  streakConfigs = [],
+  newsMessages = [],
+  flagValue = "A",
+  onSaveNewsMessages,
+  confirmFn,
+  onValidationError,
+}) {
+  const isAdmin = mode === "admin";
+  const [showComposer, setShowComposer] = useState(false);
+  const [title, setTitle] = useState("");
+  const [text, setText] = useState("");
+  const [pinned, setPinned] = useState(false);
+  const [posting, setPosting] = useState(false);
+
+  const { pinnedItems, items, todayItems, olderItems } = useMemo(
+    () =>
+      buildNoticeBoardData({
+        students,
+        cards,
+        rewards,
+        streakConfigs,
+        newsMessages,
+        flagValue,
+      }),
+    [students, cards, rewards, streakConfigs, newsMessages, flagValue]
+  );
+
+  const handleCreateMessage = async (e) => {
+    e.preventDefault();
+    const cleanTitle = title.trim();
+    const cleanText = text.trim();
+    if (!cleanTitle && !cleanText) {
+      onValidationError?.("Enter a title or message text.");
+      return;
+    }
+
+    const nextMsg = {
+      id: uid("news"),
+      title: cleanTitle,
+      text: cleanText,
+      pinned,
+      createdAt: Date.now(),
+    };
+
+    const nextList = [nextMsg, ...(Array.isArray(newsMessages) ? newsMessages : [])];
+    setPosting(true);
+    const ok = await onSaveNewsMessages?.(nextList);
+    setPosting(false);
+
+    if (ok !== false) {
+      setTitle("");
+      setText("");
+      setPinned(false);
+      setShowComposer(false);
+    }
+  };
+
+  const handleSaveEdit = async (messageId, updates) => {
+    const current = Array.isArray(newsMessages) ? newsMessages : [];
+    const nextList = current.map((m) =>
+      m?.id === messageId
+        ? {
+            ...m,
+            title: updates.title,
+            text: updates.text,
+            pinned: Boolean(updates.pinned),
+            updatedAt: Date.now(),
+          }
+        : m
+    );
+    return onSaveNewsMessages?.(nextList);
+  };
+
+  const handleTogglePin = async (messageId) => {
+    const current = Array.isArray(newsMessages) ? newsMessages : [];
+    const nextList = current.map((m) =>
+      m?.id === messageId
+        ? {
+            ...m,
+            pinned: !m.pinned,
+            updatedAt: Date.now(),
+          }
+        : m
+    );
+    await onSaveNewsMessages?.(nextList);
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (confirmFn && !(await confirmFn("Delete this news message?"))) return;
+    const current = Array.isArray(newsMessages) ? newsMessages : [];
+    const nextList = current.filter((m) => m?.id !== messageId);
+    await onSaveNewsMessages?.(nextList);
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {isAdmin && (
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setShowComposer((prev) => !prev)}
+              style={{
+                background: showComposer ? "#fee2e2" : "#ffffff",
+                border: "1px solid #ef4444",
+                color: "#dc2626",
+                fontWeight: 700,
+                fontSize: 12,
+                padding: "5px 10px",
+              }}
+            >
+              {showComposer ? "✕ Cancel" : "+ Write news"}
+            </button>
+          </div>
+
+          {showComposer && (
+            <form
+              onSubmit={handleCreateMessage}
+              style={{
+                padding: 12,
+                borderRadius: 12,
+                background: "linear-gradient(135deg, #fff1f2 0%, #fef2f2 100%)",
+                border: "1.5px solid #ef4444",
+                boxShadow: "0 3px 10px rgba(220, 38, 38, 0.12)",
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Title (optional)"
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  borderRadius: 8,
+                  border: "1px solid #fca5a5",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "#dc2626",
+                  background: "#ffffff",
+                  boxSizing: "border-box",
+                }}
+              />
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Message text (optional)"
+                rows={3}
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  borderRadius: 8,
+                  border: "1px solid #fca5a5",
+                  fontSize: 12.5,
+                  color: "#0f172a",
+                  background: "#ffffff",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                  fontFamily: "inherit",
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#991b1b",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={pinned}
+                    onChange={(e) => setPinned(e.target.checked)}
+                    style={{ accentColor: "#dc2626" }}
+                  />
+                  📌 Pin to top
+                </label>
+                <button
+                  type="submit"
+                  className="btn"
+                  disabled={posting}
+                  style={{
+                    padding: "5px 12px",
+                    fontSize: 12,
+                    background: "#dc2626",
+                    color: "#ffffff",
+                    border: "1px solid #b91c1c",
+                    fontWeight: 700,
+                  }}
+                >
+                  {posting ? "Posting..." : "Post"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div
+          style={{
+            padding: 18,
+            borderRadius: 14,
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            textAlign: "center",
+            color: "#64748b",
+            fontSize: 13,
+          }}
+        >
+          No news yet for this class.
+        </div>
+      ) : (
+        <>
+          <NoticeGroup
+            heading="📌 Pinned"
+            items={pinnedItems}
+            isAdmin={isAdmin}
+            onSaveEdit={handleSaveEdit}
+            onTogglePin={handleTogglePin}
+            onDelete={handleDeleteMessage}
+            onValidationError={onValidationError}
+          />
+          <NoticeGroup
+            heading="Today"
+            items={todayItems}
+            isAdmin={isAdmin}
+            onSaveEdit={handleSaveEdit}
+            onTogglePin={handleTogglePin}
+            onDelete={handleDeleteMessage}
+            onValidationError={onValidationError}
+          />
+          <NoticeGroup
+            heading="Older"
+            items={olderItems}
+            isAdmin={isAdmin}
+            onSaveEdit={handleSaveEdit}
+            onTogglePin={handleTogglePin}
+            onDelete={handleDeleteMessage}
+            onValidationError={onValidationError}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+````
+
+## File: src/components/classes/BulkStreakModal.jsx
+````javascript
+import React, { useState } from "react";
+import { todayISODate } from "../../utils/dateUtils";
+
+export default function BulkStreakModal({
+  className,
+  students,
+  streakConfigs,
+  onClose,
+  onBulkChange,
+  onBulkReset,
+  onCreateStreakType,
+}) {
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [viewStreakId, setViewStreakId] = useState(streakConfigs[0]?.id || null);
+  const today = todayISODate();
+  const viewCfg = streakConfigs.find((c) => c.id === viewStreakId) || null;
+
+  const allSelected = students.length > 0 && selectedIds.length === students.length;
+
+  function toggleStudent(id) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(allSelected ? [] : students.map((s) => s.id));
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <h3 style={{ margin: 0 }}>Manage streaks — {className}</h3>
+          <button className="btn" onClick={onClose}>Close</button>
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h4 style={{ margin: 0 }}>Students</h4>
+            <button className="btn" onClick={toggleSelectAll}>
+              {allSelected ? "Unselect all" : "Select all"}
+            </button>
+          </div>
+
+          <div
+            style={{
+              marginTop: 8,
+              maxHeight: 160,
+              overflowY: "auto",
+              border: "1px solid #eee",
+              borderRadius: 8,
+              padding: 8,
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            {students.length === 0 && <div className="muted">No students in this class.</div>}
+            {students.map((s) => {
+              const streak = (s.streaks && s.streaks[viewStreakId]) || { value: 0, lastUpdated: "" };
+              const isToday = streak.lastUpdated && streak.lastUpdated === today;
+
+              return (
+                <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(s.id)}
+                    onChange={() => toggleStudent(s.id)}
+                  />
+                  <span style={{ flex: 1 }}>{s.name}</span>
+                  {viewCfg && (
+                    <span style={{ fontSize: 13 }}>
+                      {(viewCfg.emoji || "").repeat(streak.value || 0) || (
+                        <span style={{ opacity: 0.4 }}>{viewCfg.emoji}</span>
+                      )}{" "}
+                      {streak.lastUpdated && (
+                        <span style={{ color: isToday ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
+                          {streak.lastUpdated}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+          <div className="muted" style={{ marginTop: 4 }}>
+            {selectedIds.length} of {students.length} selected
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <h4 style={{ margin: 0 }}>Streak types</h4>
+          {streakConfigs.length === 0 ? (
+            <div className="muted" style={{ marginTop: 8 }}>No streak types yet for this class.</div>
+          ) : (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+              {streakConfigs.map((cfg) => (
+                <div
+                  key={cfg.id}
+                  onClick={() => setViewStreakId(cfg.id)}
+                  title="Click to show this streak next to each student"
+                  style={{
+                    border: cfg.id === viewStreakId ? "2px solid #6366f1" : "1px solid #e5e7eb",
+                    borderRadius: 8,
+                    padding: 10,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>
+                    {cfg.emoji} streak (max {cfg.max})
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="btn"
+                      disabled={selectedIds.length === 0}
+                      onClick={() => onBulkChange(cfg, -1, selectedIds)}
+                    >
+                      -1
+                    </button>
+                    <button
+                      className="btn"
+                      disabled={selectedIds.length === 0}
+                      onClick={() => onBulkChange(cfg, +1, selectedIds)}
+                    >
+                      +1
+                    </button>
+                    <button
+                      className="btn"
+                      disabled={selectedIds.length === 0}
+                      onClick={() => onBulkReset(cfg, selectedIds)}
+                    >
+                      Reset to 0
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 16, borderTop: "1px solid #eee", paddingTop: 12 }}>
+          <button className="btn primary" onClick={onCreateStreakType}>New streak type</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/classes/FloatScheduleModal.jsx
+````javascript
+export default function FloatScheduleModal({ request, onClose, onSave }) {
+  if (!request) return null;
+
+  const initial = request.initial || { delayDays: 7, durationDays: 7, multiplierBonus: 0 };
+
+  function submit(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const delayDays = Number(form.get("delayDays"));
+    const durationDays = Number(form.get("durationDays"));
+    const multiplierBonus = Number(form.get("multiplierBonus"));
+
+    if (!Number.isInteger(delayDays) || delayDays < 0) return;
+    if (!Number.isInteger(durationDays) || durationDays <= 0) return;
+
+    onSave({ delayDays, durationDays, multiplierBonus: Number.isFinite(multiplierBonus) ? multiplierBonus : 0 });
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <form className="modal form-modal schedule-modal" onSubmit={submit} onClick={(event) => event.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Floating emoji schedule</h3>
+        <p className="muted">{request.message || "Choose when the floating emoji starts and how long it stays visible."}</p>
+
+        <div className="schedule-fields">
+          <label className="form-field">
+            <span>Start after (days)</span>
+            <input className="input" name="delayDays" type="number" min="0" step="1" defaultValue={initial.delayDays} autoFocus />
+            <small className="muted">0 means today.</small>
+          </label>
+          <label className="form-field">
+            <span>Duration (days)</span>
+            <input className="input" name="durationDays" type="number" min="1" step="1" defaultValue={initial.durationDays} />
+          </label>
+        </div>
+
+        <label className="form-field">
+          <span>Multiplier bonus during this window</span>
+          <input className="input" name="multiplierBonus" type="number" step="0.01" defaultValue={initial.multiplierBonus ?? 0} />
+          <small className="muted">Added to the student's multiplier only while this window is active (e.g. 0.25).</small>
+        </label>
+
+        <div className="feedback-dialog-actions">
+          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn primary">Save schedule</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+````
+
+## File: src/components/profile/PinGateModal.jsx
+````javascript
+import React, { useState } from "react";
+
+export default function PinGateModal({ student, onClose, onSubmit }) {
+  const [pin, setPin] = useState("");
+
+  function handleSubmit() {
+    onSubmit(pin);
+    setPin("");
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 340 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Introduce el PIN</h3>
+            <div className="muted">{student.name}</div>
+          </div>
+          <button className="btn" onClick={onClose}>Close</button>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <input
+            autoFocus
+            type="text"
+            name="studentPinGate"
+            autoComplete="off"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={4}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSubmit();
+            }}
+            placeholder="••••"
+            style={{
+              width: "100%",
+              padding: 14,
+              borderRadius: 10,
+              border: "1px solid #ddd",
+              fontSize: 24,
+              textAlign: "center",
+              letterSpacing: 8,
+              WebkitTextSecurity: "disc",
+            }}
+          />
+        </div>
+
+        <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn" onClick={onClose}>Cancelar</button>
+          <button className="btn primary" disabled={pin.length !== 4} onClick={handleSubmit}>
+            Entrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/profile/PublicStudentIdDisplay.jsx
+````javascript
+/**
+ * Public Student ID Display Component
+ *
+ * Displays the student's Public ID (Firestore UID) for sharing with external apps
+ * Includes copy-to-clipboard button for ease of use
+ */
+
+import React, { useState } from "react";
+
+export function PublicStudentIdDisplay({ studentId }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(studentId);
+      setCopied(true);
+
+      // Reset "copied" message after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy to clipboard:", err);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        padding: 14,
+        background: "#ffffff",
+      }}
+    >
+      {/* Label */}
+      <div
+        style={{
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          color: "#6b7280",
+          fontWeight: 700,
+          marginBottom: 8,
+        }}
+      >
+        Your Public ID
+      </div>
+
+      {/* Description */}
+      <div
+        className="muted"
+        style={{
+          fontSize: 12,
+          marginBottom: 12,
+        }}
+      >
+        Share this ID with external apps to generate achievement codes. This ID is permanent and
+        unique to your account.
+      </div>
+
+      {/* ID Display Container */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          padding: 12,
+          background: "#f9fafb",
+          borderRadius: 6,
+          border: "1px solid #f3f4f6",
+        }}
+      >
+        {/* ID Value */}
+        <div
+          style={{
+            flex: 1,
+            fontFamily: "monospace",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#1f2937",
+            wordBreak: "break-all",
+            lineHeight: 1.4,
+            userSelect: "all",
+          }}
+        >
+          {studentId}
+        </div>
+
+        {/* Copy Button */}
+        <button
+          type="button"
+          onClick={handleCopyToClipboard}
+          title={copied ? "Copied!" : "Copy to clipboard"}
+          style={{
+            flexShrink: 0,
+            padding: "8px 12px",
+            background: copied ? "#dcfce7" : "#f3f4f6",
+            color: copied ? "#166534" : "#6b7280",
+            border: `1px solid ${copied ? "#bbf7d0" : "#d1d5db"}`,
+            borderRadius: 6,
+            cursor: "pointer",
+            fontSize: 12,
+            fontWeight: 600,
+            transition: "all 0.2s",
+            whiteSpace: "nowrap",
+            lineHeight: 1,
+          }}
+        >
+          {copied ? "✓ Copied" : "Copy"}
+        </button>
+      </div>
+
+      {/* Info Box */}
+      <div
+        style={{
+          marginTop: 12,
+          padding: 10,
+          background: "#f0f9ff",
+          border: "1px solid #bfdbfe",
+          borderRadius: 6,
+          fontSize: 12,
+          color: "#1e40af",
+          lineHeight: 1.5,
+        }}
+      >
+        <strong>How to use:</strong>
+        <ol style={{ margin: "4px 0 0 16px", paddingLeft: 0 }}>
+          <li>Copy your Public ID</li>
+          <li>Provide it to the external app/exercise platform</li>
+          <li>The app will generate a unique achievement code for you</li>
+          <li>
+            Return to Pokemáticos and paste the code in the <strong>Redeem Achievement Code</strong>{" "}
+            section
+          </li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/hooks/useActionFeedback.js
+````javascript
+import { useCallback, useMemo, useState } from "react";
+
+export default function useActionFeedback() {
+  const [notice, setNotice] = useState(null);
+  const [levelUpNotice, setLevelUpNotice] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null);
+
+  const notify = useCallback((message) => {
+    if (!message) {
+      setNotice(null);
+      return;
+    }
+    setNotice({ message });
+  }, []);
+
+  const notifyLevelUp = useCallback((data) => {
+    if (!data) {
+      setLevelUpNotice(null);
+      return;
+    }
+    setLevelUpNotice(typeof data === "string" ? { message: data } : data);
+  }, []);
+
+  const askConfirmation = useCallback((message) => {
+    return new Promise((resolve) => {
+      setConfirmation({ message, resolve });
+    });
+  }, []);
+
+  const resolveConfirmation = useCallback(
+    (value) => {
+      if (confirmation?.resolve) {
+        confirmation.resolve(value);
+      }
+      setConfirmation(null);
+    },
+    [confirmation]
+  );
+
+  const runAction = useCallback(
+    async ({
+      action,
+      message = "Working...",
+      successMessage,
+      errorMessage = "Something went wrong.",
+      confirmMessage,
+    }) => {
+      if (confirmMessage) {
+        const confirmed = await askConfirmation(confirmMessage);
+        if (!confirmed) return false;
+      }
+
+      setPendingAction(message);
+
+      try {
+        const result = await action();
+        if (successMessage) {
+          notify(successMessage);
+        }
+        return result;
+      } catch (error) {
+        console.error("runAction error", error);
+        notify(errorMessage);
+        return false;
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [askConfirmation, notify]
+  );
+
+  return useMemo(
+    () => ({
+      notice,
+      setNotice,
+      levelUpNotice,
+      setLevelUpNotice,
+      confirmation,
+      pendingAction,
+      notify,
+      notifyLevelUp,
+      askConfirmation,
+      resolveConfirmation,
+      runAction,
+    }),
+    [
+      askConfirmation,
+      confirmation,
+      notify,
+      notifyLevelUp,
+      levelUpNotice,
+      pendingAction,
+      resolveConfirmation,
+      runAction,
+      notice,
+    ]
+  );
+}
+````
+
+## File: src/hooks/useAuthMode.js
+````javascript
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+
+export default function useAuthMode({ auth, db }) {
+  const [mode, setMode] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [showAdminForm, setShowAdminForm] = useState(false);
+
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPass, setAdminPass] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [checkingAdmin, setCheckingAdmin] = useState(false);
+
+  function enterReader() {
+    setMode("reader");
+  }
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      setAuthUser(user || null);
+      setAuthChecked(true);
+
+      if (!user) {
+        setCheckingAdmin(false);
+        return;
+      }
+
+      try {
+        setCheckingAdmin(true);
+        const adminSnap = await getDoc(doc(db, "admins", user.uid));
+        if (adminSnap.exists()) {
+          setMode("admin");
+        } else {
+          setMode("reader");
+        }
+      } finally {
+        setCheckingAdmin(false);
+      }
+    });
+
+    return () => unsub();
+  }, [auth, db]);
+
+  async function loginAdminEmailPassword() {
+    setAdminError("");
+    try {
+      await signInWithEmailAndPassword(auth, adminEmail.trim(), adminPass);
+    } catch (e) {
+      console.error(e);
+      setAdminError("Login failed. Check email/password.");
+    }
+  }
+
+  async function logout() {
+    await signOut(auth);
+    setMode(null);
+    setAdminPass("");
+  }
+
+  return {
+    mode,
+    setMode,
+    authUser,
+    authChecked,
+    showAdminForm,
+    setShowAdminForm,
+    adminEmail,
+    setAdminEmail,
+    adminPass,
+    setAdminPass,
+    adminError,
+    setAdminError,
+    checkingAdmin,
+    enterReader,
+    loginAdminEmailPassword,
+    logout,
+  };
+}
+````
+
+## File: src/services/cardEvolutionService.js
+````javascript
+/**
+ * Service for Card Evolutions in Pokemáticos
+ */
+
+import { doc, runTransaction } from "firebase/firestore";
+
+/**
+ * Validates if a card has evolution configuration
+ */
+export function isEvolutionCard(card) {
+  return Boolean(
+    card &&
+      card.evolution &&
+      (card.evolution.isEvolution || card.evolution.baseCardId)
+  );
+}
+
+/**
+ * Checks whether a given student meets the prerequisites to evolve a card
+ *
+ * @param {Object} params
+ * @param {Object} params.student - The student object
+ * @param {Object} params.evolutionCard - The target evolved card
+ * @param {string} [params.catalystCardId] - The designated catalyst card ID
+ * @returns {Object} eligibility details
+ */
+export function checkEvolutionEligibility({
+  student,
+  evolutionCard,
+  catalystCardId,
+}) {
+  if (!student || !isEvolutionCard(evolutionCard)) {
+    return {
+      canEvolve: false,
+      isAlreadyUnlocked: false,
+      currentCopies: 0,
+      requiredCopies: 1,
+      hasCopies: false,
+      hasCatalyst: false,
+      missingCatalystConfig: false,
+      catalystCount: 0,
+      baseCardId: null,
+      catalystCardId: "",
+    };
+  }
+
+  const evoConfig = evolutionCard.evolution;
+  const baseCardId = evoConfig.baseCardId;
+  const requiredCopies = Math.max(1, Number(evoConfig.requiredCopies) || 1);
+  const effectiveCatalystId = evoConfig.catalystCardId || catalystCardId || "";
+
+  const cards = Array.isArray(student.cards) ? student.cards : [];
+
+  // Count copies of base card in student's collection
+  const currentCopies = cards.filter(
+    (c) => (c.cardId || c.id) === baseCardId
+  ).length;
+
+  // Count available catalyst items in student's collection
+  const catalystCount = effectiveCatalystId
+    ? cards.filter((c) => (c.cardId || c.id) === effectiveCatalystId).length
+    : 0;
+
+  const unlockedEvolutionIds = Array.isArray(student.unlockedEvolutionIds)
+    ? student.unlockedEvolutionIds
+    : [];
+
+  const isAlreadyUnlocked = unlockedEvolutionIds.includes(evolutionCard.id);
+  const hasCopies = currentCopies >= requiredCopies;
+  const missingCatalystConfig = !effectiveCatalystId;
+  const hasCatalyst = Boolean(effectiveCatalystId) && catalystCount > 0;
+
+  const canEvolve = !isAlreadyUnlocked && hasCopies && hasCatalyst;
+
+  return {
+    canEvolve,
+    isAlreadyUnlocked,
+    currentCopies,
+    requiredCopies,
+    hasCopies,
+    hasCatalyst,
+    missingCatalystConfig,
+    catalystCount,
+    baseCardId,
+    catalystCardId: effectiveCatalystId,
+  };
+}
+
+/**
+ * Returns true if the card is NOT an evolution card, OR if it IS an evolution card
+ * and the student has already unlocked it.
+ */
+export function isCardUnlockedForStudent(student, card) {
+  if (!isEvolutionCard(card)) return true;
+  if (!student) return false;
+  const unlockedIds = Array.isArray(student.unlockedEvolutionIds)
+    ? student.unlockedEvolutionIds
+    : [];
+  return unlockedIds.includes(card.id);
+}
+
+/**
+ * Executes a card evolution inside a Firestore transaction.
+ * Consumes 1 catalyst card, preserves base cards,
+ * and marks the evolution as unlocked so the student can request or earn it
+ * (does NOT automatically grant a copy of the evolved card).
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Current class ID
+ * @param {string} params.studentId - Student ID
+ * @param {string} params.evolutionCardId - Evolved card ID
+ * @param {string} [params.classCatalystCardId] - Fallback catalyst card ID for the class
+ * @returns {Promise<{success: boolean, evolvedCard: Object, baseCardId: string}>}
+ */
+export async function executeEvolution({
+  db,
+  classId,
+  studentId,
+  evolutionCardId,
+  classCatalystCardId,
+}) {
+  if (!classId || !studentId || !evolutionCardId) {
+    throw new Error("Missing required parameters for evolution");
+  }
+
+  const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+  const cardRef = doc(db, `classes/${classId}/cards/${evolutionCardId}`);
+
+  return await runTransaction(db, async (tx) => {
+    const [studentSnap, cardSnap] = await Promise.all([
+      tx.get(studentRef),
+      tx.get(cardRef),
+    ]);
+
+    if (!studentSnap.exists()) {
+      throw new Error("Student not found");
+    }
+    if (!cardSnap.exists()) {
+      throw new Error("Evolution card not found");
+    }
+
+    const studentData = studentSnap.data();
+    const evolutionCard = { id: cardSnap.id, ...cardSnap.data() };
+
+    const eligibility = checkEvolutionEligibility({
+      student: studentData,
+      evolutionCard,
+      catalystCardId: classCatalystCardId,
+    });
+
+    if (eligibility.isAlreadyUnlocked) {
+      throw new Error("This evolution has already been unlocked by the student.");
+    }
+    if (!eligibility.hasCopies) {
+      throw new Error(
+        `Insufficient base cards: student has ${eligibility.currentCopies}/${eligibility.requiredCopies}`
+      );
+    }
+    if (!eligibility.hasCatalyst) {
+      throw new Error("Student does not have the required catalyst item.");
+    }
+
+    const currentCards = Array.isArray(studentData.cards)
+      ? [...studentData.cards]
+      : [];
+
+    // Consume exactly 1 catalyst item
+    const targetCatalystId = eligibility.catalystCardId;
+    if (targetCatalystId) {
+      const catalystIndex = currentCards.findIndex(
+        (c) => (c.cardId || c.id) === targetCatalystId
+      );
+      if (catalystIndex === -1) {
+        throw new Error("Catalyst item not found in student inventory.");
+      }
+      currentCards.splice(catalystIndex, 1);
+    }
+
+    // Note: Do NOT automatically grant a copy of the evolved card here.
+    // Evolution only unlocks the card so the student can request/redeem/receive it.
+
+    // Update unlocked evolution set
+    const unlockedEvolutionIds = Array.isArray(studentData.unlockedEvolutionIds)
+      ? [...studentData.unlockedEvolutionIds]
+      : [];
+    if (!unlockedEvolutionIds.includes(evolutionCard.id)) {
+      unlockedEvolutionIds.push(evolutionCard.id);
+    }
+
+    // Add record to history
+    const history = Array.isArray(studentData.rewardsHistory)
+      ? [...studentData.rewardsHistory]
+      : [];
+    history.push({
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      type: "evolution",
+      title: `Evolución desbloqueada: ${evolutionCard.title}`,
+      evolutionCardId: evolutionCard.id,
+      baseCardId: eligibility.baseCardId,
+      catalystCardId: targetCatalystId || null,
+      date: new Date().toISOString(),
+    });
+
+    tx.update(studentRef, {
+      cards: currentCards,
+      unlockedEvolutionIds,
+      rewardsHistory: history,
+    });
+
+    return {
+      success: true,
+      evolvedCard: evolutionCard,
+      baseCardId: eligibility.baseCardId,
+    };
+  });
+}
+````
+
+## File: src/services/cardEvolutionService.test.js
+````javascript
+import {
+  isEvolutionCard,
+  checkEvolutionEligibility,
+  isCardUnlockedForStudent,
+  executeEvolution,
+} from "./cardEvolutionService";
+import { doc, runTransaction } from "firebase/firestore";
+
+jest.mock("firebase/firestore", () => ({
+  doc: jest.fn(),
+  runTransaction: jest.fn(),
+}));
+
+describe("cardEvolutionService", () => {
+  describe("isEvolutionCard", () => {
+    test("identifies cards with evolution configuration", () => {
+      expect(isEvolutionCard(null)).toBe(false);
+      expect(isEvolutionCard({})).toBe(false);
+      expect(isEvolutionCard({ evolution: { isEvolution: true } })).toBe(true);
+      expect(isEvolutionCard({ evolution: { baseCardId: "card_1" } })).toBe(true);
+      expect(isEvolutionCard({ evolution: {} })).toBe(false);
+    });
+  });
+
+  describe("checkEvolutionEligibility", () => {
+    const baseEvolutionCard = {
+      id: "card_raichu",
+      title: "Raichu",
+      evolution: {
+        isEvolution: true,
+        baseCardId: "card_pikachu",
+        requiredCopies: 3,
+        catalystCardId: "item_thunder_stone",
+      },
+    };
+
+    test("returns canEvolve: false if student has no cards", () => {
+      const student = { cards: [] };
+      const res = checkEvolutionEligibility({
+        student,
+        evolutionCard: baseEvolutionCard,
+      });
+
+      expect(res.canEvolve).toBe(false);
+      expect(res.currentCopies).toBe(0);
+      expect(res.requiredCopies).toBe(3);
+      expect(res.hasCopies).toBe(false);
+      expect(res.hasCatalyst).toBe(false);
+      expect(res.isAlreadyUnlocked).toBe(false);
+    });
+
+    test("returns canEvolve: false if student has 2/3 base cards and has catalyst", () => {
+      const student = {
+        cards: [
+          { cardId: "card_pikachu" },
+          { cardId: "card_pikachu" },
+          { cardId: "item_thunder_stone" },
+        ],
+      };
+      const res = checkEvolutionEligibility({
+        student,
+        evolutionCard: baseEvolutionCard,
+      });
+
+      expect(res.canEvolve).toBe(false);
+      expect(res.currentCopies).toBe(2);
+      expect(res.hasCopies).toBe(false);
+      expect(res.hasCatalyst).toBe(true);
+    });
+
+    test("returns canEvolve: false if student has 3/3 base cards but NO catalyst", () => {
+      const student = {
+        cards: [
+          { cardId: "card_pikachu" },
+          { cardId: "card_pikachu" },
+          { cardId: "card_pikachu" },
+        ],
+      };
+      const res = checkEvolutionEligibility({
+        student,
+        evolutionCard: baseEvolutionCard,
+      });
+
+      expect(res.canEvolve).toBe(false);
+      expect(res.currentCopies).toBe(3);
+      expect(res.hasCopies).toBe(true);
+      expect(res.hasCatalyst).toBe(false);
+    });
+
+    test("returns canEvolve: true if student has 3/3 base cards and has catalyst", () => {
+      const student = {
+        cards: [
+          { cardId: "card_pikachu" },
+          { cardId: "card_pikachu" },
+          { cardId: "card_pikachu" },
+          { cardId: "item_thunder_stone" },
+        ],
+      };
+      const res = checkEvolutionEligibility({
+        student,
+        evolutionCard: baseEvolutionCard,
+      });
+
+      expect(res.canEvolve).toBe(true);
+      expect(res.currentCopies).toBe(3);
+      expect(res.hasCopies).toBe(true);
+      expect(res.hasCatalyst).toBe(true);
+      expect(res.isAlreadyUnlocked).toBe(false);
+    });
+
+    test("returns canEvolve: false if student already unlocked this evolution", () => {
+      const student = {
+        cards: [
+          { cardId: "card_pikachu" },
+          { cardId: "card_pikachu" },
+          { cardId: "card_pikachu" },
+          { cardId: "item_thunder_stone" },
+        ],
+        unlockedEvolutionIds: ["card_raichu"],
+      };
+      const res = checkEvolutionEligibility({
+        student,
+        evolutionCard: baseEvolutionCard,
+      });
+
+      expect(res.canEvolve).toBe(false);
+      expect(res.isAlreadyUnlocked).toBe(true);
+    });
+
+    test("uses class catalyst fallback when card has no specific catalystCardId", () => {
+      const genericEvoCard = {
+        id: "card_charizard",
+        title: "Charizard",
+        evolution: {
+          isEvolution: true,
+          baseCardId: "card_charmeleon",
+          requiredCopies: 2,
+        },
+      };
+
+      const student = {
+        cards: [
+          { cardId: "card_charmeleon" },
+          { cardId: "card_charmeleon" },
+          { cardId: "class_default_stone" },
+        ],
+      };
+
+      const res = checkEvolutionEligibility({
+        student,
+        evolutionCard: genericEvoCard,
+        catalystCardId: "class_default_stone",
+      });
+
+      expect(res.canEvolve).toBe(true);
+      expect(res.hasCatalyst).toBe(true);
+      expect(res.catalystCount).toBe(1);
+    });
+
+    test("returns canEvolve: false and missingCatalystConfig: true when no catalyst is configured anywhere", () => {
+      const genericEvoCard = {
+        id: "card_charizard",
+        title: "Charizard",
+        evolution: {
+          isEvolution: true,
+          baseCardId: "card_charmeleon",
+          requiredCopies: 2,
+        },
+      };
+
+      const student = {
+        cards: [
+          { cardId: "card_charmeleon" },
+          { cardId: "card_charmeleon" },
+        ],
+      };
+
+      const res = checkEvolutionEligibility({
+        student,
+        evolutionCard: genericEvoCard,
+      });
+
+      expect(res.canEvolve).toBe(false);
+      expect(res.hasCatalyst).toBe(false);
+      expect(res.missingCatalystConfig).toBe(true);
+    });
+  });
+
+  describe("isCardUnlockedForStudent", () => {
+    const normalCard = { id: "card_1", title: "Normal" };
+    const evoCard = {
+      id: "card_evo",
+      title: "Evolved",
+      evolution: { isEvolution: true, baseCardId: "card_1", requiredCopies: 3 },
+    };
+
+    test("returns true for normal cards", () => {
+      expect(isCardUnlockedForStudent({ unlockedEvolutionIds: [] }, normalCard)).toBe(true);
+      expect(isCardUnlockedForStudent(null, normalCard)).toBe(true);
+    });
+
+    test("returns false for locked evolution cards and true once unlocked", () => {
+      expect(isCardUnlockedForStudent(null, evoCard)).toBe(false);
+      expect(isCardUnlockedForStudent({ unlockedEvolutionIds: [] }, evoCard)).toBe(false);
+      expect(isCardUnlockedForStudent({ unlockedEvolutionIds: ["card_evo"] }, evoCard)).toBe(true);
+    });
+  });
+
+  describe("executeEvolution", () => {
+    test("unlocks evolution and consumes 1 catalyst without granting evolved card automatically", async () => {
+      const studentData = {
+        cards: [
+          { id: "o1", cardId: "card_pikachu" },
+          { id: "o2", cardId: "card_pikachu" },
+          { id: "o3", cardId: "card_pikachu" },
+          { id: "c1", cardId: "item_stone" },
+        ],
+        unlockedEvolutionIds: [],
+        rewardsHistory: [],
+      };
+      const evoCardData = {
+        title: "Raichu",
+        evolution: {
+          isEvolution: true,
+          baseCardId: "card_pikachu",
+          requiredCopies: 3,
+          catalystCardId: "item_stone",
+        },
+      };
+
+      doc.mockImplementation((_db, path) => ({ path }));
+      const txUpdate = jest.fn();
+      runTransaction.mockImplementation(async (_db, fn) =>
+        fn({
+          get: jest.fn(async (ref) => {
+            if (ref.path.includes("/students/")) {
+              return { exists: () => true, id: "stu_1", data: () => studentData };
+            }
+            return { exists: () => true, id: "card_raichu", data: () => evoCardData };
+          }),
+          update: txUpdate,
+        })
+      );
+
+      await executeEvolution({
+        db: {},
+        classId: "class_1",
+        studentId: "stu_1",
+        evolutionCardId: "card_raichu",
+      });
+
+      expect(txUpdate).toHaveBeenCalledTimes(1);
+      const updatePayload = txUpdate.mock.calls[0][1];
+      expect(updatePayload.unlockedEvolutionIds).toEqual(["card_raichu"]);
+      // Preserves all 3 base cards, consumes the 1 catalyst, and does NOT add card_raichu
+      expect(updatePayload.cards).toHaveLength(3);
+      expect(updatePayload.cards.every((c) => c.cardId === "card_pikachu")).toBe(true);
+    });
+  });
+});
+````
+
+## File: src/services/noticeBoardService.js
+````javascript
+import { getCardDisplayImage } from "../utils/cardImageUtils";
+
+export const MADRID_TIMEZONE = "Europe/Madrid";
+export const MAX_NOTICE_BOARD_ITEMS = 20;
+
+const MADRID_PARTS_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: MADRID_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+export function parseNoticeTimestamp(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value === "object") {
+    if (typeof value.toMillis === "function") {
+      const ms = value.toMillis();
+      return Number.isFinite(ms) && ms > 0 ? ms : null;
+    }
+    if (typeof value.toDate === "function") {
+      const ms = value.toDate().getTime();
+      return Number.isFinite(ms) && ms > 0 ? ms : null;
+    }
+    if (typeof value.seconds === "number") {
+      const ms = value.seconds * 1000;
+      return Number.isFinite(ms) && ms > 0 ? ms : null;
+    }
+    return null;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const ms = Date.parse(`${trimmed}T12:00:00Z`);
+      return Number.isFinite(ms) ? ms : null;
+    }
+    if (/^\d+$/.test(trimmed)) {
+      const ms = Number(trimmed);
+      return Number.isFinite(ms) && ms > 0 ? ms : null;
+    }
+    const ms = Date.parse(trimmed);
+    return Number.isFinite(ms) ? ms : null;
+  }
+
+  return null;
+}
+
+export function getMadridDateParts(input = Date.now()) {
+  const ms = typeof input === "number" ? input : parseNoticeTimestamp(input);
+  if (ms === null) return null;
+
+  const parts = MADRID_PARTS_FORMATTER.formatToParts(new Date(ms));
+  const map = {};
+  for (const part of parts) {
+    if (part.type !== "literal") map[part.type] = part.value;
+  }
+
+  const year = map.year || "0000";
+  const month = map.month || "00";
+  const day = map.day || "00";
+  const hour = map.hour || "00";
+  const minute = map.minute || "00";
+
+  return {
+    dateKey: `${year}-${month}-${day}`,
+    displayDate: `${day}/${month}/${year}`,
+    displayTime: `${hour}:${minute}`,
+    displayDateTime: `${day}/${month}/${year} ${hour}:${minute}`,
+  };
+}
+
+function formatLegacyDateOnly(isoDate) {
+  if (typeof isoDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+    return isoDate || "";
+  }
+  const [y, m, d] = isoDate.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+export function buildNoticeBoardData({
+  students = [],
+  cards = [],
+  rewards = [],
+  streakConfigs = [],
+  newsMessages = [],
+  flagValue = "A",
+  now = Date.now(),
+  maxItems = MAX_NOTICE_BOARD_ITEMS,
+} = {}) {
+  const safeStudents = Array.isArray(students) ? students : [];
+  const safeCards = Array.isArray(cards) ? cards : [];
+  const safeRewards = Array.isArray(rewards) ? rewards : [];
+  const safeStreakConfigs = Array.isArray(streakConfigs) ? streakConfigs : [];
+  const safeNewsMessages = Array.isArray(newsMessages) ? newsMessages : [];
+
+  const todayParts = getMadridDateParts(now);
+  const todayMadridKey = todayParts ? todayParts.dateKey : "";
+
+  const cardsById = new Map();
+  const rewardCardByTitle = new Map();
+  safeCards.forEach((c) => {
+    if (c?.id) cardsById.set(c.id, c);
+    if ((c?.category || "points") === "rewards" && c?.title) {
+      const key = String(c.title).trim().toLowerCase();
+      if (key && !rewardCardByTitle.has(key)) rewardCardByTitle.set(key, c);
+    }
+  });
+
+  const rewardCardByRewardId = new Map();
+  safeRewards.forEach((r) => {
+    if (r?.id && r?.cardId && cardsById.has(r.cardId)) {
+      rewardCardByRewardId.set(r.id, cardsById.get(r.cardId));
+    }
+  });
+
+  const streakCfgById = new Map();
+  safeStreakConfigs.forEach((cfg) => {
+    if (cfg?.id) streakCfgById.set(cfg.id, cfg);
+  });
+
+  const rawItems = [];
+
+  // 1. Max streaks achieved that day (grouped per streak + Madrid day)
+  const streakGroups = new Map();
+  for (const student of safeStudents) {
+    if (!student) continue;
+    const studentName = String(student.name || "Student").trim() || "Student";
+    const streaks = student.streaks && typeof student.streaks === "object" ? student.streaks : {};
+
+    for (const [streakId, entry] of Object.entries(streaks)) {
+      if (!entry || typeof entry !== "object") continue;
+
+      const timedMs = parseNoticeTimestamp(entry.maxAchievedAt);
+      const legacyDateStr =
+        typeof entry.maxAchievedOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(entry.maxAchievedOn)
+          ? entry.maxAchievedOn
+          : "";
+
+      if (timedMs === null && !legacyDateStr) continue;
+
+      let dateKey = "";
+      let ts = 0;
+      let hasTime = false;
+
+      if (timedMs !== null) {
+        const mParts = getMadridDateParts(timedMs);
+        dateKey = mParts.dateKey;
+        ts = timedMs;
+        hasTime = true;
+      } else {
+        dateKey = legacyDateStr;
+        ts = parseNoticeTimestamp(`${legacyDateStr}T00:00:00Z`) || 0;
+        hasTime = false;
+      }
+
+      const groupKey = `${streakId}__${dateKey}`;
+      if (!streakGroups.has(groupKey)) {
+        streakGroups.set(groupKey, {
+          streakId,
+          dateKey,
+          studentNames: [],
+          nameSet: new Set(),
+          latestTimedMs: hasTime ? ts : null,
+          fallbackTs: ts,
+        });
+      }
+
+      const grp = streakGroups.get(groupKey);
+      const dedupeNameKey = `${student.id || studentName}`;
+      if (!grp.nameSet.has(dedupeNameKey)) {
+        grp.nameSet.add(dedupeNameKey);
+        grp.studentNames.push(studentName);
+      }
+
+      if (hasTime && (grp.latestTimedMs === null || ts > grp.latestTimedMs)) {
+        grp.latestTimedMs = ts;
+      }
+      if (ts > grp.fallbackTs) {
+        grp.fallbackTs = ts;
+      }
+    }
+  }
+
+  for (const [groupKey, grp] of streakGroups.entries()) {
+    const cfg = streakCfgById.get(grp.streakId) || null;
+    const emoji = cfg?.emoji || "🔥";
+    const finalTs = grp.latestTimedMs !== null ? grp.latestTimedMs : grp.fallbackTs;
+    const hasExactTime = grp.latestTimedMs !== null;
+    const mParts = getMadridDateParts(finalTs);
+
+    rawItems.push({
+      id: `streakMax:${groupKey}`,
+      type: "streakMax",
+      timestamp: finalTs,
+      madridDateKey: grp.dateKey,
+      formattedDateTime: hasExactTime && mParts
+        ? mParts.displayDateTime
+        : formatLegacyDateOnly(grp.dateKey),
+      hasExactTime,
+      emoji,
+      streakMax: typeof cfg?.max === "number" ? cfg.max : null,
+      studentNames: grp.studentNames,
+    });
+  }
+
+  // 2. Rewards redeemed (individual + deduplicated group redeems)
+  const groupRedeems = new Map();
+
+  for (const student of safeStudents) {
+    if (!student) continue;
+    const studentName = String(student.name || "Student").trim() || "Student";
+    const history = Array.isArray(student.rewardsHistory) ? student.rewardsHistory : [];
+
+    for (let idx = 0; idx < history.length; idx++) {
+      const entry = history[idx];
+      if (!entry || typeof entry !== "object") continue;
+      if (entry.type !== "individual" && entry.type !== "group") continue;
+
+      const ts = parseNoticeTimestamp(entry.date ?? entry.redeemedAt);
+      if (ts === null) continue;
+      const mParts = getMadridDateParts(ts);
+      if (!mParts) continue;
+
+      const rewardTitle = String(entry.title || entry.name || "Reward").trim() || "Reward";
+      const linkedRewardCard =
+        (entry.cardId && cardsById.get(entry.cardId)) ||
+        (entry.rewardId && (cardsById.get(entry.rewardId) || rewardCardByRewardId.get(entry.rewardId))) ||
+        rewardCardByTitle.get(rewardTitle.toLowerCase()) ||
+        null;
+      const rewardImageURL = linkedRewardCard
+        ? getCardDisplayImage(linkedRewardCard, flagValue, false)
+        : "";
+
+      if (entry.type === "individual") {
+        rawItems.push({
+          id: `reward:ind:${student.id || studentName}:${entry.id || `${ts}_${idx}`}`,
+          type: "rewardRedeemed",
+          redeemKind: "individual",
+          timestamp: ts,
+          madridDateKey: mParts.dateKey,
+          formattedDateTime: mParts.displayDateTime,
+          hasExactTime: true,
+          studentName,
+          rewardTitle,
+          cost: Number(entry.cost || 0),
+          imageURL: rewardImageURL,
+        });
+      } else {
+        const groupKey = `${entry.date || ts}__${entry.rewardId || ""}__${rewardTitle}`;
+        if (!groupRedeems.has(groupKey)) {
+          const contributors = Array.isArray(entry.contributors) ? entry.contributors : [];
+          const hasContributorsList = contributors.length > 0;
+          const contributorCount = hasContributorsList
+            ? contributors.filter((c) => Number(c?.cost || 0) >= 1).length
+            : 0;
+
+          groupRedeems.set(groupKey, {
+            groupKey,
+            timestamp: ts,
+            madridDateKey: mParts.dateKey,
+            formattedDateTime: mParts.displayDateTime,
+            rewardTitle,
+            imageURL: rewardImageURL,
+            hasContributorsList,
+            contributorCount,
+            fallbackParticipantKeys: new Set(),
+          });
+        }
+
+        const grp = groupRedeems.get(groupKey);
+        if (!grp.hasContributorsList && Number(entry.cost || 0) >= 1) {
+          grp.fallbackParticipantKeys.add(student.id || studentName);
+        }
+      }
+    }
+  }
+
+  for (const grp of groupRedeems.values()) {
+    const peopleCount = grp.hasContributorsList
+      ? grp.contributorCount
+      : grp.fallbackParticipantKeys.size;
+
+    rawItems.push({
+      id: `reward:grp:${grp.groupKey}`,
+      type: "rewardRedeemed",
+      redeemKind: "group",
+      timestamp: grp.timestamp,
+      madridDateKey: grp.madridDateKey,
+      formattedDateTime: grp.formattedDateTime,
+      hasExactTime: true,
+      rewardTitle: grp.rewardTitle,
+      contributorCount: peopleCount,
+      imageURL: grp.imageURL || "",
+    });
+  }
+
+  // 3. Experience cards achieved by whom
+  const seenXpCardStudent = new Set();
+  for (const student of safeStudents) {
+    if (!student) continue;
+    const studentName = String(student.name || "Student").trim() || "Student";
+    const ownedCards = Array.isArray(student.cards) ? student.cards : [];
+
+    for (let idx = 0; idx < ownedCards.length; idx++) {
+      const owned = ownedCards[idx];
+      if (!owned || typeof owned !== "object") continue;
+
+      const cardMeta = owned.cardId ? cardsById.get(owned.cardId) : null;
+      const isExperience =
+        cardMeta?.category === "experience" ||
+        owned.autoFrom?.type === "xpUnlock" ||
+        owned.autoFrom?.streakId === "xp_unlock";
+
+      if (!isExperience) continue;
+
+      const ts = parseNoticeTimestamp(owned.grantedAt ?? owned.obtainedAt);
+      if (ts === null) continue;
+      const mParts = getMadridDateParts(ts);
+      if (!mParts) continue;
+
+      const dedupeKey = `${student.id || studentName}__${owned.cardId || owned.id || idx}`;
+      if (seenXpCardStudent.has(dedupeKey)) continue;
+      seenXpCardStudent.add(dedupeKey);
+
+      const cardTitle = String(cardMeta?.title || owned.title || "Experience Card").trim() || "Experience Card";
+      const rawXp = cardMeta?.points ?? owned.autoFrom?.xpRequired;
+      const xp = rawXp !== undefined && rawXp !== null && Number.isFinite(Number(rawXp)) ? Number(rawXp) : null;
+      const imageURL = getCardDisplayImage(cardMeta || owned, flagValue, false);
+
+      rawItems.push({
+        id: `xp:${dedupeKey}`,
+        type: "experienceCard",
+        timestamp: ts,
+        madridDateKey: mParts.dateKey,
+        formattedDateTime: mParts.displayDateTime,
+        hasExactTime: true,
+        studentName,
+        cardTitle,
+        xp,
+        imageURL,
+      });
+    }
+  }
+
+  // 4. New cards added to points, rewards, or experience library (exclude extra)
+  for (const card of safeCards) {
+    if (!card || typeof card !== "object") continue;
+    const cat = card.category || "points";
+    if (cat !== "points" && cat !== "rewards" && cat !== "experience") continue;
+
+    const ts = parseNoticeTimestamp(card.createdAt);
+    if (ts === null) continue;
+    const mParts = getMadridDateParts(ts);
+    if (!mParts) continue;
+
+    const cardTitle = String(card.title || "Untitled card").trim() || "Untitled card";
+    const imageURL = getCardDisplayImage(card, flagValue, true);
+
+    rawItems.push({
+      id: `newCard:${card.id || `${cat}_${ts}_${cardTitle}`}`,
+      type: "newCard",
+      timestamp: ts,
+      madridDateKey: mParts.dateKey,
+      formattedDateTime: mParts.displayDateTime,
+      hasExactTime: true,
+      cardTitle,
+      category: cat,
+      points: Number(card.points || 0),
+      imageURL,
+    });
+  }
+
+  // 5. Admin news messages (pinned appear at top; unpinned follow normal 20-item Today/Older logic)
+  const pinnedItems = [];
+  for (const msg of safeNewsMessages) {
+    if (!msg || typeof msg !== "object") continue;
+    const title = String(msg.title || "").trim();
+    const text = String(msg.text || "").trim();
+    if (!title && !text) continue;
+
+    const ts = parseNoticeTimestamp(msg.createdAt ?? msg.updatedAt);
+    if (ts === null) continue;
+    const mParts = getMadridDateParts(ts);
+    if (!mParts) continue;
+
+    const item = {
+      id: `adminMsg:${msg.id || ts}`,
+      messageId: msg.id || "",
+      type: "adminMessage",
+      timestamp: ts,
+      madridDateKey: mParts.dateKey,
+      formattedDateTime: mParts.displayDateTime,
+      hasExactTime: true,
+      title,
+      text,
+      pinned: Boolean(msg.pinned),
+      updatedAt: msg.updatedAt || null,
+    };
+
+    if (item.pinned) {
+      pinnedItems.push(item);
+    } else {
+      rawItems.push(item);
+    }
+  }
+
+  pinnedItems.sort((a, b) => {
+    if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  // Sort unpinned newest first; keep top N (default 20)
+  rawItems.sort((a, b) => {
+    if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  const unpinnedLimited = rawItems.slice(0, maxItems);
+  const todayItems = unpinnedLimited.filter((item) => item.madridDateKey === todayMadridKey);
+  const olderItems = unpinnedLimited.filter((item) => item.madridDateKey !== todayMadridKey);
+
+  return {
+    pinnedItems,
+    items: [...pinnedItems, ...unpinnedLimited],
+    unpinnedItems: unpinnedLimited,
+    todayItems,
+    olderItems,
+    todayMadridKey,
+  };
+}
+````
+
+## File: src/services/noticeBoardService.test.js
+````javascript
+import {
+  buildNoticeBoardData,
+  getMadridDateParts,
+  MAX_NOTICE_BOARD_ITEMS,
+} from "./noticeBoardService";
+
+describe("noticeBoardService", () => {
+  test("formats UTC timestamps in Europe/Madrid timezone accurately", () => {
+    // November 13, 2026 23:30 UTC is already November 14, 2026 00:30 in Madrid (UTC+1)
+    const parts = getMadridDateParts("2026-11-13T23:30:00.000Z");
+    expect(parts).toEqual({
+      dateKey: "2026-11-14",
+      displayDate: "14/11/2026",
+      displayTime: "00:30",
+      displayDateTime: "14/11/2026 00:30",
+    });
+  });
+
+  test("groups multiple students achieving the same streak maximum on the same Madrid day", () => {
+    const now = Date.parse("2026-11-13T18:00:00.000Z");
+    const streakConfigs = [{ id: "st_1", emoji: "🔥", max: 5 }];
+    const students = [
+      {
+        id: "s1",
+        name: "Ana",
+        streaks: {
+          st_1: {
+            value: 5,
+            maxAchievedOn: "2026-11-13",
+            maxAchievedAt: "2026-11-13T10:15:00.000Z",
+          },
+        },
+      },
+      {
+        id: "s2",
+        name: "Luis",
+        streaks: {
+          st_1: {
+            value: 5,
+            maxAchievedOn: "2026-11-13",
+            maxAchievedAt: "2026-11-13T14:20:00.000Z",
+          },
+        },
+      },
+      {
+        id: "s3",
+        name: "Marta",
+        streaks: {
+          st_1: {
+            value: 5,
+            maxAchievedOn: "2026-11-12",
+            maxAchievedAt: "2026-11-12T15:00:00.000Z",
+          },
+        },
+      },
+    ];
+
+    const res = buildNoticeBoardData({ students, cards: [], streakConfigs, now });
+
+    expect(res.todayItems).toHaveLength(1);
+    expect(res.todayItems[0]).toMatchObject({
+      type: "streakMax",
+      emoji: "🔥",
+      studentNames: ["Ana", "Luis"],
+      formattedDateTime: "13/11/2026 15:20", // 14:20 UTC -> 15:20 Madrid (UTC+1)
+    });
+
+    expect(res.olderItems).toHaveLength(1);
+    expect(res.olderItems[0]).toMatchObject({
+      type: "streakMax",
+      studentNames: ["Marta"],
+      formattedDateTime: "12/11/2026 16:00",
+    });
+  });
+
+  test("handles individual and deduplicated group rewards showing only count of contributors with >= 1 pt", () => {
+    const now = Date.parse("2026-11-13T19:00:00.000Z");
+    const groupDate = "2026-11-13T12:00:00.000Z";
+    const contributors = [
+      { name: "Ana", cost: 5 },
+      { name: "Luis", cost: 3 },
+      { name: "Carlos", cost: 0 },
+      { name: "Sofia", cost: 2 },
+    ];
+
+    const students = [
+      {
+        id: "s1",
+        name: "Ana",
+        rewardsHistory: [
+          {
+            id: "r1",
+            type: "individual",
+            title: "Homework Pass",
+            cost: 10,
+            date: "2026-11-13T16:05:00.000Z",
+          },
+          {
+            id: "g1",
+            rewardId: "rew_party",
+            type: "group",
+            title: "Class Party",
+            cost: 5,
+            date: groupDate,
+            contributors,
+          },
+          {
+            id: "evo1",
+            type: "evolution",
+            title: "Should be ignored",
+            date: "2026-11-13T16:10:00.000Z",
+          },
+        ],
+      },
+      {
+        id: "s2",
+        name: "Luis",
+        rewardsHistory: [
+          {
+            id: "g2",
+            rewardId: "rew_party",
+            type: "group",
+            title: "Class Party",
+            cost: 3,
+            date: groupDate,
+            contributors,
+          },
+        ],
+      },
+    ];
+
+    const res = buildNoticeBoardData({ students, cards: [], streakConfigs: [], now });
+    expect(res.todayItems).toHaveLength(2);
+
+    const indItem = res.todayItems[0];
+    expect(indItem).toMatchObject({
+      type: "rewardRedeemed",
+      redeemKind: "individual",
+      studentName: "Ana",
+      rewardTitle: "Homework Pass",
+      formattedDateTime: "13/11/2026 17:05",
+    });
+
+    const grpItem = res.todayItems[1];
+    expect(grpItem).toMatchObject({
+      type: "rewardRedeemed",
+      redeemKind: "group",
+      rewardTitle: "Class Party",
+      contributorCount: 3, // Ana(5), Luis(3), Sofia(2); Carlos(0) excluded
+      formattedDateTime: "13/11/2026 13:00",
+    });
+  });
+
+  test("includes experience cards achieved and new cards for points/rewards/experience while excluding extra cards", () => {
+    const now = Date.parse("2026-11-13T18:00:00.000Z");
+    const cards = [
+      { id: "c1", title: "Focus +5", category: "points", points: 5, imageURL: "https://img/c1.png", createdAt: Date.parse("2026-11-13T09:00:00.000Z") },
+      { id: "c2", title: "Sticker", category: "rewards", points: 15, imageURL: "https://img/c2.png", lockedImageURL: "https://img/c2_locked.png", createdAt: Date.parse("2026-11-13T10:00:00.000Z") },
+      { id: "c3", title: "Scholar II", category: "experience", points: 100, imageURL: "https://img/c3.png", imageURL_B: "https://img/c3_b.png", createdAt: Date.parse("2026-11-13T11:00:00.000Z") },
+      { id: "c4", title: "Secret Catalyst", category: "extra", points: 0, imageURL: "https://img/c4.png", createdAt: Date.parse("2026-11-13T12:00:00.000Z") },
+    ];
+    const students = [
+      {
+        id: "s1",
+        name: "Elena",
+        cards: [
+          {
+            id: "o1",
+            cardId: "c1",
+            title: "Focus +5",
+            grantedAt: "2026-11-13T13:00:00.000Z",
+          },
+          {
+            id: "o2",
+            cardId: "c3",
+            title: "Scholar II",
+            grantedAt: "2026-11-13T14:00:00.000Z",
+          },
+        ],
+      },
+    ];
+
+    const res = buildNoticeBoardData({ students, cards, streakConfigs: [], flagValue: "B", now });
+    expect(res.items.map((i) => i.type)).toEqual([
+      "experienceCard",
+      "newCard",
+      "newCard",
+      "newCard",
+    ]);
+    expect(res.items.some((i) => i.cardTitle === "Secret Catalyst")).toBe(false);
+    expect(res.items[0]).toMatchObject({
+      type: "experienceCard",
+      studentName: "Elena",
+      cardTitle: "Scholar II",
+      xp: 100,
+      imageURL: "https://img/c3_b.png",
+      formattedDateTime: "13/11/2026 15:00",
+    });
+    expect(res.items[2]).toMatchObject({
+      type: "newCard",
+      cardTitle: "Sticker",
+      imageURL: "https://img/c2_locked.png",
+    });
+  });
+
+  test("caps total announcements at 20, dropping oldest items when newer ones exist", () => {
+    const now = Date.parse("2026-11-13T20:00:00.000Z");
+    const cards = Array.from({ length: 25 }, (_, i) => ({
+      id: `card_${i + 1}`,
+      title: `Card ${i + 1}`,
+      category: "points",
+      points: 1,
+      // Cards 1..15 older (Nov 12), 16..25 today (Nov 13)
+      createdAt:
+        i < 15
+          ? Date.parse("2026-11-12T08:00:00.000Z") + i * 60000
+          : Date.parse("2026-11-13T08:00:00.000Z") + (i - 15) * 60000,
+    }));
+
+    const res = buildNoticeBoardData({ students: [], cards, streakConfigs: [], now });
+
+    expect(MAX_NOTICE_BOARD_ITEMS).toBe(20);
+    expect(res.items).toHaveLength(20);
+    // Newest card is Card 25 at the top
+    expect(res.items[0].cardTitle).toBe("Card 25");
+    // Oldest kept card is Card 6 (Cards 1..5 dropped!)
+    expect(res.items[19].cardTitle).toBe("Card 6");
+    expect(res.todayItems).toHaveLength(10); // Cards 25..16
+    expect(res.olderItems).toHaveLength(10); // Cards 15..6
+  });
+
+  test("handles admin News messages: multiple pinned at top, optional title/text, unpinned follow normal Today/Older 20-item logic", () => {
+    const now = Date.parse("2026-11-13T18:00:00.000Z");
+    const cards = Array.from({ length: 20 }, (_, i) => ({
+      id: `card_${i + 1}`,
+      title: `Card ${i + 1}`,
+      category: "points",
+      points: 1,
+      createdAt: Date.parse("2026-11-13T08:00:00.000Z") + i * 60000,
+    }));
+
+    const newsMessages = [
+      {
+        id: "m_pinned_old",
+        title: "Exam Friday",
+        text: "",
+        pinned: true,
+        createdAt: Date.parse("2026-11-10T10:00:00.000Z"),
+      },
+      {
+        id: "m_pinned_new",
+        title: "",
+        text: "Bring scissors tomorrow!",
+        pinned: true,
+        createdAt: Date.parse("2026-11-13T12:00:00.000Z"),
+      },
+      {
+        id: "m_unpinned_today",
+        title: "Bonus Reminder",
+        text: "Extra XP today",
+        pinned: false,
+        createdAt: Date.parse("2026-11-13T15:00:00.000Z"),
+      },
+      {
+        id: "m_unpinned_pushed_out",
+        title: "Very Old Unpinned",
+        text: "Should drop past 20",
+        pinned: false,
+        createdAt: Date.parse("2026-11-01T10:00:00.000Z"),
+      },
+      {
+        id: "m_empty",
+        title: "   ",
+        text: "",
+        pinned: true,
+        createdAt: Date.parse("2026-11-13T16:00:00.000Z"),
+      },
+    ];
+
+    const res = buildNoticeBoardData({
+      students: [],
+      cards,
+      streakConfigs: [],
+      newsMessages,
+      now,
+    });
+
+    // Multiple pinned messages stay at the top, newest pinned first; empty ignored
+    expect(res.pinnedItems.map((i) => i.messageId)).toEqual(["m_pinned_new", "m_pinned_old"]);
+    expect(res.pinnedItems[0]).toMatchObject({ title: "", text: "Bring scissors tomorrow!" });
+    expect(res.pinnedItems[1]).toMatchObject({ title: "Exam Friday", text: "" });
+
+    // Unpinned pool capped at 20: m_unpinned_today is newest, Card 1..Card 19 follow, m_unpinned_pushed_out dropped
+    expect(res.unpinnedItems).toHaveLength(20);
+    expect(res.todayItems[0]).toMatchObject({
+      type: "adminMessage",
+      messageId: "m_unpinned_today",
+      pinned: false,
+    });
+    expect(res.unpinnedItems.some((i) => i.messageId === "m_unpinned_pushed_out")).toBe(false);
+  });
+});
+````
+
+## File: src/firebase.js
+````javascript
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+
+const firebaseConfig = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyAi9YLbUydV4yDZe64hfUo-btSdo_uYunc",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "pokematicos.firebaseapp.com",
+  databaseURL:
+    process.env.REACT_APP_FIREBASE_DATABASE_URL ||
+    "https://pokematicos-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "pokematicos",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "pokematicos.firebasestorage.app",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "101415606738",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:101415606738:web:c009f17005904490e9d00b",
+};
+
+const app = initializeApp(firebaseConfig);
+
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const auth = getAuth(app);
+export default app;
+````
+
+## File: .env.example
+````
+FIREBASE_API_KEY=
+REACT_APP_FIREBASE_API_KEY=
+REACT_APP_FIREBASE_APP_ID=
+REACT_APP_FIREBASE_AUTH_DOMAIN=
+REACT_APP_FIREBASE_DATABASE_URL=
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=
+REACT_APP_FIREBASE_PROJECT_ID=
+REACT_APP_FIREBASE_STORAGE_BUCKET=
+````
+
+## File: CARD-REWARD-FIX.md
+````markdown
+# Card Reward System Fix
+
+## The Problem
+
+When creating activities with reward type "card" in the Activity Catalogue Manager, you could select "Card" as the reward type, but **were never prompted to choose which card to give**. This resulted in activities being saved without a `cardId`, causing:
+
+1. **Invalid or incomplete code error** when trying to redeem the code
+2. **No card actually being given** to the student even if redemption somehow succeeded
+
+## Root Causes
+
+There were two interconnected bugs:
+
+### Bug 1: Missing Card Selection UI (ActivityCatalogueManager.jsx)
+- The form had a `rewardType` dropdown with "card" option
+- **But there was no field to select which card to give**
+- No `cardId` was ever being captured or stored
+
+### Bug 2: Missing Card Reward Logic (rewardCodeService.js)
+- When an activity was created, the `cardId` wasn't being stored in the activity record
+- When redeeming code, the system didn't have code to actually give the card to the student
+- The `recordAndAwardAchievement()` function only awarded points, not cards
+
+## The Fixes
+
+### Fix 1: Add Card Selection to Activity Form
+
+**File:** `src/components/admin/ActivityCatalogueManager.jsx`
+
+Changes:
+1. Added `cards` state to store available cards in the class
+2. Added `loadCards()` function that fetches all cards from Firestore
+3. Added `cardId: ""` to the initial form data
+4. Added conditional card selector field that appears when reward type is "card" or "both"
+5. Added validation that requires a card to be selected when reward type is card
+6. Shows helpful error message if no cards exist in the class
+
+### Fix 2: Store cardId in Activity Catalogue
+
+**File:** `src/services/rewardCodeService.js` - `addActivityToCatalogue()` function
+
+Changes:
+1. Extract `cardId` from activity object
+2. Validate that `cardId` is required when `rewardType` is "card" or "both"
+3. Store `cardId` in the activity document whenever a card is linked
+
+### Fix 3: Actually Give the Card on Redemption
+
+**File:** `src/services/rewardCodeService.js` - `recordAndAwardAchievement()` and `redeemRewardCode()` functions
+
+Changes:
+1. Check if `activity.cardId` exists and reward type awards a card ("card" or "both")
+2. Verify the card exists in the database before giving it
+3. Add the card directly to the student's `student.cards` array (with `uid("owned")`, title, images, and origin) so it immediately displays in their student panel deck
+4. Create a card entry in `classes/{classId}/students/{studentId}/cards/{cardId}` for backwards compatibility
+5. Update the achievement record to include the card info
+6. Update rewards history to show card rewards with card ID
+7. Added recovery check in `redeemRewardCode`: If a code was already redeemed previously before the card fix, re-entering the code will safely deliver the missing card to the student's album without erroring or duplicating points.
+
+## How to Use
+
+### For Teachers/Admins (Setting Up Activities)
+
+1. Go to **Classes** → **Activity Catalogue**
+2. Click **+ Add Activity**
+3. Fill in:
+   - Source ID (e.g., "DP4DP")
+   - Activity ID (e.g., "plus")
+   - Name and description
+   - Points (if applicable)
+   - **Reward Type:** Choose "Card" if you want to give a card
+4. **New:** A "Select Card" dropdown will appear - choose the card you want to give
+5. Click **Add Activity**
+
+### For Students (Redeeming Codes)
+
+1. Generate a code from DP4DP (or other source) using the activity you just created
+2. Go to your profile → Redeem tab
+3. Paste the code
+4. On successful redemption:
+   - You'll get the specified rewards (points and/or card)
+   - The card will appear in your collection
+   - Achievement will be recorded
+
+## Testing
+
+To test this fix:
+
+1. Create a card in your class (if you don't have one)
+2. Add an activity with:
+   - Source ID: "test"
+   - Activity ID: "testcard"
+   - Reward Type: "Card"
+   - Select a card
+3. Generate a code using these values
+4. Try redeeming it - you should:
+   - Get a success message
+   - See the card appear in your collection
+   - See the activity recorded in achievements
+
+## Files Modified
+
+- `src/services/rewardCodeService.js` (2 functions updated)
+- `src/components/admin/ActivityCatalogueManager.jsx` (UI enhancements)
+
+## Backwards Compatibility
+
+- Existing "points-only" activities work unchanged
+- Existing activities with incomplete card data will still redeem but won't give cards (they need to be recreated with a proper cardId)
+````
+
+## File: package.json
+````json
+{
+  "name": "pokematics",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "PORT=3000 HOST=0.0.0.0 react-scripts start",
+    "start": "PORT=3000 HOST=0.0.0.0 react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "lint": "eslint src",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "firebase": "^10.7.1",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-scripts": "5.0.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.22",
+    "firebase-admin": "^14.4.0",
+    "postcss": "^8.5.6",
+    "sharp": "^0.35.4",
+    "tailwindcss": "^3.4.1"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
+````
+
+## File: src/components/common/EyeToggleButton.jsx
+````javascript
+import React from "react";
+
+// Eye icon; crossed with a red line when the interface is visible ("hide" action).
+export default function EyeToggleButton({ focusMode, onToggle, inline = false }) {
+  const label = focusMode ? "Show interface" : "Hide interface (background only)";
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={label}
+      aria-label={label}
+      style={{
+        ...(inline
+          ? { flexShrink: 0 }
+          : { position: "fixed", top: 12, right: 12, zIndex: 2000 }),
+        width: 40,
+        height: 40,
+        borderRadius: 999,
+        border: "1px solid rgba(255, 255, 255, 0.75)",
+        background: "rgba(255, 255, 255, 0.72)",
+        backdropFilter: "blur(12px) saturate(160%)",
+        WebkitBackdropFilter: "blur(12px) saturate(160%)",
+        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9)",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "all 160ms ease",
+      }}
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"
+          stroke="#111827"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <circle cx="12" cy="12" r="3" fill="#111827" />
+        {!focusMode && (
+          <line x1="3" y1="21" x2="21" y2="3" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" />
+        )}
+      </svg>
+    </button>
+  );
+}
+````
+
+## File: src/components/profile/RewardCodeRedemption.jsx
+````javascript
+/**
+ * Reward Code Redemption Component
+ *
+ * UI for students to paste and redeem reward codes
+ */
+
+import React, { useState } from "react";
+import { redeemRewardCode } from "../../services/rewardCodeService.js";
+
+export function RewardCodeRedemption({ db, classId, studentId, onSuccess }) {
+  const [codeInput, setCodeInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [messageType, setMessageType] = useState("info"); // "success" | "error" | "info"
+
+  const handleRedeem = async () => {
+    if (!codeInput.trim()) {
+      setMessage("Please enter a code.");
+      setMessageType("error");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const result = await redeemRewardCode({
+        db,
+        classId,
+        studentId,
+        codeString: codeInput,
+      });
+
+      if (result.success) {
+        setMessageType("success");
+        const pts = result.achievement?.effectivePointsAwarded;
+        const ptsText = pts ? ` You earned ${pts} points!` : "";
+        setMessage(`✓ ${result.message}${ptsText}`);
+        setCodeInput(""); // Clear input on success
+
+        // Notify parent to refresh data
+        if (onSuccess) {
+          onSuccess(result.achievement);
+        }
+      } else {
+        setMessageType("error");
+        setMessage(`✗ ${result.message}`);
+      }
+    } catch (err) {
+      console.error("Error redeeming code:", err);
+      setMessageType("error");
+      setMessage("An error occurred while redeeming the code. Try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !isLoading) {
+      handleRedeem();
+    }
+  };
+
+  return (
+    <div
+      style={{
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        padding: 14,
+        background: "#ffffff",
+      }}
+    >
+      {/* Label */}
+      <div
+        style={{
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          color: "#6b7280",
+          fontWeight: 700,
+          marginBottom: 8,
+        }}
+      >
+        Redeem Achievement Code
+      </div>
+
+      {/* Description */}
+      <div
+        className="muted"
+        style={{
+          fontSize: 12,
+          marginBottom: 12,
+        }}
+      >
+        Paste a code from an external activity or exercise to claim your reward.
+      </div>
+
+      {/* Input Field */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 12,
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Paste code here (e.g., XXXX-XXXX-XXXX-...)"
+          value={codeInput}
+          onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+          onKeyPress={handleKeyPress}
+          disabled={isLoading}
+          style={{
+            flex: 1,
+            padding: "8px 12px",
+            border: "1px solid #d1d5db",
+            borderRadius: 6,
+            fontSize: 13,
+            fontFamily: "monospace",
+            fontWeight: 500,
+            letterSpacing: "0.5px",
+          }}
+        />
+        <button
+          type="button"
+          onClick={handleRedeem}
+          disabled={isLoading || !codeInput.trim()}
+          style={{
+            padding: "8px 16px",
+            background: isLoading || !codeInput.trim() ? "#d1d5db" : "#2563eb",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 6,
+            cursor: isLoading || !codeInput.trim() ? "not-allowed" : "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+            transition: "background 0.2s",
+          }}
+        >
+          {isLoading ? "Redeeming..." : "Redeem"}
+        </button>
+      </div>
+
+      {/* Message Display */}
+      {message && (
+        <div
+          style={{
+            padding: 10,
+            borderRadius: 6,
+            fontSize: 13,
+            background:
+              messageType === "success"
+                ? "#dcfce7"
+                : messageType === "error"
+                  ? "#fee2e2"
+                  : "#dbeafe",
+            color:
+              messageType === "success"
+                ? "#166534"
+                : messageType === "error"
+                  ? "#991b1b"
+                  : "#1e40af",
+            border: `1px solid ${
+              messageType === "success"
+                ? "#bbf7d0"
+                : messageType === "error"
+                  ? "#fecaca"
+                  : "#93c5fd"
+            }`,
+            marginTop: 8,
+          }}
+        >
+          {message}
+        </div>
+      )}
+    </div>
+  );
+}
+````
+
+## File: src/hooks/useBackgroundManager.js
+````javascript
+import { useEffect, useRef, useState } from "react";
+import { doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+import {
+  getDownloadURL,
+  ref as storageRef,
+  uploadBytes,
+} from "firebase/storage";
+
+export default function useBackgroundManager({
+  db,
+  storage,
+  activeClassId,
+  activeClass,
+  backgroundFlagValue = "A",
+  notify,
+}) {
+  const [globalBackgroundUrl, setGlobalBackgroundUrl] = useState("");
+  const [stickyBackground, setStickyBackground] = useState("");
+  const bgInputRef = useRef(null);
+  const hasLoadedInitialGlobal = useRef(false);
+
+  useEffect(() => {
+    const bgDocRef = doc(db, "config", "background");
+    const unsub = onSnapshot(bgDocRef, (snap) => {
+      if (snap.exists()) {
+        setGlobalBackgroundUrl(snap.data().url || "");
+      } else {
+        setGlobalBackgroundUrl("");
+      }
+    });
+    return () => unsub();
+  }, [db]);
+
+  useEffect(() => {
+    if (!hasLoadedInitialGlobal.current && globalBackgroundUrl) {
+      setStickyBackground(globalBackgroundUrl);
+      hasLoadedInitialGlobal.current = true;
+    }
+  }, [globalBackgroundUrl]);
+
+  useEffect(() => {
+    if (!activeClassId) {
+      setStickyBackground(globalBackgroundUrl || "");
+      return;
+    }
+
+    const nextBg =
+      (backgroundFlagValue === "B" && activeClass?.backgroundUrl_B) ||
+      activeClass?.backgroundUrl ||
+      globalBackgroundUrl ||
+      "";
+    setStickyBackground(nextBg);
+  }, [activeClassId, activeClass, backgroundFlagValue, globalBackgroundUrl]);
+
+  async function uploadBackgroundImage(file, variant = "A") {
+    if (!file) return;
+
+    try {
+      const safeName = file.name.replace(/\s+/g, "_");
+      const timestamp = Date.now();
+
+      let storagePath;
+      let firestoreRef;
+
+      if (activeClassId) {
+        storagePath = `classes/${activeClassId}/backgrounds/bg_${timestamp}_${safeName}`;
+        firestoreRef = doc(db, "classes", activeClassId);
+      } else {
+        storagePath = `backgrounds/bg_${timestamp}_${safeName}`;
+        firestoreRef = doc(db, "config", "background");
+      }
+
+      const ref = storageRef(storage, storagePath);
+      const snapshot = await uploadBytes(ref, file);
+      const url = await getDownloadURL(snapshot.ref);
+
+      if (activeClassId) {
+        const field = variant === "B" ? "backgroundUrl_B" : "backgroundUrl";
+        await updateDoc(firestoreRef, { [field]: url });
+        notify(`Option ${variant} background updated for ${activeClass?.name || "selected class"}!`);
+      } else {
+        await setDoc(firestoreRef, { url });
+        notify("Global default background updated!");
+      }
+    } catch (err) {
+      console.error("uploadBackgroundImage error:", err);
+      notify("Failed to upload background image.");
+    }
+  }
+
+  async function clearBackgroundImage(variant = "A") {
+    try {
+      if (activeClassId) {
+        const field = variant === "B" ? "backgroundUrl_B" : "backgroundUrl";
+        await updateDoc(doc(db, "classes", activeClassId), {
+          [field]: "",
+        });
+        notify(
+          variant === "B"
+            ? `Removed Option B background for ${activeClass?.name || "selected class"}.`
+            : `Removed Option A background for ${activeClass?.name || "selected class"}. Now using default.`
+        );
+      } else {
+        await setDoc(doc(db, "config", "background"), { url: "" });
+        notify("Global background removed!");
+      }
+    } catch (err) {
+      console.error("clearBackgroundImage error:", err);
+      notify("Failed to remove background.");
+    }
+  }
+
+  return {
+    stickyBackground,
+    globalBackgroundUrl,
+    bgInputRef,
+    uploadBackgroundImage,
+    clearBackgroundImage,
+  };
+}
+````
+
+## File: src/services/requestService.js
+````javascript
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+
+export const MAX_PENDING_REQUESTS_PER_STUDENT = 3;
+
+export async function createRequest(
+  db,
+  classId,
+  { studentId, studentName, className, type, amount, cardId, cardTitle, note },
+  alertFn = null
+) {
+  try {
+    const pendingQ = query(
+      collection(db, `classes/${classId}/requests`),
+      where("studentId", "==", studentId),
+      where("status", "==", "pending")
+    );
+    const pendingSnap = await getDocs(pendingQ);
+    if (pendingSnap.size >= MAX_PENDING_REQUESTS_PER_STUDENT) {
+      if (alertFn) alertFn(`Ya tienes ${MAX_PENDING_REQUESTS_PER_STUDENT} peticiones pendientes. Espera a que se resuelvan.`);
+      return false;
+    }
+
+    // Determine Firestore-compatible type:
+    // If a card is requested (whether card-only or combined with points), use "card"
+    // as the primary document type so it complies with live Firestore security rules
+    // that require d.type in ['points', 'card'].
+    const docType = cardId ? "card" : "points";
+
+    const payload = {
+      studentId,
+      studentName: studentName || "",
+      className: className || "",
+      type: docType,
+      note: (note || "").toString().slice(0, 200),
+      status: "pending",
+      createdAt: Date.now(),
+    };
+    if (amount) payload.amount = Number(amount || 0);
+    if (cardId) {
+      payload.cardId = cardId;
+      payload.cardTitle = cardTitle || "";
+    }
+
+    await addDoc(collection(db, `classes/${classId}/requests`), payload);
+    return true;
+  } catch (err) {
+    console.error("createRequest error", err);
+    if (alertFn) alertFn("No se pudo enviar la petición.");
+    return false;
+  }
+}
+
+export async function cancelRequest(db, classId, requestId, alertFn = null) {
+  try {
+    await deleteDoc(doc(db, `classes/${classId}/requests/${requestId}`));
+    return true;
+  } catch (err) {
+    console.error("cancelRequest error", err);
+    if (alertFn) alertFn("No se pudo cancelar la petición.");
+    return false;
+  }
+}
+
+export async function rejectRequest(db, classId, requestId, alertFn = null) {
+  try {
+    await deleteDoc(doc(db, `classes/${classId}/requests/${requestId}`));
+    return true;
+  } catch (err) {
+    console.error("rejectRequest error", err);
+    if (alertFn) alertFn("No se pudo rechazar la petición.");
+    return false;
+  }
+}
+
+export async function resolveRequestApproved(db, classId, requestId, alertFn = null) {
+  try {
+    await deleteDoc(doc(db, `classes/${classId}/requests/${requestId}`));
+    return true;
+  } catch (err) {
+    console.error("resolveRequestApproved error", err);
+    if (alertFn) alertFn("La petición se concedió pero no se pudo limpiar de la lista.");
+    return false;
+  }
+}
+````
+
+## File: src/utils/rewardCodeUtils.test.js
+````javascript
+/**
+ * PKM Reward Code System - Tests
+ *
+ * Tests for encoding/decoding reward codes
+ */
+
+import {
+  generateRewardCode,
+  decodeRewardCode,
+  validateCodeFormat,
+  getStudentHash,
+  _internal,
+} from './rewardCodeUtils.js';
+
+const {
+  crc8,
+  crc32,
+  toBase36,
+  fromBase36,
+  normalizeCode,
+  formatCode,
+} = _internal;
+
+describe('rewardCodeUtils', () => {
+  describe('CRC-8', () => {
+    test('calculates correct CRC-8 for known values', () => {
+      const data = new Uint8Array([0x00, 0x00, 0x00]);
+      const result = crc8(data);
+      expect(typeof result).toBe('number');
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThan(256);
+    });
+
+    test('detects single-bit errors', () => {
+      const data = new Uint8Array([0xFF, 0x00, 0xAA]);
+      const crc1 = crc8(data);
+
+      // Flip one bit
+      data[1] = 0x01;
+      const crc2 = crc8(data);
+
+      expect(crc1).not.toBe(crc2);
+    });
+
+    test('handles empty buffer', () => {
+      const result = crc8(new Uint8Array([]));
+      expect(typeof result).toBe('number');
+    });
+  });
+
+  describe('CRC-32', () => {
+    test('calculates CRC-32 deterministically', () => {
+      const input = 'test123';
+      const result1 = crc32(input);
+      const result2 = crc32(input);
+      expect(result1).toBe(result2);
+    });
+
+    test('produces different hashes for different inputs', () => {
+      const hash1 = crc32('studentA');
+      const hash2 = crc32('studentB');
+      expect(hash1).not.toBe(hash2);
+    });
+
+    test('handles empty string', () => {
+      const result = crc32('');
+      expect(typeof result).toBe('number');
+    });
+
+    test('produces 32-bit results', () => {
+      const result = crc32('test');
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThan(0x100000000);
+    });
+  });
+
+  describe('Base36 Conversion', () => {
+    test('converts bytes to base36 with correct length', () => {
+      const bytes = new Uint8Array(18);
+      bytes[0] = 0xFF;
+      const base36 = toBase36(bytes);
+      expect(base36).toHaveLength(28);
+      expect(/^[0-9A-Z]{28}$/.test(base36)).toBe(true);
+    });
+
+    test('pads with zeros when needed', () => {
+      const bytes = new Uint8Array(18);
+      bytes[17] = 0x01;
+      const base36 = toBase36(bytes);
+      expect(base36).toHaveLength(28);
+      expect(base36).toMatch(/^0+/); // Should start with zeros
+    });
+
+    test('round-trips correctly', () => {
+      const original = new Uint8Array(18);
+      for (let i = 0; i < 18; i++) {
+        original[i] = Math.floor(Math.random() * 256);
+      }
+
+      const base36 = toBase36(original);
+      const decoded = fromBase36(base36);
+
+      for (let i = 0; i < 18; i++) {
+        expect(decoded[i]).toBe(original[i]);
+      }
+    });
+
+    test('fromBase36 always returns 18 bytes', () => {
+      const base36 = '00000000000000000000000000000';
+      const bytes = fromBase36(base36);
+      expect(bytes).toHaveLength(18);
+    });
+  });
+
+  describe('Code Formatting', () => {
+    test('formats code with hyphens correctly', () => {
+      const code = 'A' + 'B'.repeat(27);
+      const formatted = formatCode(code);
+      expect(formatted).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+      expect(formatted.replace(/-/g, '')).toBe(code);
+    });
+
+    test('requires exactly 28 characters', () => {
+      expect(() => formatCode('A'.repeat(27))).toThrow();
+      expect(() => formatCode('A'.repeat(29))).toThrow();
+    });
+
+    test('normalizes code by removing hyphens and uppercasing', () => {
+      const formatted = 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGGG';
+      const normalized = normalizeCode(formatted);
+      expect(normalized).toBe('AAAABBBBCCCCDDDDEEEEFFFFGGGG');
+    });
+
+    test('normalizeCode handles spaces', () => {
+      const normalized = normalizeCode('AAAA BBBB CCCC DDDD EEEE FFFF GGGG');
+      expect(normalized).toBe('AAAABBBBCCCCDDDDEEEEFFFFGGGG');
+    });
+
+    test('normalizeCode handles mixed case', () => {
+      const normalized = normalizeCode('aaaa-bbbb-cccc-dddd-eeee-ffff-gggg');
+      expect(normalized).toBe('AAAABBBBCCCCDDDDEEEEFFFFGGGG');
+    });
+  });
+
+  describe('Code Generation', () => {
+    test('generates a valid code', () => {
+      const code = generateRewardCode('student123', 'mathquest', 'algebra_01');
+      expect(validateCodeFormat(code)).toBe(true);
+    });
+
+    test('code is deterministic - same inputs produce same code', () => {
+      const studentId = 'K9xL2mN4oPqRsT1uXyZ1';
+      const sourceId = 'mathquest';
+      const activityId = 'algebra_01';
+
+      const code1 = generateRewardCode(studentId, sourceId, activityId);
+      const code2 = generateRewardCode(studentId, sourceId, activityId);
+
+      expect(code1).toBe(code2);
+    });
+
+    test('different students produce different codes', () => {
+      const code1 = generateRewardCode('student1', 'mathquest', 'algebra_01');
+      const code2 = generateRewardCode('student2', 'mathquest', 'algebra_01');
+      expect(code1).not.toBe(code2);
+    });
+
+    test('different activities produce different codes', () => {
+      const code1 = generateRewardCode('student1', 'mathquest', 'alg_01');
+      const code2 = generateRewardCode('student1', 'mathquest', 'alg_02');
+      expect(code1).not.toBe(code2);
+    });
+
+    test('different sources produce different codes', () => {
+      const code1 = generateRewardCode('student1', 'mathquest', 'alg_01');
+      const code2 = generateRewardCode('student1', 'google_sites', 'alg_01');
+      expect(code1).not.toBe(code2);
+    });
+
+    test('rejects empty student ID', () => {
+      expect(() => generateRewardCode('', 'mathquest', 'alg_01')).toThrow();
+    });
+
+    test('rejects empty source ID', () => {
+      expect(() => generateRewardCode('student1', '', 'alg_01')).toThrow();
+    });
+
+    test('rejects empty activity ID', () => {
+      expect(() => generateRewardCode('student1', 'mathquest', '')).toThrow();
+    });
+
+    test('handles long source and activity IDs (truncates to 6 chars)', () => {
+      const code1 = generateRewardCode('student1', 'mathquest_very_long', 'algebra_exam_01_final');
+      const code2 = generateRewardCode('student1', 'mathqu', 'diff_act');
+      expect(code1).not.toBe(code2); // Different because of different truncation
+    });
+
+    test('handles special characters in IDs', () => {
+      const code = generateRewardCode(
+        'user-ABC_123.456',
+        'google-sites_v2',
+        'lesson-01_part-A'
+      );
+      expect(validateCodeFormat(code)).toBe(true);
+    });
+  });
+
+  describe('Code Decoding', () => {
+    test('decodes a valid code successfully', () => {
+      const code = generateRewardCode('student123', 'mathquest', 'algebra_01');
+      const result = decodeRewardCode(code);
+
+      expect(result.success).toBe(true);
+      expect(result.version).toBe(1);
+      expect(result.sourceId).toBe('mathqu');
+      expect(result.activityId).toBe('algebr');
+    });
+
+    test('extracts correct student hash', () => {
+      const studentId = 'K9xL2mN4oPqRsT1uXyZ1';
+      const code = generateRewardCode(studentId, 'mathquest', 'algebra_01');
+      const result = decodeRewardCode(code);
+
+      expect(result.success).toBe(true);
+      expect(result.studentHash).toBe(getStudentHash(studentId));
+    });
+
+    test('handles code with hyphens', () => {
+      const code = generateRewardCode('student1', 'source', 'activity');
+      const result = decodeRewardCode(code);
+      expect(result.success).toBe(true);
+    });
+
+    test('handles code without hyphens', () => {
+      const code = generateRewardCode('student1', 'source', 'activity');
+      const codeWithoutHyphens = code.replace(/-/g, '');
+      const result = decodeRewardCode(codeWithoutHyphens);
+      expect(result.success).toBe(true);
+    });
+
+    test('handles code with spaces', () => {
+      const code = generateRewardCode('student1', 'source', 'activity');
+      const codeWithSpaces = code.replace(/-/g, ' ');
+      const result = decodeRewardCode(codeWithSpaces);
+      expect(result.success).toBe(true);
+    });
+
+    test('rejects invalid format', () => {
+      const result = decodeRewardCode('INVALID');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('INVALID_FORMAT');
+    });
+
+    test('rejects non-base36 characters', () => {
+      const result = decodeRewardCode('GGGG-HHHH-IIII-JJJJ-KKKK-LLLL-MMMM');
+      expect(result.success).toBe(false);
+    });
+
+    test('rejects wrong checksum', () => {
+      const code = generateRewardCode('student1', 'mathquest', 'algebra_01');
+      const corrupted = code
+        .replace(/-/g, '')
+        .split('')
+        .map((c, i) => (i === 0 ? String.fromCharCode(c.charCodeAt(0) + 1) : c))
+        .join('');
+
+      const result = decodeRewardCode(corrupted);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('CHECKSUM_ERROR');
+    });
+
+    test('rejects unsupported version', () => {
+      // This is hard to test without crafting bytes, so skip for now
+      // In practice, version 1 is the only supported version
+    });
+
+    test('detects corruption in source ID', () => {
+      const code = generateRewardCode('student1', 'mathquest', 'algebra_01');
+      const corrupted = code
+        .replace(/-/g, '')
+        .split('')
+        .map((c, i) => (i === 8 ? String.fromCharCode(c.charCodeAt(0) + 1) : c)) // Corrupt byte in middle
+        .join('');
+
+      const result = decodeRewardCode(corrupted);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('Student Hash Verification', () => {
+    test('getStudentHash is consistent', () => {
+      const studentId = 'user123';
+      const hash1 = getStudentHash(studentId);
+      const hash2 = getStudentHash(studentId);
+      expect(hash1).toBe(hash2);
+    });
+
+    test('generated code contains correct student hash', () => {
+      const studentId = 'MyStudent123';
+      const code = generateRewardCode(studentId, 'source', 'activity');
+      const decoded = decodeRewardCode(code);
+
+      expect(decoded.success).toBe(true);
+      expect(decoded.studentHash).toBe(getStudentHash(studentId));
+    });
+  });
+
+  describe('Code Format Validation', () => {
+    test('validates correct format', () => {
+      const code = generateRewardCode('student1', 'mathquest', 'algebra_01');
+      expect(validateCodeFormat(code)).toBe(true);
+    });
+
+    test('rejects too short codes', () => {
+      expect(validateCodeFormat('SHORT')).toBe(false);
+    });
+
+    test('rejects too long codes', () => {
+      expect(validateCodeFormat('A'.repeat(50))).toBe(false);
+    });
+
+    test('rejects non-alphanumeric characters', () => {
+      expect(validateCodeFormat('AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-$$$$')).toBe(false);
+    });
+
+    test('rejects invalid characters', () => {
+      expect(validateCodeFormat('############################')).toBe(false);
+    });
+  });
+
+  describe('End-to-End Scenarios', () => {
+    test('complete redemption flow: generate, normalize, decode, verify', () => {
+      const studentId = 'K9xL2mN4oPqRsT1uXyZ1';
+      const sourceId = 'mathquest';
+      const activityId = 'algebra_01';
+
+      // Step 1: Generate code (external app)
+      const code = generateRewardCode(studentId, sourceId, activityId);
+      console.log('Generated code:', code);
+
+      // Step 2: User pastes code with hyphens/spaces
+      const userInput = code.replace(/-/g, ' ');
+
+      // Step 3: Pokemáticos normalizes and validates format
+      expect(validateCodeFormat(userInput)).toBe(true);
+
+      // Step 4: Pokemáticos decodes
+      const decoded = decodeRewardCode(userInput);
+      expect(decoded.success).toBe(true);
+
+      // Step 5: Pokemáticos verifies student
+      const currentStudentHash = getStudentHash(studentId);
+      expect(decoded.studentHash).toBe(currentStudentHash);
+
+      // Step 6: Pokemáticos looks up activity in catalogue
+      expect(decoded.sourceId).toBeDefined();
+      expect(decoded.activityId).toBeDefined();
+    });
+
+    test('cannot redeem code from different student', () => {
+      const code = generateRewardCode('student1', 'mathquest', 'algebra_01');
+      const decoded = decodeRewardCode(code);
+
+      const student2Hash = getStudentHash('student2');
+      expect(decoded.studentHash).not.toBe(student2Hash);
+    });
+
+    test('same activity for different students produces different codes', () => {
+      const code1 = generateRewardCode('alice', 'mathquest', 'algebra_01');
+      const code2 = generateRewardCode('bob', 'mathquest', 'algebra_01');
+
+      const decoded1 = decodeRewardCode(code1);
+      const decoded2 = decodeRewardCode(code2);
+
+      expect(decoded1.studentHash).not.toBe(decoded2.studentHash);
+    });
+  });
+
+  describe('Test Vectors (Reference Implementation)', () => {
+    test('vector 1: simple case', () => {
+      const code = generateRewardCode('student1', 'math', 'less01');
+      const decoded = decodeRewardCode(code);
+      expect(decoded.success).toBe(true);
+      expect(decoded.sourceId).toBe('math');
+      expect(decoded.activityId).toBe('less01');
+    });
+
+    test('vector 2: truncation case', () => {
+      const code = generateRewardCode(
+        'longstudentid12345',
+        'verylongsourceid',
+        'verylongactivityid'
+      );
+      const decoded = decodeRewardCode(code);
+      expect(decoded.success).toBe(true);
+      expect(decoded.sourceId).toBe('verylo'); // Truncated to 6
+      expect(decoded.activityId).toBe('verylo'); // Truncated to 6
+    });
+
+    test('vector 3: special chars in IDs', () => {
+      const code = generateRewardCode(
+        'user-id_123.test',
+        'app-v2_test',
+        'ex-01_part-A'
+      );
+      const decoded = decodeRewardCode(code);
+      expect(decoded.success).toBe(true);
+    });
+
+    test('vector 4: very long student ID', () => {
+      const longId =
+        'this_is_a_very_long_student_id_that_should_still_work_correctly_because_we_use_hash';
+      const code = generateRewardCode(longId, 'source', 'activity');
+      const decoded = decodeRewardCode(code);
+      expect(decoded.success).toBe(true);
+      expect(decoded.studentHash).toBe(getStudentHash(longId));
+    });
+
+    test('vector 5: determinism check', () => {
+      const codes = [];
+      for (let i = 0; i < 100; i++) {
+        codes.push(generateRewardCode('fixed_student', 'fixed_source', 'fixed_activity'));
+      }
+      // All codes should be identical
+      for (let i = 1; i < codes.length; i++) {
+        expect(codes[i]).toBe(codes[0]);
+      }
+    });
+  });
+});
+````
+
+## File: src/components/common/FeedbackDialog.jsx
+````javascript
+import { useEffect } from "react";
+
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
+
+export default function FeedbackDialog({
+  notice,
+  confirmation,
+  pendingAction,
+  levelUpNotice,
+  onDismissNotice,
+  onResolveConfirmation,
+  onDismissLevelUp,
+}) {
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = window.setTimeout(onDismissNotice, 4200);
+    return () => window.clearTimeout(timer);
+  }, [notice, onDismissNotice]);
+
+  return (
+    <>
+      {pendingAction && (
+        <div className="feedback-notice feedback-notice--loading" role="status" aria-live="polite">
+          <span>{pendingAction}</span>
+          <span className="feedback-spinner" aria-hidden="true" />
+        </div>
+      )}
+
+      {notice && (
+        <div className="feedback-notice" role="status">
+          <span>{notice.message}</span>
+          <button type="button" className="feedback-dismiss" onClick={onDismissNotice} aria-label="Close notification">
+            x
+          </button>
+        </div>
+      )}
+
+      {/* Level Up Center Screen Modal */}
+      {levelUpNotice && (
+        <div className="modal-backdrop" role="presentation" style={{ zIndex: 1200 }} onClick={onDismissLevelUp}>
+          <div
+            className="level-up-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="levelup-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 54, marginBottom: 8, filter: "drop-shadow(0 4px 10px rgba(234,179,8,0.4))" }}>
+              🎉
+            </div>
+            <h2 id="levelup-title" style={{ margin: "0 0 8px", fontSize: 24, fontWeight: 900, color: "#854d0e" }}>
+              LEVEL UP!
+            </h2>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#1f2937", marginBottom: 16 }}>
+              {levelUpNotice.message || "Unlocked new Experience Card(s)!"}
+            </div>
+            {Array.isArray(levelUpNotice.cards) && levelUpNotice.cards.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  justifyContent: "center",
+                  flexWrap: "wrap",
+                  margin: "16px 0 20px",
+                }}
+              >
+                {levelUpNotice.cards.map((c) => {
+                  const img = getCardDisplayImage(c, levelUpNotice.flagValue, false);
+                  return (
+                    <div
+                      key={c.id || c.cardId}
+                      style={{
+                        width: 90,
+                        border: "2px solid #eab308",
+                        borderRadius: 12,
+                        padding: 6,
+                        background: "#fff",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "100%",
+                          height: 100,
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          background: "#f3f4f6",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {img ? (
+                          <img src={img} alt={c.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <span style={{ fontSize: 32 }}>⭐</span>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          marginTop: 6,
+                          color: "#111827",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {c.title}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <button
+              type="button"
+              className="btn primary"
+              style={{
+                background: "#eab308",
+                borderColor: "#ca8a04",
+                color: "#713f12",
+                fontWeight: 800,
+                padding: "10px 24px",
+                fontSize: 15,
+                borderRadius: 999,
+                boxShadow: "0 6px 20px rgba(234,179,8,0.4)",
+              }}
+              onClick={onDismissLevelUp}
+            >
+              Awesome! ✨
+            </button>
+          </div>
+        </div>
+      )}
+
+      {confirmation && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="feedback-dialog" role="alertdialog" aria-modal="true" aria-labelledby="feedback-dialog-title">
+            <div className="feedback-dialog-icon" aria-hidden="true">!</div>
+            <h3 id="feedback-dialog-title">Please confirm</h3>
+            <p>{confirmation.message}</p>
+            <div className="feedback-dialog-actions">
+              <button type="button" className="btn" onClick={() => onResolveConfirmation(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn danger" onClick={() => onResolveConfirmation(true)}>
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+````
+
+## File: src/hooks/useClassData.js
+````javascript
+import { useEffect, useState } from "react";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
+
+const studentNameCollator = new Intl.Collator("es", { sensitivity: "base" });
+
+export default function useClassData({ db, activeClassId }) {
+  const [classesList, setClassesList] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [cards, setCards] = useState([]);
+  const [rewards, setRewards] = useState([]);
+
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [loadingCards, setLoadingCards] = useState(false);
+  const [loadingRewards, setLoadingRewards] = useState(false);
+
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    setLoadingClasses(true);
+    const q = query(collection(db, "classes"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const arr = [];
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+        setClassesList(arr);
+        setLoadingClasses(false);
+      },
+      (err) => {
+        console.error("Failed loading classes:", err);
+        setErrorMsg("Failed to load classes. Check console.");
+        setLoadingClasses(false);
+      }
+    );
+    return () => unsub();
+  }, [db]);
+
+  useEffect(() => {
+    const activeClass = classesList.find((item) => item.id === activeClassId);
+    if (!activeClassId || activeClass?.archivedUrl) {
+      setStudents([]);
+      setCards([]);
+      setRewards([]);
+      setLoadingStudents(false);
+      setLoadingCards(false);
+      setLoadingRewards(false);
+      return;
+    }
+
+    setErrorMsg("");
+
+    setLoadingStudents(true);
+    const unsubStudents = onSnapshot(
+      query(collection(db, `classes/${activeClassId}/students`), orderBy("name")),
+      (snap) => {
+        const arr = [];
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+        arr.sort((a, b) =>
+          studentNameCollator.compare(String(a.name || ""), String(b.name || ""))
+        );
+        setStudents(arr);
+        setLoadingStudents(false);
+      },
+      (err) => {
+        console.error("students snapshot err", err);
+        setErrorMsg("Error loading students.");
+        setLoadingStudents(false);
+      }
+    );
+
+    setLoadingCards(true);
+    const unsubCards = onSnapshot(
+      query(collection(db, `classes/${activeClassId}/cards`), orderBy("createdAt", "asc")),
+      (snap) => {
+        const arr = [];
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+        setCards(arr);
+        setLoadingCards(false);
+      },
+      (err) => {
+        console.error("cards snapshot err", err);
+        setErrorMsg("Error loading cards.");
+        setLoadingCards(false);
+      }
+    );
+
+    setLoadingRewards(true);
+    const unsubRewards = onSnapshot(
+      query(collection(db, `classes/${activeClassId}/rewards`), orderBy("title")),
+      (snap) => {
+        const arr = [];
+        snap.forEach((d) => arr.push({ id: d.id, ...d.data() }));
+        setRewards(arr);
+        setLoadingRewards(false);
+      },
+      (err) => {
+        console.error("rewards snapshot err", err);
+        setErrorMsg("Error loading rewards.");
+        setLoadingRewards(false);
+      }
+    );
+
+    return () => {
+      unsubStudents();
+      unsubCards();
+      unsubRewards();
+    };
+  }, [activeClassId, classesList, db]);
+
+  return {
+    classesList,
+    students,
+    cards,
+    rewards,
+    loadingClasses,
+    loadingStudents,
+    loadingCards,
+    loadingRewards,
+    errorMsg,
+  };
+}
+````
+
+## File: src/services/rewardService.js
+````javascript
+import { addDoc, collection, deleteDoc, doc } from "firebase/firestore";
+
+import { uid, round2 } from "../utils/helpers";
+
+export async function createReward({
+  db,
+  classId,
+  title,
+  cost,
+  linkedCardId,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  if (!classId) return;
+  if (!title?.trim()) {
+    if (alertFn) alertFn("Reward title required");
+    return;
+  }
+
+  try {
+    const payload = {
+      title: title.trim(),
+      cost: Number(cost || 0),
+      cardId: linkedCardId || null,
+      createdAt: Date.now(),
+    };
+
+    await addDoc(collection(db, `classes/${classId}/rewards`), payload);
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to create reward.");
+  }
+}
+
+export async function deleteReward({
+  db,
+  classId,
+  rewardId,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
+}) {
+  if (!classId || !rewardId) return;
+  if (confirmFn && !(await confirmFn("Delete this reward?"))) return;
+
+  try {
+    await deleteDoc(doc(db, `classes/${classId}/rewards/${rewardId}`));
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to delete reward.");
+  }
+}
+
+// Shared by cardService (give single/bulk) and streakService (manual +/-):
+// grants the reward cards configured for a streak once it hits its maximum.
+export async function grantStreakMaxRewardCards({
+  rewardCardIds,
+  cardsArr,
+  currentPoints,
+  multiplier,
+  streakId,
+  classId,
+  getCardDataFast,
+  givenRewardCardIds = new Set(),
+}) {
+  let points = currentPoints;
+
+  for (const rewardCardId of Array.isArray(rewardCardIds) ? rewardCardIds : []) {
+    if (!rewardCardId || givenRewardCardIds.has(rewardCardId)) continue;
+
+    const rewardCard = await getCardDataFast(classId, rewardCardId);
+    if (!rewardCard) continue;
+    if ((rewardCard.category || "points") !== "points") continue;
+
+    const pts = round2(Number(rewardCard.points || 0) * multiplier);
+
+    pushOwnedCard({
+      cardsArr,
+      cardId: rewardCardId,
+      cardData: rewardCard,
+      pointsGranted: pts,
+      streakId,
+    });
+
+    points = round2(points + pts);
+    givenRewardCardIds.add(rewardCardId);
+  }
+
+  return points;
+}
+
+export function pushOwnedCard({ cardsArr, cardId, cardData, pointsGranted, streakId }) {
+  cardsArr.push({
+    id: uid("owned"),
+    cardId,
+    title: cardData.title || "",
+    imageURL: cardData.imageURL || "",
+    imageURL2: cardData.imageURL2 || "",
+    grantedAt: new Date().toISOString(),
+    pointsGranted: round2(pointsGranted || 0),
+    autoFrom: { type: "streakMax", streakId },
+  });
+}
+
+export function getNewExperienceCards(currentCards, currentXp, allCards) {
+  const xpCards = allCards.filter((c) => c.category === "experience");
+  const unlocked = xpCards.filter((c) => currentXp >= (c.points || 0));
+  const newUnlocks = unlocked.filter(
+    (c) => !currentCards.some((owned) => owned.cardId === c.id)
+  );
+
+  return newUnlocks;
+}
+
+export function unlockExperienceCards({ allCards, cardsArr, xpAfter, nowISO }) {
+  const library = Array.isArray(allCards) ? allCards : [];
+  if (library.length === 0) return cardsArr;
+
+  const ownedCardIds = new Set(
+    (Array.isArray(cardsArr) ? cardsArr : [])
+      .map((owned) => owned?.cardId)
+      .filter(Boolean)
+  );
+
+  const eligible = library
+    .filter((c) => (c.category || "points") === "experience")
+    .filter((c) => Number(c.points ?? 0) >= 0)
+    .filter((c) => (Number(xpAfter) || 0) >= Number(c.points ?? 0))
+    .filter((c) => c?.id && !ownedCardIds.has(c.id))
+    .sort((a, b) => Number(a.points ?? 0) - Number(b.points ?? 0));
+
+  if (eligible.length === 0) return cardsArr;
+
+  const next = [...(Array.isArray(cardsArr) ? cardsArr : [])];
+
+  for (const c of eligible) {
+    next.push({
+      id: uid("owned"),
+      cardId: c.id,
+      title: c.title || "",
+      imageURL: c.imageURL || "",
+      grantedAt: nowISO,
+      pointsGranted: 0,
+      autoFrom: {
+        type: "xpUnlock",
+        xpRequired: Number(c.points ?? 0),
+        xpAt: Number(xpAfter) || 0,
+      },
+    });
+  }
+
+  return next;
+}
+
+/**
+ * Combines `rewards`-category cards (automatically acting as redeemable shop items)
+ * with any legacy `classes/{classId}/rewards` documents.
+ * When a legacy reward links to a `rewards` card, it is merged without duplicating
+ * and always uses the reward card's own title, description, and points (cost).
+ */
+export function buildUnifiedRewards(cards = [], legacyRewards = []) {
+  const safeCards = Array.isArray(cards) ? cards : [];
+  const safeLegacy = Array.isArray(legacyRewards) ? legacyRewards : [];
+
+  const rewardCards = safeCards.filter((c) => (c?.category || "points") === "rewards");
+  const rewardCardIds = new Set(rewardCards.map((c) => c.id).filter(Boolean));
+  const legacyByCardId = new Map();
+  const unmatchedLegacy = [];
+
+  for (const r of safeLegacy) {
+    if (!r) continue;
+    if (r.cardId && rewardCardIds.has(r.cardId)) {
+      if (!legacyByCardId.has(r.cardId)) {
+        legacyByCardId.set(r.cardId, r);
+      }
+    } else {
+      unmatchedLegacy.push({ ...r, isLegacy: true });
+    }
+  }
+
+  const cardRewards = rewardCards.map((c) => {
+    const legacy = legacyByCardId.get(c.id) || null;
+    return {
+      id: c.id,
+      title: c.title || "",
+      description: c.description || "",
+      cost: Number(c.points || 0),
+      cardId: c.id,
+      legacyRewardId: legacy?.id || null,
+      isCardReward: true,
+    };
+  });
+
+  return [...cardRewards, ...unmatchedLegacy];
+}
+````
+
+## File: src/services/studentService.js
+````javascript
+import { collection, doc, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
+
+export async function addStudent(
+  db,
+  activeClassId,
+  name,
+  ensureClassSelected,
+  newStudentRef,
+  alertFn = null
+) {
+  if (!ensureClassSelected()) return;
+  if (!name?.trim()) return;
+
+  try {
+    const payload = {
+      name: name.trim(),
+      // profile cosmetics
+      nameEmojis: "",
+      profileColor: "",
+      // points / xp
+      currentPoints: 0,
+      xp: 0,
+      multiplier: 1,
+      streaks: {},
+      // basic "locker" PIN, not real security
+      pin: "0000",
+      // inventory / history
+      cards: [],
+      rewardsHistory: [],
+      createdAt: Date.now(),
+    };
+    await addDoc(collection(db, `classes/${activeClassId}/students`), payload);
+    if (newStudentRef.current) newStudentRef.current.value = "";
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to add student.");
+  }
+}
+
+export async function editStudent(db, classId, studentId, updates, alertFn = null) {
+  try {
+    await updateDoc(
+      doc(db, `classes/${classId}/students/${studentId}`),
+      updates
+    );
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed saving student changes.");
+  }
+}
+
+export async function deleteStudent(
+  db,
+  classId,
+  studentId,
+  setSelectedStudentId,
+  setProfileStudentId,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null
+) {
+  if (confirmFn && !(await confirmFn("Delete this student?"))) return;
+  try {
+    await deleteDoc(doc(db, `classes/${classId}/students/${studentId}`));
+    setSelectedStudentId(null);
+    setProfileStudentId(null);
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to delete student.");
+  }
+}
+````
+
+## File: src/components/auth/LoginScreen.jsx
+````javascript
+import EyeToggleButton from "../common/EyeToggleButton";
+
+export default function LoginScreen({
+  authChecked,
+  checkingAdmin,
+  showAdminForm,
+  setShowAdminForm,
+  adminEmail,
+  setAdminEmail,
+  adminPass,
+  setAdminPass,
+  adminError,
+  setAdminError,
+  enterReader,
+  loginAdminEmailPassword,
+  focusMode = false,
+  onToggleFocus,
+}) {
+  const loginStyles = {
+    container: {
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("https://firebasestorage.googleapis.com/v0/b/pokematicos.firebasestorage.app/o/backgrounds%2FBackground%20panoramic.jpg?alt=media&token=33b4b912-6e8f-4bf4-8b67-94e250310150")',
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      fontFamily: "'Inter', sans-serif",
+      padding: 20,
+    },
+    card: {
+      background: "rgba(255, 255, 255, 0.15)",
+      backdropFilter: "blur(20px) saturate(180%)",
+      WebkitBackdropFilter: "blur(20px) saturate(180%)",
+      border: "1px solid rgba(255, 255, 255, 0.3)",
+      borderRadius: "24px",
+      boxShadow: "0 24px 48px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.4)",
+      padding: "36px 32px",
+      width: "100%",
+      maxWidth: "440px",
+      textAlign: "center",
+      boxSizing: "border-box",
+      transition: "all 200ms ease",
+    },
+    title: {
+      margin: 0,
+      color: "#ffffff",
+      fontSize: "1.75rem",
+      fontWeight: "800",
+      letterSpacing: "-0.02em",
+      lineHeight: 1.25,
+      textShadow: "0 2px 10px rgba(0, 0, 0, 0.35)",
+    },
+    subtitle: {
+      color: "rgba(255, 255, 255, 0.85)",
+      fontSize: "0.95rem",
+      fontWeight: "600",
+      margin: "8px 0 26px 0",
+      letterSpacing: "0.01em",
+    },
+    studentBtn: {
+      width: "100%",
+      padding: "16px 20px",
+      fontSize: "1.05rem",
+      fontWeight: "700",
+      color: "#ffffff",
+      background: "linear-gradient(135deg, rgba(16, 185, 129, 0.88), rgba(5, 150, 105, 0.88))",
+      border: "1px solid rgba(255, 255, 255, 0.3)",
+      borderRadius: "14px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "10px",
+      boxShadow: "0 6px 20px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4)",
+      transition: "all 180ms ease",
+    },
+    teacherBtn: {
+      width: "100%",
+      padding: "15px 20px",
+      fontSize: "1rem",
+      color: "#ffffff",
+      background: "rgba(255, 255, 255, 0.16)",
+      backdropFilter: "blur(10px)",
+      WebkitBackdropFilter: "blur(10px)",
+      border: "1px solid rgba(255, 255, 255, 0.32)",
+      borderRadius: "14px",
+      cursor: "pointer",
+      fontWeight: "700",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+      transition: "all 180ms ease",
+    },
+    input: {
+      width: "100%",
+      padding: "14px 16px",
+      marginBottom: "14px",
+      borderRadius: "12px",
+      border: "1px solid rgba(255, 255, 255, 0.4)",
+      background: "rgba(255, 255, 255, 0.92)",
+      fontSize: "1rem",
+      color: "#0f172a",
+      boxSizing: "border-box",
+      outline: "none",
+      boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.06)",
+      transition: "all 160ms ease",
+    },
+  };
+
+  if (focusMode) {
+    return (
+      <div style={{ ...loginStyles.container, alignItems: "flex-start", justifyContent: "flex-start", backgroundImage: loginStyles.container.backgroundImage.slice(loginStyles.container.backgroundImage.indexOf("url(")) }}>
+        <EyeToggleButton focusMode onToggle={onToggleFocus} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={loginStyles.container}>
+      <EyeToggleButton focusMode={false} onToggle={onToggleFocus} />
+
+      <div style={loginStyles.card}>
+        <h1 style={loginStyles.title}>CBA Cards and Points System</h1>
+
+        {(!authChecked || checkingAdmin) ? (
+          <div style={{ color: "#ffffff", padding: 24, fontWeight: 700, textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}>Loading...</div>
+        ) : !showAdminForm ? (
+          <>
+            <div style={loginStyles.subtitle}>
+              Log in as a...
+            </div>
+
+            <button
+              style={loginStyles.studentBtn}
+              onClick={enterReader}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 8px 24px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 6px 20px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4)";
+              }}
+            >
+              🎒 Student (Guest)
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "22px 0" }}>
+              <div style={{ height: 1, background: "rgba(255, 255, 255, 0.25)", flex: 1 }}></div>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: "rgba(255, 255, 255, 0.75)",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                OR
+              </span>
+              <div style={{ height: 1, background: "rgba(255, 255, 255, 0.25)", flex: 1 }}></div>
+            </div>
+
+            <button
+              style={loginStyles.teacherBtn}
+              onClick={() => setShowAdminForm(true)}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.24)";
+                e.currentTarget.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.45)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.16)";
+                e.currentTarget.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.35)";
+              }}
+            >
+              👨‍🏫 Teacher (Admin)
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ ...loginStyles.subtitle, fontSize: "1.1rem", fontWeight: 700, margin: "8px 0 20px", color: "#ffffff" }}>
+              Access for teachers
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                loginAdminEmailPassword();
+              }}
+            >
+              <input
+                style={loginStyles.input}
+                type="email"
+                placeholder="Email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                autoFocus
+              />
+              <input
+                style={loginStyles.input}
+                type="password"
+                placeholder="Password"
+                value={adminPass}
+                onChange={(e) => setAdminPass(e.target.value)}
+              />
+
+              {adminError && (
+                <div
+                  style={{
+                    color: "#fecaca",
+                    fontSize: "0.9rem",
+                    marginBottom: 14,
+                    background: "rgba(185, 28, 28, 0.55)",
+                    border: "1px solid rgba(239, 68, 68, 0.4)",
+                    backdropFilter: "blur(6px)",
+                    WebkitBackdropFilter: "blur(6px)",
+                    padding: "8px 14px",
+                    borderRadius: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  {adminError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                style={{
+                  ...loginStyles.studentBtn,
+                  background: "linear-gradient(135deg, rgba(79, 70, 229, 0.9), rgba(67, 56, 202, 0.9))",
+                  boxShadow: "0 6px 20px rgba(79, 70, 229, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(79, 70, 229, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35)";
+                }}
+              >
+                Login
+              </button>
+            </form>
+
+            <button
+              type="button"
+              style={{
+                background: "rgba(255, 255, 255, 0.15)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                color: "#ffffff",
+                padding: "10px 20px",
+                borderRadius: "12px",
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                cursor: "pointer",
+                marginTop: 18,
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.25)",
+                transition: "all 160ms ease",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.22)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+              }}
+              onClick={() => {
+                setShowAdminForm(false);
+                setAdminError("");
+              }}
+            >
+              ← Back
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/cards/CardCreateForm.jsx
+````javascript
+import React, { useState } from "react";
+
+export default function CardCreateForm({
+  cards = [],
+  defaultCatalystCardId = "",
+  onCreate,
+  lockedInputRef,
+  unlockedInputRef,
+  lockedInputBRef,
+  unlockedInputBRef,
+  flagConfig,
+  streakConfigs = [],
+  onValidationError,
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [points, setPoints] = useState(1);
+  const [category, setCategory] = useState("points");
+  const [lockedFile, setLockedFile] = useState(null);
+  const [unlockedFile, setUnlockedFile] = useState(null);
+  const [lockedFile_B, setLockedFileB] = useState(null);
+  const [unlockedFile_B, setUnlockedFileB] = useState(null);
+  const [linkedStreakIds, setLinkedStreakIds] = useState([]);
+  const [streakPick, setStreakPick] = useState("");
+  const [streakLookup, setStreakLookup] = useState("");
+
+  // Evolution configuration
+  const [isEvolution, setIsEvolution] = useState(false);
+  const [baseCardId, setBaseCardId] = useState("");
+  const [requiredCopies, setRequiredCopies] = useState(3);
+  const [catalystCardId, setCatalystCardId] = useState("");
+
+  async function handleCreate() {
+    if (!title.trim()) {
+      if (onValidationError) onValidationError("Title required");
+      return;
+    }
+
+    if (isEvolution && !baseCardId) {
+      if (onValidationError) onValidationError("Selecciona la carta base para la evolución");
+      return;
+    }
+
+    const evolution = isEvolution && baseCardId ? {
+      isEvolution: true,
+      baseCardId,
+      requiredCopies: Math.max(1, parseInt(requiredCopies, 10) || 1),
+      catalystCardId: catalystCardId || "",
+    } : null;
+
+    const result = await onCreate({
+      title,
+      description,
+      points: category === "extra" ? 0 : points,
+      category,
+      linkedStreakIds: category === "points" ? linkedStreakIds : [],
+      lockedFile,
+      unlockedFile,
+      lockedFile_B,
+      unlockedFile_B,
+      evolution,
+    });
+    if (result === false) return;
+    setTitle("");
+    setDescription("");
+    setPoints(1);
+    setCategory("points");
+    setIsEvolution(false);
+    setBaseCardId("");
+    setRequiredCopies(3);
+    setCatalystCardId("");
+    setLinkedStreakIds([]);
+    setStreakPick("");
+    setStreakLookup("");
+    setLockedFile(null);
+    setUnlockedFile(null);
+    setLockedFileB(null);
+    setUnlockedFileB(null);
+    if (lockedInputRef?.current) lockedInputRef.current.value = "";
+    if (unlockedInputRef?.current) unlockedInputRef.current.value = "";
+    if (lockedInputBRef?.current) lockedInputBRef.current.value = "";
+    if (unlockedInputBRef?.current) unlockedInputBRef.current.value = "";
+  }
+
+  function addStreakId(id) {
+    if (!id) return;
+    setLinkedStreakIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setStreakPick("");
+  }
+
+  function removeStreakId(id) {
+    setLinkedStreakIds((prev) => prev.filter((x) => x !== id));
+  }
+
+  function resolveCreateStreakIdFromText(txt) {
+    const t = (txt || "").trim();
+    if (!t) return "";
+    const n = parseInt(t, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= streakConfigs.length) return streakConfigs[n - 1].id;
+    const byEmoji = streakConfigs.find((cfg) => (cfg.emoji || "").trim() === t);
+    return byEmoji ? byEmoji.id : "";
+  }
+
+  return (
+    <div>
+      <input
+        placeholder="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        style={{ width: "100%", padding: 8, marginBottom: 8, borderRadius: 8, border: "1px solid #ddd" }}
+      />
+      <textarea
+        placeholder="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        style={{ width: "100%", padding: 8, height: 70, borderRadius: 8, border: "1px solid #ddd" }}
+      />
+      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+        {category !== "extra" && (
+          <input
+            type="number"
+            value={points}
+            onChange={(e) => setPoints(e.target.value)}
+            placeholder={
+              category === "experience"
+                ? "XP"
+                : category === "rewards"
+                ? "Cost (pts)"
+                : "Points"
+            }
+            style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+          />
+        )}
+        <select
+          value={category}
+          onChange={(e) => {
+            const next = e.target.value;
+            setCategory(next);
+            if (next === "extra") {
+              setPoints(0);
+            }
+            if (next !== "points") {
+              setLinkedStreakIds([]);
+              setStreakPick("");
+              setStreakLookup("");
+            }
+          }}
+          style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+        >
+          <option value="points">Points</option>
+          <option value="rewards">Rewards</option>
+          <option value="experience">Experience</option>
+          <option value="extra">Extra</option>
+        </select>
+      </div>
+
+      {category === "points" && (
+        <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 10, marginTop: 10 }}>
+          <div style={{ fontWeight: 800 }}>Link to streaks (optional)</div>
+
+          {(!streakConfigs || streakConfigs.length === 0) ? (
+            <div className="muted" style={{ marginTop: 6 }}>
+              No streak types yet. Click <b>New streak</b> at the top to create one.
+            </div>
+          ) : (
+            <>
+              <div className="muted" style={{ marginTop: 4 }}>
+                Add one or more streaks by dropdown, emoji, or number order.
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+                <select
+                  value={streakPick}
+                  onChange={(e) => setStreakPick(e.target.value)}
+                  style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", minWidth: 180 }}
+                >
+                  <option value="">Choose streak…</option>
+                  {streakConfigs.map((cfg, idx) => (
+                    <option key={cfg.id} value={cfg.id}>
+                      {idx + 1}) {cfg.emoji} (max {cfg.max})
+                    </option>
+                  ))}
+                </select>
+
+                <button className="btn" type="button" onClick={() => addStreakId(streakPick)} disabled={!streakPick}>
+                  Add
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+                <input
+                  value={streakLookup}
+                  onChange={(e) => setStreakLookup(e.target.value)}
+                  placeholder='Type emoji (🔥) or number (1)'
+                  style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", minWidth: 220 }}
+                />
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => addStreakId(resolveCreateStreakIdFromText(streakLookup))}
+                >
+                  Add from text
+                </button>
+              </div>
+
+              {linkedStreakIds.length > 0 && (
+                <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {linkedStreakIds.map((id) => {
+                    const cfg = streakConfigs.find((s) => s.id === id);
+                    return (
+                      <span
+                        key={id}
+                        className="pill"
+                        style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+                      >
+                        {cfg ? cfg.emoji : "?"}
+                        <button className="btn" type="button" onClick={() => removeStreakId(id)} style={{ padding: "2px 8px" }}>
+                          ✕
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Evolution configuration */}
+      <div
+        style={{
+          border: "1px solid #c7d2fe",
+          borderRadius: 12,
+          padding: 12,
+          marginTop: 12,
+          background: isEvolution ? "#eef2ff" : "#f8fafc",
+          transition: "background 0.2s",
+        }}
+      >
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+            fontWeight: 800,
+            fontSize: 14,
+            color: "#4338ca",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={isEvolution}
+            onChange={(e) => setIsEvolution(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: "#4f46e5" }}
+          />
+          🧬 ¿Es una evolución de otra carta?
+        </label>
+
+        {isEvolution && (
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                Carta base pre-evolución:
+              </div>
+              <select
+                value={baseCardId}
+                onChange={(e) => setBaseCardId(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: 8,
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                }}
+              >
+                <option value="">Selecciona carta base...</option>
+                {cards.map((c) => {
+                  const cat = c.category || "points";
+                  const metric =
+                    cat === "extra"
+                      ? "extra"
+                      : `${c.points || 0} ${cat === "experience" ? "XP" : "pts"} - ${cat}`;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.title} ({metric})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                  Copias base requeridas:
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={requiredCopies}
+                  onChange={(e) => setRequiredCopies(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: 8,
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                  Objeto Catalizador:
+                </div>
+                <select
+                  value={catalystCardId}
+                  onChange={(e) => setCatalystCardId(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: 8,
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                  }}
+                >
+                  <option value="">
+                    {defaultCatalystCardId
+                      ? `(Catalizador universal: ${cards.find((c) => c.id === defaultCatalystCardId)?.title || "Configurado"})`
+                      : "(Catalizador universal — selecciona uno en Biblioteca)"}
+                  </option>
+                  {cards
+                    .filter((c) => (c.category || "points") === "rewards" || c.category === "extra")
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "#6366f1" }}>
+              💡 Al evolucionar, se consumirá 1 Catalizador de la biblioteca del alumno y se conservarán las cartas base.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {flagConfig && (
+        <div style={{ fontWeight: 800, marginTop: 12 }}>
+          Option A ({flagConfig.optionA}) images
+        </div>
+      )}
+      <div style={{ marginTop: 10, fontSize: 13 }}>
+        <div style={{ marginBottom: 4 }}>Locked card (grey with lock)</div>
+        <input
+          ref={lockedInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => setLockedFile(e.target.files?.[0] || null)}
+        />
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 13 }}>
+        <div style={{ marginBottom: 4 }}>Unlocked card (original/full colour)</div>
+        <input
+          ref={unlockedInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)}
+        />
+      </div>
+
+      {flagConfig && (
+        <div style={{ borderTop: "1px solid #eee", marginTop: 12, paddingTop: 10 }}>
+          <div style={{ fontWeight: 800, marginBottom: 8 }}>
+            Option B ({flagConfig.optionB}) images (optional)
+          </div>
+          <div style={{ marginTop: 8, fontSize: 13 }}>
+            <div style={{ marginBottom: 4 }}>Locked card</div>
+            <input
+              ref={lockedInputBRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setLockedFileB(e.target.files?.[0] || null)}
+            />
+          </div>
+          <div style={{ marginTop: 10, fontSize: 13 }}>
+            <div style={{ marginBottom: 4 }}>Unlocked card</div>
+            <input
+              ref={unlockedInputBRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setUnlockedFileB(e.target.files?.[0] || null)}
+            />
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop: 10 }}>
+        <button className="btn primary" onClick={handleCreate}>
+          Add card
+        </button>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/cards/CardEditModal.jsx
+````javascript
+import React, { useState } from "react";
+
+export default function CardEditModal({
+  card,
+  cards = [],
+  defaultCatalystCardId = "",
+  streakConfigs = [],
+  flagConfig,
+  onClose,
+  onSave,
+  onValidationError,
+}) {
+  const [title, setTitle] = useState(card.title || "");
+  const [description, setDescription] = useState(card.description || "");
+  const [points, setPoints] = useState(card.points ?? 0);
+  const [category, setCategory] = useState(card.category || "points");
+
+  // Evolution configuration
+  const [isEvolution, setIsEvolution] = useState(
+    () => Boolean(card.evolution?.isEvolution || card.evolution?.baseCardId)
+  );
+  const [baseCardId, setBaseCardId] = useState(() => card.evolution?.baseCardId || "");
+  const [requiredCopies, setRequiredCopies] = useState(
+    () => card.evolution?.requiredCopies ?? 3
+  );
+  const [catalystCardId, setCatalystCardId] = useState(
+    () => card.evolution?.catalystCardId || ""
+  );
+
+  const [linkedStreakIds, setLinkedStreakIds] = useState(
+    () => (Array.isArray(card.linkedStreakIds) ? card.linkedStreakIds.filter(Boolean).map(String) : [])
+  );
+  const [streakPick, setStreakPick] = useState("");
+  const [streakLookup, setStreakLookup] = useState("");
+
+  const [lockedFile, setLockedFile] = useState(null);
+  const [unlockedFile, setUnlockedFile] = useState(null);
+  const [lockedFile_B, setLockedFileB] = useState(null);
+  const [unlockedFile_B, setUnlockedFileB] = useState(null);
+
+  function addStreakId(id) {
+    if (!id) return;
+    setLinkedStreakIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setStreakPick("");
+  }
+
+  function removeStreakId(id) {
+    setLinkedStreakIds((prev) => prev.filter((x) => x !== id));
+  }
+
+  function resolveStreakIdFromText(txt) {
+    const t = (txt || "").trim();
+    if (!t) return "";
+    const n = parseInt(t, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= streakConfigs.length) return streakConfigs[n - 1].id;
+    const byEmoji = streakConfigs.find((cfg) => (cfg.emoji || "").trim() === t);
+    return byEmoji ? byEmoji.id : "";
+  }
+
+  function streakLabel(id) {
+    const idx = streakConfigs.findIndex((c) => c.id === id);
+    const cfg = idx >= 0 ? streakConfigs[idx] : null;
+    if (!cfg) return id;
+    return `${idx + 1} — ${cfg.emoji} (max ${cfg.max})`;
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <h3 style={{ margin: 0 }}>Edit card</h3>
+          <button className="btn" onClick={onClose}>Close</button>
+        </div>
+
+        <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
+
+          <textarea
+            className="input"
+            style={{ height: 90 }}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description"
+          />
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {category !== "extra" && (
+              <input
+                className="input"
+                type="number"
+                value={points}
+                onChange={(e) => setPoints(e.target.value)}
+                style={{ width: 140 }}
+                placeholder={
+                  category === "experience"
+                    ? "XP"
+                    : category === "rewards"
+                    ? "Cost (pts)"
+                    : "Points"
+                }
+              />
+            )}
+
+            <select
+              className="select"
+              value={category}
+              onChange={(e) => {
+                const next = e.target.value;
+                setCategory(next);
+                if (next === "extra") {
+                  setPoints(0);
+                }
+                if (next !== "points") {
+                  setLinkedStreakIds([]);
+                  setStreakPick("");
+                  setStreakLookup("");
+                }
+              }}
+              style={{ width: 220 }}
+            >
+              <option value="points">Points</option>
+              <option value="rewards">Rewards</option>
+              <option value="experience">Experience</option>
+              <option value="extra">Extra</option>
+            </select>
+          </div>
+
+          {category === "points" && (
+            <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 10 }}>
+              <div style={{ fontWeight: 800 }}>Link to streaks (optional)</div>
+              <div className="muted" style={{ marginTop: 4 }}>Add one or more streaks by dropdown, emoji, or number order.</div>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+                <select
+                  className="select"
+                  value={streakPick}
+                  onChange={(e) => setStreakPick(e.target.value)}
+                >
+                  <option value="">Choose streak...</option>
+                  {streakConfigs.map((cfg, idx) => (
+                    <option key={cfg.id} value={cfg.id}>
+                      {idx + 1} — {cfg.emoji} (max {cfg.max})
+                    </option>
+                  ))}
+                </select>
+                <button className="btn" type="button" onClick={() => addStreakId(streakPick)} disabled={!streakPick}>
+                  Add
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <input
+                  className="input"
+                  value={streakLookup}
+                  onChange={(e) => setStreakLookup(e.target.value)}
+                  placeholder="Type emoji (🔥) or number (1)"
+                />
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => {
+                    const id = resolveStreakIdFromText(streakLookup);
+                    if (!id) {
+                      if (onValidationError) onValidationError("No match. Try emoji (🔥) or number (1).");
+                      return;
+                    }
+                    addStreakId(id);
+                    setStreakLookup("");
+                  }}
+                >
+                  Add from text
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                {linkedStreakIds.length === 0 ? (
+                  <span className="muted">No streaks linked.</span>
+                ) : (
+                  linkedStreakIds.map((id) => (
+                    <span key={id} className="chip">
+                      {streakLabel(id)}
+                      <button className="btn" style={{ padding: "2px 8px" }} type="button" onClick={() => removeStreakId(id)}>
+                        ✕
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {flagConfig && (
+            <div style={{ fontWeight: 800, marginTop: 4 }}>
+              Option A ({flagConfig.optionA}) images
+            </div>
+          )}
+          <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
+          <input type="file" onChange={(e) => setLockedFile(e.target.files?.[0] || null)} />
+
+          <div className="muted" style={{ marginTop: 2 }}>Replace UNLOCKED image (optional)</div>
+          <input type="file" onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)} />
+
+          {/* Evolution configuration */}
+          <div
+            style={{
+              border: "1px solid #c7d2fe",
+              borderRadius: 12,
+              padding: 12,
+              background: isEvolution ? "#eef2ff" : "#f8fafc",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: "pointer",
+                fontWeight: 800,
+                fontSize: 14,
+                color: "#4338ca",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={isEvolution}
+                onChange={(e) => setIsEvolution(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: "#4f46e5" }}
+              />
+              🧬 ¿Es una evolución de otra carta?
+            </label>
+
+            {isEvolution && (
+              <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                    Carta base pre-evolución:
+                  </div>
+                  <select
+                    value={baseCardId}
+                    onChange={(e) => setBaseCardId(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: 8,
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                    }}
+                  >
+                    <option value="">Selecciona carta base...</option>
+                    {cards
+                      .filter((c) => c.id !== card.id)
+                      .map((c) => {
+                        const cat = c.category || "points";
+                        const metric =
+                          cat === "extra"
+                            ? "extra"
+                            : `${c.points || 0} ${cat === "experience" ? "XP" : "pts"} - ${cat}`;
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.title} ({metric})
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 140 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                      Copias base requeridas:
+                    </div>
+                    <input
+                      type="number"
+                      min="1"
+                      value={requiredCopies}
+                      onChange={(e) => setRequiredCopies(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: 8,
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                      Objeto Catalizador:
+                    </div>
+                    <select
+                      value={catalystCardId}
+                      onChange={(e) => setCatalystCardId(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: 8,
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                      }}
+                    >
+                      <option value="">(Catalizador universal)</option>
+                      {cards
+                        .filter(
+                          (c) =>
+                            c.id !== card.id &&
+                            ((c.category || "points") === "rewards" || c.category === "extra")
+                        )
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.title}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: "#6366f1" }}>
+                  💡 Al evolucionar, se consumirá 1 Catalizador de la biblioteca del alumno y se conservarán las cartas base.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {flagConfig && (
+            <div style={{ borderTop: "1px solid #eee", paddingTop: 10 }}>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>
+                Option B ({flagConfig.optionB}) images (optional)
+              </div>
+              <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
+              <input type="file" accept="image/*" onChange={(e) => setLockedFileB(e.target.files?.[0] || null)} />
+              <div className="muted" style={{ marginTop: 8 }}>Replace UNLOCKED image (optional)</div>
+              <input type="file" accept="image/*" onChange={(e) => setUnlockedFileB(e.target.files?.[0] || null)} />
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+            <button
+              className="btn primary"
+              onClick={() => {
+                if (isEvolution && !baseCardId) {
+                  if (onValidationError) onValidationError("Selecciona la carta base para la evolución");
+                  return;
+                }
+
+                const evolution = isEvolution && baseCardId ? {
+                  isEvolution: true,
+                  baseCardId,
+                  requiredCopies: Math.max(1, parseInt(requiredCopies, 10) || 1),
+                  catalystCardId: catalystCardId || "",
+                } : null;
+
+                onSave({
+                  title,
+                  description,
+                  points: category === "extra" ? 0 : points,
+                  category,
+                  linkedStreakIds: category === "points" ? linkedStreakIds : [],
+                  lockedFile,
+                  unlockedFile,
+                  lockedFile_B,
+                  unlockedFile_B,
+                  evolution,
+                });
+              }}
+            >
+              Save changes
+            </button>
+            <button className="btn" onClick={onClose}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/cards/CardPreviewModal.jsx
+````javascript
+import React, { useEffect } from "react";
+import { isEvolutionCard, checkEvolutionEligibility } from "../../services/cardEvolutionService";
+
+export default function CardPreviewModal({
+  cardPreview,
+  mode,
+  onClose,
+  onNavigate,
+  cardsById,
+  activeStudent,
+  defaultCatalystCardId,
+  onEvolve,
+}) {
+  useEffect(() => {
+    if (!cardPreview) return;
+
+    function handleKeyDown(event) {
+      if (event.target && (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        onNavigate?.(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        onNavigate?.(1);
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        onClose?.();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [cardPreview, onNavigate, onClose]);
+
+  if (!cardPreview) return null;
+
+  const isEvo = cardPreview.isLibraryCard && isEvolutionCard(cardPreview);
+  const baseCard = isEvo && cardsById ? cardsById.get(cardPreview.evolution?.baseCardId) : null;
+  const catalystCard =
+    isEvo && cardsById && cardPreview.evolution?.catalystCardId
+      ? cardsById.get(cardPreview.evolution.catalystCardId)
+      : defaultCatalystCardId && cardsById
+      ? cardsById.get(defaultCatalystCardId)
+      : null;
+
+  const eligibility =
+    isEvo && activeStudent
+      ? checkEvolutionEligibility({
+          student: activeStudent,
+          evolutionCard: cardPreview,
+          catalystCardId: defaultCatalystCardId,
+        })
+      : null;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      {cardPreview.isLibraryCard ? (
+        <div className="modal" onClick={(event) => event.stopPropagation()} style={{ maxWidth: 640 }}>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div
+              style={{
+                width: 320,
+                maxWidth: "100%",
+                height: 440,
+                maxHeight: "65vh",
+                background: "#f6f6f6",
+                borderRadius: 14,
+                overflow: "hidden",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              }}
+            >
+              {cardPreview.imageURL ? (
+                <img
+                  src={cardPreview.imageURL}
+                  alt={cardPreview.title}
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+              ) : (
+                <div style={{ padding: 12 }}>{cardPreview.title}</div>
+              )}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 240, display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <h3 style={{ margin: 0, fontSize: 20 }}>{cardPreview.title}</h3>
+                {isEvo && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      padding: "3px 8px",
+                      borderRadius: 999,
+                      background: eligibility?.isAlreadyUnlocked ? "#dcfce7" : "#ede9fe",
+                      color: eligibility?.isAlreadyUnlocked ? "#166534" : "#6d28d9",
+                      fontWeight: 800,
+                    }}
+                  >
+                    🧬 {eligibility?.isAlreadyUnlocked ? "Evolución Desbloqueada" : "Carta de Evolución"}
+                  </span>
+                )}
+              </div>
+
+              {(!isEvo || eligibility?.isAlreadyUnlocked || mode === "admin") && (
+                <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>{cardPreview.description}</div>
+              )}
+              {(cardPreview.category || "points") !== "extra" && (
+                <div style={{ marginTop: 8, fontWeight: 800, fontSize: 14, color: "#0f172a" }}>
+                  {cardPreview.points || 0} {(cardPreview.category || "points") === "experience" ? "XP" : "pts"}
+                </div>
+              )}
+
+              {/* Evolution requirement details */}
+              {isEvo && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: 12,
+                    borderRadius: 12,
+                    background: "#f8faff",
+                    border: "1px solid #c7d2fe",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 13, color: "#4338ca", marginBottom: 6 }}>
+                    Requisitos de Evolución:
+                  </div>
+
+                  <div style={{ fontSize: 12, display: "grid", gap: 6, color: "#334155" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>
+                        🃏 Carta base: <b>{baseCard?.title || "Carta Previa"}</b>
+                      </span>
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          fontWeight: 700,
+                          fontSize: 11,
+                          background: eligibility?.hasCopies ? "#dcfce7" : "#f1f5f9",
+                          color: eligibility?.hasCopies ? "#166534" : "#475569",
+                        }}
+                      >
+                        {eligibility ? `${eligibility.currentCopies} / ${cardPreview.evolution?.requiredCopies || 1}` : `${cardPreview.evolution?.requiredCopies || 1} necesarias`}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>
+                        🔮 Catalizador: <b>{catalystCard?.title || "Piedra / Objeto"}</b>
+                      </span>
+                      <span
+                        style={{
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          fontWeight: 700,
+                          fontSize: 11,
+                          background: eligibility?.hasCatalyst ? "#e0e7ff" : "#fee2e2",
+                          color: eligibility?.hasCatalyst ? "#4338ca" : "#991b1b",
+                        }}
+                      >
+                        {!catalystCard
+                          ? "Sin configurar"
+                          : eligibility?.hasCatalyst
+                          ? "Disponible ✓"
+                          : "1 Necesario"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {activeStudent && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: "#64748b" }}>
+                      Progreso de: <b>{activeStudent.name}</b>
+                    </div>
+                  )}
+
+                  {eligibility?.canEvolve && (
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        onClose?.();
+                        onEvolve?.(cardPreview);
+                      }}
+                      style={{
+                        width: "100%",
+                        marginTop: 10,
+                        padding: "8px 14px",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: 10,
+                        boxShadow: "0 3px 10px rgba(139, 92, 246, 0.4)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      ✨ ¡Evolucionar ahora!
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className="btn" onClick={onClose}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <OwnedCardViewer
+          cardPreview={cardPreview}
+          onClose={onClose}
+          onNavigate={onNavigate}
+        />
+      )}
+    </div>
+  );
+}
+
+function OwnedCardViewer({ cardPreview, onClose, onNavigate }) {
+  const ownedList = cardPreview.ownedList || null;
+  const ownedIndex = Number.isFinite(cardPreview.ownedIndex) ? cardPreview.ownedIndex : 0;
+  const currentOwned = ownedList ? ownedList[ownedIndex] : cardPreview;
+
+  return (
+    <div
+      className="ownedCardModal"
+      onClick={(event) => event.stopPropagation()}
+      style={{
+        maxWidth: "min(85vw, 720px)",
+        width: "85vw",
+        height: "min(70vh, 520px)",
+        maxHeight: "70vh",
+        borderRadius: 16,
+        overflow: "hidden",
+        background: "transparent",
+        position: "relative",
+        boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {currentOwned?.imageURL ? (
+        <>
+          <img
+            src={currentOwned.imageURL}
+            alt=""
+            style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+          />
+
+          <button
+            type="button"
+            className="cardNavBtn cardNavLeft"
+            disabled={!ownedList || ownedIndex <= 0}
+            onClick={(event) => {
+              event.stopPropagation();
+              onNavigate(-1);
+            }}
+            aria-label="Previous card"
+          >
+            <span className="cardNavIcon" aria-hidden="true">‹</span>
+          </button>
+
+          <button
+            type="button"
+            className="cardNavBtn cardNavRight"
+            disabled={!ownedList || ownedIndex >= ownedList.length - 1}
+            onClick={(event) => {
+              event.stopPropagation();
+              onNavigate(1);
+            }}
+            aria-label="Next card"
+          >
+            <span className="cardNavIcon" aria-hidden="true">›</span>
+          </button>
+
+          {ownedList && ownedList.length > 0 && (
+            <div className="cardNavCounter">
+              {ownedIndex + 1} / {ownedList.length}
+            </div>
+          )}
+        </>
+      ) : (
+        <div style={{ padding: 16, color: "white", textAlign: "center" }}>
+          {cardPreview.title || "Card"}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close card preview"
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          borderRadius: "999px",
+          border: "none",
+          padding: "4px 8px",
+          fontSize: 14,
+          cursor: "pointer",
+          background: "rgba(0,0,0,0.6)",
+          color: "white",
+        }}
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+````
+
+## File: src/components/requests/RequestsPanel.jsx
+````javascript
+import React, { useEffect, useMemo, useState } from "react";
+
+export default function RequestsPanel({
+  pendingRequests,
+  classesList = [],
+  activeClassId = null,
+  onApprove,
+  onReject,
+  onClose,
+}) {
+  const [scope, setScope] = useState(activeClassId || "all");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const visible = useMemo(
+    () => (scope === "all" ? pendingRequests : pendingRequests.filter((r) => r.classId === scope)),
+    [pendingRequests, scope]
+  );
+
+  // Drop selections that disappeared (resolved) or are out of the current scope.
+  useEffect(() => {
+    const ids = new Set(visible.map((r) => r.id));
+    setSelectedIds((prev) => (prev.every((id) => ids.has(id)) ? prev : prev.filter((id) => ids.has(id))));
+  }, [visible]);
+
+  const allSelected = visible.length > 0 && selectedIds.length === visible.length;
+  const selected = visible.filter((r) => selectedIds.includes(r.id));
+
+  function toggle(id) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function bulk(handler) {
+    setBusy(true);
+    try {
+      for (const r of selected) {
+        await handler(r);
+      }
+      setSelectedIds([]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <h3 style={{ margin: 0 }}>Pending requests</h3>
+          <button className="btn" onClick={onClose}>Close</button>
+        </div>
+
+        <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <select className="select" style={{ width: "auto" }} value={scope} onChange={(e) => setScope(e.target.value)}>
+            <option value="all">All classes</option>
+            {classesList.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <button
+            className="btn"
+            disabled={!visible.length || busy}
+            onClick={() => setSelectedIds(allSelected ? [] : visible.map((r) => r.id))}
+          >
+            {allSelected ? "Deselect all" : "Select all"}
+          </button>
+          <button className="btn primary" disabled={!selected.length || busy} onClick={() => bulk(onApprove)}>
+            Accept selected ({selected.length})
+          </button>
+          <button className="btn" disabled={!selected.length || busy} onClick={() => bulk(onReject)}>
+            Reject selected
+          </button>
+        </div>
+
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10, maxHeight: 480, overflowY: "auto" }}>
+          {!visible.length ? (
+            <div className="muted">No pending requests.</div>
+          ) : (
+            visible.map((r) => (
+              <div
+                key={r.id}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: "#ffffff",
+                  contentVisibility: "auto",
+                  containIntrinsicSize: "0 100px",
+                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(r.id)}
+                      onChange={() => toggle(r.id)}
+                      disabled={busy}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 800 }}>{r.studentName || "Student"}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>{r.className}</div>
+                    </div>
+                  </label>
+                  <div className="pill">
+                    {r.type === "both" || (r.cardId && r.amount)
+                      ? `Card: ${r.cardTitle || r.cardId} + ${r.amount} pts`
+                      : r.cardId || r.type === "card"
+                        ? `Card: ${r.cardTitle || r.cardId}`
+                        : `${r.amount} pts`}
+                  </div>
+                </div>
+
+                {r.note && (
+                  <div style={{ marginTop: 8, fontSize: 13, color: "#555", fontStyle: "italic" }}>
+                    "{r.note}"
+                  </div>
+                )}
+
+                <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                  <button className="btn primary" disabled={busy} onClick={() => onApprove(r)}>Accept</button>
+                  <button className="btn" disabled={busy} onClick={() => onReject(r)}>Reject</button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/utils/rewardCodeUtils.js
+````javascript
+/**
+ * PKM Reward Code System - Core Utilities (REVISED)
+ *
+ * Encoding/decoding functions for achievement codes.
+ * Generates and validates codes in format: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+ *
+ * REVISED ALGORITHM (fits in 28 base36 chars = 18 bytes max):
+ * Version (1) + StudentIDHash/CRC-32 (4) + SourceID/6chars (6) + ActivityID/6chars (6) + CRC-16 (2)
+ * Total: 18 bytes → base36 → 28 characters
+ */
+/* global BigInt */
+
+/**
+ * Calculate CRC-8 checksum (ATM polynomial)
+ * Polynomial: 0x07, Initial: 0x00, No final XOR
+ *
+ * @param {Uint8Array} buffer - Data to checksum
+ * @returns {number} CRC-8 value (8-bit unsigned)
+ */
+function crc8(buffer) {
+  let crc = 0xFF;
+  for (let i = 0; i < buffer.length; i++) {
+    crc ^= buffer[i];
+    for (let j = 0; j < 8; j++) {
+      if (crc & 0x80) {
+        crc = ((crc << 1) ^ 0x07) & 0xFF;
+      } else {
+        crc = (crc << 1) & 0xFF;
+      }
+    }
+  }
+  return crc ^ 0xFF;
+}
+
+/**
+ * Calculate CRC-32 checksum
+ * Polynomial: 0x04C11DB7, Initial: 0xFFFFFFFF, Final XOR: 0xFFFFFFFF
+ *
+ * @param {string} str - String to checksum
+ * @returns {number} CRC-32 value (32-bit unsigned)
+ */
+function crc32(str) {
+  let crc = 0xFFFFFFFF;
+
+  for (let i = 0; i < str.length; i++) {
+    const byte = str.charCodeAt(i) & 0xFF;
+    crc ^= byte;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc >>> 1) ^ ((crc & 1) ? 0xEDB88320 : 0);
+    }
+  }
+
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+/**
+ * Convert bytes to base36 string (28 characters, padded with '0')
+ *
+ * @param {Uint8Array} bytes - Binary data
+ * @returns {string} Base36 encoded string, exactly 28 characters
+ */
+function toBase36(bytes) {
+  // Convert bytes to big integer
+  let n = 0n;
+  for (const byte of bytes) {
+    n = (n << 8n) | BigInt(byte);
+  }
+
+  // Convert to base36
+  let base36 = n.toString(36).toUpperCase();
+
+  // Pad to 28 characters (pad left with zeros)
+  base36 = base36.padStart(28, '0');
+
+  return base36;
+}
+
+/**
+ * Convert base36 string back to bytes
+ *
+ * @param {string} str - Base36 string (28 characters)
+ * @returns {Uint8Array} Binary data
+ */
+function fromBase36(str) {
+  // Convert base36 string to BigInt
+  // We can't use parseInt() for very large numbers as it loses precision
+  // Instead, build the BigInt digit by digit
+  let n = 0n;
+  for (const char of str) {
+    const digit = parseInt(char, 36);
+    n = n * 36n + BigInt(digit);
+  }
+
+  // Extract bytes (big-endian)
+  const bytes = [];
+  for (let i = 0; i < 100; i++) {
+    bytes.unshift(Number(n & 0xFFn));
+    n >>= 8n;
+    if (n === 0n) break;
+  }
+
+  // Pad with leading zeros to expected payload size (18 bytes)
+  while (bytes.length < 18) {
+    bytes.unshift(0x00);
+  }
+
+  return new Uint8Array(bytes);
+}
+
+/**
+ * Normalize code input: uppercase, remove hyphens/spaces
+ *
+ * @param {string} input - Raw user input
+ * @returns {string} Normalized code (28 base36 chars, no hyphens)
+ */
+function normalizeCode(input) {
+  return input.toUpperCase().replace(/[-\s]/g, '');
+}
+
+/**
+ * Format base36 string with hyphens for display
+ *
+ * @param {string} base36 - 28-character base36 string
+ * @returns {string} Formatted code: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+ */
+function formatCode(base36) {
+  if (base36.length !== 28) {
+    throw new Error(`Base36 string must be exactly 28 characters, got ${base36.length}`);
+  }
+  return (
+    base36.substring(0, 4) +
+    '-' +
+    base36.substring(4, 8) +
+    '-' +
+    base36.substring(8, 12) +
+    '-' +
+    base36.substring(12, 16) +
+    '-' +
+    base36.substring(16, 20) +
+    '-' +
+    base36.substring(20, 24) +
+    '-' +
+    base36.substring(24, 28)
+  );
+}
+
+/**
+ * Generate a reward code
+ *
+ * Same inputs always generate the same code (deterministic).
+ *
+ * @param {string} studentId - Firestore student document ID (any length)
+ * @param {string} sourceId - Application identifier (max 6 chars for this encoding, will truncate)
+ * @param {string} activityId - Activity identifier (max 6 chars for this encoding, will truncate)
+ * @returns {string} Formatted code (XXXX-XXXX-... format)
+ * @throws {Error} If inputs are invalid
+ */
+export function generateRewardCode(studentId, sourceId, activityId) {
+  // Validate inputs
+  if (!studentId || studentId.length === 0) {
+    throw new Error('Student ID is required');
+  }
+  if (!sourceId || sourceId.length === 0) {
+    throw new Error('Source ID is required');
+  }
+  if (!activityId || activityId.length === 0) {
+    throw new Error('Activity ID is required');
+  }
+
+  // Build payload
+  const payload = [];
+
+  // Version (1 byte)
+  payload.push(0x01);
+
+  // Student ID hash (CRC-32 of full ID, 4 bytes, big-endian)
+  const studentHash = crc32(studentId);
+  payload.push((studentHash >> 24) & 0xFF);
+  payload.push((studentHash >> 16) & 0xFF);
+  payload.push((studentHash >> 8) & 0xFF);
+  payload.push(studentHash & 0xFF);
+
+  // Source ID (6 bytes, truncate and pad with spaces)
+  const sourceIdTrunc = sourceId.substring(0, 6).padEnd(6, ' ');
+  for (let i = 0; i < 6; i++) {
+    payload.push(sourceIdTrunc.charCodeAt(i));
+  }
+
+  // Activity ID (6 bytes, truncate and pad with spaces)
+  const activityIdTrunc = activityId.substring(0, 6).padEnd(6, ' ');
+  for (let i = 0; i < 6; i++) {
+    payload.push(activityIdTrunc.charCodeAt(i));
+  }
+
+  // Calculate checksum on 17-byte payload
+  const checksum = crc8(new Uint8Array(payload));
+
+  // Append checksum (1 byte)
+  payload.push(checksum);
+
+  // Encode to base36
+  const base36 = toBase36(new Uint8Array(payload));
+
+  // Format with hyphens
+  return formatCode(base36);
+}
+
+/**
+ * Decode and validate a reward code
+ *
+ * Returns decoded components or error object.
+ *
+ * @param {string} codeString - Code to decode (hyphens optional)
+ * @returns {Object} { success: true, version, studentHash, sourceId, activityId } or
+ *                   { success: false, error: 'ERROR_CODE', message: '...' }
+ */
+export function decodeRewardCode(codeString) {
+  try {
+    // Normalize input
+    const normalized = normalizeCode(codeString);
+
+    // Validate format (must be 28 base36 chars)
+    if (!/^[0-9A-Z]{28}$/.test(normalized)) {
+      return {
+        success: false,
+        error: 'INVALID_FORMAT',
+        message: 'Code must be 28 alphanumeric characters',
+      };
+    }
+
+    // Decode from base36 to bytes
+    const bytes = fromBase36(normalized);
+
+    // Extract checksum (last 1 byte)
+    const checksumByte = bytes[bytes.length - 1];
+    const expectedChecksum = checksumByte;
+
+    // Extract payload (all but last 1 byte)
+    const payload = bytes.slice(0, -1);
+
+    // Verify checksum
+    const calculatedChecksum = crc8(payload);
+    if (calculatedChecksum !== expectedChecksum) {
+      return {
+        success: false,
+        error: 'CHECKSUM_ERROR',
+        message: 'Checksum validation failed - code may be corrupted',
+      };
+    }
+
+    // Parse payload
+    let offset = 0;
+
+    // Version (1 byte)
+    const version = payload[offset++];
+    if (version !== 1) {
+      return {
+        success: false,
+        error: 'INVALID_VERSION',
+        message: 'Unsupported code version',
+      };
+    }
+
+    // Student ID hash (4 bytes)
+    const studentHash =
+      ((payload[offset] << 24) |
+        (payload[offset + 1] << 16) |
+        (payload[offset + 2] << 8) |
+        payload[offset + 3]) >>>
+      0;
+    offset += 4;
+
+    // Source ID (6 bytes, trim trailing spaces)
+    const sourceIdBytes = payload.slice(offset, offset + 6);
+    const sourceId = String.fromCharCode(...sourceIdBytes).trimEnd();
+    offset += 6;
+
+    // Activity ID (6 bytes, trim trailing spaces)
+    const activityIdBytes = payload.slice(offset, offset + 6);
+    const activityId = String.fromCharCode(...activityIdBytes).trimEnd();
+
+    return {
+      success: true,
+      version,
+      studentHash,
+      sourceId,
+      activityId,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: 'DECODE_ERROR',
+      message: err.message,
+    };
+  }
+}
+
+/**
+ * Validate code format without full decode
+ *
+ * Quick check: is this a valid code format?
+ *
+ * @param {string} codeString - Code to check
+ * @returns {boolean} True if format is valid
+ */
+export function validateCodeFormat(codeString) {
+  const normalized = normalizeCode(codeString);
+  return /^[0-9A-Z]{28}$/.test(normalized);
+}
+
+/**
+ * Get hash of a student ID (for verification)
+ *
+ * @param {string} studentId - Student's Firestore ID
+ * @returns {number} CRC-32 hash
+ */
+export function getStudentHash(studentId) {
+  return crc32(studentId);
+}
+
+/**
+ * Export internal functions for testing
+ */
+export const _internal = {
+  crc8,
+  crc32,
+  toBase36,
+  fromBase36,
+  normalizeCode,
+  formatCode,
+};
+````
+
+## File: src/index.css
+````css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* small helpers you might like */
+html, body, #root { height: 100%; }
+
+.feedback-notice {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(420px, calc(100vw - 40px));
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: #172033;
+  font-weight: 700;
+  animation: feedbackNoticeIn 180ms ease-out;
+}
+
+.feedback-dismiss {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.feedback-dialog {
+  width: min(430px, calc(100vw - 32px));
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  color: #172033;
+  animation: feedbackDialogIn 180ms ease-out;
+}
+
+.feedback-dialog-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff1d6;
+  color: #a15c00;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.feedback-dialog h3 {
+  margin: 16px 0 8px;
+}
+
+.feedback-dialog p {
+  margin: 0;
+  white-space: pre-line;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.feedback-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.level-up-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 30px 24px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #fefce8 100%);
+  border: 2px solid #fef08a;
+  box-shadow: 0 25px 50px -12px rgba(234, 179, 8, 0.35), 0 0 0 1px rgba(234, 179, 8, 0.2);
+  text-align: center;
+  animation: levelUpPopIn 260ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes levelUpPopIn {
+  from { opacity: 0; transform: scale(0.85) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.form-modal {
+  max-width: 560px;
+}
+
+.form-modal > .muted {
+  margin: -4px 0 18px;
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  color: #172033;
+  font-size: 14px;
+}
+
+.form-check input,
+.reward-picker-option input {
+  margin-top: 3px;
+  accent-color: #2563eb;
+}
+
+.form-check span {
+  display: grid;
+  gap: 3px;
+}
+
+.form-check small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.reward-picker {
+  margin: 20px 0 0;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.reward-picker legend {
+  padding: 0 6px;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reward-picker-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  margin-top: 12px;
+  overflow: auto;
+}
+
+.reward-picker-option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid #eef0f3;
+  border-radius: 9px;
+  background: #fafafa;
+  color: #172033;
+  font-size: 13px;
+}
+
+.reward-picker-option strong {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.schedule-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .schedule-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.btn.danger {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+@keyframes feedbackNoticeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes feedbackDialogIn {
+  from { opacity: 0; transform: scale(0.97) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.ended-class-panel {
+  grid-column: 1 / -1;
+  align-self: start;
+  margin: 36px auto 0;
+  width: min(100%, 620px);
+  padding: 42px 32px;
+  box-sizing: border-box;
+  text-align: center;
+  color: #243044;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 18px;
+  box-shadow: 0 18px 48px rgba(25, 35, 55, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ended-class-icon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  color: #9a6b16;
+  background: #fff4c7;
+  border-radius: 50%;
+  font-size: 24px;
+}
+
+.ended-class-eyebrow {
+  margin: 0 0 8px;
+  color: #9a6b16;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ended-class-panel h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.ended-class-panel p:not(.ended-class-eyebrow) {
+  margin: 12px auto 24px;
+  color: #5b6575;
+}
+
+.ended-class-link {
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* === Owned card modal navigation (modern) === */
+.ownedCardModal {
+  position: relative;
+}
+
+.cardNavBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(15, 15, 18, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.92);
+
+  display: grid;
+  place-items: center;
+
+  cursor: pointer;
+  user-select: none;
+
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  opacity: 0.9;
+}
+
+.cardNavBtn:hover {
+  transform: translateY(-50%) scale(1.06);
+  background: rgba(15, 15, 18, 0.55);
+}
+
+.cardNavBtn:active {
+  transform: translateY(-50%) scale(0.98);
+}
+
+.cardNavBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.cardNavLeft {
+  left: 14px;
+}
+
+.cardNavRight {
+  right: 14px;
+}
+
+.cardNavIcon {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+.cardNavCounter {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  background: rgba(15, 15, 18, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+  font-size: 12px;
+
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+}
+````
+
+## File: src/services/classService.js
+````javascript
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+
+/**
+ * Create a new class
+ * @param {Object} db - Firestore database instance
+ * @param {string} name - Name of the class to create
+ * @param {Function} onClassCreated - Callback receiving the new classId
+ * @param {string} userId - UID of the user creating the class (to add as admin)
+ */
+export async function createClass(db, name, onClassCreated, alertFn = null, userId = null) {
+  if (!name?.trim()) return;
+  try {
+    const payload = { name: name.trim(), createdAt: Date.now() };
+    const ref = await addDoc(collection(db, "classes"), payload);
+    
+    // Add the creator as an admin
+    if (userId) {
+      try {
+        const adminRef = doc(db, `classes/${ref.id}/admins/${userId}`);
+        await setDoc(adminRef, {
+          uid: userId,
+          addedAt: serverTimestamp(),
+        });
+      } catch (adminErr) {
+        console.error("Failed to add creator as admin:", adminErr);
+        // Don't fail the whole operation if admin setup fails
+      }
+    }
+    
+    if (onClassCreated) onClassCreated(ref.id);
+  } catch (err) {
+    console.error("createClass err:", err);
+    if (alertFn) alertFn("Failed to create class.");
+  }
+}
+
+/**
+ * Edit an existing class name
+ * @param {Object} db - Firestore database instance
+ * @param {string} classId - ID of the class to edit
+ * @param {string} newName - New name to apply
+ */
+export async function editClassName(db, classId, newName, alertFn = null) {
+  const safeName = (newName || "").trim();
+  if (!classId || !safeName) return;
+  try {
+    await updateDoc(doc(db, `classes/${classId}`), { name: safeName });
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Could not rename class.");
+  }
+}
+
+export async function endClassActivity(db, classId, archivedUrl, alertFn = null) {
+  const safeUrl = (archivedUrl || "").trim();
+  if (!classId || !safeUrl) return;
+  try {
+    await updateDoc(doc(db, `classes/${classId}`), { archivedUrl: safeUrl });
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Could not end class activity.");
+  }
+}
+
+export async function setDefaultCatalystForClass(db, classId, cardId, alertFn = null) {
+  if (!classId) return;
+  try {
+    await updateDoc(doc(db, `classes/${classId}`), {
+      defaultCatalystCardId: cardId || "",
+    });
+  } catch (err) {
+    console.error("setDefaultCatalystForClass error:", err);
+    if (alertFn) alertFn("No se pudo actualizar el catalizador universal.");
+  }
+}
+
+export async function saveClassNewsMessages(db, classId, newsMessages, alertFn = null) {
+  if (!classId) return false;
+  try {
+    const clean = (Array.isArray(newsMessages) ? newsMessages : []).slice(0, 60);
+    await updateDoc(doc(db, `classes/${classId}`), {
+      newsMessages: clean,
+    });
+    return true;
+  } catch (err) {
+    console.error("saveClassNewsMessages error:", err);
+    if (alertFn) alertFn("Could not save news message.");
+    return false;
+  }
+}
+
+/**
+ * Delete a class
+ * @param {Object} db - Firestore database instance
+ * @param {string} classId - ID of the class to delete
+ * @param {string} activeClassId - Currently selected class ID
+ * @param {Function} onClassDeleted - Callback with null if the deleted class was active
+ */
+export async function removeClass(
+  db,
+  classId,
+  activeClassId,
+  onClassDeleted,
+  confirmFn = null,
+  alertFn = null
+) {
+  if (confirmFn && !(await confirmFn(
+    "Delete this class? (Subcollections won't be deleted automatically)"
+  ))) return;
+  try {
+    await deleteDoc(doc(db, `classes/${classId}`));
+    if (activeClassId === classId && onClassDeleted) onClassDeleted(null);
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to delete class.");
+  }
+}
+````
+
+## File: src/services/streakService.js
+````javascript
+import {
+  collection,
+  doc,
+  getDoc,
+  updateDoc,
+  getDocs,
+  writeBatch,
+} from "firebase/firestore";
+
+import { uid } from "../utils/helpers";
+import { todayISODate, addDaysISO } from "../utils/dateUtils";
+import { normalizeFloatWindows, computeEffectiveMultiplier } from "../utils/floatWindowUtils";
+import { grantStreakMaxRewardCards } from "./rewardService";
+
+export async function addStreakTypeForClass({
+  db,
+  classId,
+  classesList,
+  cards,
+  formFn,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  if (!classId) {
+    if (alertFn) alertFn("Select a class first");
+    return;
+  }
+
+  if (!formFn) return;
+
+  const values = await formFn({});
+  if (!values) return;
+
+  const { emoji, max, float, stickyCelebrate, rewardCardIds } = values;
+  if (!Number.isFinite(max) || max <= 0) {
+    if (alertFn) alertFn("Maximum must be a number greater than 0.");
+    return;
+  }
+
+  const id = uid("streak");
+
+  const newCfg = {
+    id,
+    emoji,
+    max,
+    float,
+    stickyCelebrate,
+    rewardCardIds,
+  };
+
+  try {
+    const clsRef = doc(db, `classes/${classId}`);
+    const current = (Array.isArray(classesList) ? classesList : []).find((c) => c.id === classId)?.streakConfigs || [];
+    await updateDoc(clsRef, { streakConfigs: [...current, newCfg] });
+    if (alertFn) alertFn("New streak type created for this class.");
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Could not create streak type. See console for details.");
+  }
+}
+
+export function promptPickRewardCardIds({
+  cards,
+  promptFn,
+  alertFn,
+  defaultIds = [],
+  label = "",
+} = {}) {
+  const opts = (Array.isArray(cards) ? cards : [])
+    .filter((c) => (c.category || "points") === "points")
+    .slice()
+    .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+
+  if (opts.length === 0) {
+    if (alertFn) alertFn("No POINTS cards found in the library. Create a points card first.");
+    return null;
+  }
+
+  const idToNum = new Map(opts.map((c, i) => [c.id, i + 1]));
+  const currentNums = (defaultIds || []).map((id) => idToNum.get(id)).filter(Boolean);
+  const defaultText = currentNums.length ? currentNums.join(",") : "";
+
+  const list = opts
+    .map((c, i) => `${i + 1}) ${c.title || "(untitled)"} — ${Number(c.points || 0)} pts`)
+    .join("\n");
+
+  const input = promptFn(
+    `Reward card(s) when ${label || "this"} streak reaches MAX.\n` +
+      `Choose numbers separated by commas (example: 1,3).\n` +
+      `Leave empty for NONE.\n\n${list}`,
+    defaultText
+  );
+
+  if (input == null) return undefined;
+  const s = String(input).trim();
+  if (!s) return [];
+
+  const parts = s.split(",").map((x) => x.trim()).filter(Boolean);
+  const picked = [];
+
+  for (const p of parts) {
+    const n = parseInt(p, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= opts.length) {
+      picked.push(opts[n - 1].id);
+      continue;
+    }
+
+    const byId = opts.find((c) => c.id === p);
+    if (byId) picked.push(byId.id);
+  }
+
+  return Array.from(new Set(picked));
+}
+
+export async function setStreakRewardCardsForClass({
+  db,
+  classId,
+  classesList,
+  cards,
+  rewardCardPickerFn,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  streakId,
+  cfg,
+}) {
+  if (!rewardCardPickerFn) return;
+
+  try {
+    const current = (Array.isArray(classesList) ? classesList : []).find((c) => c.id === classId)?.streakConfigs || [];
+    const found = current.find((c) => c.id === streakId) || cfg || null;
+    const existing = Array.isArray(found?.rewardCardIds) ? found.rewardCardIds : [];
+
+    const next = await rewardCardPickerFn(existing);
+
+    if (next === null) return;
+    if (next === undefined) return;
+
+    const nextConfigs = current.map((c) =>
+      c.id === streakId ? { ...c, rewardCardIds: next } : c
+    );
+
+    await updateDoc(doc(db, `classes/${classId}`), { streakConfigs: nextConfigs });
+  } catch (e) {
+    console.error("setStreakRewardCardsForClass error", e);
+    if (alertFn) alertFn("Could not set reward cards. See console.");
+  }
+}
+
+export async function changeStudentStreakValue({
+  db,
+  classId,
+  studentId,
+  streakId,
+  delta,
+  maxValueOrCfg,
+  scheduleFn,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  getCardDataFast,
+}) {
+  try {
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const snap = await getDoc(studentRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    const streaks = data.streaks || {};
+    const existingEntry = streaks[streakId] || {};
+    const current = existingEntry.value || 0;
+
+    const cfg = maxValueOrCfg && typeof maxValueOrCfg === "object" ? maxValueOrCfg : null;
+    const maxValue =
+      typeof maxValueOrCfg === "number"
+        ? maxValueOrCfg
+        : typeof cfg?.max === "number"
+        ? cfg.max
+        : 0;
+
+    let next = current + delta;
+    if (next < 0) next = 0;
+    if (typeof maxValue === "number" && maxValue > 0 && next > maxValue) {
+      next = maxValue;
+    }
+
+    const today = todayISODate();
+    const prevMaxAchievedOn = existingEntry.maxAchievedOn || "";
+    const prevMaxAchievedAt = existingEntry.maxAchievedAt || "";
+
+    const reachedMaxNow = delta > 0 && typeof maxValue === "number" && maxValue > 0 && next === maxValue;
+    const crossedToMax = reachedMaxNow && current < maxValue;
+
+    let floatWindows = Array.isArray(existingEntry.floatWindows) ? existingEntry.floatWindows : [];
+
+    if (crossedToMax && cfg?.float) {
+      const defaultDelay = 7;
+      const defaultDur = 7;
+
+      const schedule = scheduleFn
+        ? await scheduleFn({
+            delayDays: defaultDelay,
+            durationDays: defaultDur,
+            message: `🎉 ${data.name || "Student"} reached the maximum for ${cfg.emoji || "this"} streak!`,
+          })
+        : null;
+      if (schedule) {
+        const delayDays = schedule.delayDays;
+        const durationDays = schedule.durationDays;
+        const multiplierBonus = Number(schedule.multiplierBonus || 0);
+        const start = addDaysISO(today, delayDays);
+        const end = addDaysISO(start, durationDays - 1);
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end, multiplierBonus }], today);
+      } else {
+        floatWindows = normalizeFloatWindows(floatWindows, today);
+      }
+    } else {
+      floatWindows = normalizeFloatWindows(floatWindows, today);
+    }
+
+    const updatedEntry = {
+      ...existingEntry,
+      value: next,
+      lastUpdated: delta > 0 ? today : (existingEntry.lastUpdated || ""),
+      maxAchievedOn: reachedMaxNow ? today : prevMaxAchievedOn,
+      maxAchievedAt: reachedMaxNow ? new Date().toISOString() : prevMaxAchievedAt,
+      floatWindows,
+    };
+
+    const updatedStreaks = {
+      ...streaks,
+      [streakId]: updatedEntry,
+    };
+
+    const payload = { streaks: updatedStreaks };
+
+    if (crossedToMax) {
+      const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+      if (rewardIds.length) {
+        const multiplier = computeEffectiveMultiplier({ ...data, streaks: updatedStreaks }, today);
+        const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
+        const currentPoints = await grantStreakMaxRewardCards({
+          rewardCardIds: rewardIds,
+          cardsArr,
+          currentPoints: Number(data.currentPoints || 0),
+          multiplier,
+          streakId,
+          classId,
+          getCardDataFast,
+        });
+
+        payload.cards = cardsArr;
+        payload.currentPoints = currentPoints;
+      }
+    }
+
+    await updateDoc(studentRef, payload);
+  } catch (err) {
+    console.error("changeStudentStreakValue error", err);
+    if (alertFn) alertFn("Could not update streak. See console.");
+  }
+}
+
+// Picks the most relevant floatWindow for a streak to prefill/target an admin edit:
+// the currently active one, otherwise the soonest upcoming one.
+export function pickEditableFloatWindow(floatWindows, today) {
+  const list = Array.isArray(floatWindows) ? floatWindows : [];
+  const active = list.find((w) => w && w.start <= today && today <= w.end);
+  if (active) return active;
+  const upcoming = list
+    .filter((w) => w && w.start > today)
+    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+  return upcoming[0] || null;
+}
+
+export async function editStudentFloatWindow({
+  db,
+  classId,
+  studentId,
+  streakId,
+  start,
+  end,
+  multiplierBonus,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  try {
+    const today = todayISODate();
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const snap = await getDoc(studentRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    const streaks = data.streaks || {};
+    const entry = streaks[streakId] || {};
+    const floatWindows = Array.isArray(entry.floatWindows) ? entry.floatWindows : [];
+
+    const target = pickEditableFloatWindow(floatWindows, today);
+    if (!target) {
+      if (alertFn) alertFn("No active or upcoming floating window to edit for this streak.");
+      return;
+    }
+
+    const nextWindows = floatWindows.map((w) =>
+      w === target ? { start, end, multiplierBonus: Number(multiplierBonus || 0) } : w
+    );
+
+    await updateDoc(studentRef, {
+      streaks: { ...streaks, [streakId]: { ...entry, floatWindows: nextWindows } },
+    });
+  } catch (err) {
+    console.error("editStudentFloatWindow error", err);
+    if (alertFn) alertFn("Could not edit the floating window. See console.");
+  }
+}
+
+export async function resetStudentStreak({
+  db,
+  classId,
+  studentId,
+  streakId,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  try {
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const snap = await getDoc(studentRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const streaks = data.streaks || {};
+
+    const prev = streaks[streakId] || {};
+    const updatedEntry = {
+      value: 0,
+      lastUpdated: "",
+      maxAchievedOn: prev.maxAchievedOn || "",
+      maxAchievedAt: prev.maxAchievedAt || "",
+      floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
+    };
+
+    const updatedStreaks = {
+      ...streaks,
+      [streakId]: updatedEntry,
+    };
+
+    await updateDoc(studentRef, { streaks: updatedStreaks });
+  } catch (err) {
+    console.error("resetStudentStreak error", err);
+    if (alertFn) alertFn("Could not reset streak.");
+  }
+}
+
+// Applies +1/-1 to a single streak for many students at once (same rewards/float logic as
+// changeStudentStreakValue, but asks the float schedule question only ONCE for the whole batch).
+export async function bulkChangeStreakValue({
+  db,
+  classId,
+  studentIds,
+  streakId,
+  delta,
+  cfg,
+  scheduleFn,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  getCardDataFast,
+}) {
+  const ids = Array.isArray(studentIds) ? studentIds.filter(Boolean) : [];
+  if (ids.length === 0) {
+    if (alertFn) alertFn("Select at least one student.");
+    return;
+  }
+
+  try {
+    const today = todayISODate();
+    const maxValue = typeof cfg?.max === "number" ? cfg.max : 0;
+
+    const snaps = await Promise.all(
+      ids.map((id) => getDoc(doc(db, `classes/${classId}/students/${id}`)))
+    );
+    const studentsData = snaps
+      .map((snap, idx) => (snap.exists() ? { id: ids[idx], ref: snap.ref, data: snap.data() } : null))
+      .filter(Boolean);
+
+    let floatSchedule = null;
+    if (delta > 0 && cfg?.float) {
+      const willCrossAny = studentsData.some(({ data }) => {
+        const entry = (data.streaks || {})[streakId] || {};
+        const current = entry.value || 0;
+        let next = current + delta;
+        if (maxValue > 0 && next > maxValue) next = maxValue;
+        return maxValue > 0 && next === maxValue && current < maxValue;
+      });
+
+      if (willCrossAny && scheduleFn) {
+        floatSchedule = await scheduleFn({
+          delayDays: 7,
+          durationDays: 7,
+          message: `🎉 Several students will reach the maximum for ${cfg.emoji || "this"} streak!`,
+        });
+      }
+    }
+
+    let batch = writeBatch(db);
+    let writes = 0;
+
+    for (const { ref, data } of studentsData) {
+      const streaks = data.streaks || {};
+      const existingEntry = streaks[streakId] || {};
+      const current = existingEntry.value || 0;
+
+      let next = current + delta;
+      if (next < 0) next = 0;
+      if (maxValue > 0 && next > maxValue) next = maxValue;
+
+      const prevMaxAchievedOn = existingEntry.maxAchievedOn || "";
+      const prevMaxAchievedAt = existingEntry.maxAchievedAt || "";
+      const reachedMaxNow = delta > 0 && maxValue > 0 && next === maxValue;
+      const crossedToMax = reachedMaxNow && current < maxValue;
+
+      let floatWindows = Array.isArray(existingEntry.floatWindows) ? existingEntry.floatWindows : [];
+
+      if (crossedToMax && cfg?.float) {
+        const delayDays = floatSchedule?.delayDays ?? 7;
+        const durationDays = floatSchedule?.durationDays ?? 7;
+        const multiplierBonus = Number(floatSchedule?.multiplierBonus || 0);
+        const start = addDaysISO(today, delayDays);
+        const end = addDaysISO(start, durationDays - 1);
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end, multiplierBonus }], today);
+      } else {
+        floatWindows = normalizeFloatWindows(floatWindows, today);
+      }
+
+      const updatedEntry = {
+        ...existingEntry,
+        value: next,
+        lastUpdated: delta > 0 ? today : (existingEntry.lastUpdated || ""),
+        maxAchievedOn: reachedMaxNow ? today : prevMaxAchievedOn,
+        maxAchievedAt: reachedMaxNow ? new Date().toISOString() : prevMaxAchievedAt,
+        floatWindows,
+      };
+
+      const payload = { streaks: { ...streaks, [streakId]: updatedEntry } };
+
+      if (crossedToMax) {
+        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+        if (rewardIds.length) {
+          const multiplier = computeEffectiveMultiplier({ ...data, streaks: payload.streaks }, today);
+          const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
+          const currentPoints = await grantStreakMaxRewardCards({
+            rewardCardIds: rewardIds,
+            cardsArr,
+            currentPoints: Number(data.currentPoints || 0),
+            multiplier,
+            streakId,
+            classId,
+            getCardDataFast,
+          });
+          payload.cards = cardsArr;
+          payload.currentPoints = currentPoints;
+        }
+      }
+
+      batch.update(ref, payload);
+      writes++;
+
+      if (writes >= 450) {
+        await batch.commit();
+        batch = writeBatch(db);
+        writes = 0;
+      }
+    }
+
+    if (writes > 0) await batch.commit();
+  } catch (err) {
+    console.error("bulkChangeStreakValue error", err);
+    if (alertFn) alertFn("Could not update streaks. See console.");
+    throw err;
+  }
+}
+
+// Resets a single streak to 0 for many students at once.
+export async function bulkResetStreak({
+  db,
+  classId,
+  studentIds,
+  streakId,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  const ids = Array.isArray(studentIds) ? studentIds.filter(Boolean) : [];
+  if (ids.length === 0) {
+    if (alertFn) alertFn("Select at least one student.");
+    return;
+  }
+
+  try {
+    let batch = writeBatch(db);
+    let writes = 0;
+
+    for (const id of ids) {
+      const ref = doc(db, `classes/${classId}/students/${id}`);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) continue;
+
+      const data = snap.data();
+      const streaks = data.streaks || {};
+      const prev = streaks[streakId] || {};
+      const updatedEntry = {
+        value: 0,
+        lastUpdated: "",
+        maxAchievedOn: prev.maxAchievedOn || "",
+        maxAchievedAt: prev.maxAchievedAt || "",
+        floatWindows: Array.isArray(prev.floatWindows) ? prev.floatWindows : [],
+      };
+
+      batch.update(ref, { streaks: { ...streaks, [streakId]: updatedEntry } });
+      writes++;
+
+      if (writes >= 450) {
+        await batch.commit();
+        batch = writeBatch(db);
+        writes = 0;
+      }
+    }
+
+    if (writes > 0) await batch.commit();
+  } catch (err) {
+    console.error("bulkResetStreak error", err);
+    if (alertFn) alertFn("Could not reset streaks. See console.");
+    throw err;
+  }
+}
+
+export async function deleteStreakTypeForClass({
+  db,
+  classId,
+  streakId,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
+}) {
+  if (confirmFn && !(await confirmFn(
+    "Delete this streak type for the whole class? This cannot be undone.\n\nThis will also remove it (and any floating windows) from every student."
+  ))) return;
+
+  try {
+    const classRef = doc(db, `classes/${classId}`);
+    const snap = await getDoc(classRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const list = data.streakConfigs || [];
+    const updated = list.filter((cfg) => cfg.id !== streakId);
+    await updateDoc(classRef, { streakConfigs: updated });
+
+    const studentsSnap = await getDocs(collection(db, `classes/${classId}/students`));
+    let batch = writeBatch(db);
+    let writes = 0;
+
+    for (const sdoc of studentsSnap.docs) {
+      const sdata = sdoc.data();
+      const streaks = sdata.streaks || {};
+      if (!streaks[streakId]) continue;
+
+      const nextStreaks = { ...streaks };
+      delete nextStreaks[streakId];
+
+      batch.update(sdoc.ref, { streaks: nextStreaks });
+      writes++;
+
+      if (writes >= 450) {
+        await batch.commit();
+        batch = writeBatch(db);
+        writes = 0;
+      }
+    }
+    if (writes > 0) await batch.commit();
+  } catch (err) {
+    console.error("deleteStreakTypeForClass error", err);
+    if (alertFn) alertFn("Could not delete streak. See console.");
+  }
+}
+
+export async function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}, activeClass = null) {
+  const today = todayISODate();
+  const ids = Array.isArray(idsOrId)
+    ? idsOrId.filter(Boolean)
+    : (idsOrId ? [idsOrId] : []);
+
+  if (ids.length === 0) return null;
+
+  const streaks = { ...(sdata.streaks || {}) };
+  let changed = false;
+
+  const allowPrompts = opts.allowPrompts !== false;
+  const studentName = opts.studentName || sdata.name || "Student";
+  const progress = opts.progressLabel ? ` (${opts.progressLabel})` : "";
+  const crossedMaxIds = [];
+  const defaultDelay = Number.isFinite(opts.defaultDelayDays) ? opts.defaultDelayDays : 7;
+  const defaultDur = Number.isFinite(opts.defaultDurationDays) ? opts.defaultDurationDays : 7;
+
+  for (const id of ids) {
+    const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
+    if ((prev.lastUpdated || "") === today) continue;
+
+    const cfg = (activeClass?.streakConfigs || []).find((c) => c.id === id) || null;
+    const max = typeof cfg?.max === "number" ? cfg.max : 0;
+
+    let nextVal = (prev.value || 0) + 1;
+    if (max > 0 && nextVal > max) nextVal = max;
+
+    const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
+    if (crossedToMax) crossedMaxIds.push(id);
+
+    let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
+    floatWindows = normalizeFloatWindows(floatWindows, today);
+
+    if (crossedToMax && cfg?.float) {
+      let delayDays = defaultDelay;
+      let durationDays = defaultDur;
+      let multiplierBonus = 0;
+
+      if (allowPrompts && opts.scheduleFn) {
+        const streakLabel = cfg?.emoji ? `${cfg.emoji} streak` : "this streak";
+        const parsed = await opts.scheduleFn({
+          delayDays: defaultDelay,
+          durationDays: defaultDur,
+          message: `🎉 Max reached for ${studentName}${progress}. ${streakLabel} floating schedule applies to this student.`,
+        });
+        if (parsed) {
+          delayDays = parsed.delayDays;
+          durationDays = parsed.durationDays;
+          multiplierBonus = Number(parsed.multiplierBonus || 0);
+        }
+      }
+
+      const start = addDaysISO(today, delayDays);
+      const end = addDaysISO(start, durationDays - 1);
+      floatWindows = normalizeFloatWindows([...floatWindows, { start, end, multiplierBonus }], today);
+    }
+
+    streaks[id] = {
+      ...prev,
+      value: nextVal,
+      lastUpdated: today,
+      maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
+      maxAchievedAt: crossedToMax ? new Date().toISOString() : (prev.maxAchievedAt || ""),
+      floatWindows,
+    };
+
+    changed = true;
+  }
+
+  return { nextStreaks: changed ? streaks : null, crossedMaxIds };
+}
+
+export function incrementStreaksNoFloatWindows(sdata, ids, streakConfigs) {
+  const today = todayISODate();
+  const streaks = { ...(sdata.streaks || {}) };
+  let changed = false;
+
+  const crossedFloatIds = [];
+  const crossedMaxIds = [];
+
+  for (const id of (Array.isArray(ids) ? ids.filter(Boolean) : [])) {
+    const prev = streaks[id] || { value: 0, lastUpdated: "", maxAchievedOn: "", floatWindows: [] };
+
+    if ((prev.lastUpdated || "") === today) continue;
+
+    const cfg = (streakConfigs || []).find((c) => c.id === id) || null;
+    const max = typeof cfg?.max === "number" ? cfg.max : 0;
+
+    let nextVal = (prev.value || 0) + 1;
+    if (max > 0 && nextVal > max) nextVal = max;
+
+    const crossedToMax = max > 0 && nextVal === max && (prev.value || 0) < max;
+
+    let floatWindows = Array.isArray(prev.floatWindows) ? prev.floatWindows : [];
+    floatWindows = normalizeFloatWindows(floatWindows, today);
+
+    if (crossedToMax) crossedMaxIds.push(id);
+    if (crossedToMax && cfg?.float) crossedFloatIds.push(id);
+
+    streaks[id] = {
+      ...prev,
+      value: nextVal,
+      lastUpdated: today,
+      maxAchievedOn: crossedToMax ? today : (prev.maxAchievedOn || ""),
+      maxAchievedAt: crossedToMax ? new Date().toISOString() : (prev.maxAchievedAt || ""),
+      floatWindows,
+    };
+
+    changed = true;
+  }
+
+  return { nextStreaks: changed ? streaks : null, crossedFloatIds, crossedMaxIds };
+}
+````
+
+## File: src/components/admin/ActivityCatalogueManager.jsx
+````javascript
+/**
+ * Activity Catalogue Management Component
+ *
+ * Admin interface for adding, editing, disabling, and deleting activities
+ */
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import {
+  getActivityCatalogue,
+  addActivityToCatalogue,
+  updateActivityInCatalogue,
+  deleteActivityFromCatalogue,
+} from "../../services/rewardCodeService.js";
+
+export function ActivityCatalogueManager({ db, classId, alertFn }) {
+  const [activities, setActivities] = useState([]);
+  const [cards, setCards] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingActivity, setEditingActivity] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form state for new activity
+  const [newFormData, setNewFormData] = useState({
+    sourceId: "",
+    activityId: "",
+    name: "",
+    description: "",
+    pointsAwarded: 10,
+    rewardType: "points",
+    cardId: "",
+    isActive: true,
+  });
+
+  // Form state for editing existing activity
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    description: "",
+    pointsAwarded: 10,
+    rewardType: "points",
+    cardId: "",
+    isActive: true,
+  });
+
+  // Load activities from catalogue
+  const loadActivities = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await getActivityCatalogue({ db, classId });
+      setActivities(data);
+    } catch (err) {
+      console.error("Failed to load activities:", err);
+      setMessage({ type: "error", text: "Failed to load activities." });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [db, classId]);
+
+  // Load available cards
+  const loadCards = useCallback(async () => {
+    try {
+      const cardsRef = collection(db, `classes/${classId}/cards`);
+      const snapshot = await getDocs(cardsRef);
+      const cardsData = snapshot.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          name: d.title || d.name || doc.id,
+          title: d.title || d.name || doc.id,
+          imageURL: d.imageURL || "",
+          ...d,
+        };
+      });
+      setCards(cardsData);
+    } catch (err) {
+      console.error("Failed to load cards:", err);
+    }
+  }, [db, classId]);
+
+  useEffect(() => {
+    loadActivities();
+    loadCards();
+  }, [loadActivities, loadCards]);
+
+  // Card lookup map
+  const cardsMap = useMemo(() => {
+    const map = new Map();
+    cards.forEach((c) => map.set(c.id, c));
+    return map;
+  }, [cards]);
+
+  const resetNewForm = () => {
+    setNewFormData({
+      sourceId: "",
+      activityId: "",
+      name: "",
+      description: "",
+      pointsAwarded: 10,
+      rewardType: "points",
+      cardId: "",
+      isActive: true,
+    });
+  };
+
+  // Add new activity
+  const handleAddActivity = async (e) => {
+    e.preventDefault();
+
+    if (!newFormData.sourceId.trim() || !newFormData.activityId.trim()) {
+      setMessage({ type: "error", text: "Source ID and Activity ID are required." });
+      return;
+    }
+
+    if (
+      (newFormData.rewardType === "card" || newFormData.rewardType === "both") &&
+      !newFormData.cardId.trim()
+    ) {
+      setMessage({ type: "error", text: "Please select a card for card rewards." });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await addActivityToCatalogue({
+        db,
+        classId,
+        activity: {
+          ...newFormData,
+          pointsAwarded: Number(newFormData.pointsAwarded) || 0,
+        },
+      });
+
+      setMessage({ type: "success", text: "Activity added successfully!" });
+      resetNewForm();
+      setIsAdding(false);
+      await loadActivities();
+    } catch (err) {
+      console.error("Failed to add activity:", err);
+      setMessage({
+        type: "error",
+        text: `Failed to add activity: ${err.message || "Unknown error"}`,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Open edit modal for an activity
+  const handleStartEdit = (activity) => {
+    setEditingActivity(activity);
+    setEditFormData({
+      name: activity.name || "",
+      description: activity.description || "",
+      pointsAwarded: Number(activity.pointsAwarded) || 0,
+      rewardType: activity.rewardType || "points",
+      cardId: activity.cardId || "",
+      isActive: activity.isActive !== false,
+    });
+    setMessage(null);
+  };
+
+  // Save edits to existing activity
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingActivity) return;
+
+    if (
+      (editFormData.rewardType === "card" || editFormData.rewardType === "both") &&
+      !editFormData.cardId?.trim()
+    ) {
+      setMessage({ type: "error", text: "Please select a card for card rewards." });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateActivityInCatalogue({
+        db,
+        classId,
+        sourceId: editingActivity.sourceId,
+        activityId: editingActivity.activityId,
+        updates: {
+          name: editFormData.name.trim() || `${editingActivity.sourceId}/${editingActivity.activityId}`,
+          description: editFormData.description.trim(),
+          pointsAwarded: Number(editFormData.pointsAwarded) || 0,
+          rewardType: editFormData.rewardType,
+          cardId:
+            editFormData.rewardType === "points" ? null : editFormData.cardId,
+          isActive: editFormData.isActive,
+        },
+      });
+
+      setMessage({ type: "success", text: `Activity "${editFormData.name || editingActivity.activityId}" updated successfully!` });
+      setEditingActivity(null);
+      await loadActivities();
+    } catch (err) {
+      console.error("Failed to update activity:", err);
+      setMessage({
+        type: "error",
+        text: `Failed to update activity: ${err.message || "Unknown error"}`,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Delete activity permanently
+  const handleDeleteActivity = async (activity) => {
+    const activityName = activity.name || `${activity.sourceId}/${activity.activityId}`;
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete the activity "${activityName}"?\n\nStudents will no longer be able to redeem this code.`
+    );
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    try {
+      await deleteActivityFromCatalogue({
+        db,
+        classId,
+        sourceId: activity.sourceId,
+        activityId: activity.activityId,
+      });
+
+      setMessage({
+        type: "success",
+        text: `Activity "${activityName}" deleted successfully!`,
+      });
+      if (editingActivity?.id === activity.id) {
+        setEditingActivity(null);
+      }
+      await loadActivities();
+    } catch (err) {
+      console.error("Failed to delete activity:", err);
+      setMessage({
+        type: "error",
+        text: `Failed to delete activity: ${err.message || "Unknown error"}`,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Toggle active status
+  const handleToggleActive = async (activity) => {
+    try {
+      await updateActivityInCatalogue({
+        db,
+        classId,
+        sourceId: activity.sourceId,
+        activityId: activity.activityId,
+        updates: { isActive: !activity.isActive },
+      });
+
+      setMessage({
+        type: "success",
+        text: `Activity ${!activity.isActive ? "enabled" : "disabled"}.`,
+      });
+      await loadActivities();
+    } catch (err) {
+      console.error("Failed to toggle activity:", err);
+      setMessage({
+        type: "error",
+        text: `Failed to update activity: ${err.message || "Unknown error"}`,
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: 16, textAlign: "center", color: "#6b7280" }}>
+        Loading activity catalogue...
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1f2937" }}>
+            Activity Catalogue
+          </h3>
+          <p style={{ margin: "2px 0 0", fontSize: 13, color: "#6b7280" }}>
+            Manage activities, points, and card rewards claimable with codes.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setIsAdding(!isAdding);
+            if (!isAdding) setEditingActivity(null);
+          }}
+          style={{
+            padding: "8px 16px",
+            background: isAdding ? "#64748b" : "#2563eb",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 8,
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 700,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          {isAdding ? "✕ Cancel" : "+ Add Activity"}
+        </button>
+      </div>
+
+      {/* Message Banner */}
+      {message && (
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            background:
+              message.type === "success"
+                ? "#dcfce7"
+                : message.type === "error"
+                  ? "#fee2e2"
+                  : "#dbeafe",
+            color:
+              message.type === "success"
+                ? "#166534"
+                : message.type === "error"
+                  ? "#991b1b"
+                  : "#1e40af",
+            border: `1px solid ${
+              message.type === "success"
+                ? "#bbf7d0"
+                : message.type === "error"
+                  ? "#fecaca"
+                  : "#93c5fd"
+            }`,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span>{message.text}</span>
+          <button
+            type="button"
+            onClick={() => setMessage(null)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "inherit",
+              cursor: "pointer",
+              fontWeight: 800,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Edit Activity Modal / Overlay */}
+      {editingActivity && (
+        <div
+          style={{
+            border: "2px solid #3b82f6",
+            borderRadius: 14,
+            padding: 18,
+            background: "#eff6ff",
+            boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.15)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#2563eb", letterSpacing: "0.05em" }}>
+                Editing Activity
+              </span>
+              <h4 style={{ margin: "2px 0 0", fontSize: 16, fontWeight: 800, color: "#1e3a8a" }}>
+                {editingActivity.name || `${editingActivity.sourceId}/${editingActivity.activityId}`}
+              </h4>
+              <span style={{ fontSize: 12, color: "#64748b", fontFamily: "monospace" }}>
+                {editingActivity.sourceId} → {editingActivity.activityId}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditingActivity(null)}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 6,
+                padding: "4px 10px",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+                color: "#475569",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveEdit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>
+                Display Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., Algebra Challenge 1"
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  background: "#ffffff",
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>
+                Description
+              </label>
+              <textarea
+                placeholder="Brief description of the activity"
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  minHeight: 50,
+                  fontFamily: "inherit",
+                  background: "#ffffff",
+                }}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>
+                  Points Awarded
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editFormData.pointsAwarded}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, pointsAwarded: Number(e.target.value) })
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 6,
+                    fontSize: 13,
+                    background: "#ffffff",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>
+                  Reward Type
+                </label>
+                <select
+                  value={editFormData.rewardType}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      rewardType: e.target.value,
+                      cardId: e.target.value === "points" ? "" : editFormData.cardId,
+                    })
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 6,
+                    fontSize: 13,
+                    background: "#ffffff",
+                  }}
+                >
+                  <option value="points">Points Only</option>
+                  <option value="card">Card Only</option>
+                  <option value="both">Points & Card</option>
+                </select>
+              </div>
+            </div>
+
+            {(editFormData.rewardType === "card" || editFormData.rewardType === "both") && (
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>
+                  Select Reward Card *
+                </label>
+                <select
+                  value={editFormData.cardId}
+                  onChange={(e) => setEditFormData({ ...editFormData, cardId: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    border: !editFormData.cardId ? "2px solid #ef4444" : "1px solid #cbd5e1",
+                    borderRadius: 6,
+                    fontSize: 13,
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <option value="">-- Choose a card --</option>
+                  {cards.length === 0 ? (
+                    <option disabled>No cards available in this class</option>
+                  ) : (
+                    cards.map((card) => (
+                      <option key={card.id} value={card.id}>
+                        {card.title || card.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {cards.length === 0 && (
+                  <div style={{ fontSize: 12, color: "#dc2626", marginTop: 4 }}>
+                    ⚠️ No cards found. Create cards in the Card Library first.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+              <input
+                type="checkbox"
+                id="editIsActive"
+                checked={editFormData.isActive}
+                onChange={(e) => setEditFormData({ ...editFormData, isActive: e.target.checked })}
+                style={{ accentColor: "#2563eb", width: 16, height: 16 }}
+              />
+              <label htmlFor="editIsActive" style={{ fontSize: 13, fontWeight: 600, color: "#1e293b", cursor: "pointer" }}>
+                Active (available for redemption)
+              </label>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setEditingActivity(null)}
+                style={{
+                  padding: "9px 16px",
+                  background: "#ffffff",
+                  color: "#475569",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                style={{
+                  padding: "9px 20px",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  opacity: isSaving ? 0.7 : 1,
+                }}
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Add New Activity Form */}
+      {isAdding && (
+        <form
+          onSubmit={handleAddActivity}
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: 12,
+            padding: 16,
+            background: "#f9fafb",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1f2937" }}>
+            Add New Activity
+          </h4>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                Source ID *
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., mathquest"
+                value={newFormData.sourceId}
+                onChange={(e) => setNewFormData({ ...newFormData, sourceId: e.target.value })}
+                maxLength={6}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  background: "#ffffff",
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                Activity ID *
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., algebra_01"
+                value={newFormData.activityId}
+                onChange={(e) => setNewFormData({ ...newFormData, activityId: e.target.value })}
+                maxLength={6}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  background: "#ffffff",
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+              Display Name
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Algebra Challenge 1"
+              value={newFormData.name}
+              onChange={(e) => setNewFormData({ ...newFormData, name: e.target.value })}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: 6,
+                fontSize: 13,
+                background: "#ffffff",
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+              Description
+            </label>
+            <textarea
+              placeholder="Brief description of the activity"
+              value={newFormData.description}
+              onChange={(e) => setNewFormData({ ...newFormData, description: e.target.value })}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: 6,
+                fontSize: 13,
+                minHeight: 50,
+                fontFamily: "inherit",
+                background: "#ffffff",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                Points Awarded
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={newFormData.pointsAwarded}
+                onChange={(e) =>
+                  setNewFormData({ ...newFormData, pointsAwarded: Number(e.target.value) })
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  background: "#ffffff",
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                Reward Type
+              </label>
+              <select
+                value={newFormData.rewardType}
+                onChange={(e) =>
+                  setNewFormData({
+                    ...newFormData,
+                    rewardType: e.target.value,
+                    cardId: e.target.value === "points" ? "" : newFormData.cardId,
+                  })
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  background: "#ffffff",
+                }}
+              >
+                <option value="points">Points Only</option>
+                <option value="card">Card Only</option>
+                <option value="both">Points & Card</option>
+              </select>
+            </div>
+          </div>
+
+          {(newFormData.rewardType === "card" || newFormData.rewardType === "both") && (
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                Select Reward Card *
+              </label>
+              <select
+                value={newFormData.cardId}
+                onChange={(e) => setNewFormData({ ...newFormData, cardId: e.target.value })}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: !newFormData.cardId ? "2px solid #ef4444" : "1px solid #d1d5db",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                <option value="">-- Choose a card --</option>
+                {cards.length === 0 ? (
+                  <option disabled>No cards available in this class</option>
+                ) : (
+                  cards.map((card) => (
+                    <option key={card.id} value={card.id}>
+                      {card.title || card.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {cards.length === 0 && (
+                <div style={{ fontSize: 12, color: "#dc2626", marginTop: 4 }}>
+                  ⚠️ No cards found. Create cards in the Card Library first.
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSaving}
+            style={{
+              padding: "10px 16px",
+              background: "#10b981",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: 6,
+              cursor: isSaving ? "not-allowed" : "pointer",
+              fontSize: 13,
+              fontWeight: 700,
+              opacity: isSaving ? 0.7 : 1,
+            }}
+          >
+            {isSaving ? "Saving..." : "Add Activity"}
+          </button>
+        </form>
+      )}
+
+      {/* Activities List */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+          gap: 14,
+        }}
+      >
+        {activities.length === 0 ? (
+          <div
+            style={{
+              gridColumn: "1 / -1",
+              textAlign: "center",
+              color: "#9ca3af",
+              padding: "36px 16px",
+              background: "#f9fafb",
+              borderRadius: 12,
+              border: "1px dashed #d1d5db",
+            }}
+          >
+            No activities created yet. Click "+ Add Activity" above to register an activity.
+          </div>
+        ) : (
+          activities.map((activity) => {
+            const linkedCard = activity.cardId ? cardsMap.get(activity.cardId) : null;
+            const cardDisplayName = linkedCard
+              ? linkedCard.title || linkedCard.name
+              : activity.cardId || null;
+
+            return (
+              <div
+                key={activity.id}
+                style={{
+                  border: `1px solid ${activity.isActive ? "#e2e8f0" : "#f1f5f9"}`,
+                  borderRadius: 12,
+                  padding: 14,
+                  background: activity.isActive ? "#ffffff" : "#f8fafc",
+                  boxShadow: activity.isActive ? "0 2px 6px rgba(0,0,0,0.04)" : "none",
+                  opacity: activity.isActive ? 1 : 0.65,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  {/* Top Bar: Title & Status Badge */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>
+                      {activity.name || `${activity.sourceId}/${activity.activityId}`}
+                    </div>
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 12,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: activity.isActive ? "#dcfce7" : "#f1f5f9",
+                        color: activity.isActive ? "#166534" : "#64748b",
+                        border: `1px solid ${activity.isActive ? "#bbf7d0" : "#e2e8f0"}`,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {activity.isActive ? "Active" : "Disabled"}
+                    </span>
+                  </div>
+
+                  {/* Source and Activity ID Code */}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#64748b",
+                      marginTop: 4,
+                      fontFamily: "monospace",
+                      background: "#f1f5f9",
+                      display: "inline-block",
+                      padding: "2px 6px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    {activity.sourceId} → {activity.activityId}
+                  </div>
+
+                  {/* Description */}
+                  {activity.description && (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#475569",
+                        marginTop: 8,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {activity.description}
+                    </div>
+                  )}
+
+                  {/* Rewards Breakdown */}
+                  <div
+                    style={{
+                      marginTop: 10,
+                      padding: "8px 10px",
+                      background: "#f8fafc",
+                      borderRadius: 8,
+                      border: "1px solid #e2e8f0",
+                      fontSize: 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748b", fontWeight: 600 }}>Points:</span>
+                      <strong style={{ color: "#0f172a" }}>+{activity.pointsAwarded || 0} pts</strong>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748b", fontWeight: 600 }}>Reward Type:</span>
+                      <span
+                        style={{
+                          textTransform: "capitalize",
+                          fontWeight: 700,
+                          color:
+                            activity.rewardType === "card"
+                              ? "#7c3aed"
+                              : activity.rewardType === "both"
+                                ? "#0284c7"
+                                : "#059669",
+                        }}
+                      >
+                        {activity.rewardType || "points"}
+                      </span>
+                    </div>
+
+                    {(activity.rewardType === "card" || activity.rewardType === "both") && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          paddingTop: 4,
+                          borderTop: "1px dashed #e2e8f0",
+                          color: "#6b21a8",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>🃏</span>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          Card: <strong>{cardDisplayName || "No card linked"}</strong>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 4 }}>
+                  {/* Edit button */}
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(activity)}
+                    style={{
+                      padding: "6px 8px",
+                      background: "#eff6ff",
+                      color: "#1d4ed8",
+                      border: "1px solid #bfdbfe",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                    title="Edit activity points, reward type, card or description"
+                  >
+                    ✏️ Edit
+                  </button>
+
+                  {/* Enable / Disable toggle button */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(activity)}
+                    style={{
+                      padding: "6px 8px",
+                      background: activity.isActive ? "#fef2f2" : "#f0fdf4",
+                      color: activity.isActive ? "#b91c1c" : "#15803d",
+                      border: `1px solid ${activity.isActive ? "#fecaca" : "#bbf7d0"}`,
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                    title={activity.isActive ? "Disable code redemption" : "Enable code redemption"}
+                  >
+                    {activity.isActive ? "Disable" : "Enable"}
+                  </button>
+
+                  {/* Delete button */}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteActivity(activity)}
+                    style={{
+                      padding: "6px 8px",
+                      background: "#ffffff",
+                      color: "#dc2626",
+                      border: "1px solid #fca5a5",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                    title="Permanently delete this activity"
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/cards/LibraryCardRow.jsx
+````javascript
+import React, { useState } from "react";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { isEvolutionCard, checkEvolutionEligibility } from "../../services/cardEvolutionService";
+
+export default function LibraryCardRow({
+  c,
+  mode,
+  flagValue = "A",
+  activeStudent,
+  defaultCatalystCardId,
+  childEvolutions = [],
+  onPreview,
+  onGive = () => {},
+  onDelete,
+  onEdit = () => {},
+  onDropCatalyst,
+  onEvolve,
+}) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const isEvo = isEvolutionCard(c);
+  const hasChildEvolutions = Array.isArray(childEvolutions) && childEvolutions.length > 0;
+
+  const eligibility =
+    isEvo && activeStudent
+      ? checkEvolutionEligibility({
+          student: activeStudent,
+          evolutionCard: c,
+          catalystCardId: defaultCatalystCardId,
+        })
+      : null;
+
+  const isUnlockedByStudent = Boolean(eligibility?.isAlreadyUnlocked);
+  // For normal cards, library shows locked preview. For evolution cards, show unlocked once student unlocks it.
+  const isImgLocked = isEvo ? !isUnlockedByStudent : true;
+  const showURL = getCardDisplayImage(c, flagValue, isImgLocked);
+
+  return (
+    <div
+      onDragOver={(e) => {
+        if (hasChildEvolutions) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          setIsDragOver(true);
+        }
+      }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={(e) => {
+        setIsDragOver(false);
+        if (hasChildEvolutions && onDropCatalyst) {
+          onDropCatalyst(e, c, childEvolutions);
+        }
+      }}
+      style={{
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        border: isDragOver ? "2px dashed #8b5cf6" : isEvo ? "1px solid #c7d2fe" : "1px solid #e2e8f0",
+        padding: 12,
+        borderRadius: 14,
+        background: isDragOver ? "#f5f3ff" : isEvo ? "#faf5ff" : "#ffffff",
+        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
+        marginBottom: 10,
+        color: "#0f172a",
+        contentVisibility: "auto",
+        containIntrinsicSize: "0 110px",
+        transition: "all 0.2s ease",
+      }}
+    >
+      <div
+        style={{
+          width: 68,
+          height: 86,
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          cursor: "pointer",
+          borderRadius: 8,
+          overflow: "hidden",
+          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.06)",
+          position: "relative",
+          flexShrink: 0,
+        }}
+        onClick={onPreview}
+        title="Click to preview card"
+      >
+        {showURL ? (
+          <img
+            src={showURL}
+            alt={c.title}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              filter: isEvo && !isUnlockedByStudent && mode !== "admin" ? "grayscale(0.6)" : "none",
+            }}
+          />
+        ) : (
+          <div style={{ padding: 6, fontSize: 11, color: "#1e293b" }}>{c.title}</div>
+        )}
+
+        {isEvo && !isUnlockedByStudent && mode !== "admin" && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.35)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+            }}
+          >
+            🔒
+          </div>
+        )}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span style={{ fontWeight: 900, fontSize: 15, color: "#0f172a" }}>{c.title}</span>
+          {isEvo && (
+            <span
+              style={{
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: isUnlockedByStudent ? "#dcfce7" : "#ede9fe",
+                color: isUnlockedByStudent ? "#166534" : "#6d28d9",
+                fontWeight: 700,
+              }}
+            >
+              🧬 {isUnlockedByStudent ? "Evolution unlocked" : "Evolution"}
+            </span>
+          )}
+          {hasChildEvolutions && (
+            <span
+              style={{
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: isDragOver ? "#ddd6fe" : "#fef3c7",
+                color: isDragOver ? "#5b21b6" : "#92400e",
+                fontWeight: 700,
+              }}
+              title="Drag the catalyst onto this card to evolve"
+            >
+              🔮 Can evolve
+            </span>
+          )}
+        </div>
+
+        {(!isEvo || isUnlockedByStudent || mode === "admin") && (
+          <div className="muted" style={{ color: "#64748b", fontSize: 13, marginTop: 2 }}>
+            {c.description}
+          </div>
+        )}
+
+        {/* Evolution requirements progress tracker */}
+        {isEvo && (
+          <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <span
+              style={{
+                fontSize: 11,
+                padding: "2px 6px",
+                borderRadius: 6,
+                background: eligibility?.hasCopies ? "#dcfce7" : "#f1f5f9",
+                color: eligibility?.hasCopies ? "#15803d" : "#475569",
+                fontWeight: 700,
+                border: "1px solid rgba(0,0,0,0.06)",
+              }}
+              title="Copies of base card owned"
+            >
+              🃏 Owned: {eligibility ? eligibility.currentCopies : 0}/{c.evolution?.requiredCopies || 1}
+            </span>
+
+            {eligibility?.canEvolve && (
+              <button
+                className="btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEvolve?.(c);
+                }}
+                style={{
+                  padding: "2px 10px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 999,
+                  boxShadow: "0 2px 8px rgba(139, 92, 246, 0.4)",
+                  cursor: "pointer",
+                }}
+              >
+                ✨ ¡Evolucionar!
+              </button>
+            )}
+          </div>
+        )}
+
+        {(c.category || "points") !== "extra" && (
+          <div style={{ marginTop: 6, fontWeight: 900, color: "#0f172a", display: "flex", alignItems: "center", gap: 4 }}>
+            <span>
+              {(c.category || "points") === "rewards"
+                ? `Cost: ${c.points || 0} pts`
+                : `${c.points || 0} ${(c.category || "points") === "experience" ? "XP" : "pts"}`}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {mode === "admin" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {(c.category || "points") !== "rewards" && (
+            <button
+              className="btn primary"
+              onClick={onGive}
+            >
+              Give card
+            </button>
+          )}
+
+          <button
+            className="btn"
+            onClick={onEdit}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              color: "#1e293b",
+            }}
+          >
+            Edit
+          </button>
+
+          <button
+            className="btn"
+            onClick={onDelete}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #fecaca",
+              color: "#dc2626",
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+````
+
+## File: src/components/cards/LibrarySection.jsx
+````javascript
+import CardLibrary from "./CardLibrary";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { isEvolutionCard, isCardUnlockedForStudent } from "../../services/cardEvolutionService";
+
+export default function LibrarySection({
+  mode,
+  cards,
+  students = [],
+  rewards,
+  newsMessages = [],
+  loadingCards,
+  loadingRewards,
+  streakConfigs,
+  lockedInputRef,
+  unlockedInputRef,
+  lockedInputBRef,
+  unlockedInputBRef,
+  flagConfig,
+  viewFlag,
+  onChangeViewFlag,
+  onCreateCard,
+  onPreviewCard,
+  onOpenBulkGive,
+  onEditCard,
+  onDeleteCard,
+  onDeleteReward,
+  onValidationError,
+  cardsById,
+  activeStudent,
+  defaultCatalystCardId,
+  onSetDefaultCatalyst,
+  onDropCatalyst,
+  onEvolve,
+  onSaveNewsMessages,
+  confirmFn,
+}) {
+  return (
+    <CardLibrary
+      mode={mode}
+      cards={cards}
+      students={students}
+      rewards={rewards}
+      newsMessages={newsMessages}
+      loadingCards={loadingCards}
+      loadingRewards={loadingRewards}
+      streakConfigs={streakConfigs}
+      lockedInputRef={lockedInputRef}
+      unlockedInputRef={unlockedInputRef}
+      lockedInputBRef={lockedInputBRef}
+      unlockedInputBRef={unlockedInputBRef}
+      flagConfig={flagConfig}
+      viewFlag={viewFlag}
+      onChangeViewFlag={onChangeViewFlag}
+      onCreateCard={onCreateCard}
+      onPreviewCard={(card, flagValue = "A") => {
+        const isEvo = isEvolutionCard(card);
+        const unlocked = isEvo ? isCardUnlockedForStudent(activeStudent, card) : false;
+        onPreviewCard({
+          ...card,
+          imageURL: getCardDisplayImage(card, flagValue, isEvo ? !unlocked : true),
+          isLibraryCard: true,
+        });
+      }}
+      onOpenBulkGive={onOpenBulkGive}
+      onEditCard={onEditCard}
+      onDeleteCard={onDeleteCard}
+      onDeleteReward={onDeleteReward}
+      onValidationError={onValidationError}
+      cardsById={cardsById}
+      activeStudent={activeStudent}
+      defaultCatalystCardId={defaultCatalystCardId}
+      onSetDefaultCatalyst={onSetDefaultCatalyst}
+      onDropCatalyst={onDropCatalyst}
+      onEvolve={onEvolve}
+      onSaveNewsMessages={onSaveNewsMessages}
+      confirmFn={confirmFn}
+    />
+  );
+}
+````
+
+## File: src/services/rewardCodeService.js
+````javascript
+/**
+ * PKM Reward Code Service - Backend redemption and validation
+ *
+ * Handles code redemption, activity catalogue management, and achievement recording
+ */
+
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  writeBatch,
+  serverTimestamp,
+} from "firebase/firestore";
+
+import { decodeRewardCode, getStudentHash } from "../utils/rewardCodeUtils.js";
+import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
+import { todayISODate } from "../utils/dateUtils";
+import { uid, round2 } from "../utils/helpers";
+
+/**
+ * Redeem a reward code for the current student
+ *
+ * Validates code format, student match, activity existence, and prevents duplicates.
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {string} params.studentId - Student's Firestore UID
+ * @param {string} params.codeString - Code to redeem (user input)
+ * @param {Function} params.alertFn - Alert callback
+ * @returns {Promise<{success: boolean, message: string, achievement?: Object}>}
+ */
+export async function redeemRewardCode({
+  db,
+  classId,
+  studentId,
+  codeString,
+  alertFn = null,
+}) {
+  if (!db || !classId || !studentId || !codeString) {
+    return {
+      success: false,
+      message: "Missing required parameters",
+    };
+  }
+
+  try {
+    // Step 1: Decode and validate code format
+    const decoded = decodeRewardCode(codeString);
+    if (!decoded.success) {
+      return {
+        success: false,
+        message: "This code is invalid or incomplete.",
+        error: decoded.error,
+      };
+    }
+
+    // Step 2: Verify student hash matches current student
+    const currentStudentHash = getStudentHash(studentId);
+    if (decoded.studentHash !== currentStudentHash) {
+      return {
+        success: false,
+        message: "This code belongs to another student.",
+      };
+    }
+
+    // Step 3: Check if activity exists in catalogue
+    const activity = await getActivityFromCatalogue({
+      db,
+      classId,
+      sourceId: decoded.sourceId,
+      activityId: decoded.activityId,
+    });
+
+    if (!activity) {
+      return {
+        success: false,
+        message: "This activity is not registered.",
+      };
+    }
+
+    // Step 4: Check if activity is active
+    if (!activity.isActive) {
+      return {
+        success: false,
+        message: "This activity is no longer available.",
+      };
+    }
+
+    // Step 5: Check if student already redeemed this activity
+    const alreadyRedeemed = await hasStudentRedeemedActivity({
+      db,
+      classId,
+      studentId,
+      sourceId: decoded.sourceId,
+      activityId: decoded.activityId,
+    });
+
+    if (alreadyRedeemed) {
+      // Check if this activity awards a card that wasn't delivered to the student's cards album
+      const cardIdToGive = activity.cardId || activity.linkedCardId || activity.rewardCardId;
+      const givesCard = Boolean(
+        cardIdToGive &&
+        (activity.rewardType === "card" || activity.rewardType === "both" || activity.rewardType !== "points")
+      );
+
+      if (givesCard) {
+        const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+        const studentSnap = await getDoc(studentRef);
+        if (studentSnap.exists()) {
+          const studentData = studentSnap.data();
+          const currentCards = Array.isArray(studentData.cards) ? [...studentData.cards] : [];
+          const hasCard = currentCards.some(
+            (c) => c.cardId === cardIdToGive
+          );
+
+          if (!hasCard) {
+            // Recover and deliver the missing card!
+            const cardRef = doc(db, `classes/${classId}/cards/${cardIdToGive}`);
+            const cardSnap = await getDoc(cardRef);
+            if (cardSnap.exists()) {
+              const cardData = cardSnap.data() || {};
+              const cardTitle = cardData.title || cardData.name || cardIdToGive;
+
+              currentCards.push({
+                id: uid("owned"),
+                cardId: cardIdToGive,
+                title: cardTitle,
+                imageURL: cardData.imageURL || "",
+                imageURL2: cardData.imageURL2 || "",
+                grantedAt: new Date().toISOString(),
+                pointsGranted: 0,
+                obtainedFrom: `activity_${decoded.sourceId}_${decoded.activityId}`,
+              });
+
+              const history = Array.isArray(studentData.rewardsHistory) ? [...studentData.rewardsHistory] : [];
+              const histIdx = history.findIndex(
+                (h) => (h.activityId === decoded.activityId && h.sourceId === decoded.sourceId) ||
+                       (h.name === activity.name) ||
+                       (h.activityName === activity.name)
+              );
+              if (histIdx >= 0) {
+                history[histIdx] = {
+                  ...history[histIdx],
+                  cardId: cardIdToGive,
+                  cardTitle: cardTitle,
+                  source: decoded.sourceId,
+                  sourceId: decoded.sourceId,
+                  activityId: decoded.activityId,
+                  activityName: activity.name,
+                  isCodeRedemption: true,
+                };
+              }
+
+              await updateDoc(studentRef, { cards: currentCards, rewardsHistory: history });
+
+              return {
+                success: true,
+                message: `Reward card "${cardTitle}" added to your collection!`,
+                achievement: {
+                  cardId: cardIdToGive,
+                  cardName: cardTitle,
+                  activityName: activity.name,
+                  effectivePointsAwarded: 0,
+                },
+              };
+            }
+          }
+        }
+      }
+
+      return {
+        success: false,
+        message: "You have already completed this activity and claimed its reward.",
+      };
+    }
+
+    // Step 6: Record achievement and award points
+    const achievement = await recordAndAwardAchievement({
+      db,
+      classId,
+      studentId,
+      sourceId: decoded.sourceId,
+      activityId: decoded.activityId,
+      activity,
+    });
+
+    return {
+      success: true,
+      message: achievement.cardName
+        ? `Achievement redeemed! Card "${achievement.cardName}" added to your collection.`
+        : "Achievement successfully redeemed!",
+      achievement,
+    };
+  } catch (err) {
+    console.error("redeemRewardCode error:", err);
+    return {
+      success: false,
+      message: "An error occurred while redeeming the code.",
+      error: err.message,
+    };
+  }
+}
+
+/**
+ * Get an activity from the activity catalogue
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {string} params.sourceId - Application identifier
+ * @param {string} params.activityId - Activity identifier
+ * @returns {Promise<Object|null>} Activity object or null if not found
+ */
+export async function getActivityFromCatalogue({ db, classId, sourceId, activityId }) {
+  if (!db || !classId || !sourceId || !activityId) return null;
+
+  try {
+    // The activity ID is sourceId_activityId to ensure uniqueness per class
+    const activityRef = doc(
+      db,
+      `classes/${classId}/activityCatalogue/${sourceId}_${activityId}`
+    );
+    const snap = await getDoc(activityRef);
+    return snap.exists() ? snap.data() : null;
+  } catch (err) {
+    console.error("getActivityFromCatalogue error:", err);
+    return null;
+  }
+}
+
+/**
+ * Check if student has already redeemed an activity
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {string} params.studentId - Student's Firestore UID
+ * @param {string} params.sourceId - Application identifier
+ * @param {string} params.activityId - Activity identifier
+ * @returns {Promise<boolean>} True if already redeemed
+ */
+export async function hasStudentRedeemedActivity({
+  db,
+  classId,
+  studentId,
+  sourceId,
+  activityId,
+}) {
+  if (!db || !classId || !studentId || !sourceId || !activityId) return false;
+
+  try {
+    // Check if achievement record exists
+    const achievementRef = doc(
+      db,
+      `classes/${classId}/students/${studentId}/achievements/${sourceId}_${activityId}`
+    );
+    const snap = await getDoc(achievementRef);
+    return snap.exists();
+  } catch (err) {
+    console.error("hasStudentRedeemedActivity error:", err);
+    return false;
+  }
+}
+
+/**
+ * Record achievement and award points to student
+ *
+ * Uses batch write for atomicity.
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {string} params.studentId - Student's Firestore UID
+ * @param {string} params.sourceId - Application identifier
+ * @param {string} params.activityId - Activity identifier
+ * @param {Object} params.activity - Activity object from catalogue
+ * @returns {Promise<Object>} Achievement record
+ */
+export async function recordAndAwardAchievement({
+  db,
+  classId,
+  studentId,
+  sourceId,
+  activityId,
+  activity,
+}) {
+  const batch = writeBatch(db);
+
+  try {
+    // Get current student data for multiplier
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const studentSnap = await getDoc(studentRef);
+    if (!studentSnap.exists()) {
+      throw new Error("Student not found");
+    }
+
+    const studentData = studentSnap.data();
+    const mult = computeEffectiveMultiplier(studentData, todayISODate());
+    const effectivePoints = Number((activity.pointsAwarded * mult).toFixed(2));
+
+    // Create achievement record
+    const achievement = {
+      sourceId,
+      activityId,
+      redeemedAt: serverTimestamp(),
+      pointsAwarded: Number(activity.pointsAwarded || 0),
+      effectivePointsAwarded: effectivePoints,
+      rewardType: activity.rewardType || "points",
+      activityName: String(activity.name || ""),
+      activityDescription: String(activity.description || ""),
+    };
+
+    // Update/create achievement document
+    const achievementRef = doc(
+      db,
+      `classes/${classId}/students/${studentId}/achievements/${sourceId}_${activityId}`
+    );
+    batch.set(achievementRef, achievement);
+
+    // Prepare student document updates
+    const currentCards = Array.isArray(studentData.cards) ? [...studentData.cards] : [];
+    const history = Array.isArray(studentData.rewardsHistory) ? [...studentData.rewardsHistory] : [];
+    const nowIso = new Date().toISOString();
+    const nowMs = Date.now();
+
+    const rewardEntry = {
+      id: `${nowMs}-${Math.random().toString(16).slice(2)}`,
+      type: "achievement",
+      name: activity.name || "Activity",
+      title: activity.name || "Activity",
+      activityName: activity.name || "Activity",
+      activityDescription: activity.description || "",
+      source: sourceId,
+      sourceId: sourceId,
+      activityId: activityId,
+      pointsAwarded: effectivePoints,
+      date: nowIso,
+      redeemedAt: nowMs,
+      isCodeRedemption: true,
+    };
+
+    // Handle card reward if applicable (for 'card', 'both', or any activity configured with a card)
+    const cardIdToGive = activity.cardId || activity.linkedCardId || activity.rewardCardId;
+    const shouldAwardCard = Boolean(
+      cardIdToGive &&
+      (activity.rewardType === "card" || activity.rewardType === "both" || activity.rewardType !== "points")
+    );
+
+    if (shouldAwardCard && cardIdToGive) {
+      // Get the card to ensure it exists
+      const cardRef = doc(db, `classes/${classId}/cards/${cardIdToGive}`);
+      const cardSnap = await getDoc(cardRef);
+      if (!cardSnap.exists()) {
+        throw new Error(`Card not found: ${cardIdToGive}`);
+      }
+
+      const cardData = cardSnap.data() || {};
+      const cardTitle = cardData.title || cardData.name || cardIdToGive;
+
+      // Add to student's native cards array so it shows in the UI deck
+      currentCards.push({
+        id: uid("owned"),
+        cardId: cardIdToGive,
+        title: cardTitle,
+        imageURL: cardData.imageURL || "",
+        imageURL2: cardData.imageURL2 || "",
+        grantedAt: nowIso,
+        pointsGranted: effectivePoints,
+        obtainedFrom: `activity_${sourceId}_${activityId}`,
+      });
+
+      // Also set the subcollection for backward-compatibility
+      const studentCardsRef = doc(
+        db,
+        `classes/${classId}/students/${studentId}/cards/${cardIdToGive}`
+      );
+      batch.set(
+        studentCardsRef,
+        {
+          cardId: cardIdToGive,
+          obtainedAt: serverTimestamp(),
+          obtainedFrom: `activity_${sourceId}_${activityId}`,
+          ...cardData,
+        },
+        { merge: true }
+      );
+
+      // Update achievement record and reward entry to include card details
+      achievement.cardId = cardIdToGive;
+      achievement.cardName = cardTitle;
+      rewardEntry.cardId = cardIdToGive;
+      rewardEntry.cardTitle = cardTitle;
+      rewardEntry.type = activity.rewardType === "card" ? "card" : "achievement_card";
+    }
+
+    history.push(rewardEntry);
+
+    // Update student document in one single batch operation
+    const studentUpdates = {
+      currentPoints: round2(Number(studentData.currentPoints || 0) + effectivePoints),
+      rewardsHistory: history,
+    };
+    if (shouldAwardCard && cardIdToGive) {
+      studentUpdates.cards = currentCards;
+    }
+
+    batch.update(studentRef, studentUpdates);
+
+    await batch.commit();
+
+    return achievement;
+  } catch (err) {
+    console.error("recordAndAwardAchievement error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Add a new activity to the catalogue
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {Object} params.activity - Activity object
+ * @returns {Promise<void>}
+ */
+export async function addActivityToCatalogue({ db, classId, activity }) {
+  if (!db || !classId || !activity) throw new Error("Missing required parameters");
+
+  const { sourceId, activityId, name, description, pointsAwarded, rewardType, isActive, cardId } =
+    activity;
+
+  if (!sourceId || !activityId) {
+    throw new Error("sourceId and activityId are required");
+  }
+
+  // Validate that card activities have a cardId
+  const givesCard = rewardType === "card" || rewardType === "both";
+  if (givesCard && !cardId) {
+    throw new Error("A card must be selected when reward type gives a card");
+  }
+
+  try {
+    const activityRef = doc(
+      db,
+      `classes/${classId}/activityCatalogue/${sourceId}_${activityId}`
+    );
+
+    const activityData = {
+      sourceId,
+      activityId,
+      name: name || `${sourceId}/${activityId}`,
+      description: description || "",
+      pointsAwarded: Number(pointsAwarded) || 0,
+      rewardType: rewardType || "points",
+      isActive: isActive !== false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    // Include cardId if reward type includes a card or cardId is present
+    if (cardId && rewardType !== "points") {
+      activityData.cardId = cardId;
+    }
+
+    await setDoc(activityRef, activityData, { merge: false });
+  } catch (err) {
+    console.error("addActivityToCatalogue error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Update an activity in the catalogue
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {string} params.sourceId - Application identifier
+ * @param {string} params.activityId - Activity identifier
+ * @param {Object} params.updates - Fields to update
+ * @returns {Promise<void>}
+ */
+export async function updateActivityInCatalogue({
+  db,
+  classId,
+  sourceId,
+  activityId,
+  updates,
+}) {
+  if (!db || !classId || !sourceId || !activityId || !updates) {
+    throw new Error("Missing required parameters");
+  }
+
+  try {
+    const activityRef = doc(
+      db,
+      `classes/${classId}/activityCatalogue/${sourceId}_${activityId}`
+    );
+
+    const payload = {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    };
+
+    // If changing to points-only reward, clear cardId
+    if (updates.rewardType === "points") {
+      payload.cardId = null;
+    }
+
+    await updateDoc(activityRef, payload);
+  } catch (err) {
+    console.error("updateActivityInCatalogue error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Get all activities in a class's catalogue
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @returns {Promise<Array>} Array of activities
+ */
+export async function getActivityCatalogue({ db, classId }) {
+  if (!db || !classId) return [];
+
+  try {
+    const catalogueRef = collection(db, `classes/${classId}/activityCatalogue`);
+    const snap = await getDocs(catalogueRef);
+
+    return snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (err) {
+    console.error("getActivityCatalogue error:", err);
+    return [];
+  }
+}
+
+/**
+ * Delete an activity from the catalogue permanently
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {string} params.sourceId - Application identifier
+ * @param {string} params.activityId - Activity identifier
+ * @returns {Promise<void>}
+ */
+export async function deleteActivityFromCatalogue({
+  db,
+  classId,
+  sourceId,
+  activityId,
+}) {
+  if (!db || !classId || !sourceId || !activityId) {
+    throw new Error("Missing required parameters");
+  }
+
+  try {
+    const activityRef = doc(
+      db,
+      `classes/${classId}/activityCatalogue/${sourceId}_${activityId}`
+    );
+    await deleteDoc(activityRef);
+  } catch (err) {
+    console.error("deleteActivityFromCatalogue error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Reconcile and enrich a student's rewards history with activity name, source, and points.
+ * Ensures retrocompatibility for already-redeemed codes as well as future codes, even if
+ * activities are deactivated or deleted from the catalogue later.
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {Object} params.student - Student document object
+ * @returns {Promise<Array>} Enriched rewards history array
+ */
+export async function reconcileAndEnrichStudentHistory({ db, classId, student }) {
+  if (!db || !classId || !student || !student.id) {
+    return Array.isArray(student?.rewardsHistory) ? student.rewardsHistory : [];
+  }
+
+  try {
+    // 1. Fetch the student's subcollection of achievements
+    const achRef = collection(db, `classes/${classId}/students/${student.id}/achievements`);
+    const achSnap = await getDocs(achRef);
+    const achievements = achSnap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+
+    // 2. Fetch the class's activity catalogue
+    const catalogue = await getActivityCatalogue({ db, classId });
+
+    // 3. Build lookup maps
+    const achByComposite = new Map();
+    const achByCardId = new Map();
+    const achByName = new Map();
+
+    achievements.forEach((ach) => {
+      const compId = `${ach.sourceId}_${ach.activityId}`;
+      achByComposite.set(compId, ach);
+      if (ach.cardId) achByCardId.set(ach.cardId, ach);
+      const nameKey = (ach.activityName || ach.name || "").trim().toLowerCase();
+      if (nameKey) achByName.set(nameKey, ach);
+    });
+
+    const catByComposite = new Map();
+    const catByCardId = new Map();
+    const catByName = new Map();
+
+    catalogue.forEach((act) => {
+      const compId = `${act.sourceId}_${act.activityId}`;
+      catByComposite.set(compId, act);
+      if (act.cardId) catByCardId.set(act.cardId, act);
+      const nameKey = (act.name || "").trim().toLowerCase();
+      if (nameKey) catByName.set(nameKey, act);
+    });
+
+    const studentCards = Array.isArray(student.cards) ? student.cards : [];
+    const cardByCardId = new Map();
+    studentCards.forEach((c) => {
+      if (c.cardId) cardByCardId.set(c.cardId, c);
+    });
+
+    const currentHistory = Array.isArray(student.rewardsHistory) ? [...student.rewardsHistory] : [];
+    const matchedAchievementIds = new Set();
+    let hasChanges = false;
+
+    // 4. Enrich existing entries in rewardsHistory
+    const enrichedHistory = currentHistory.map((h) => {
+      // Check if this entry represents a code redemption / activity achievement
+      const isAchievementType = h.type === "achievement" || h.type === "achievement_card";
+      const isCardFromActivity = h.type === "card" && (h.obtainedFrom || h.pointsAwarded !== undefined || !h.cost);
+      const isCode = Boolean(
+        h.isCodeRedemption ||
+        isAchievementType ||
+        isCardFromActivity ||
+        (!h.cost && (h.pointsAwarded !== undefined || h.name || h.activityName))
+      );
+
+      if (!isCode) {
+        // It's a regular store reward
+        return h;
+      }
+
+      // Try matching with an achievement or catalogue activity
+      let match = null;
+      let matchedCompId = null;
+
+      // Try 1: By sourceId + activityId if already on entry
+      if (h.sourceId && h.activityId) {
+        matchedCompId = `${h.sourceId}_${h.activityId}`;
+        match = achByComposite.get(matchedCompId) || catByComposite.get(matchedCompId);
+      }
+
+      // Try 2: By obtainedFrom string (e.g. "activity_math_quiz1")
+      if (!match && h.obtainedFrom && h.obtainedFrom.startsWith("activity_")) {
+        const parts = h.obtainedFrom.replace("activity_", "").split("_");
+        matchedCompId = `${parts[0]}_${parts.slice(1).join("_")}`;
+        match = achByComposite.get(matchedCompId) || catByComposite.get(matchedCompId);
+      }
+
+      // Try 3: By cardId
+      if (!match && h.cardId) {
+        match = achByCardId.get(h.cardId) || catByCardId.get(h.cardId);
+        if (match) matchedCompId = `${match.sourceId}_${match.activityId}`;
+      }
+
+      // Try 4: Check student's owned cards by cardId for obtainedFrom
+      if (!match && h.cardId && cardByCardId.has(h.cardId)) {
+        const c = cardByCardId.get(h.cardId);
+        if (c.obtainedFrom && c.obtainedFrom.startsWith("activity_")) {
+          const parts = c.obtainedFrom.replace("activity_", "").split("_");
+          matchedCompId = `${parts[0]}_${parts.slice(1).join("_")}`;
+          match = achByComposite.get(matchedCompId) || catByComposite.get(matchedCompId);
+        }
+      }
+
+      // Try 5: By name match
+      if (!match) {
+        const searchName = (h.activityName || h.name || h.title || "").trim().toLowerCase();
+        if (searchName) {
+          match = achByName.get(searchName) || catByName.get(searchName);
+          if (match) matchedCompId = `${match.sourceId}_${match.activityId}`;
+        }
+      }
+
+      if (matchedCompId) {
+        matchedAchievementIds.add(matchedCompId);
+      }
+
+      const resolvedActivityName = h.activityName || match?.activityName || match?.name || h.name || h.title || "Activity";
+      const resolvedSource = h.source || match?.sourceId || h.sourceId || "Code";
+      const resolvedSourceId = h.sourceId || match?.sourceId || "";
+      const resolvedActivityId = h.activityId || match?.activityId || "";
+      const resolvedPoints = Number(
+        h.pointsAwarded !== undefined
+          ? h.pointsAwarded
+          : match?.effectivePointsAwarded !== undefined
+          ? match.effectivePointsAwarded
+          : match?.pointsAwarded !== undefined
+          ? match.pointsAwarded
+          : 0
+      );
+      const resolvedCardId = h.cardId || match?.cardId || null;
+      const resolvedCardTitle = h.cardTitle || match?.cardName || (resolvedCardId && cardByCardId.get(resolvedCardId)?.title) || null;
+
+      const dateVal =
+        h.date ||
+        (h.redeemedAt ? new Date(h.redeemedAt).toISOString() : null) ||
+        (match?.redeemedAt?.toDate ? match.redeemedAt.toDate().toISOString() : null) ||
+        new Date().toISOString();
+
+      const updated = {
+        ...h,
+        id: h.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        isCodeRedemption: true,
+        type: resolvedCardId ? "achievement_card" : "achievement",
+        activityName: resolvedActivityName,
+        title: resolvedActivityName,
+        name: resolvedActivityName,
+        source: resolvedSource,
+        sourceId: resolvedSourceId,
+        activityId: resolvedActivityId,
+        pointsAwarded: resolvedPoints,
+        cardId: resolvedCardId,
+        cardTitle: resolvedCardTitle,
+        date: dateVal,
+      };
+
+      if (
+        h.source !== updated.source ||
+        h.activityName !== updated.activityName ||
+        h.pointsAwarded !== updated.pointsAwarded ||
+        !h.isCodeRedemption ||
+        h.cardId !== updated.cardId
+      ) {
+        hasChanges = true;
+      }
+
+      return updated;
+    });
+
+    // 5. Retrocompatibility: if student has achievements in subcollection not in rewardsHistory
+    achievements.forEach((ach) => {
+      const compId = `${ach.sourceId}_${ach.activityId}`;
+      if (!matchedAchievementIds.has(compId)) {
+        const achDate = ach.redeemedAt?.toDate
+          ? ach.redeemedAt.toDate().toISOString()
+          : ach.redeemedAt
+          ? new Date(ach.redeemedAt).toISOString()
+          : new Date().toISOString();
+
+        enrichedHistory.push({
+          id: `ach_${compId}`,
+          isCodeRedemption: true,
+          type: ach.cardId ? "achievement_card" : "achievement",
+          activityName: ach.activityName || ach.name || ach.activityId || "Activity",
+          title: ach.activityName || ach.name || ach.activityId || "Activity",
+          name: ach.activityName || ach.name || ach.activityId || "Activity",
+          source: ach.sourceId || "Code",
+          sourceId: ach.sourceId || "",
+          activityId: ach.activityId || "",
+          pointsAwarded: Number(ach.effectivePointsAwarded ?? ach.pointsAwarded ?? 0),
+          cardId: ach.cardId || null,
+          cardTitle: ach.cardName || null,
+          date: achDate,
+          redeemedAt: ach.redeemedAt?.toMillis ? ach.redeemedAt.toMillis() : Date.now(),
+        });
+        matchedAchievementIds.add(compId);
+        hasChanges = true;
+      }
+    });
+
+    // 6. Retrocompatibility: check student's cards for activity cards not in rewardsHistory
+    studentCards.forEach((card) => {
+      if (card.obtainedFrom && card.obtainedFrom.startsWith("activity_")) {
+        const parts = card.obtainedFrom.replace("activity_", "").split("_");
+        const sId = parts[0];
+        const aId = parts.slice(1).join("_");
+        const compId = `${sId}_${aId}`;
+        if (!matchedAchievementIds.has(compId)) {
+          const catItem = catByComposite.get(compId) || catByCardId.get(card.cardId);
+          enrichedHistory.push({
+            id: `card_${card.id || card.cardId}`,
+            isCodeRedemption: true,
+            type: "achievement_card",
+            activityName: catItem?.name || card.title || "Activity",
+            title: catItem?.name || card.title || "Activity",
+            name: catItem?.name || card.title || "Activity",
+            source: sId || "Code",
+            sourceId: sId || "",
+            activityId: aId || "",
+            pointsAwarded: Number(card.pointsGranted ?? catItem?.pointsAwarded ?? 0),
+            cardId: card.cardId,
+            cardTitle: card.title,
+            date: card.grantedAt || new Date().toISOString(),
+          });
+          matchedAchievementIds.add(compId);
+          hasChanges = true;
+        }
+      }
+    });
+
+    // 7. If anything was enriched or added, persist back to Firestore so it's permanent
+    if (hasChanges) {
+      try {
+        const studentRef = doc(db, `classes/${classId}/students/${student.id}`);
+        await updateDoc(studentRef, { rewardsHistory: enrichedHistory });
+      } catch (saveErr) {
+        console.warn("Could not backfill enriched rewardsHistory to Firestore:", saveErr);
+      }
+    }
+
+    return enrichedHistory;
+  } catch (err) {
+    console.error("reconcileAndEnrichStudentHistory error:", err);
+    return Array.isArray(student?.rewardsHistory) ? student.rewardsHistory : [];
+  }
+}
+````
+
+## File: src/services/cardService.js
+````javascript
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  runTransaction,
+  updateDoc,
+  writeBatch,
+} from "firebase/firestore";
+import {
+  getDownloadURL,
+  ref as storageRef,
+  uploadBytes,
+} from "firebase/storage";
+
+import { uid, round2 } from "../utils/helpers";
+import { todayISODate, addDaysISO } from "../utils/dateUtils";
+import {
+  parseFloatScheduleInput,
+  normalizeFloatWindows,
+  computeEffectiveMultiplier,
+} from "../utils/floatWindowUtils";
+import { grantStreakMaxRewardCards } from "./rewardService";
+import {
+  incrementLinkedStreakIfNeeded,
+  incrementStreaksNoFloatWindows,
+} from "./streakService";
+import { isCardUnlockedForStudent } from "./cardEvolutionService";
+
+export async function updateCard({
+  db,
+  storage,
+  classId,
+  cardId,
+  updates,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  if (!classId) return;
+
+  try {
+    const cardRef = doc(db, `classes/${classId}/cards/${cardId}`);
+    const snap = await getDoc(cardRef);
+    if (!snap.exists()) return alertFn ? alertFn("Card not found") : undefined;
+
+    const prev = snap.data();
+    const {
+      title,
+      description,
+      points,
+      category,
+      linkedStreakIds,
+      lockedFile,
+      unlockedFile,
+    } = updates || {};
+
+    let lockedImageURL = prev.lockedImageURL || "";
+    let unlockedImageURL = prev.imageURL || "";
+    let lockedImageURL_B = prev.lockedImageURL_B || "";
+    let unlockedImageURL_B = prev.imageURL_B || "";
+
+    const baseKey = uid(`cardedit_${cardId}`);
+
+    if (lockedFile) {
+      const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
+      const refLocked = storageRef(storage, `classes/${classId}/cards/${keyLocked}`);
+      const up = await uploadBytes(refLocked, lockedFile);
+      lockedImageURL = await getDownloadURL(up.ref);
+    }
+
+    if (unlockedFile) {
+      const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
+      const refUnlocked = storageRef(storage, `classes/${classId}/cards/${keyUnlocked}`);
+      const up = await uploadBytes(refUnlocked, unlockedFile);
+      unlockedImageURL = await getDownloadURL(up.ref);
+    }
+
+    if (updates.lockedFile_B) {
+      const keyLockedB = `${baseKey}_lockedB_${updates.lockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refLockedB = storageRef(storage, `classes/${classId}/cards/${keyLockedB}`);
+      const upB = await uploadBytes(refLockedB, updates.lockedFile_B);
+      lockedImageURL_B = await getDownloadURL(upB.ref);
+    }
+
+    if (updates.unlockedFile_B) {
+      const keyUnlockedB = `${baseKey}_unlockedB_${updates.unlockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refUnlockedB = storageRef(storage, `classes/${classId}/cards/${keyUnlockedB}`);
+      const upB = await uploadBytes(refUnlockedB, updates.unlockedFile_B);
+      unlockedImageURL_B = await getDownloadURL(upB.ref);
+    }
+
+    if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
+    if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+
+    const nextCategory = category || prev.category || "points";
+    const cleanIds =
+      nextCategory === "points"
+        ? Array.from(
+            new Set(
+              (Array.isArray(linkedStreakIds) ? linkedStreakIds : [])
+                .filter(Boolean)
+                .map(String)
+            )
+          )
+        : [];
+
+    const updatePayload = {
+      title: (title || "").trim(),
+      description: description || "",
+      points: Number(points) || 0,
+      category: nextCategory,
+      linkedStreakIds: cleanIds,
+      imageURL: unlockedImageURL,
+      lockedImageURL,
+      imageURL_B: unlockedImageURL_B,
+      lockedImageURL_B,
+      updatedAt: Date.now(),
+    };
+
+    if (updates.evolution !== undefined) {
+      updatePayload.evolution = updates.evolution;
+    }
+
+    await updateDoc(cardRef, updatePayload);
+  } catch (err) {
+    console.error("updateCard error", err);
+    if (alertFn) alertFn("Failed to update card. See console.");
+  }
+}
+
+export async function createCard({
+  db,
+  storage,
+  classId,
+  title,
+  description,
+  points = 0,
+  category = "points",
+  linkedStreakIds = [],
+  lockedFile,
+  unlockedFile,
+  lockedFile_B,
+  unlockedFile_B,
+  lockedFileInputRef,
+  unlockedFileInputRef,
+  lockedFileBInputRef,
+  unlockedFileBInputRef,
+  evolution = null,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  if (!classId) return;
+  if (!title?.trim()) {
+    if (alertFn) alertFn("Card title required");
+    return;
+  }
+
+  try {
+    const baseKey = uid("card");
+    let lockedImageURL = "";
+    let unlockedImageURL = "";
+    let lockedImageURL_B = "";
+    let unlockedImageURL_B = "";
+
+    if (lockedFile) {
+      const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
+      const refLocked = storageRef(storage, `classes/${classId}/cards/${keyLocked}`);
+      const snapLocked = await uploadBytes(refLocked, lockedFile);
+      lockedImageURL = await getDownloadURL(snapLocked.ref);
+    }
+
+    if (unlockedFile) {
+      const keyUnlocked = `${baseKey}_unlocked_${unlockedFile.name.replace(/\s+/g, "_")}`;
+      const refUnlocked = storageRef(storage, `classes/${classId}/cards/${keyUnlocked}`);
+      const snapUnlocked = await uploadBytes(refUnlocked, unlockedFile);
+      unlockedImageURL = await getDownloadURL(snapUnlocked.ref);
+    }
+
+    if (lockedFile_B) {
+      const keyLockedB = `${baseKey}_lockedB_${lockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refLockedB = storageRef(storage, `classes/${classId}/cards/${keyLockedB}`);
+      const snapLockedB = await uploadBytes(refLockedB, lockedFile_B);
+      lockedImageURL_B = await getDownloadURL(snapLockedB.ref);
+    }
+
+    if (unlockedFile_B) {
+      const keyUnlockedB = `${baseKey}_unlockedB_${unlockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refUnlockedB = storageRef(storage, `classes/${classId}/cards/${keyUnlockedB}`);
+      const snapUnlockedB = await uploadBytes(refUnlockedB, unlockedFile_B);
+      unlockedImageURL_B = await getDownloadURL(snapUnlockedB.ref);
+    }
+
+    if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
+    if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+
+    const cleanLinked = Array.isArray(linkedStreakIds) ? linkedStreakIds.filter(Boolean) : [];
+
+    const payload = {
+      title: title.trim(),
+      description: description || "",
+      points: Number(points) || 0,
+      category: category || "points",
+      linkedStreakIds: category === "points" ? cleanLinked : [],
+      imageURL: unlockedImageURL,
+      lockedImageURL,
+      imageURL_B: unlockedImageURL_B,
+      lockedImageURL_B,
+      evolution: evolution || null,
+      createdAt: Date.now(),
+    };
+
+    await addDoc(collection(db, `classes/${classId}/cards`), payload);
+
+    if (lockedFileInputRef?.current) lockedFileInputRef.current.value = "";
+    if (unlockedFileInputRef?.current) unlockedFileInputRef.current.value = "";
+    if (lockedFileBInputRef?.current) lockedFileBInputRef.current.value = "";
+    if (unlockedFileBInputRef?.current) unlockedFileBInputRef.current.value = "";
+  } catch (err) {
+    console.error("createCard err:", err);
+    if (alertFn) alertFn("Failed to add card. Check Storage permissions or console.");
+  }
+}
+
+export async function deleteCard({
+  db,
+  classId,
+  cardId,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
+}) {
+  if (confirmFn && !(await confirmFn("Delete this library card?"))) return;
+  try {
+    await deleteDoc(doc(db, `classes/${classId}/cards/${cardId}`));
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to delete card.");
+  }
+}
+
+export async function giveCardToStudent({
+  db,
+  classId,
+  studentId,
+  cardId,
+  activeClass,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  getCardDataFast,
+  scheduleFn,
+}) {
+  try {
+    const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
+    if (!cardSnap.exists()) return alertFn ? alertFn("Card not found") : undefined;
+    const cardData = cardSnap.data();
+
+    const category = cardData.category || "points";
+    if (category === "rewards") return;
+
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const studentSnap = await getDoc(studentRef);
+    if (!studentSnap.exists()) return alertFn ? alertFn("Student not found") : undefined;
+    const sdata = studentSnap.data();
+
+    if (!isCardUnlockedForStudent(sdata, { id: cardId, ...cardData })) {
+      return alertFn
+        ? alertFn("Esta carta de evolución está bloqueada para este alumno. Debe evolucionarla primero.")
+        : undefined;
+    }
+
+    const today = todayISODate();
+    const multiplier = computeEffectiveMultiplier(sdata, today);
+
+    let basePoints = 0;
+    if (category === "points") basePoints = Number(cardData.points || 0);
+
+    // Compute only the NEW card entries / points delta here. The final merge
+    // happens inside a transaction against the freshest server state, so a
+    // concurrent grant to the same student (e.g. two approved requests in a
+    // row) can never silently overwrite/lose the other one's card.
+    const effectivePoints = round2(basePoints * multiplier);
+    const newEntries = [
+      {
+        id: uid("owned"),
+        cardId,
+        title: cardData.title,
+        imageURL: cardData.imageURL || "",
+        grantedAt: new Date().toISOString(),
+        pointsGranted: effectivePoints,
+      },
+    ];
+
+    let pointsDelta = effectivePoints;
+    const linkedIds =
+      category === "points"
+        ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
+        : [];
+
+    const res = await incrementLinkedStreakIfNeeded(sdata, linkedIds, {
+      allowPrompts: true,
+      studentName: sdata.name || "",
+      scheduleFn,
+    }, activeClass);
+
+    const nextStreaks = res?.nextStreaks || null;
+    const crossedMaxIds = Array.isArray(res?.crossedMaxIds) ? res.crossedMaxIds : [];
+
+    if (crossedMaxIds.length) {
+      const streakConfigs = activeClass?.streakConfigs || [];
+      const givenRewardCardIds = new Set();
+      // Use the post-increment streaks so a window that just started today (delay 0) already counts.
+      const postMultiplier = nextStreaks
+        ? computeEffectiveMultiplier({ ...sdata, streaks: nextStreaks }, today)
+        : multiplier;
+
+      for (const streakId of crossedMaxIds) {
+        const cfg = streakConfigs.find((c) => c.id === streakId);
+        const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+        pointsDelta = await grantStreakMaxRewardCards({
+          rewardCardIds: rewardIds,
+          cardsArr: newEntries,
+          currentPoints: pointsDelta,
+          multiplier: postMultiplier,
+          streakId,
+          classId,
+          getCardDataFast,
+          givenRewardCardIds,
+        });
+      }
+    }
+
+    await runTransaction(db, async (tx) => {
+      const freshSnap = await tx.get(studentRef);
+      if (!freshSnap.exists()) return;
+      const freshData = freshSnap.data();
+      const freshCards = Array.isArray(freshData.cards) ? freshData.cards : [];
+
+      const payload = {
+        cards: [...freshCards, ...newEntries],
+        currentPoints: round2((freshData.currentPoints || 0) + pointsDelta),
+      };
+      if (nextStreaks) payload.streaks = nextStreaks;
+
+      tx.update(studentRef, payload);
+    });
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to give card.");
+    throw err;
+  }
+}
+
+export async function giveCardToStudentsBulk({
+  db,
+  classId,
+  cardId,
+  studentIds,
+  activeClass,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  getCardDataFast,
+  scheduleFn,
+}) {
+  if (!classId) return;
+  if (!Array.isArray(studentIds) || studentIds.length === 0) return;
+
+  const floatHitsByStreak = new Map();
+
+  try {
+    const cardSnap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
+    if (!cardSnap.exists()) return alertFn ? alertFn("Card not found") : undefined;
+    const cardData = cardSnap.data();
+
+    const category = cardData.category || "points";
+    if (category === "rewards") return alertFn ? alertFn("Rewards cards can't be given directly.") : undefined;
+
+    const basePoints = category === "points" ? Number(cardData.points || 0) : 0;
+    const linkedIds =
+      category === "points"
+        ? (Array.isArray(cardData.linkedStreakIds) ? cardData.linkedStreakIds : [])
+        : [];
+
+    const streakConfigs = activeClass?.streakConfigs || [];
+    const today = todayISODate();
+    const pending = [];
+    const maxHitsByStreak = new Map();
+
+    let skippedLocked = 0;
+
+    for (let i = 0; i < studentIds.length; i++) {
+      const studentId = studentIds[i];
+      const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+      const studentSnap = await getDoc(studentRef);
+      if (!studentSnap.exists()) continue;
+      const sdata = studentSnap.data();
+
+      if (!isCardUnlockedForStudent(sdata, { id: cardId, ...cardData })) {
+        skippedLocked += 1;
+        continue;
+      }
+
+      const baseMultiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
+      const effectivePoints = round2(basePoints * computeEffectiveMultiplier(sdata, today));
+
+      const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
+      cardsArr.push({
+        id: uid("owned"),
+        cardId,
+        title: cardData.title,
+        imageURL: cardData.imageURL || "",
+        grantedAt: new Date().toISOString(),
+        pointsGranted: effectivePoints,
+      });
+
+      const currentPoints = round2((sdata.currentPoints || 0) + effectivePoints);
+
+      let nextStreaks = null;
+      let crossedFloatIds = [];
+      let crossedMaxIds = [];
+
+      if (linkedIds.length > 0) {
+        const res = incrementStreaksNoFloatWindows(sdata, linkedIds, streakConfigs);
+        nextStreaks = res.nextStreaks;
+        crossedFloatIds = res.crossedFloatIds;
+        crossedMaxIds = Array.isArray(res.crossedMaxIds) ? res.crossedMaxIds : [];
+      }
+
+      const idx = pending.length;
+      pending.push({
+        studentRef,
+        studentName: sdata.name || studentId,
+        baseMultiplier,
+        cardsArr,
+        currentPoints,
+        nextStreaks,
+      });
+
+      for (const streakId of crossedFloatIds) {
+        if (!floatHitsByStreak.has(streakId)) floatHitsByStreak.set(streakId, []);
+        floatHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
+      }
+
+      for (const streakId of crossedMaxIds) {
+        if (!maxHitsByStreak.has(streakId)) maxHitsByStreak.set(streakId, []);
+        maxHitsByStreak.get(streakId).push({ idx, name: sdata.name || studentId });
+      }
+    }
+
+    const defaultDelay = 7;
+    const defaultDur = 7;
+
+    for (const [streakId, hits] of maxHitsByStreak.entries()) {
+      const cfg = streakConfigs.find((c) => c.id === streakId) || null;
+      const emoji = cfg?.emoji || "⭐";
+      const names = hits.map((h) => h.name);
+      const preview = names.slice(0, 12).join(", ");
+      const more = names.length > 12 ? ` (+${names.length - 12} more)` : "";
+
+      const schedule = scheduleFn
+        ? await scheduleFn({
+            delayDays: defaultDelay,
+            durationDays: defaultDur,
+            message: `🎉 ${emoji} streak reached its maximum today for ${names.length} students: ${preview}${more}. This schedule applies to all of them.`,
+          })
+        : parseFloatScheduleInput(null, { delayDays: defaultDelay, durationDays: defaultDur });
+      if (!schedule) continue;
+
+      const { delayDays, durationDays } = schedule;
+      const multiplierBonus = Number(schedule.multiplierBonus || 0);
+
+      const start = addDaysISO(today, delayDays);
+      const end = addDaysISO(start, durationDays - 1);
+
+      for (const h of hits) {
+        const item = pending[h.idx];
+        if (!item?.nextStreaks) continue;
+
+        const prevEntry = item.nextStreaks[streakId] || {
+          value: 0,
+          lastUpdated: today,
+          maxAchievedOn: today,
+          floatWindows: [],
+        };
+        let floatWindows = Array.isArray(prevEntry.floatWindows) ? prevEntry.floatWindows : [];
+        floatWindows = normalizeFloatWindows([...floatWindows, { start, end, multiplierBonus }], today);
+
+        item.nextStreaks = {
+          ...item.nextStreaks,
+          [streakId]: { ...prevEntry, floatWindows },
+        };
+      }
+    }
+
+    const rewardCache = new Map();
+
+    for (const [streakId, hits] of maxHitsByStreak.entries()) {
+      const cfg = streakConfigs.find((c) => c.id === streakId) || null;
+      const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
+      if (rewardIds.length === 0) continue;
+
+      for (const rewardCardId of rewardIds) {
+        if (!rewardCardId) continue;
+        if (!rewardCache.has(rewardCardId)) {
+          const cd = await getCardDataFast(classId, rewardCardId);
+          rewardCache.set(rewardCardId, cd || null);
+        }
+      }
+
+      for (const h of hits) {
+        const item = pending[h.idx];
+        if (!item) continue;
+
+        item._rewardDone = item._rewardDone || new Set();
+
+        // Use post-increment streaks so a window starting today (delay 0) already counts.
+        const mult = computeEffectiveMultiplier(
+          { multiplier: item.baseMultiplier, streaks: item.nextStreaks || {} },
+          today
+        );
+        item.currentPoints = await grantStreakMaxRewardCards({
+          rewardCardIds: rewardIds,
+          cardsArr: item.cardsArr,
+          currentPoints: item.currentPoints,
+          multiplier: mult,
+          streakId,
+          classId,
+          getCardDataFast: async (cId, cardId) => rewardCache.get(cardId) || null,
+          givenRewardCardIds: item._rewardDone,
+        });
+      }
+    }
+
+    let batch = writeBatch(db);
+    let writes = 0;
+    let given = 0;
+
+    for (const item of pending) {
+      const payload = { cards: item.cardsArr, currentPoints: item.currentPoints };
+      if (item.nextStreaks) payload.streaks = item.nextStreaks;
+
+      batch.update(item.studentRef, payload);
+      writes += 1;
+      given += 1;
+
+      if (writes >= 450) {
+        await batch.commit();
+        batch = writeBatch(db);
+        writes = 0;
+      }
+    }
+
+    if (writes > 0) await batch.commit();
+    if (alertFn) {
+      if (given === 0 && skippedLocked > 0) {
+        alertFn("Ninguno de los alumnos seleccionados ha desbloqueado todavía esta evolución.");
+      } else {
+        const extra = skippedLocked > 0 ? ` (${skippedLocked} omitidos por evolución bloqueada)` : "";
+        alertFn(`Card given to ${given} student${given === 1 ? "" : "s"}${extra}.`);
+      }
+    }
+  } catch (err) {
+    console.error("giveCardToStudentsBulk error", err);
+    if (alertFn) alertFn("Failed to give card to students. See console.");
+  }
+}
+````
+
+## File: src/services/studentRewardService.js
+````javascript
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  writeBatch,
+  increment,
+} from "firebase/firestore";
+
+import { pushOwnedCard, getNewExperienceCards } from "./rewardService";
+import { todayISODate } from "../utils/dateUtils";
+import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
+import { round2 } from "../utils/helpers";
+import { isCardUnlockedForStudent } from "./cardEvolutionService";
+
+export async function quickAddPoints({
+  db,
+  classId,
+  studentId,
+  amount,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  const rawAmount = Number(amount || 0);
+  if (!Number.isFinite(rawAmount) || rawAmount === 0) return;
+
+  try {
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const snap = await getDoc(studentRef);
+    if (!snap.exists()) return;
+    const sdata = snap.data();
+    const mult = computeEffectiveMultiplier(sdata, todayISODate());
+    const effective = Number((rawAmount * mult).toFixed(2));
+    const nextPoints = round2(Number(sdata.currentPoints || 0) + effective);
+    await updateDoc(studentRef, { currentPoints: nextPoints });
+  } catch (err) {
+    console.error("quickAddPoints error", err);
+    if (alertFn) alertFn("Could not add points.");
+    throw err;
+  }
+}
+
+export async function removeOwnedCardsBulk({
+  db,
+  classId,
+  studentId,
+  ownedIds,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+}) {
+  if (!ownedIds?.length) return;
+  try {
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const snap = await getDoc(studentRef);
+    if (!snap.exists()) return;
+    const sdata = snap.data();
+    const nextCards = (sdata.cards || []).filter((c) => !ownedIds.includes(c.id));
+    await updateDoc(studentRef, { cards: nextCards });
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to remove cards.");
+  }
+}
+
+export async function redeemIndividual({
+  db,
+  classId,
+  studentId,
+  rewardId,
+  rewards,
+  students,
+  cards,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
+}) {
+  if (!classId || !studentId || !rewardId) return;
+  const r = rewards.find((x) => x.id === rewardId);
+  if (!r) return alertFn ? alertFn("Reward not found") : undefined;
+
+  const cost = Number(r.cost || 0);
+  const s = students.find((x) => x.id === studentId);
+  if (!s) return;
+
+  if ((s.currentPoints || 0) < cost) {
+    return alertFn ? alertFn("Not enough points!") : undefined;
+  }
+
+  if (r.cardId) {
+    const linkedCard = cards.find((c) => c.id === r.cardId);
+    if (linkedCard && !isCardUnlockedForStudent(s, linkedCard)) {
+      return alertFn
+        ? alertFn("Esta recompensa otorga una carta de evolución que aún está bloqueada para el alumno.")
+        : undefined;
+    }
+  }
+
+  if (confirmFn && !(await confirmFn(`Redeem "${r.title}" for ${cost} points?`))) return;
+
+  try {
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const now = new Date().toISOString();
+    const oldXp = Number(s.xp || 0);
+    const newXp = oldXp + cost;
+
+    const historyEntry = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      rewardId,
+      title: r.title,
+      cost,
+      date: now,
+      type: "individual",
+    };
+
+    let newCards = [...(s.cards || [])];
+
+    if (r.cardId) {
+      const linkedCard = cards.find((c) => c.id === r.cardId);
+      if (linkedCard) {
+        pushOwnedCard({
+          cardsArr: newCards,
+          cardId: r.cardId,
+          cardData: linkedCard,
+          pointsGranted: 0,
+          streakId: "reward",
+        });
+      }
+    }
+
+    const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
+    unlockedXpCards.forEach((c) => {
+      pushOwnedCard({
+        cardsArr: newCards,
+        cardId: c.id,
+        cardData: c,
+        pointsGranted: 0,
+        streakId: "xp_unlock",
+      });
+    });
+
+    const nextPoints = round2(Math.max(0, Number(s.currentPoints || 0) - cost));
+
+    await updateDoc(studentRef, {
+      currentPoints: nextPoints,
+      xp: newXp,
+      rewardsHistory: [...(s.rewardsHistory || []), historyEntry],
+      cards: newCards,
+    });
+
+    if (unlockedXpCards.length > 0 && alertFn) {
+      alertFn({
+        message: `Unlocked ${unlockedXpCards.length} new Experience Card(s)!`,
+        cards: unlockedXpCards,
+      });
+    }
+
+    return true;
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed to redeem.");
+    return false;
+  }
+}
+
+export async function redeemGroup({
+  db,
+  classId,
+  rewardId,
+  participants,
+  rewards,
+  students,
+  cards,
+  alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
+  confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
+}) {
+  if (!participants || participants.length === 0) return;
+  const r = rewards.find((x) => x.id === rewardId);
+  if (!r) return;
+
+  if (r.cardId) {
+    const linkedCard = cards.find((c) => c.id === r.cardId);
+    if (linkedCard) {
+      const blockedNames = participants
+        .map(([sid]) => students.find((s) => s.id === sid))
+        .filter((st) => st && !isCardUnlockedForStudent(st, linkedCard))
+        .map((st) => st.name);
+      if (blockedNames.length > 0) {
+        return alertFn
+          ? alertFn(
+              `No se puede canjear: ${blockedNames.join(", ")} aún no ha(n) desbloqueado la evolución "${linkedCard.title}".`
+            )
+          : undefined;
+      }
+    }
+  }
+
+  if (confirmFn && !(await confirmFn(`Redeem "${r.title}" for group?`))) return;
+
+  try {
+    const batch = writeBatch(db);
+    const now = new Date().toISOString();
+    const contributors = participants.map(([sid, share]) => {
+      const sName = students.find((s) => s.id === sid)?.name || "Unknown";
+      return { name: sName, cost: Number(share) };
+    });
+
+    let anyoneLeveledUp = false;
+
+    for (const [sid, share] of participants) {
+      const st = students.find((s) => s.id === sid);
+      if (!st) continue;
+
+      const studentRef = doc(db, `classes/${classId}/students/${sid}`);
+      const costNum = Number(share);
+      const oldXp = Number(st.xp || 0);
+      const newXp = oldXp + costNum;
+
+      const historyEntry = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        rewardId,
+        title: r.title,
+        cost: costNum,
+        date: now,
+        type: "group",
+        contributors,
+      };
+
+      let newCards = [...(st.cards || [])];
+
+      if (r.cardId) {
+        const linkedCard = cards.find((c) => c.id === r.cardId);
+        if (linkedCard) {
+          pushOwnedCard({
+            cardsArr: newCards,
+            cardId: r.cardId,
+            cardData: linkedCard,
+            pointsGranted: 0,
+            streakId: "reward_group",
+          });
+        }
+      }
+
+      const unlockedXpCards = getNewExperienceCards(newCards, newXp, cards);
+      if (unlockedXpCards.length > 0) anyoneLeveledUp = true;
+
+      unlockedXpCards.forEach((c) => {
+        pushOwnedCard({
+          cardsArr: newCards,
+          cardId: c.id,
+          cardData: c,
+          pointsGranted: 0,
+          streakId: "xp_unlock",
+        });
+      });
+
+      const nextHistory = [...(st.rewardsHistory || []), historyEntry];
+      const nextPoints = round2(Math.max(0, Number(st.currentPoints || 0) - costNum));
+
+      batch.update(studentRef, {
+        currentPoints: nextPoints,
+        xp: increment(costNum),
+        rewardsHistory: nextHistory,
+        cards: newCards,
+      });
+    }
+
+    await batch.commit();
+
+    if (anyoneLeveledUp && alertFn) {
+      alertFn("🎉 Some students leveled up and unlocked Experience Cards!");
+    }
+
+    return true;
+  } catch (err) {
+    console.error(err);
+    if (alertFn) alertFn("Failed group redeem.");
+    return false;
+  }
+}
+````
+
+## File: src/components/classes/ClassesPanel.jsx
+````javascript
+import React, { useState } from "react";
+import { createClass, removeClass } from "../../services/classService";
+import { ActivityCatalogueManager } from "../admin/ActivityCatalogueManager";
+
+export default function ClassesPanel({
+  loadingClasses,
+  classesList,
+  activeClassId,
+  setActiveClassId,
+  mode,
+  db,
+  authUser,
+  newClassNameRef,
+  confirmFn,
+  alertFn,
+  onRenameClass,
+  onEndActivity,
+}) {
+  const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
+
+  return (
+    <aside style={{ border: "none", background: "transparent", padding: 0 }}>
+      <h3 style={{ marginTop: 0 }}>
+        <span className="column-title-pill">Classes</span>
+      </h3>
+
+      {loadingClasses ? (
+        <div className="muted">Loading classes...</div>
+      ) : classesList.length ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {classesList.map((c) => {
+            const isActive = c.id === activeClassId;
+            return (
+              <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    textAlign: "left",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    fontWeight: isActive ? 700 : 600,
+                    transition: "all 150ms ease",
+                    background: isActive ? "#eff6ff" : "#ffffff",
+                    border: isActive ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+                    color: isActive ? "#1d4ed8" : "#1e293b",
+                    boxShadow: "0 2px 6px rgba(15, 23, 42, 0.05)",
+                  }}
+                  onClick={() => setActiveClassId((prev) => (prev === c.id ? null : c.id))}
+                  title={c.name}
+                >
+                  {c.name}
+                </button>
+
+                {mode === "admin" && (
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                    <button
+                      className="btn"
+                      style={{
+                        whiteSpace: "nowrap",
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        color: "#1e293b",
+                      }}
+                      onClick={() => onRenameClass?.(c.id, c.name)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn"
+                      style={{
+                        whiteSpace: "nowrap",
+                        background: "#ffffff",
+                        border: "1px solid #fecaca",
+                        color: "#dc2626",
+                      }}
+                      onClick={() => removeClass(db, c.id, activeClassId, setActiveClassId, confirmFn)}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      className="btn"
+                      style={{
+                        whiteSpace: "nowrap",
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        color: "#1e293b",
+                      }}
+                      onClick={() => onEndActivity?.(c.id, c.name)}
+                    >
+                      End activity
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="muted">No classes yet</div>
+      )}
+
+      {mode === "admin" && !activeClassId && (
+        <div style={{ marginTop: 16 }}>
+          <h4 style={{ margin: "10px 0" }}>Add class</h4>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              className="input"
+              ref={newClassNameRef}
+              placeholder="Class name"
+              style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+            />
+            <button
+              className="btn primary"
+              onClick={() => {
+                const name = newClassNameRef.current?.value?.trim();
+                if (!name) return alertFn("Enter class name");
+                createClass(db, name, setActiveClassId, alertFn, authUser?.uid);
+                if (newClassNameRef.current) newClassNameRef.current.value = "";
+              }}
+            >
+              Create
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode === "admin" && activeClassId && (
+        <div style={{ marginTop: 16 }}>
+          <button
+            className="btn"
+            onClick={() => setShowActivityCatalogue(!showActivityCatalogue)}
+            style={{
+              width: "100%",
+              padding: 10,
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              background: showActivityCatalogue ? "#eff6ff" : "#ffffff",
+              color: showActivityCatalogue ? "#1d4ed8" : "#4b5563",
+              fontWeight: showActivityCatalogue ? 700 : 500,
+            }}
+          >
+            {showActivityCatalogue ? "▼" : "▶"} Activity Catalogue
+          </button>
+
+          {showActivityCatalogue && activeClassId && (
+            <div style={{ marginTop: 12, border: "1px solid #e5e7eb", borderRadius: 8, background: "#fafbfc" }}>
+              <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
+            </div>
+          )}
+        </div>
+      )}
+    </aside>
+  );
+}
+````
+
+## File: src/components/cards/CardLibrary.jsx
+````javascript
+import React, { useMemo, useState } from "react";
+import CardCreateForm from "./CardCreateForm";
+import LibraryCardRow from "./LibraryCardRow";
+import NoticeBoardPanel from "./NoticeBoardPanel";
+import { isEvolutionCard } from "../../services/cardEvolutionService";
+
+export default function CardLibrary({
+  mode,
+  cards,
+  students = [],
+  rewards,
+  streakConfigs,
+  newsMessages = [],
+  loadingCards,
+  loadingRewards,
+  lockedInputRef,
+  unlockedInputRef,
+  lockedInputBRef,
+  unlockedInputBRef,
+  flagConfig,
+  viewFlag = "A",
+  onChangeViewFlag,
+  onCreateCard,
+  onPreviewCard,
+  onOpenBulkGive,
+  onEditCard,
+  onDeleteCard,
+  onDeleteReward,
+  onValidationError,
+  cardsById,
+  activeStudent,
+  defaultCatalystCardId,
+  onSetDefaultCatalyst,
+  onDropCatalyst,
+  onEvolve,
+  onSaveNewsMessages,
+  confirmFn,
+}) {
+  const [libraryTab, setLibraryTab] = useState("points");
+  const [showCreateCard, setShowCreateCard] = useState(false);
+  const effectivePreviewFlag = flagConfig ? viewFlag : "A";
+
+  const cardsByIdMap = useMemo(
+    () => cardsById || new Map((cards || []).map((c) => [c.id, c])),
+    [cards, cardsById]
+  );
+
+  const catalystCandidates = useMemo(
+    () => (cards || []).filter((c) => (c.category || "points") === "rewards" || c.category === "extra"),
+    [cards]
+  );
+
+  const hasEvolutionCards = useMemo(
+    () => (cards || []).some((c) => isEvolutionCard(c)),
+    [cards]
+  );
+
+  const unmatchedLegacyRewards = useMemo(() => {
+    const rewardCardIds = new Set(
+      (cards || [])
+        .filter((c) => (c?.category || "points") === "rewards")
+        .map((c) => c.id)
+    );
+    return (rewards || []).filter((r) => !r.cardId || !rewardCardIds.has(r.cardId));
+  }, [cards, rewards]);
+
+  const evolutionsByBaseCardId = useMemo(() => {
+    const map = new Map();
+    (cards || []).forEach((card) => {
+      if (isEvolutionCard(card) && card.evolution?.baseCardId) {
+        const baseId = card.evolution.baseCardId;
+        if (!map.has(baseId)) map.set(baseId, []);
+        map.get(baseId).push(card);
+      }
+    });
+    return map;
+  }, [cards]);
+
+  return (
+    <aside style={{ border: "none", background: "transparent", padding: 0, height: "100%", display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          margin: "0 0 10px",
+          flexWrap: "wrap",
+          flexShrink: 0,
+        }}
+      >
+        <h3 style={{ margin: 0, display: "inline-flex", alignItems: "center" }}>
+          <span className="column-title-pill">Library</span>
+        </h3>
+        {flagConfig && (
+          <div
+            role="group"
+            aria-label="Library and background option"
+            style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+          >
+            {[["A", flagConfig.optionA], ["B", flagConfig.optionB]].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="btn"
+                aria-pressed={viewFlag === value}
+                onClick={() => onChangeViewFlag?.(value)}
+                style={{
+                  background: viewFlag === value ? "#dbeafe" : "#ffffff",
+                  border: viewFlag === value ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+                  fontWeight: viewFlag === value ? 700 : 500,
+                  fontSize: 13,
+                  padding: "4px 10px",
+                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
+          gap: 6,
+          margin: "8px 0 12px",
+          flexShrink: 0,
+        }}
+      >
+        {["points", "rewards", "experience", "extra", "notices"].map((tab) => {
+          const isActive = libraryTab === tab;
+          const label =
+            tab === "notices"
+              ? "News"
+              : tab.charAt(0).toUpperCase() + tab.slice(1);
+          return (
+            <button
+              key={tab}
+              className="btn"
+              onClick={() => setLibraryTab(tab)}
+              style={{
+                width: "100%",
+                background: isActive ? "#eff6ff" : "#ffffff",
+                border: isActive ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+                color: isActive ? "#1d4ed8" : "#1e293b",
+                fontWeight: isActive ? 700 : 600,
+                boxShadow: "0 2px 6px rgba(15, 23, 42, 0.05)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+        {mode === "admin" && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setShowCreateCard((prev) => !prev)}
+            aria-expanded={showCreateCard}
+            style={{
+              width: "100%",
+              background: showCreateCard ? "#dbeafe" : "#ffffff",
+              border: showCreateCard ? "1px solid #3b82f6" : "1px dashed #93c5fd",
+              color: showCreateCard ? "#1d4ed8" : "#2563eb",
+              fontWeight: 700,
+              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.08)",
+            }}
+          >
+            {showCreateCard ? "✕ Create" : "+ Create"}
+          </button>
+        )}
+      </div>
+
+      {mode === "admin" && (libraryTab === "rewards" || (hasEvolutionCards && !defaultCatalystCardId)) && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            padding: "8px 12px",
+            marginBottom: 10,
+            borderRadius: 12,
+            background: !defaultCatalystCardId && hasEvolutionCards ? "#fef3c7" : "#eef2ff",
+            border: !defaultCatalystCardId && hasEvolutionCards ? "1px solid #fcd34d" : "1px solid #c7d2fe",
+            flexShrink: 0,
+            fontSize: 12,
+          }}
+        >
+          <span style={{ fontWeight: 800, color: "#312e81" }}>
+            🔮 Catalizador universal:
+          </span>
+          <select
+            value={defaultCatalystCardId || ""}
+            onChange={(e) => onSetDefaultCatalyst?.(e.target.value)}
+            style={{
+              flex: 1,
+              minWidth: 160,
+              padding: "4px 8px",
+              borderRadius: 8,
+              border: "1px solid #cbd5e1",
+              background: "#ffffff",
+              fontSize: 12,
+            }}
+          >
+            <option value="">Selecciona objeto catalizador (Rewards/Extra)...</option>
+            {catalystCandidates.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title} ({c.category || "points"})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {mode === "admin" && showCreateCard && (
+        <div
+          style={{
+            border: "1px dashed #93c5fd",
+            background: "#ffffff",
+            padding: 12,
+            borderRadius: 12,
+            marginBottom: 12,
+            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
+            flexShrink: 0,
+            maxHeight: 320,
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <h4 style={{ margin: 0 }}>Create new card</h4>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setShowCreateCard(false)}
+              style={{ padding: "2px 8px", fontSize: 12 }}
+              title="Close form"
+            >
+              ✕
+            </button>
+          </div>
+          <CardCreateForm
+            cards={cards}
+            defaultCatalystCardId={defaultCatalystCardId}
+            onCreate={async (cardData) => {
+              const res = await onCreateCard(cardData);
+              if (res !== false) {
+                setShowCreateCard(false);
+              }
+              return res;
+            }}
+            lockedInputRef={lockedInputRef}
+            unlockedInputRef={unlockedInputRef}
+            lockedInputBRef={lockedInputBRef}
+            unlockedInputBRef={unlockedInputBRef}
+            flagConfig={flagConfig}
+            streakConfigs={streakConfigs}
+            onValidationError={onValidationError}
+          />
+        </div>
+      )}
+
+      <div style={{ flex: "1 1 0", overflowY: "auto", minHeight: 0, paddingRight: 4, paddingBottom: 16, overscrollBehavior: "contain" }}>
+        {libraryTab === "notices" ? (
+          <NoticeBoardPanel
+            mode={mode}
+            students={students}
+            cards={cards}
+            rewards={rewards}
+            streakConfigs={streakConfigs}
+            newsMessages={newsMessages}
+            flagValue={effectivePreviewFlag}
+            onSaveNewsMessages={onSaveNewsMessages}
+            confirmFn={confirmFn}
+            onValidationError={onValidationError}
+          />
+        ) : libraryTab !== "rewards" ? (
+          <div style={{ display: "grid" }}>
+            {loadingCards ? (
+              <div className="muted">Loading cards...</div>
+            ) : (
+              cards
+                .filter((card) => (card.category || "points") === libraryTab)
+                .map((card) => (
+                  <LibraryCardRow
+                    key={card.id}
+                    c={card}
+                    mode={mode}
+                    flagValue={effectivePreviewFlag}
+                    cardsById={cardsByIdMap}
+                    activeStudent={activeStudent}
+                    defaultCatalystCardId={defaultCatalystCardId}
+                    childEvolutions={evolutionsByBaseCardId.get(card.id) || []}
+                    onPreview={() => onPreviewCard(card, effectivePreviewFlag)}
+                    onGive={() => onOpenBulkGive(card)}
+                    onEdit={() => onEditCard(card)}
+                    onDelete={() => onDeleteCard(card.id)}
+                    onDropCatalyst={onDropCatalyst}
+                    onEvolve={onEvolve}
+                  />
+                ))
+            )}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            <div>
+              {loadingCards ? (
+                <div className="muted">Loading cards...</div>
+              ) : (
+                cards
+                  .filter((card) => (card.category || "points") === "rewards")
+                  .map((card) => (
+                    <LibraryCardRow
+                      key={card.id}
+                      c={card}
+                      mode={mode}
+                      flagValue={effectivePreviewFlag}
+                      cardsById={cardsByIdMap}
+                      activeStudent={activeStudent}
+                      defaultCatalystCardId={defaultCatalystCardId}
+                      childEvolutions={evolutionsByBaseCardId.get(card.id) || []}
+                      onPreview={() => onPreviewCard(card, effectivePreviewFlag)}
+                      onGive={() => onOpenBulkGive(card)}
+                      onEdit={() => onEditCard(card)}
+                      onDelete={() => onDeleteCard(card.id)}
+                      onDropCatalyst={onDropCatalyst}
+                      onEvolve={onEvolve}
+                    />
+                  ))
+              )}
+            </div>
+
+            {!loadingRewards && unmatchedLegacyRewards.length > 0 && (
+              <div style={{ borderTop: "2px solid #e2e8f0", paddingTop: 12 }}>
+                <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+                  Legacy shop rewards
+                </div>
+                {unmatchedLegacyRewards.map((reward) => {
+                  const cardMeta = cards.find((card) => card.id === reward.cardId) || null;
+                  return (
+                    <div
+                      key={reward.id}
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        padding: 12,
+                        borderRadius: 14,
+                        background: "#ffffff",
+                        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
+                        marginBottom: 10,
+                        color: "#0f172a",
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, fontSize: 15, color: "#0f172a" }}>{reward.title}</div>
+                      <div className="muted" style={{ color: "#64748b", marginTop: 4 }}>
+                        Cost: <span className="pill">{reward.cost} pts</span>{" "}
+                        • Linked card: <span className="pill">{cardMeta ? cardMeta.title : "—"}</span>
+                      </div>
+                      {mode === "admin" && (
+                        <div style={{ marginTop: 8 }}>
+                          <button
+                            className="btn"
+                            style={{
+                              background: "#ffffff",
+                              border: "1px solid #fecaca",
+                              color: "#dc2626",
+                            }}
+                            onClick={() => onDeleteReward(reward.id)}
+                          >
+                            Delete reward
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+````
+
+## File: src/components/students/ManageStudentModal.jsx
+````javascript
+import React, { useEffect, useMemo, useState } from "react";
+import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
+import { pickEditableFloatWindow } from "../../services/streakService";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { round2, formatPoints } from "../../utils/helpers";
+import { isCardUnlockedForStudent } from "../../services/cardEvolutionService";
+
+function todayISODate() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export default function ManageStudentModal({
+  student,
+  classId,
+  students,
+  cards,
+  rewards,
+  streakConfigs,
+  changeStudentStreakValue,
+  resetStudentStreak,
+  deleteStreakTypeForClass,
+  setStickyCelebrateForClass,
+  setStreakRewardCardsForClass,
+  mode,
+  onEditStudent,
+  onClose,
+  onDeleteStudent,
+  onGiveCard,
+  onRemoveOne,
+  onRemoveAll,
+  confirmFn,
+  onRedeemIndividual,
+  onRedeemGroup,
+  setCardPreview,
+  onValidationError,
+  onResetPin,
+  onEditFloatWindow,
+}) {
+  const [redeemRewardId, setRedeemRewardId] = useState("");
+  const [redeemMode, setRedeemMode] = useState("individual");
+  const [shares, setShares] = useState({});
+  const [giveSearch, setGiveSearch] = useState("");
+
+  useEffect(() => {
+    setShares({});
+  }, [redeemRewardId, redeemMode]);
+
+  const reward = rewards.find((r) => r.id === redeemRewardId) || null;
+  const requiredCost = Number(reward?.cost || 0);
+
+  const selectedSharesTotal = useMemo(() => {
+    return Object.values(shares).reduce((acc, v) => acc + Number(v || 0), 0);
+  }, [shares]);
+
+  const cardsMap = useMemo(() => {
+    const map = new Map();
+    (cards || []).forEach((c) => map.set(c.id, c));
+    return map;
+  }, [cards]);
+
+  const groupedOwned = useMemo(() => {
+    const map = new Map();
+    const studentFlag = student.flagValue || "A";
+    (student.cards || []).forEach((o) => {
+      const key = o.cardId || "unknown";
+      if (!map.has(key)) {
+        const fullCard = cardsMap.get(key);
+        const displayImageURL = fullCard ? getCardDisplayImage(fullCard, studentFlag) : (o.imageURL || "");
+        map.set(key, {
+          cardId: key,
+          title: o.title || fullCard?.title || "—",
+          imageURL: displayImageURL || o.imageURL || "",
+          ownedIds: [],
+        });
+      }
+      map.get(key).ownedIds.push(o.id);
+    });
+    return Array.from(map.values());
+  }, [student.cards, cardsMap, student.flagValue]);
+
+  const giveableCards = useMemo(() => {
+    return (cards || []).filter((c) => (c.category || "points") !== "rewards");
+  }, [cards]);
+
+  const filteredGiveableCards = useMemo(() => {
+    if (!giveSearch.trim()) return giveableCards;
+    const q = giveSearch.toLowerCase();
+    return giveableCards.filter(
+      (c) =>
+        (c.title && c.title.toLowerCase().includes(q)) ||
+        (c.description && c.description.toLowerCase().includes(q))
+    );
+  }, [giveableCards, giveSearch]);
+
+  const categorizedGiveableCards = useMemo(() => {
+    const groups = [
+      { key: "points", label: "Points", cards: [] },
+      { key: "experience", label: "Experience", cards: [] },
+      { key: "extra", label: "Extra", cards: [] },
+    ];
+    filteredGiveableCards.forEach((c) => {
+      const cat = c.category || "points";
+      if (cat === "experience") {
+        groups[1].cards.push(c);
+      } else if (cat === "extra") {
+        groups[2].cards.push(c);
+      } else {
+        groups[0].cards.push(c);
+      }
+    });
+    return groups.filter((g) => g.cards.length > 0);
+  }, [filteredGiveableCards]);
+
+  const [editName, setEditName] = useState(student.name || "");
+  const [editCurrentPoints, setEditCurrentPoints] = useState(round2(student.currentPoints || 0));
+  const [editXP, setEditXP] = useState(student.xp || 0);
+  const [editMultiplier, setEditMultiplier] = useState(
+    typeof student.multiplier === "number" ? student.multiplier : 1
+  );
+
+  useEffect(() => {
+    setEditName(student.name || "");
+    setEditCurrentPoints(round2(student.currentPoints || 0));
+    setEditXP(student.xp || 0);
+    setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
+  }, [student.id, student.name, student.currentPoints, student.xp, student.multiplier]);
+
+  function addQuickPoints(amount) {
+    const m = computeEffectiveMultiplier(student, todayISODate());
+    const effective = round2(Number(amount || 0) * m);
+    const next = round2(Number(student.currentPoints || 0) + effective);
+    setEditCurrentPoints(next);
+    onEditStudent({ currentPoints: next });
+  }
+
+  function saveEdits() {
+    onEditStudent({
+      name: editName.trim(),
+      currentPoints: round2(editCurrentPoints || 0),
+      xp: Number(editXP || 0),
+      multiplier: Number(parseFloat(editMultiplier) || 1),
+    });
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div
+        className="modal manage-student-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{ overflowX: "hidden", overflowY: "auto", boxSizing: "border-box" }}
+      >
+        <style>{`
+          .manage-student-grid {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+          }
+          @media (max-width: 780px) {
+            .manage-student-grid {
+              grid-template-columns: minmax(0, 1fr);
+            }
+          }
+        `}</style>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ margin: 0 }}>Manage: {student.name}</h3>
+            <div className="muted">
+              Current: <span className="pill">{formatPoints(student.currentPoints)} pts</span>{" "}
+              • XP: <span className="pill">{student.xp || 0}</span>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn" onClick={onClose}>Close</button>
+            {onResetPin && (
+              <button className="btn" onClick={onResetPin}>Reset PIN</button>
+            )}
+            <button className="btn" onClick={onDeleteStudent}>Delete student</button>
+          </div>
+        </div>
+
+        <div className="manage-student-grid">
+          <div style={{ minWidth: 0 }}>
+            <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+              <h4 style={{ marginTop: 0 }}>Editar alumno</h4>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Nombre</div>
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="muted" style={{ marginBottom: 6 }}>Puntos actuales</div>
+                    <input
+                      type="number"
+                      value={editCurrentPoints}
+                      onChange={(e) => setEditCurrentPoints(e.target.value)}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", boxSizing: "border-box" }}
+                    />
+                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button className="btn" onClick={() => addQuickPoints(1)}>+1</button>
+                      <button className="btn" onClick={() => addQuickPoints(5)}>+5</button>
+                      <button className="btn" onClick={() => addQuickPoints(10)}>+10</button>
+                    </div>
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div className="muted" style={{ marginBottom: 6 }}>XP</div>
+                    <input
+                      type="number"
+                      value={editXP}
+                      onChange={(e) => setEditXP(e.target.value)}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Multiplier (x)</div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editMultiplier}
+                    onChange={(e) => setEditMultiplier(e.target.value)}
+                    className="input"
+                  />
+                  <div className="muted">Default is 1. Example: 1.25, 2, etc.</div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="btn primary" onClick={saveEdits}>Guardar</button>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      setEditName(student.name || "");
+                      setEditCurrentPoints(round2(student.currentPoints || 0));
+                      setEditXP(student.xp || 0);
+                    }}
+                  >
+                    Deshacer
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {streakConfigs && streakConfigs.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <h4 style={{ marginTop: 0 }}>Streaks</h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {streakConfigs.map((cfg) => {
+                    const stObj =
+                      (student.streaks && student.streaks[cfg.id]) || {
+                        value: 0,
+                        lastUpdated: "",
+                      };
+                    const emojiLine =
+                      (cfg.emoji || "").repeat(stObj.value || 0) || cfg.emoji;
+                    const date = stObj.lastUpdated || "";
+                    const isToday = date && date === todayISODate();
+                    const editableWindow = cfg.float
+                      ? pickEditableFloatWindow(stObj.floatWindows, todayISODate())
+                      : null;
+
+                    return (
+                      <div
+                        key={cfg.id}
+                        style={{
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 8,
+                          padding: 8,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 8,
+                          background: "#ffffff",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>
+                            {cfg.emoji} streak (max {cfg.max})
+                          </div>
+                          <div style={{ fontSize: 13 }}>{emojiLine}</div>
+                          {date && (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                marginTop: 2,
+                                color: isToday ? "#16a34a" : "#dc2626",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Last: {date}
+                            </div>
+                          )}
+                        </div>
+
+                        {mode === "admin" && (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                              alignItems: "flex-end",
+                            }}
+                          >
+                            <div>
+                              <button
+                                className="btn"
+                                onClick={() =>
+                                  changeStudentStreakValue(classId, student.id, cfg.id, -1, cfg)
+                                }
+                              >
+                                -1
+                              </button>
+                              <button
+                                className="btn"
+                                style={{ marginLeft: 4 }}
+                                onClick={() =>
+                                  changeStudentStreakValue(classId, student.id, cfg.id, +1, cfg)
+                                }
+                              >
+                                +1
+                              </button>
+                            </div>
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11 }}
+                              onClick={() => resetStudentStreak(classId, student.id, cfg.id)}
+                            >
+                              Reset
+                            </button>
+
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11, marginTop: 4 }}
+                              onClick={() => setStickyCelebrateForClass(classId, cfg.id, !cfg.stickyCelebrate)}
+                            >
+                              Sticky celebration: {cfg.stickyCelebrate ? "ON" : "OFF"}
+                            </button>
+
+                            <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                              Reward on MAX:{" "}
+                              {(cfg.rewardCardIds || [])
+                                .map((id) => (cards.find((c) => c.id === id)?.title || id))
+                                .join(", ") || "None"}
+                            </div>
+
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11, marginTop: 4 }}
+                              onClick={() => setStreakRewardCardsForClass?.(classId, cfg.id, cfg)}
+                            >
+                              Set reward cards
+                            </button>
+
+                            <button
+                              className="btn"
+                              style={{ fontSize: 11, marginTop: 4, color: "#b91c1c", borderColor: "#fecaca" }}
+                              onClick={() => deleteStreakTypeForClass(classId, cfg.id)}
+                            >
+                              Delete streak type
+                            </button>
+
+                            {editableWindow && (
+                              <div className="muted" style={{ fontSize: 11, marginTop: 4, textAlign: "right" }}>
+                                Floating bonus: +{editableWindow.multiplierBonus || 0} (until {editableWindow.end})
+                                {onEditFloatWindow && (
+                                  <div>
+                                    <button
+                                      className="btn"
+                                      style={{ fontSize: 11, marginTop: 2 }}
+                                      onClick={() => onEditFloatWindow(cfg, student, editableWindow)}
+                                    >
+                                      Edit floating window
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <h4 style={{ margin: 0 }}>
+                  Owned cards ({groupedOwned.reduce((sum, g) => sum + g.ownedIds.length, 0)} total, {groupedOwned.length} unique)
+                </h4>
+              </div>
+              {!groupedOwned.length ? (
+                <div className="muted">No cards yet</div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                    gap: 10,
+                    maxHeight: 320,
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    paddingRight: 4,
+                  }}
+                >
+                  {groupedOwned.map((g) => (
+                    <div
+                      key={g.cardId}
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: 10,
+                        background: "#ffffff",
+                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                        contentVisibility: "auto",
+                        containIntrinsicSize: "0 120px",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <div
+                          className="card-thumb"
+                          style={{
+                            width: 60,
+                            height: 80,
+                            borderRadius: 8,
+                            overflow: "hidden",
+                            background: "#f8fafc",
+                            cursor: "pointer",
+                            flexShrink: 0,
+                            border: "1px solid #e2e8f0",
+                          }}
+                          onClick={() => setCardPreview({ title: g.title, imageURL: g.imageURL, description: "" })}
+                        >
+                          {g.imageURL ? (
+                            <img
+                              src={g.imageURL}
+                              alt={g.title}
+                              loading="lazy"
+                              decoding="async"
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          ) : (
+                            <div style={{ padding: 6, fontSize: 11 }}>{g.title}</div>
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {g.title}
+                          </div>
+                          <div className="muted" style={{ marginTop: 2 }}>
+                            Copies: <span className="pill">×{g.ownedIds.length}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                        <button
+                          className="btn"
+                          style={{ padding: "3px 8px", fontSize: 11 }}
+                          onClick={() => onRemoveOne(g.ownedIds[0])}
+                        >
+                          Remove 1
+                        </button>
+                        <button
+                          className="btn"
+                          style={{ padding: "3px 8px", fontSize: 11, color: "#dc2626", borderColor: "#fecaca" }}
+                          onClick={async () => {
+                            if (confirmFn && !(await confirmFn(`Remove ALL ${g.ownedIds.length} copies of "${g.title}"?`))) return;
+                            onRemoveAll(g.ownedIds);
+                          }}
+                        >
+                          Remove all
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+              <h4 style={{ marginTop: 0 }}>Redeem reward</h4>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <select
+                  value={redeemRewardId}
+                  onChange={(e) => setRedeemRewardId(e.target.value)}
+                  style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", minWidth: 0, maxWidth: "100%", flex: "1 1 200px", boxSizing: "border-box" }}
+                >
+                  <option value="">-- choose reward --</option>
+                  {rewards.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.title} (cost {r.cost})
+                    </option>
+                  ))}
+                </select>
+
+                <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="radio"
+                    name="redeemMode"
+                    checked={redeemMode === "individual"}
+                    onChange={() => setRedeemMode("individual")}
+                  />
+                  Individual
+                </label>
+                <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="radio"
+                    name="redeemMode"
+                    checked={redeemMode === "group"}
+                    onChange={() => setRedeemMode("group")}
+                  />
+                  Group
+                </label>
+              </div>
+
+              {redeemMode === "individual" && (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    className="btn primary"
+                    onClick={() => {
+                      if (!redeemRewardId) {
+                        if (onValidationError) onValidationError("Choose a reward first.");
+                        return;
+                      }
+                      onRedeemIndividual(redeemRewardId);
+                    }}
+                  >
+                    Redeem (individual)
+                  </button>
+                </div>
+              )}
+
+              {redeemMode === "group" && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="muted">
+                    Assign shares so the total equals <span className="pill">{requiredCost} pts</span>. Current total:{" "}
+                    <span
+                      className="pill"
+                      style={{ background: selectedSharesTotal === requiredCost ? "#dcfce7" : "#fee2e2" }}
+                    >
+                      {selectedSharesTotal}
+                    </span>
+                  </div>
+
+                  <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+                    {students.map((s) => (
+                      <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", background: s.cosmetics?.color || "white", position: "relative", overflow: "hidden" }}>
+                        <div style={{ flex: 1, fontWeight: 700 }}>
+                          {s.name} <span className="muted">(has {formatPoints(s.currentPoints)} pts)</span>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={shares[s.id] ?? ""}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setShares((prev) => ({
+                              ...prev,
+                              [s.id]: raw === "" ? "" : Number(raw),
+                            }));
+                          }}
+                          style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+                          placeholder="0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      className="btn primary"
+                      onClick={() => {
+                        if (!redeemRewardId) {
+                          if (onValidationError) onValidationError("Choose a reward first.");
+                          return;
+                        }
+                        onRedeemGroup(redeemRewardId, shares);
+                      }}
+                    >
+                      Redeem (group)
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #eee",
+              borderRadius: 12,
+              padding: 12,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              boxSizing: "border-box",
+              overflow: "hidden",
+            }}
+          >
+            <h4 style={{ marginTop: 0, marginBottom: 4 }}>Give card (not rewards)</h4>
+            <div className="muted" style={{ marginBottom: 8, fontSize: 12 }}>
+              Reward cards do not appear here. They are only obtained by redeeming rewards.
+            </div>
+            {giveableCards.length > 5 && (
+              <input
+                placeholder="Search cards to give..."
+                value={giveSearch}
+                onChange={(e) => setGiveSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  marginBottom: 8,
+                  boxSizing: "border-box",
+                }}
+              />
+            )}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr)",
+                gap: 12,
+                maxHeight: 520,
+                overflowY: "auto",
+                overflowX: "hidden",
+                paddingRight: 4,
+                minWidth: 0,
+              }}
+            >
+              {!filteredGiveableCards.length ? (
+                <div className="muted" style={{ padding: 8 }}>No matching cards</div>
+              ) : (
+                categorizedGiveableCards.map((group) => (
+                  <div key={group.key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        color: "#475569",
+                        paddingBottom: 4,
+                        borderBottom: "1px solid #e2e8f0",
+                      }}
+                    >
+                      {group.label}
+                    </div>
+                    {group.cards.map((c) => {
+                      const unlocked = isCardUnlockedForStudent(student, c);
+                      const imgUrl =
+                        getCardDisplayImage(c, student.flagValue || "A", true) ||
+                        c.lockedImageURL ||
+                        c.imageURL;
+
+                      return (
+                        <div
+                          key={c.id}
+                          style={{
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 10,
+                            padding: 8,
+                            display: "flex",
+                            gap: 10,
+                            alignItems: "center",
+                            background: "#ffffff",
+                            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                            width: "100%",
+                            boxSizing: "border-box",
+                            minWidth: 0,
+                            overflow: "hidden",
+                            opacity: unlocked ? 1 : 0.6,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 50,
+                              height: 66,
+                              borderRadius: 8,
+                              overflow: "hidden",
+                              background: "#f8fafc",
+                              flexShrink: 0,
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            {imgUrl ? (
+                              <img
+                                src={imgUrl}
+                                alt={c.title}
+                                loading="lazy"
+                                decoding="async"
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            ) : (
+                              <div style={{ padding: 6, fontSize: 10 }}>{c.title}</div>
+                            )}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                fontSize: 13,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={c.title}
+                            >
+                              {c.title}
+                            </div>
+                            <div
+                              className="muted"
+                              style={{
+                                fontSize: 11,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={unlocked ? (c.description || "") : "Evolución sin desbloquear"}
+                            >
+                              {unlocked ? (c.description || "—") : "🔒 Evolución sin desbloquear"}
+                            </div>
+                          </div>
+                          <button
+                            className="btn primary"
+                            disabled={!unlocked}
+                            title={unlocked ? "Give card" : "El alumno debe evolucionar esta carta primero"}
+                            style={{
+                              padding: "5px 12px",
+                              fontSize: 12,
+                              flexShrink: 0,
+                              marginLeft: "auto",
+                              opacity: unlocked ? 1 : 0.5,
+                              cursor: unlocked ? "pointer" : "not-allowed",
+                            }}
+                            onClick={() => unlocked && onGiveCard(c.id)}
+                          >
+                            {unlocked ? "Give" : "🔒"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: firestore.rules
+````
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function onlyProfileCosmeticsChanged() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasOnly(['nameEmojis', 'profileColor', 'pin']);
+    }
+
+    function validProfileCosmetics() {
+      return (request.resource.data.nameEmojis is string)
+        && (request.resource.data.nameEmojis.size() <= 3)
+        && (request.resource.data.profileColor is string)
+        && (request.resource.data.profileColor.size() <= 20)
+        && (request.resource.data.pin is string)
+        && (request.resource.data.pin.matches('^[0-9]{4}$'));
+    }
+
+    function isStudentRedeemingReward() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasOnly(['currentPoints', 'xp', 'rewardsHistory', 'cards']);
+    }
+
+    function validAchievementCreate() {
+      let d = request.resource.data;
+      return d.sourceId is string
+        && d.activityId is string
+        && d.pointsAwarded is number
+        && d.effectivePointsAwarded is number
+        && d.rewardType is string
+        && d.activityName is string;
+    }
+
+    function validStudentCardCreate() {
+      let d = request.resource.data;
+      return d.cardId is string;
+    }
+
+    function validRequestCreate() {
+      let d = request.resource.data;
+      return d.studentId is string
+        && d.status == 'pending'
+        && d.type in ['points', 'card', 'both']
+        && d.createdAt is number
+        && d.studentName is string && d.studentName.size() <= 60
+        && d.className is string && d.className.size() <= 60
+        && (!('note' in d) || (d.note is string && d.note.size() <= 200))
+        && (d.type == 'card' || (d.amount is number && d.amount > 0 && d.amount <= 1000))
+        && (d.type == 'points' || (d.cardId is string && d.cardId.size() > 0));
+    }
+
+    function onlyFlagPreferenceChanged() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys()
+        .hasOnly(['flagValue']);
+    }
+
+    function validFlagPreference() {
+      return 'flagValue' in request.resource.data
+        && request.resource.data.flagValue in ['A', 'B'];
+    }
+
+    // Default: everyone can read; nobody can write.
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Hide admin list from clients (console still works).
+    match /admins/{uid} {
+      allow read, write: if false;
+    }
+
+    // Background config used in your app
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Your main data model
+    match /classes/{classId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+
+      match /students/{studentId} {
+        allow read: if true;
+
+        // admin can do everything
+        allow create, delete: if isAdmin();
+
+        // guests can update profile cosmetics (incl. PIN) OR redeem rewards directly
+        allow update: if isAdmin()
+          || (onlyProfileCosmeticsChanged() && validProfileCosmetics())
+          || (onlyFlagPreferenceChanged() && validFlagPreference())
+          || isStudentRedeemingReward();
+
+        // Achievements (redeemed reward codes)
+        match /achievements/{achievement} {
+          allow read: if true;
+          allow create: if validAchievementCreate() || isAdmin();
+          allow update, delete: if isAdmin();
+        }
+
+        // Student's personal card collection (from rewards)
+        match /cards/{cardId} {
+          allow read: if true;
+          allow create, update: if validStudentCardCreate() || isAdmin();
+          allow delete: if isAdmin();
+        }
+      }
+
+      match /cards/{cardId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+      }
+
+      match /rewards/{rewardId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+      }
+
+      match /activityCatalogue/{activity} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+      }
+
+      match /requests/{requestId} {
+        allow read: if true;
+        allow create: if validRequestCreate();
+        allow delete: if true;
+        allow update: if isAdmin();
+      }
+    }
+  }
+}
+````
+
+## File: src/components/profile/ProfileModal.jsx
+````javascript
+import React, { useEffect, useMemo, useState } from "react";
+import { todayISODate } from "../../utils/dateUtils";
+import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { PublicStudentIdDisplay } from "./PublicStudentIdDisplay";
+import { RewardCodeRedemption } from "./RewardCodeRedemption";
+import { reconcileAndEnrichStudentHistory } from "../../services/rewardCodeService.js";
+import { round2, formatPoints } from "../../utils/helpers";
+import {
+  isEvolutionCard,
+  checkEvolutionEligibility,
+  isCardUnlockedForStudent,
+} from "../../services/cardEvolutionService";
+
+export default function ProfileModal({
+  mode,
+  student,
+  onClose,
+  onSave,
+  flagConfig,
+  onChangeFlagValue,
+  onChangePin,
+  onValidationError,
+  db,
+  classId,
+  pastelColors = [],
+  giveableCards = [],
+  allCards = [],
+  rewards = [],
+  defaultCatalystCardId = "",
+  onEvolve,
+  onRedeemReward,
+  myPendingRequests = [],
+  onCreateRequest,
+  onCancelRequest,
+}) {
+  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "evolutions" | "history" | "settings" | "redeem"
+
+  // Profile customization state
+  const [emojis, setEmojis] = useState(student.nameEmojis || "");
+  const [color, setColor] = useState(student.profileColor || "");
+  const [flagValue, setFlagValue] = useState(student.flagValue === "B" ? "B" : "A");
+  const [savingFlagValue, setSavingFlagValue] = useState(false);
+
+  // Enriched history state for retrocompatibility
+  const [enrichedHistory, setEnrichedHistory] = useState(student.rewardsHistory || []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    reconcileAndEnrichStudentHistory({ db, classId, student })
+      .then((history) => {
+        if (!isCancelled && Array.isArray(history)) {
+          setEnrichedHistory(history);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to reconcile history:", err);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [db, classId, student]);
+
+  useEffect(() => {
+    setFlagValue(student.flagValue === "B" ? "B" : "A");
+  }, [student.flagValue]);
+
+  // PIN change state
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [newPinConfirm, setNewPinConfirm] = useState("");
+
+  // Request creation state
+  const [requestCardId, setRequestCardId] = useState("");
+  const [requestAmount, setRequestAmount] = useState("");
+  const [requestNote, setRequestNote] = useState("");
+
+  const displayName = `${student.name}${emojis ? " " + emojis : ""}`;
+  const displayFlagValue = flagConfig ? flagValue : "A";
+  const currentPoints = formatPoints(student.currentPoints);
+  const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate());
+
+  // Cards indexed for quick reward thumbnail/description lookup
+  const cardsMap = useMemo(() => {
+    const map = new Map();
+    (allCards || []).forEach((c) => map.set(c.id, c));
+    (student.cards || []).forEach((c) => {
+      const id = c.cardId || c.id;
+      if (id && !map.has(id)) {
+        map.set(id, c);
+      }
+    });
+    return map;
+  }, [allCards, student.cards]);
+
+  const selectedCard = useMemo(
+    () => giveableCards.find((c) => c.id === requestCardId) || null,
+    [giveableCards, requestCardId]
+  );
+
+  const evolutionCards = useMemo(
+    () => (allCards || []).filter((c) => isEvolutionCard(c)),
+    [allCards]
+  );
+
+  const defaultCatalystCard = useMemo(
+    () => (defaultCatalystCardId ? cardsMap.get(defaultCatalystCardId) || null : null),
+    [defaultCatalystCardId, cardsMap]
+  );
+
+  useEffect(() => {
+    if (evolutionCards.length === 0 && activeTab === "evolutions") {
+      setActiveTab("requests");
+    }
+  }, [evolutionCards.length, activeTab]);
+
+  const readyToEvolveCount = useMemo(
+    () =>
+      evolutionCards.filter(
+        (c) =>
+          checkEvolutionEligibility({
+            student,
+            evolutionCard: c,
+            catalystCardId: defaultCatalystCardId,
+          }).canEvolve
+      ).length,
+    [evolutionCards, student, defaultCatalystCardId]
+  );
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: 640,
+          width: "95%",
+          height: 620,
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          padding: 0,
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: "16px 20px",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.6)",
+            background: color
+              ? (color.startsWith("#") && color.length === 7
+                  ? `${color}cc`
+                  : `color-mix(in srgb, ${color} 75%, rgba(255, 255, 255, 0.7))`)
+              : "rgba(248, 250, 252, 0.8)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexShrink: 0,
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{displayName}</h3>
+              <span className="pill" style={{ background: "rgba(224, 242, 254, 0.85)", color: "#0369a1", fontWeight: 700 }}>
+                ⭐ {currentPoints} pts
+              </span>
+              <span className="pill" style={{ background: "rgba(254, 243, 199, 0.85)", color: "#92400e", fontWeight: 700 }}>
+                ✨ {student.xp || 0} XP
+              </span>
+              {effectiveMultiplier !== 1 && (
+                <span className="pill" style={{ background: "rgba(237, 233, 254, 0.85)", color: "#6d28d9", fontWeight: 700 }}>
+                  ⚡ x{effectiveMultiplier}
+                </span>
+              )}
+            </div>
+            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Student Profile</div>
+          </div>
+          <button className="btn" onClick={onClose} style={{ padding: "6px 12px", fontSize: 13 }}>
+            Close
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div
+          style={{
+            display: "flex",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.6)",
+            background: "rgba(255, 255, 255, 0.65)",
+            padding: "8px 16px 0 16px",
+            gap: 6,
+            overflowX: "auto",
+            flexShrink: 0,
+          }}
+        >
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setActiveTab("requests")}
+            style={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: activeTab === "requests" ? "3px solid #2563eb" : "3px solid transparent",
+              background: activeTab === "requests" ? "#eff6ff" : "transparent",
+              color: activeTab === "requests" ? "#1d4ed8" : "#4b5563",
+              fontWeight: activeTab === "requests" ? 700 : 500,
+              padding: "8px 14px",
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            ✉️ Requests
+            {myPendingRequests.length > 0 && (
+              <span
+                style={{
+                  background: "#2563eb",
+                  color: "#fff",
+                  fontSize: 10,
+                  borderRadius: 999,
+                  padding: "1px 6px",
+                  fontWeight: 700,
+                }}
+              >
+                {myPendingRequests.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setActiveTab("rewards")}
+            style={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: activeTab === "rewards" ? "3px solid #2563eb" : "3px solid transparent",
+              background: activeTab === "rewards" ? "#eff6ff" : "transparent",
+              color: activeTab === "rewards" ? "#1d4ed8" : "#4b5563",
+              fontWeight: activeTab === "rewards" ? 700 : 500,
+              padding: "8px 14px",
+              fontSize: 13,
+            }}
+          >
+            🎁 Rewards
+          </button>
+
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setActiveTab("history")}
+            style={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: activeTab === "history" ? "3px solid #2563eb" : "3px solid transparent",
+              background: activeTab === "history" ? "#eff6ff" : "transparent",
+              color: activeTab === "history" ? "#1d4ed8" : "#4b5563",
+              fontWeight: activeTab === "history" ? 700 : 500,
+              padding: "8px 14px",
+              fontSize: 13,
+            }}
+          >
+            📜 History
+          </button>
+
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setActiveTab("settings")}
+            style={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: activeTab === "settings" ? "3px solid #2563eb" : "3px solid transparent",
+              background: activeTab === "settings" ? "#eff6ff" : "transparent",
+              color: activeTab === "settings" ? "#1d4ed8" : "#4b5563",
+              fontWeight: activeTab === "settings" ? 700 : 500,
+              padding: "8px 14px",
+              fontSize: 13,
+            }}
+          >
+            ⚙️ Settings & PIN
+          </button>
+
+          {evolutionCards.length > 0 && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setActiveTab("evolutions")}
+              style={{
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderBottom: activeTab === "evolutions" ? "3px solid #7c3aed" : "3px solid transparent",
+                background: activeTab === "evolutions" ? "#f5f3ff" : "transparent",
+                color: activeTab === "evolutions" ? "#6d28d9" : "#4b5563",
+                fontWeight: activeTab === "evolutions" ? 700 : 500,
+                padding: "8px 14px",
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              🧬 Evolutions
+              {readyToEvolveCount > 0 && (
+                <span
+                  style={{
+                    background: "#7c3aed",
+                    color: "#fff",
+                    fontSize: 10,
+                    borderRadius: 999,
+                    padding: "1px 6px",
+                    fontWeight: 800,
+                  }}
+                >
+                  {readyToEvolveCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setActiveTab("redeem")}
+            style={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: activeTab === "redeem" ? "3px solid #2563eb" : "3px solid transparent",
+              background: activeTab === "redeem" ? "#eff6ff" : "transparent",
+              color: activeTab === "redeem" ? "#1d4ed8" : "#4b5563",
+              fontWeight: activeTab === "redeem" ? 700 : 500,
+              padding: "8px 14px",
+              fontSize: 13,
+            }}
+          >
+            🏆 Redeem Code
+          </button>
+        </div>
+
+        {/* Tab Content Body */}
+        <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
+          {/* ================= TAB 1: REQUESTS ================= */}
+          {activeTab === "requests" && (
+            <div>
+              {/* Existing Pending Requests */}
+              {myPendingRequests.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      color: "#6b7280",
+                      fontWeight: 700,
+                      marginBottom: 8,
+                    }}
+                  >
+                    Your Pending Requests ({myPendingRequests.length}/3)
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {myPendingRequests.map((r) => (
+                      <div
+                        key={r.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 12,
+                          background: "#f9fafb",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 10,
+                          padding: "10px 14px",
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontWeight: 700, fontSize: 14 }}>
+                              {r.type === "both" || (r.cardId && r.amount)
+                                ? `🃏 ${r.cardTitle || r.cardId} + ⭐ ${r.amount} pts`
+                                : r.cardId || r.type === "card"
+                                  ? `🃏 ${r.cardTitle || r.cardId}`
+                                  : `⭐ ${r.amount} pts`}
+                            </span>
+                            <span
+                              style={{
+                                background: "#fef3c7",
+                                color: "#92400e",
+                                fontSize: 11,
+                                padding: "2px 8px",
+                                borderRadius: 999,
+                                fontWeight: 600,
+                              }}
+                            >
+                              Pending teacher approval
+                            </span>
+                          </div>
+                          {r.note && (
+                            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, fontStyle: "italic" }}>
+                              "{r.note}"
+                            </div>
+                          )}
+                        </div>
+                        {onCancelRequest && (
+                          <button
+                            type="button"
+                            className="btn"
+                            style={{ fontSize: 12, color: "#b91c1c", borderColor: "#fecaca" }}
+                            onClick={() => onCancelRequest(r)}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Request Form */}
+              {myPendingRequests.length >= 3 ? (
+                <div
+                  style={{
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#991b1b",
+                    padding: 14,
+                    borderRadius: 10,
+                    fontSize: 13,
+                    textAlign: "center",
+                  }}
+                >
+                  You already have 3 pending requests. Please wait for your teacher to review them.
+                </div>
+              ) : onCreateRequest ? (
+                <div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      color: "#6b7280",
+                      fontWeight: 700,
+                      marginBottom: 10,
+                    }}
+                  >
+                    Request a Card, Points, or Both
+                  </div>
+
+                  {/* Section 1: Card Selection */}
+                  <div style={{ marginBottom: 14, border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#ffffff" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: "#1f2937" }}>
+                          🃏 Request a Card
+                        </span>
+                        <span className="muted" style={{ fontSize: 12, marginLeft: 6 }}>
+                          (optional)
+                        </span>
+                      </div>
+                      {requestCardId && (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => setRequestCardId("")}
+                          style={{ padding: "2px 8px", fontSize: 11, color: "#dc2626" }}
+                        >
+                          ✕ Remove card
+                        </button>
+                      )}
+                    </div>
+
+                    {selectedCard && (
+                      <div
+                        style={{
+                          marginBottom: 10,
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          background: "#eff6ff",
+                          border: "1px solid #bfdbfe",
+                          fontSize: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 8,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span>Selected card:</span>
+                          <strong>{selectedCard.title}</strong>
+                          <span className="pill">+{selectedCard.points || 0} pts</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {giveableCards.length === 0 ? (
+                      <div className="muted" style={{ padding: 10, textAlign: "center", fontSize: 12 }}>
+                        No point cards available to request.
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                          gap: 10,
+                          maxHeight: 180,
+                          overflowY: "auto",
+                          padding: 4,
+                          border: "1px solid #f1f5f9",
+                          borderRadius: 8,
+                          background: "#f8fafc",
+                        }}
+                      >
+                        {giveableCards.map((c) => {
+                          const isEvo = isEvolutionCard(c);
+                          const isUnlocked = isCardUnlockedForStudent(student, c);
+                          const isSelected = isUnlocked && requestCardId === c.id;
+                          const img = getCardDisplayImage(c, displayFlagValue, isEvo ? !isUnlocked : true);
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => {
+                                if (!isUnlocked) {
+                                  if (onValidationError) {
+                                    onValidationError("Esta carta de evolución está bloqueada. ¡Evoluciónala primero!");
+                                  }
+                                  return;
+                                }
+                                setRequestCardId((prev) => (prev === c.id ? "" : c.id));
+                              }}
+                              style={{
+                                border: isSelected ? "2px solid #2563eb" : "1px solid #e5e7eb",
+                                background: isSelected ? "#eff6ff" : "#ffffff",
+                                borderRadius: 8,
+                                padding: 6,
+                                cursor: isUnlocked ? "pointer" : "not-allowed",
+                                opacity: isUnlocked ? 1 : 0.6,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 4,
+                                transition: "all 0.15s ease",
+                                position: "relative",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "100%",
+                                  height: 70,
+                                  borderRadius: 6,
+                                  background: "#f3f4f6",
+                                  overflow: "hidden",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  position: "relative",
+                                }}
+                              >
+                                {img ? (
+                                  <img
+                                    src={img}
+                                    alt={c.title}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                      filter: isUnlocked ? "none" : "grayscale(0.7)",
+                                    }}
+                                  />
+                                ) : (
+                                  <span style={{ fontSize: 24 }}>🃏</span>
+                                )}
+                                {!isUnlocked && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      inset: 0,
+                                      background: "rgba(15, 23, 42, 0.35)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontSize: 16,
+                                    }}
+                                  >
+                                    🔒
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 12, lineHeight: "1.2em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {c.title}
+                                </div>
+                                <div style={{ marginTop: 2, display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+                                  <span
+                                    className="pill"
+                                    style={{
+                                      fontSize: 10,
+                                      background: isUnlocked ? "#dbeafe" : "#fee2e2",
+                                      color: isUnlocked ? "#1e40af" : "#b91c1c",
+                                      fontWeight: 700,
+                                      padding: "1px 5px",
+                                    }}
+                                  >
+                                    {isUnlocked ? `+${c.points || 0} pts` : "🔒 Evolución"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 2: Points Request */}
+                  <div style={{ marginBottom: 14, border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#ffffff" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: "#1f2937" }}>
+                          ⭐ Request Points
+                        </span>
+                        <span className="muted" style={{ fontSize: 12, marginLeft: 6 }}>
+                          (optional)
+                        </span>
+                      </div>
+                      {requestAmount && (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => setRequestAmount("")}
+                          style={{ padding: "2px 8px", fontSize: 11, color: "#dc2626" }}
+                        >
+                          ✕ Clear points
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        placeholder="Points amount (e.g. 5)"
+                        value={requestAmount}
+                        onChange={(e) => setRequestAmount(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: 10,
+                          borderRadius: 8,
+                          border: "1px solid #ddd",
+                          fontSize: 14,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setRequestAmount(String((Number(requestAmount) || 0) + 1))}
+                      >
+                        +1
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setRequestAmount(String((Number(requestAmount) || 0) + 5))}
+                      >
+                        +5
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setRequestAmount(String((Number(requestAmount) || 0) + 10))}
+                      >
+                        +10
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Optional Note */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                      Reason or comment (optional):
+                    </div>
+                    <textarea
+                      placeholder="Explain why you are requesting this..."
+                      value={requestNote}
+                      onChange={(e) => setRequestNote(e.target.value)}
+                      rows={2}
+                      style={{
+                        width: "100%",
+                        padding: 10,
+                        borderRadius: 10,
+                        border: "1px solid #ddd",
+                        resize: "vertical",
+                        fontSize: 13,
+                      }}
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  {(() => {
+                    const parsedAmt = Number(requestAmount);
+                    const hasValidPoints = parsedAmt > 0;
+                    const hasCard = Boolean(requestCardId && selectedCard);
+
+                    let label = "Send Request to Teacher";
+                    if (hasCard && hasValidPoints) {
+                      label = `Send Request (🃏 ${selectedCard.title} + ⭐ ${parsedAmt} pts)`;
+                    } else if (hasCard) {
+                      label = `Send Request (🃏 ${selectedCard.title})`;
+                    } else if (hasValidPoints) {
+                      label = `Send Request (⭐ ${parsedAmt} pts)`;
+                    }
+
+                    return (
+                      <button
+                        type="button"
+                        className="btn primary"
+                        style={{ width: "100%", padding: 12, fontSize: 14, fontWeight: 700 }}
+                        onClick={async () => {
+                          const amt = Number(requestAmount);
+                          const hasPts = amt > 0;
+                          const hasCd = Boolean(requestCardId && selectedCard);
+
+                          if (!hasCd && !hasPts) {
+                            if (onValidationError) {
+                              onValidationError("Please select a card, enter points, or both.");
+                            }
+                            return;
+                          }
+
+                          if (requestAmount && amt <= 0) {
+                            if (onValidationError) {
+                              onValidationError("Please enter a valid amount of points (greater than 0).");
+                            }
+                            return;
+                          }
+
+                          const finalType = hasCd && hasPts ? "both" : hasCd ? "card" : "points";
+
+                          const ok = await onCreateRequest({
+                            type: finalType,
+                            amount: hasPts ? amt : undefined,
+                            cardId: hasCd ? requestCardId : undefined,
+                            cardTitle: hasCd ? selectedCard?.title : undefined,
+                            note: requestNote,
+                          });
+
+                          if (ok) {
+                            setRequestAmount("");
+                            setRequestCardId("");
+                            setRequestNote("");
+                          }
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })()}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* ================= TAB 2: REWARDS ================= */}
+          {activeTab === "rewards" && (
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 14,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      color: "#6b7280",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Available Rewards
+                  </div>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    Redeem directly using your points (instant unlock)
+                  </div>
+                </div>
+                <div
+                  style={{
+                    background: "#ecfdf5",
+                    color: "#065f46",
+                    padding: "4px 12px",
+                    borderRadius: 999,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    border: "1px solid #a7f3d0",
+                  }}
+                >
+                  Balance: {currentPoints} pts
+                </div>
+              </div>
+
+              {(!rewards || rewards.length === 0) ? (
+                <div style={{ textAlign: "center", padding: "30px", color: "#9ca3af", fontStyle: "italic" }}>
+                  No rewards created for this class yet.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                  {rewards.map((r) => {
+                    const cost = Number(r.cost || 0);
+                    const canAfford = currentPoints >= cost;
+                    const linkedCard = r.cardId ? cardsMap.get(r.cardId) : null;
+                    const evoUnlocked = !linkedCard || isCardUnlockedForStudent(student, linkedCard);
+                    const cardImg = getCardDisplayImage(linkedCard, displayFlagValue, !evoUnlocked);
+                    const desc = evoUnlocked ? (linkedCard?.description || r.description || "") : "";
+
+                    return (
+                      <div
+                        key={r.id}
+                        style={{
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 12,
+                          padding: 12,
+                          background: "#ffffff",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          opacity: evoUnlocked ? 1 : 0.72,
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                          <div
+                            style={{
+                              width: 60,
+                              height: 76,
+                              borderRadius: 8,
+                              background: "#f3f4f6",
+                              overflow: "hidden",
+                              flexShrink: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              position: "relative",
+                            }}
+                          >
+                            {cardImg ? (
+                              <img
+                                src={cardImg}
+                                alt={r.title}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  filter: evoUnlocked ? "none" : "grayscale(0.7)",
+                                }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: 28 }}>🎁</span>
+                            )}
+                            {!evoUnlocked && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  inset: 0,
+                                  background: "rgba(15, 23, 42, 0.35)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 16,
+                                }}
+                              >
+                                🔒
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: 14, color: "#111827", lineHeight: "1.2em" }}>
+                              {r.title}
+                            </div>
+                            <div style={{ marginTop: 4 }}>
+                              <span
+                                className="pill"
+                                style={{
+                                  background: canAfford ? "#fee2e2" : "#f3f4f6",
+                                  color: canAfford ? "#991b1b" : "#6b7280",
+                                  fontWeight: 800,
+                                  fontSize: 12,
+                                }}
+                              >
+                                {cost} pts
+                              </span>
+                            </div>
+                            {desc && (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: "#6b7280",
+                                  marginTop: 6,
+                                  lineHeight: "1.3em",
+                                }}
+                              >
+                                {desc}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          {!evoUnlocked ? (
+                            <button
+                              type="button"
+                              className="btn"
+                              disabled
+                              style={{
+                                width: "100%",
+                                padding: "8px 12px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: "#f5f3ff",
+                                color: "#6d28d9",
+                                borderColor: "#ddd6fe",
+                                cursor: "not-allowed",
+                              }}
+                            >
+                              🔒 Evolución bloqueada
+                            </button>
+                          ) : canAfford ? (
+                            <button
+                              type="button"
+                              className="btn primary"
+                              style={{ width: "100%", padding: "8px 12px", fontSize: 13, fontWeight: 700 }}
+                              onClick={() => onRedeemReward && onRedeemReward(r.id)}
+                            >
+                              Redeem for {cost} pts
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn"
+                              disabled
+                              style={{
+                                width: "100%",
+                                padding: "8px 12px",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                background: "#fef2f2",
+                                color: "#b91c1c",
+                                borderColor: "#fecaca",
+                                cursor: "not-allowed",
+                                opacity: 0.9,
+                              }}
+                            >
+                              Need {round2(cost - currentPoints)} more pts
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ================= TAB: EVOLUTIONS ================= */}
+          {activeTab === "evolutions" && evolutionCards.length > 0 && (
+            <div>
+              <div style={{ marginBottom: 14 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    color: "#6b7280",
+                    fontWeight: 700,
+                  }}
+                >
+                  Available Evolutions
+                </div>
+                <div className="muted" style={{ fontSize: 12 }}>
+                  Collect the required copies of the base card and 1{" "}
+                  <strong>{defaultCatalystCard?.title || "catalyst"}</strong> to unlock new forms.
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 12 }}>
+                {evolutionCards.map((evoCard) => {
+                  const baseCard = cardsMap.get(evoCard.evolution?.baseCardId);
+                  const catalystId = evoCard.evolution?.catalystCardId || defaultCatalystCardId;
+                  const catalystCard = catalystId ? cardsMap.get(catalystId) : null;
+                  const catalystLabel = catalystCard?.title || defaultCatalystCard?.title || "Catalyst";
+                  const eligibility = checkEvolutionEligibility({
+                    student,
+                    evolutionCard: evoCard,
+                    catalystCardId: defaultCatalystCardId,
+                  });
+                  const evoImg = getCardDisplayImage(evoCard, displayFlagValue, !eligibility.isAlreadyUnlocked);
+
+                  return (
+                    <div
+                      key={evoCard.id}
+                      style={{
+                        border: eligibility.canEvolve
+                          ? "2px solid #8b5cf6"
+                          : eligibility.isAlreadyUnlocked
+                          ? "1px solid #86efac"
+                          : "1px solid #e5e7eb",
+                        borderRadius: 12,
+                        padding: 12,
+                        background: eligibility.isAlreadyUnlocked ? "#f0fdf4" : "#ffffff",
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 66,
+                          height: 88,
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          background: "#f3f4f6",
+                          flexShrink: 0,
+                          position: "relative",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        {evoImg ? (
+                          <img
+                            src={evoImg}
+                            alt={evoCard.title}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              filter: eligibility.isAlreadyUnlocked ? "none" : "grayscale(0.65)",
+                            }}
+                          />
+                        ) : (
+                          <div style={{ padding: 6, fontSize: 10 }}>{evoCard.title}</div>
+                        )}
+                        {!eligibility.isAlreadyUnlocked && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              background: "rgba(15, 23, 42, 0.35)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 18,
+                            }}
+                          >
+                            🔒
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
+                            {evoCard.title}
+                          </span>
+                          {eligibility.isAlreadyUnlocked ? (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                padding: "2px 8px",
+                                borderRadius: 999,
+                                background: "#dcfce7",
+                                color: "#166534",
+                                fontWeight: 700,
+                              }}
+                            >
+                              ✅ Unlocked
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                padding: "2px 8px",
+                                borderRadius: 999,
+                                background: "#ede9fe",
+                                color: "#6d28d9",
+                                fontWeight: 700,
+                              }}
+                            >
+                              🧬 From {baseCard?.title || "Base Card"}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              background: eligibility.hasCopies ? "#dcfce7" : "#f1f5f9",
+                              color: eligibility.hasCopies ? "#15803d" : "#475569",
+                              fontWeight: 700,
+                            }}
+                          >
+                            🃏 {baseCard?.title || "Base"}: {eligibility.currentCopies}/{eligibility.requiredCopies}
+                          </span>
+
+                          <span
+                            style={{
+                              fontSize: 11,
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              background: eligibility.hasCatalyst ? "#e0e7ff" : "#fef2f2",
+                              color: eligibility.hasCatalyst ? "#4338ca" : "#b91c1c",
+                              fontWeight: 700,
+                            }}
+                          >
+                            🔮 {catalystLabel}:{" "}
+                            {eligibility.missingCatalystConfig
+                              ? "Not configured"
+                              : eligibility.hasCatalyst
+                              ? `${eligibility.catalystCount} owned ✓`
+                              : "Missing"}
+                          </span>
+                        </div>
+
+                        {eligibility.canEvolve && (
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => onEvolve?.(evoCard)}
+                            style={{
+                              marginTop: 8,
+                              padding: "6px 14px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+                              color: "#ffffff",
+                              border: "none",
+                              borderRadius: 999,
+                              boxShadow: "0 2px 8px rgba(139, 92, 246, 0.4)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            ✨ Evolve now! (Uses 1 {catalystLabel})
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 3: HISTORY ================= */}
+          {activeTab === "history" && (
+            <div>
+              <div
+                style={{
+                  fontSize: 12,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: "#6b7280",
+                  fontWeight: 700,
+                  marginBottom: 12,
+                }}
+              >
+                Reward & Code History
+              </div>
+
+              {((enrichedHistory && enrichedHistory.length > 0 ? enrichedHistory : (student.rewardsHistory || [])).length === 0) ? (
+                <div style={{ textAlign: "center", padding: "30px", color: "#9ca3af", fontStyle: "italic" }}>
+                  No rewards or codes redeemed yet.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[...(enrichedHistory.length > 0 ? enrichedHistory : (student.rewardsHistory || []))]
+                    .sort((a, b) => {
+                      const timeA = a.redeemedAt || (a.date ? new Date(a.date).getTime() : 0);
+                      const timeB = b.redeemedAt || (b.date ? new Date(b.date).getTime() : 0);
+                      return timeB - timeA;
+                    })
+                    .map((h) => {
+                      const isGroup = h.type === "group" || h.mode === "group";
+                      const isCode = Boolean(
+                        h.isCodeRedemption ||
+                        h.type === "achievement" ||
+                        h.type === "achievement_card" ||
+                        (!h.cost && (h.pointsAwarded !== undefined || h.source || h.sourceId))
+                      );
+
+                      const linkedCard = h.cardId ? cardsMap.get(h.cardId) : null;
+                      const cardImg = h.cardId
+                        ? getCardDisplayImage(linkedCard, displayFlagValue, false) || linkedCard?.imageURL || linkedCard?.displayImageURL
+                        : null;
+
+                      return (
+                        <div
+                          key={h.id || Math.random()}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: 12,
+                            padding: "12px 14px",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                              {cardImg && (
+                                <img
+                                  src={cardImg}
+                                  alt=""
+                                  style={{
+                                    width: 34,
+                                    height: 46,
+                                    objectFit: "cover",
+                                    borderRadius: 6,
+                                    flexShrink: 0,
+                                    border: "1px solid #e2e8f0",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                                  }}
+                                />
+                              )}
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontWeight: 700, color: "#111827", fontSize: 14, wordBreak: "break-word" }}>
+                                  {isCode
+                                    ? (h.activityName || h.title || h.name || "Activity")
+                                    : (h.title || "Reward")}
+                                </div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    fontSize: 11,
+                                    color: "#6b7280",
+                                    marginTop: 3,
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {isCode ? (
+                                    <>
+                                      <span
+                                        style={{
+                                          background: "#f1f5f9",
+                                          color: "#334155",
+                                          padding: "1px 7px",
+                                          borderRadius: 4,
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        Source: {h.source || h.sourceId || "Code"}
+                                      </span>
+                                      <span>•</span>
+                                      <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                                      {h.cardId && (
+                                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
+                                          • 🃏 Card: {linkedCard?.title || h.cardTitle || h.cardId}
+                                        </span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                                      {isGroup && (
+                                        <span
+                                          style={{
+                                            background: "#e0f2fe",
+                                            color: "#0369a1",
+                                            padding: "1px 6px",
+                                            borderRadius: 4,
+                                            fontWeight: 600,
+                                            fontSize: 10,
+                                          }}
+                                        >
+                                          👥 GROUP
+                                        </span>
+                                      )}
+                                      {h.cardId && (
+                                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
+                                          • 🃏 Linked Card
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {isCode ? (
+                              <div
+                                style={{
+                                  background: "#dcfce7",
+                                  color: "#15803d",
+                                  border: "1px solid #bbf7d0",
+                                  fontWeight: 800,
+                                  fontSize: 12,
+                                  padding: "3px 10px",
+                                  borderRadius: 999,
+                                  whiteSpace: "nowrap",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                +{h.pointsAwarded ?? 0} pts
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  background: "#fee2e2",
+                                  color: "#991b1b",
+                                  border: "1px solid #fecaca",
+                                  fontWeight: 800,
+                                  fontSize: 12,
+                                  padding: "3px 10px",
+                                  borderRadius: 999,
+                                  whiteSpace: "nowrap",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                -{h.cost} pts
+                              </div>
+                            )}
+                          </div>
+
+                          {!isCode && isGroup && h.contributors && (
+                            <div
+                              style={{
+                                marginTop: 4,
+                                paddingTop: 6,
+                                borderTop: "1px dashed #e5e7eb",
+                                fontSize: 11,
+                                color: "#4b5563",
+                                lineHeight: "1.4em",
+                              }}
+                            >
+                              <span style={{ fontWeight: 600 }}>Splitting with: </span>
+                              {h.contributors
+                                .filter((c) => c.name !== student.name)
+                                .map((c) => `${c.name} (${c.cost})`)
+                                .join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ================= TAB 4: SETTINGS & PIN ================= */}
+          {activeTab === "settings" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <PublicStudentIdDisplay studentId={student.id} />
+              {flagConfig && (
+                <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, background: "#ffffff" }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      color: "#6b7280",
+                      fontWeight: 700,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {flagConfig.label} preference
+                  </div>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+                    Choose which card artwork and class background you see.
+                  </div>
+                  <div role="group" aria-label={`${flagConfig.label} preference`} style={{ display: "flex", gap: 8 }}>
+                    {[["A", flagConfig.optionA], ["B", flagConfig.optionB]].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className="btn"
+                        aria-pressed={flagValue === value}
+                        disabled={savingFlagValue || !onChangeFlagValue}
+                        onClick={async () => {
+                          if (value === flagValue) return;
+                          setFlagValue(value);
+                          setSavingFlagValue(true);
+                          try {
+                            const result = await onChangeFlagValue(value);
+                            if (result === false) setFlagValue(student.flagValue === "B" ? "B" : "A");
+                          } catch (error) {
+                            setFlagValue(student.flagValue === "B" ? "B" : "A");
+                            throw error;
+                          } finally {
+                            setSavingFlagValue(false);
+                          }
+                        }}
+                        style={{
+                          flex: 1,
+                          background: flagValue === value ? "#def" : "white",
+                          borderColor: flagValue === value ? "#93c5fd" : undefined,
+                        }}
+                      >
+                        {label}{value === "A" ? " (Default)" : ""}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Profile Customization */}
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, background: "#ffffff" }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    color: "#6b7280",
+                    fontWeight: 700,
+                    marginBottom: 12,
+                  }}
+                >
+                  Personalization
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                    Emojis for your name (does not change your real name)
+                  </div>
+                  <input
+                    value={emojis}
+                    onChange={(e) => setEmojis(e.target.value)}
+                    placeholder="e.g. ✨😺🔥"
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                    Background pastel color
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    {pastelColors.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        className="btn"
+                        onClick={() => setColor(c.value)}
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: c.value,
+                          border: color === c.value ? "2px solid #111" : "1px solid #ddd",
+                        }}
+                        title={c.name}
+                      />
+                    ))}
+                    <button type="button" className="btn" onClick={() => setColor("")}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={() => onSave({ nameEmojis: emojis, profileColor: color })}
+                >
+                  Save Personalization
+                </button>
+              </div>
+
+              {/* Change PIN */}
+              {onChangePin && (
+                <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, background: "#ffffff" }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      color: "#6b7280",
+                      fontWeight: 700,
+                      marginBottom: 12,
+                    }}
+                  >
+                    Change 4-Digit PIN
+                  </div>
+
+                  <div style={{ display: "grid", gap: 10, maxWidth: 300 }}>
+                    <div>
+                      <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>
+                        Current PIN
+                      </div>
+                      <input
+                        type="text"
+                        name="studentPinCurrent"
+                        autoComplete="off"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="••••"
+                        value={currentPin}
+                        onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        style={{
+                          width: "100%",
+                          padding: 10,
+                          borderRadius: 10,
+                          border: "1px solid #ddd",
+                          WebkitTextSecurity: "disc",
+                          letterSpacing: 4,
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>
+                        New PIN (4 digits)
+                      </div>
+                      <input
+                        type="text"
+                        name="studentPinNew"
+                        autoComplete="off"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="••••"
+                        value={newPin}
+                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        style={{
+                          width: "100%",
+                          padding: 10,
+                          borderRadius: 10,
+                          border: "1px solid #ddd",
+                          WebkitTextSecurity: "disc",
+                          letterSpacing: 4,
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>
+                        Confirm New PIN
+                      </div>
+                      <input
+                        type="text"
+                        name="studentPinNewConfirm"
+                        autoComplete="off"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="••••"
+                        value={newPinConfirm}
+                        onChange={(e) => setNewPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        style={{
+                          width: "100%",
+                          padding: 10,
+                          borderRadius: 10,
+                          border: "1px solid #ddd",
+                          WebkitTextSecurity: "disc",
+                          letterSpacing: 4,
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={async () => {
+                        if (newPin.length !== 4 || newPin !== newPinConfirm) {
+                          if (onValidationError) onValidationError("New PIN must have 4 digits and match.");
+                          return;
+                        }
+                        const ok = await onChangePin(currentPin, newPin);
+                        if (ok) {
+                          setCurrentPin("");
+                          setNewPin("");
+                          setNewPinConfirm("");
+                        }
+                      }}
+                    >
+                      Update PIN
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "redeem" && (
+            <div>
+              <RewardCodeRedemption
+                db={db}
+                classId={classId}
+                studentId={student.id}
+                onSuccess={() => {
+                  onValidationError("Achievement redeemed successfully! ✨");
+                  reconcileAndEnrichStudentHistory({ db, classId, student })
+                    .then((h) => {
+                      if (Array.isArray(h)) setEnrichedHistory(h);
+                    })
+                    .catch((e) => console.warn("History update error:", e));
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: src/components/students/StudentsPanel.jsx
+````javascript
+import React, { useMemo, useRef, useState } from "react";
+import EmojiParty from "../common/EmojiParty";
+import { todayISODate } from "../../utils/dateUtils";
+import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
+import { ActivityCatalogueManager } from "../admin/ActivityCatalogueManager";
+import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { formatPoints } from "../../utils/helpers";
+
+export default function StudentsPanel({
+  activeClass,
+  activeClassId,
+  cards,
+  flagConfig,
+  classTotalPoints,
+  filteredStudents,
+  loadingStudents,
+  mode,
+  studentFilter,
+  setStudentFilter,
+  onAddStreak,
+  onManageFlag,
+  onManageStudent,
+  onProfileStudent,
+  onChangeStudentStreak,
+  onQuickAddPoints,
+  onPreviewCard,
+  onAddStudent,
+  newStudentRef,
+  db,
+  setActiveClassId,
+  alertFn,
+  unlockedProfileIds,
+  onPromptPin,
+}) {
+  const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
+  const scrollContainerRef = useRef(null);
+  const today = todayISODate();
+  const cardsById = useMemo(() => new Map((cards || []).map((c) => [c.id, c])), [cards]);
+
+  return (
+    <main
+      style={{
+        border: "none",
+        background: "transparent",
+        padding: 0,
+        minWidth: 0,
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          flexShrink: 0,
+          paddingBottom: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <button className="btn" onClick={() => setActiveClassId(null)} style={{ padding: "4px 8px", fontSize: 12 }}>
+            ← Back
+          </button>
+          <h3 style={{ margin: 0 }}>
+            <span className="column-title-pill">{activeClass?.name || "Select a class"}</span>
+          </h3>
+          {activeClassId && (
+            <span className="chip">
+              Total class pts: {formatPoints(classTotalPoints)}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {mode === "admin" && activeClassId && (
+            <>
+              <button className="btn" onClick={() => onAddStreak(activeClassId)}>Manage streaks</button>
+              <button className="btn" onClick={onManageFlag}>🚩 Flag</button>
+              <button
+                className="btn"
+                onClick={() => {
+                  const next = !showActivityCatalogue;
+                  setShowActivityCatalogue(next);
+                  if (next && scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+                style={{
+                  background: showActivityCatalogue ? "#dbeafe" : "#ffffff",
+                  border: showActivityCatalogue ? "1px solid #3b82f6" : "1px solid #e2e8f0",
+                  color: showActivityCatalogue ? "#1d4ed8" : "#1e293b",
+                  fontWeight: showActivityCatalogue ? 700 : 600,
+                }}
+              >
+                📚 Activities {showActivityCatalogue ? "▲" : "▼"}
+              </button>
+            </>
+          )}
+
+          <input
+            className="input"
+            placeholder="Filter students..."
+            name="studentNameFilter"
+            autoComplete="off"
+            value={studentFilter}
+            onChange={(e) => setStudentFilter(e.target.value)}
+            style={{
+              padding: "7px 12px",
+              fontSize: 13,
+              borderRadius: 12,
+              minWidth: 170,
+              width: "auto",
+            }}
+          />
+        </div>
+      </div>
+
+      <div
+        ref={scrollContainerRef}
+        style={{
+          flex: "1 1 0",
+          overflowY: "auto",
+          minHeight: 0,
+          paddingRight: 8,
+          paddingBottom: 24,
+          overscrollBehavior: "contain",
+        }}
+      >
+        {showActivityCatalogue && (
+          <div
+            style={{
+              marginBottom: 16,
+              border: "1px solid #cbd5e1",
+              borderRadius: 14,
+              background: "#ffffff",
+              padding: 16,
+              boxShadow: "0 4px 16px rgba(15, 23, 42, 0.06)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowActivityCatalogue(false)}
+                style={{ padding: "3px 10px", fontSize: 12 }}
+                title="Close activities panel"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <ActivityCatalogueManager db={db} classId={activeClassId} alertFn={alertFn} />
+          </div>
+        )}
+
+        {!activeClassId ? (
+          <div className="muted">Select a class first.</div>
+        ) : loadingStudents ? (
+          <div className="muted">Loading students...</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+            {filteredStudents.map((student) => {
+              const solidBg = student.profileColor || "#ffffff";
+              const displayName = `${student.name}${student.nameEmojis ? " " + student.nameEmojis : ""}`;
+              const streakConfigs = activeClass?.streakConfigs || [];
+
+              const isCelebratingToday = (cfg, streak) => {
+                const hitToday = (streak?.maxAchievedOn || "") === today;
+                if (!hitToday) return false;
+                if (cfg.stickyCelebrate) return true;
+                return (streak?.value || 0) >= (cfg.max || 0);
+              };
+
+              const partyStreaks = streakConfigs.filter((cfg) => {
+                const streak = (student.streaks && student.streaks[cfg.id]) || { value: 0, maxAchievedOn: "" };
+                return isCelebratingToday(cfg, streak);
+              });
+
+              const floatingEmojis = streakConfigs.filter((cfg) => {
+                if (!cfg.float) return false;
+                const streak = (student.streaks && student.streaks[cfg.id]) || { value: 0, maxAchievedOn: "", floatWindows: [] };
+                return isTodayInFloatWindows(today, streak.floatWindows);
+              });
+
+              return (
+                <div
+                  key={student.id}
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    padding: "8px 12px 12px 12px",
+                    borderRadius: 14,
+                    background: solidBg,
+                    boxShadow: "0 3px 12px rgba(15, 23, 42, 0.06)",
+                    color: "#0f172a",
+                    position: "relative",
+                    overflow: "hidden",
+                    transition: "all 180ms ease",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    contentVisibility: "auto",
+                    containIntrinsicSize: "0 180px",
+                  }}
+                >
+                  {floatingEmojis.map((cfg) => (
+                    <div key={cfg.id} className="floating-emoji">
+                      <div className="floating-emoji-glow">{cfg.emoji}</div>
+                    </div>
+                  ))}
+
+                  {partyStreaks.map((cfg) => (
+                    <EmojiParty
+                      key={`party_${student.id}_${cfg.id}_${today}`}
+                      emoji={cfg.emoji}
+                      seedKey={`${student.id}_${cfg.id}_${today}`}
+                      count={22}
+                    />
+                  ))}
+
+                  {/* Header Row: Student Name and Current Points */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 16, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", color: "#0f172a" }}>
+                        <span>{displayName}</span>
+                        {mode === "admin" && (
+                          <button
+                            className="btn"
+                            onClick={() => onManageStudent(student.id)}
+                            style={{ padding: "2px 7px", fontSize: 11 }}
+                          >
+                            Manage
+                          </button>
+                        )}
+                        <button
+                          className="btn"
+                          onClick={() => onProfileStudent(student.id)}
+                          style={{ padding: "2px 7px", fontSize: 11 }}
+                        >
+                          Profile
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14, whiteSpace: "nowrap" }}>
+                      {formatPoints(student.currentPoints)} pts
+                    </div>
+                  </div>
+
+                  {/* Row 2: Streaks on the left, XP on the right (same Y level!) */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0, fontSize: 12 }}>
+                      {streakConfigs.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          {streakConfigs.map((cfg) => {
+                            const streak = (student.streaks && student.streaks[cfg.id]) || { value: 0, lastUpdated: "" };
+                            const emojiLine = streak.value > 0 ? (cfg.emoji || "").repeat(streak.value) : (
+                              <span style={{ textDecoration: "line-through", opacity: 0.5 }}>{cfg.emoji}</span>
+                            );
+                            const date = streak.lastUpdated || "";
+                            const isToday = date && date === today;
+
+                            return (
+                              <div key={cfg.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
+                                  {emojiLine}
+                                  {date && (
+                                    <span style={{ marginLeft: 2, color: isToday ? "#16a34a" : "#dc2626", fontWeight: 700, fontSize: 11 }}>
+                                      {date}
+                                    </span>
+                                  )}
+                                </div>
+                                {mode === "admin" && (
+                                  <button
+                                    className="btn"
+                                    style={{ padding: "1px 6px", fontSize: 11, lineHeight: "14px", borderRadius: 6 }}
+                                    title="Add +1 to this streak"
+                                    onClick={() => onChangeStudentStreak(activeClassId, student.id, cfg.id, +1, cfg)}
+                                  >
+                                    +1
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="muted" style={{ fontSize: 12 }}>No streaks</span>
+                      )}
+                    </div>
+
+                    <div style={{ textAlign: "right", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      <div className="muted" style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>
+                        XP: {student.xp || 0}
+                      </div>
+                      {(() => {
+                        const effectiveMultiplier = computeEffectiveMultiplier(student, today);
+                        return effectiveMultiplier !== 1 ? (
+                          <div style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 700 }}>
+                            x{effectiveMultiplier}
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Admin Quick Add */}
+                  {mode === "admin" && (
+                    <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                      <span className="pill">Quick add:</span>
+                      {[1, 5, 10].map((amount) => (
+                        <button
+                          key={amount}
+                          className="btn"
+                          style={{ padding: "3px 8px", fontSize: 12 }}
+                          onClick={() => onQuickAddPoints(activeClassId, student.id, amount)}
+                        >
+                          +{amount}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Cards Gallery: header removed per requirement 4, holo foil kept per requirement 5 */}
+                  <div style={{ marginTop: 2, maxHeight: 155, overflowY: "auto", paddingRight: 6, display: "flex", gap: 8, flexWrap: "wrap", alignContent: "flex-start" }}>
+                    {(() => {
+                      const groups = new Map();
+                      const studentFlagValue = student.flagValue || "A";
+                      (student.cards || []).forEach((ownedCard) => {
+                        const key = ownedCard.cardId || "unknown";
+                        if (!groups.has(key)) {
+                          const fullCard = cardsById.get(key);
+                          const displayImageURL = fullCard ? getCardDisplayImage(fullCard, studentFlagValue) : (ownedCard.imageURL || "");
+                          groups.set(key, { title: ownedCard.title || fullCard?.title || "—", imageURL: ownedCard.imageURL || "", displayImageURL, count: 0 });
+                        }
+                        groups.get(key).count += 1;
+                      });
+
+                      const groupedCards = Array.from(groups.entries()).map(([cardId, group]) => ({ cardId, ...group }));
+                      // Requirement 6: Use displayImageURL so full preview displays flag-specific image
+                      const ownedUniqueList = groupedCards.map((card) => ({ title: card.title, imageURL: card.displayImageURL || card.imageURL }));
+
+                      const canDragThisStudent = mode === "admin" || (unlockedProfileIds && unlockedProfileIds.has(student.id));
+
+                      return groupedCards.map((group, index) => (
+                        <div
+                          key={group.cardId}
+                          className="card-thumb holo-foil-card"
+                          draggable={true}
+                          onDragStart={(e) => {
+                            if (!canDragThisStudent) {
+                              e.preventDefault();
+                              if (alertFn) alertFn("Introduce tu PIN para poder usar y arrastrar tus cartas.");
+                              onPromptPin?.(student);
+                              return;
+                            }
+                            e.dataTransfer.setData(
+                              "application/json",
+                              JSON.stringify({
+                                type: "student_card",
+                                studentId: student.id,
+                                cardId: group.cardId,
+                                title: group.title,
+                              })
+                            );
+                            e.dataTransfer.effectAllowed = "copy";
+                          }}
+                          style={{
+                            width: 80,
+                            height: 110,
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 10,
+                            overflow: "hidden",
+                            cursor: canDragThisStudent ? "grab" : "pointer",
+                            position: "relative",
+                            background: "#ffffff",
+                            boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
+                            contentVisibility: "auto",
+                            containIntrinsicSize: "80px 110px",
+                          }}
+                          title={
+                            canDragThisStudent
+                              ? `${group.title} (Clic para ver / Arrastra sobre la carta pre-evolución en la biblioteca para evolucionar)`
+                              : `${group.title} (Clic para previsualizar)`
+                          }
+                          onClick={() => onPreviewCard({ ownedList: ownedUniqueList, ownedIndex: index, isLibraryCard: false })}
+                        >
+                          {group.displayImageURL ? (
+                            <img
+                              src={group.displayImageURL}
+                              alt={group.title}
+                              loading="lazy"
+                              decoding="async"
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          ) : (
+                            <div style={{ padding: 6, fontSize: 11, color: "#1e293b" }}>{group.title}</div>
+                          )}
+                          {group.count > 1 && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 5,
+                                right: 5,
+                                background: "rgba(15, 23, 42, 0.85)",
+                                color: "white",
+                                borderRadius: 999,
+                                padding: "2px 6px",
+                                fontSize: 10,
+                                fontWeight: 900,
+                              }}
+                            >
+                              ×{group.count}
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              );
+            })}
+
+            {mode === "admin" && (
+              <div
+                style={{
+                  border: "1px dashed #cbd5e1",
+                  background: "#ffffff",
+                  padding: 14,
+                  borderRadius: 14,
+                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
+                }}
+              >
+                <h4 style={{ marginTop: 0 }}>Add student</h4>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input ref={newStudentRef} placeholder="Student name" style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ddd" }} />
+                  <button className="btn primary" onClick={onAddStudent}>Add</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+````
+
+## File: src/App.js
+````javascript
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { db, storage, auth } from "./firebase";
+import LibrarySection from "./components/cards/LibrarySection";
+import CardEditModal from "./components/cards/CardEditModal";
+import CardPreviewModal from "./components/cards/CardPreviewModal";
+import EvolutionModal from "./components/cards/EvolutionModal";
+import BulkGiveModal from "./components/cards/BulkGiveModal";
+import FeedbackDialog from "./components/common/FeedbackDialog";
+import StreakFormModal from "./components/classes/StreakFormModal";
+import ClassFlagModal from "./components/classes/ClassFlagModal";
+import RewardCardPickerModal from "./components/classes/RewardCardPickerModal";
+import FloatScheduleModal from "./components/classes/FloatScheduleModal";
+import FloatWindowEditModal from "./components/classes/FloatWindowEditModal";
+import ProfileModal from "./components/profile/ProfileModal";
+import PinGateModal from "./components/profile/PinGateModal";
+import ManageStudentModal from "./components/students/ManageStudentModal";
+import BulkStreakModal from "./components/classes/BulkStreakModal";
+import EyeToggleButton from "./components/common/EyeToggleButton";
+import RequestsPanel from "./components/requests/RequestsPanel";
+import LoginScreen from "./components/auth/LoginScreen";
+import ClassesPanel from "./components/classes/ClassesPanel";
+import StudentsPanel from "./components/students/StudentsPanel";
+import { addStudent, editStudent, deleteStudent } from "./services/studentService";
+import { verifyPin, changePin, resetPin } from "./services/studentAuthService";
+import {
+  createRequest as createRequestService,
+  cancelRequest as cancelRequestService,
+  rejectRequest as rejectRequestService,
+  resolveRequestApproved,
+} from "./services/requestService";
+import {
+  addStreakTypeForClass,
+  changeStudentStreakValue,
+  deleteStreakTypeForClass,
+  resetStudentStreak,
+  setStreakRewardCardsForClass,
+  bulkChangeStreakValue,
+  bulkResetStreak,
+  editStudentFloatWindow,
+  pickEditableFloatWindow,
+} from "./services/streakService";
+import {
+  buildUnifiedRewards,
+  deleteReward as deleteRewardService,
+} from "./services/rewardService";
+import {
+  quickAddPoints as quickAddPointsService,
+  removeOwnedCardsBulk as removeOwnedCardsBulkService,
+  redeemIndividual as redeemIndividualService,
+  redeemGroup as redeemGroupService,
+} from "./services/studentRewardService";
+import {
+  createCard as createCardService,
+  updateCard as updateCardService,
+  deleteCard as deleteCardService,
+  giveCardToStudent as giveCardToStudentService,
+  giveCardToStudentsBulk as giveCardToStudentsBulkService,
+} from "./services/cardService";
+import {
+  executeEvolution,
+  isEvolutionCard,
+  checkEvolutionEligibility,
+  isCardUnlockedForStudent,
+} from "./services/cardEvolutionService";
+import { getCardDisplayImage } from "./utils/cardImageUtils";
+import { safeLower, round2, PASTEL_COLORS } from "./utils/helpers";
+import { todayISODate } from "./utils/dateUtils";
+import {
+  editClassName,
+  endClassActivity,
+  setDefaultCatalystForClass,
+  saveClassNewsMessages,
+} from "./services/classService";
+import useBackgroundManager from "./hooks/useBackgroundManager";
+import useClassData from "./hooks/useClassData";
+import useAuthMode from "./hooks/useAuthMode";
+import useActionFeedback from "./hooks/useActionFeedback";
+import useStudentRequests from "./hooks/useStudentRequests";
+/**
+ * Pokemáticos — Firestore + Storage (main application shell)
+ *
+ * What this version adds back (from your old localStorage version) + fixes:
+ * - Guest vs Admin mode (guests cannot Manage; they can only view cards and open a Profile modal)
+ * - Student filter
+ * - Rewards redeem: choose Individual or Group BEFORE redeeming
+ *   - Group redeem lets you assign shares across students that MUST sum exactly to reward cost
+ * - Owned cards are grouped (×N). Remove all uses ONE confirm and ONE database update (no spam)
+ * - Library shows LOCKED card image; when you give a card to a student they receive UNLOCKED image
+ * - Giving a card is silent (no success alert)
+ *
+ * IMPORTANT SECURITY NOTE (guest profile customisation):
+ * Guests can edit profile emojis/background color without login in this UI.
+ * That requires Firestore rules to allow updating ONLY those fields,
+ * otherwise saving will fail. See rule note at the bottom.
+ */
+
+export default function App() {
+  // ----- Mode -----
+  const {
+    mode,
+    setMode,
+    authUser,
+    authChecked,
+    showAdminForm,
+    setShowAdminForm,
+    adminEmail,
+    setAdminEmail,
+    adminPass,
+    setAdminPass,
+    adminError,
+    setAdminError,
+    checkingAdmin,
+    enterReader,
+    loginAdminEmailPassword,
+    logout,
+  } = useAuthMode({ auth, db });
+
+  // ----- Data -----
+  const [activeClassId, setActiveClassId] = useState(null);
+
+  const {
+    classesList,
+    students,
+    cards,
+    rewards,
+    loadingClasses,
+    loadingStudents,
+    loadingCards,
+    loadingRewards,
+    errorMsg,
+  } = useClassData({ db, activeClassId });
+
+  // ----- UI -----
+  const [studentFilter, setStudentFilter] = useState("");
+  const [cardPreview, setCardPreview] = useState(null);
+  const [streakFormRequest, setStreakFormRequest] = useState(null);
+  const [rewardPickerRequest, setRewardPickerRequest] = useState(null);
+  const [scheduleRequest, setScheduleRequest] = useState(null);
+  const [floatWindowEditRequest, setFloatWindowEditRequest] = useState(null);
+  const [classRenameRequest, setClassRenameRequest] = useState(null);
+  const [classArchiveRequest, setClassArchiveRequest] = useState(null);
+  const [showClassFlagModal, setShowClassFlagModal] = useState(false);
+  const [viewFlag, setViewFlag] = useState("A");
+  const appliedFlagClassRef = useRef(null);
+  const {
+    notice,
+    levelUpNotice,
+    confirmation,
+    pendingAction,
+    notify,
+    notifyLevelUp,
+    askConfirmation,
+    resolveConfirmation,
+    runAction,
+  } = useActionFeedback();
+
+  
+  const [bulkGiveCard, setBulkGiveCard] = useState(null); // card object
+  const [bulkGiveSelectedIds, setBulkGiveSelectedIds] = useState([]);
+  // Admin manage modal selection (admin-only)
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+
+  // Profile modal selection (guest + admin)
+  const [profileStudentId, setProfileStudentId] = useState(null);
+  // Only the last PIN-verified student in THIS browser tab stays unlocked.
+  // Opening/verifying another profile forgets the previous one.
+  const [unlockedProfileList, setUnlockedProfileList] = useState(() => {
+    try {
+      const activeId = sessionStorage.getItem("activeUnlockedProfileId");
+      return activeId ? [activeId] : [];
+    } catch {
+      return [];
+    }
+  });
+  const unlockedProfileIds = useMemo(() => new Set(unlockedProfileList), [unlockedProfileList]);
+  const rememberUnlockedProfile = useCallback((id) => {
+    const next = id ? [id] : [];
+    setUnlockedProfileList(next);
+    try {
+      if (id) {
+        sessionStorage.setItem("activeUnlockedProfileId", id);
+      } else {
+        sessionStorage.removeItem("activeUnlockedProfileId");
+      }
+    } catch {}
+  }, []);
+  const [showRequestsPanel, setShowRequestsPanel] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [showBulkStreaks, setShowBulkStreaks] = useState(false);
+  const [evolutionModalData, setEvolutionModalData] = useState(null);
+  const [evolutionChoiceModal, setEvolutionChoiceModal] = useState(null);
+
+  const { pendingRequests, pendingCount } = useStudentRequests({ db });
+
+  const newClassNameRef = useRef(null);
+  const newStudentRef = useRef(null);
+
+  // two file inputs for cards
+  const lockedFileInputRef = useRef(null);
+  const unlockedFileInputRef = useRef(null);
+  const lockedFileBInputRef = useRef(null);
+  const unlockedFileBInputRef = useRef(null);
+
+  const activeClass = useMemo(
+    () => classesList.find((c) => c.id === activeClassId) || null,
+    [classesList, activeClassId]
+  );
+
+  const selectedStudent = useMemo(
+    () => students.find((s) => s.id === selectedStudentId) || null,
+    [students, selectedStudentId]
+  );
+
+  const profileStudent = useMemo(
+    () => students.find((s) => s.id === profileStudentId) || null,
+    [students, profileStudentId]
+  );
+
+  const profileNeedsPin =
+    !!profileStudent && mode !== "admin" && !unlockedProfileIds.has(profileStudent.id);
+
+  // Entering a class: guests start on the option of the most recently opened remembered profile.
+  useEffect(() => {
+    if (!activeClassId) {
+      appliedFlagClassRef.current = null;
+      return;
+    }
+    if (loadingStudents || appliedFlagClassRef.current === activeClassId) return;
+    appliedFlagClassRef.current = activeClassId;
+    let next = "A";
+    if (mode !== "admin") {
+      for (let i = unlockedProfileList.length - 1; i >= 0; i--) {
+        const s = students.find((st) => st.id === unlockedProfileList[i]);
+        if (s) {
+          next = s.flagValue === "B" ? "B" : "A";
+          break;
+        }
+      }
+    }
+    setViewFlag(next);
+  }, [activeClassId, loadingStudents, students, mode, unlockedProfileList]);
+
+  // Opening (or changing the option of) an unlocked profile points the view at its option.
+  const openProfileFlag = profileStudent && !profileNeedsPin ? (profileStudent.flagValue === "B" ? "B" : "A") : null;
+  useEffect(() => {
+    if (openProfileFlag && mode !== "admin") setViewFlag(openProfileFlag);
+  }, [openProfileFlag, profileStudentId, mode]);
+
+  const giveableCardsForProfile = useMemo(
+    () => (cards || []).filter((c) => (c.category || "points") === "points"),
+    [cards]
+  );
+
+  const cardsById = useMemo(
+    () => new Map((cards || []).map((c) => [c.id, c])),
+    [cards]
+  );
+
+  const unifiedRewards = useMemo(
+    () => buildUnifiedRewards(cards, rewards),
+    [cards, rewards]
+  );
+
+  const activeStudentForLibrary = useMemo(() => {
+    if (profileStudentId && (mode === "admin" || unlockedProfileIds.has(profileStudentId))) {
+      return students.find((s) => s.id === profileStudentId) || null;
+    }
+    if (mode === "admin" && selectedStudentId) {
+      return students.find((s) => s.id === selectedStudentId) || null;
+    }
+    if (unlockedProfileList && unlockedProfileList.length > 0) {
+      const lastId = unlockedProfileList[unlockedProfileList.length - 1];
+      return students.find((s) => s.id === lastId) || null;
+    }
+    return null;
+  }, [profileStudentId, selectedStudentId, mode, unlockedProfileIds, unlockedProfileList, students]);
+
+  const myPendingRequests = useMemo(
+    () => pendingRequests.filter((r) => r.studentId === profileStudentId),
+    [pendingRequests, profileStudentId]
+  );
+
+  const {
+    stickyBackground,
+    globalBackgroundUrl,
+    bgInputRef,
+    uploadBackgroundImage,
+    clearBackgroundImage,
+  } = useBackgroundManager({
+    db,
+    storage,
+    activeClassId,
+    activeClass,
+    backgroundFlagValue: activeClass?.flagConfig ? viewFlag : "A",
+    notify,
+  });
+
+  const [editCard, setEditCard] = useState(null);
+
+  const runMutation = useCallback(
+    async ({ action, loadingMessage, successMessage, errorMessage, confirmMessage }) => {
+      return runAction({
+        action,
+        message: loadingMessage || "Working...",
+        successMessage,
+        errorMessage: errorMessage || "Something went wrong.",
+        confirmMessage,
+      });
+    },
+    [runAction]
+  );
+
+  function requestStreakForm(initial = {}) {
+    return new Promise((resolve) => {
+      setStreakFormRequest({
+        initial,
+        rewardCardIds: Array.isArray(initial.rewardCardIds) ? initial.rewardCardIds : [],
+        resolve,
+        title: initial.id ? "Edit streak" : "Create streak",
+        toggleRewardCard: (cardId) => {
+          setStreakFormRequest((current) => {
+            if (!current) return current;
+            const rewardCardIds = current.rewardCardIds.includes(cardId)
+              ? current.rewardCardIds.filter((id) => id !== cardId)
+              : [...current.rewardCardIds, cardId];
+            return { ...current, rewardCardIds };
+          });
+        },
+      });
+    });
+  }
+
+  function resolveStreakForm(value) {
+    streakFormRequest?.resolve(value);
+    setStreakFormRequest(null);
+  }
+
+  function requestRewardCardSelection(defaultIds = []) {
+    return new Promise((resolve) => {
+      setRewardPickerRequest({
+        selectedIds: [...defaultIds],
+        resolve,
+        toggleCard: (cardId) => {
+          setRewardPickerRequest((current) => {
+            if (!current) return current;
+            const selectedIds = current.selectedIds.includes(cardId)
+              ? current.selectedIds.filter((id) => id !== cardId)
+              : [...current.selectedIds, cardId];
+            return { ...current, selectedIds };
+          });
+        },
+      });
+    });
+  }
+
+  function resolveRewardCardSelection(value) {
+    rewardPickerRequest?.resolve(value);
+    setRewardPickerRequest(null);
+  }
+
+  function requestFloatSchedule(initial) {
+    return new Promise((resolve) => {
+      setScheduleRequest({ ...initial, resolve });
+    });
+  }
+
+  function resolveFloatSchedule(value) {
+    scheduleRequest?.resolve(value);
+    setScheduleRequest(null);
+  }
+
+  function openFloatWindowEdit(cfg, student, editableWindow) {
+    const window =
+      editableWindow ||
+      pickEditableFloatWindow((student.streaks?.[cfg.id] || {}).floatWindows, todayISODate());
+    if (!window) return;
+
+    setFloatWindowEditRequest({
+      streakId: cfg.id,
+      studentId: student.id,
+      initial: { start: window.start, end: window.end, multiplierBonus: window.multiplierBonus || 0 },
+      message: `Edit the ${cfg.emoji || ""} floating window for ${student.name}.`,
+    });
+  }
+
+  async function saveFloatWindowEdit(values) {
+    const request = floatWindowEditRequest;
+    if (!request) return;
+    setFloatWindowEditRequest(null);
+
+    return runMutation({
+      loadingMessage: "Saving floating window...",
+      successMessage: "Floating window updated.",
+      errorMessage: "Could not update the floating window.",
+      action: async () => {
+        await editStudentFloatWindow({
+          db,
+          classId: activeClassId,
+          studentId: request.studentId,
+          streakId: request.streakId,
+          start: values.start,
+          end: values.end,
+          multiplierBonus: values.multiplierBonus,
+          alertFn: notify,
+        });
+      },
+    });
+  }
+
+  function requestClassRename(currentName = "") {
+    return new Promise((resolve) => {
+      setClassRenameRequest({ currentName, resolve });
+    });
+  }
+
+  function resolveClassRename(value) {
+    classRenameRequest?.resolve(value);
+    setClassRenameRequest(null);
+  }
+
+  function requestClassArchiveUrl(className = "") {
+    return new Promise((resolve) => {
+      setClassArchiveRequest({ className, resolve });
+    });
+  }
+
+  function resolveClassArchiveUrl(value) {
+    classArchiveRequest?.resolve(value);
+    setClassArchiveRequest(null);
+  }
+
+  // ----- Guards -----
+  function ensureClassSelected() {
+    if (!activeClassId) {
+      notify("Please select or create a class first.");
+      return false;
+    }
+    return true;
+  }
+
+  // ----- Class actions (extracted to services/classService.js) -----
+
+  // Navigate through owned cards
+  function ownedNav(delta) {
+    setCardPreview((prev) => {
+      if (!prev?.ownedList || prev.ownedList.length === 0) return prev;
+
+      const max = prev.ownedList.length - 1;
+      const currentIndex = Number.isFinite(prev.ownedIndex) ? prev.ownedIndex : 0;
+      const nextIndex = Math.min(max, Math.max(0, currentIndex + delta));
+
+      return { ...prev, ownedIndex: nextIndex };
+    });
+  }
+
+  async function updateCard(cardId, updates) {
+    return runMutation({
+      loadingMessage: "Updating card...",
+      successMessage: "Card updated.",
+      errorMessage: "Could not update card.",
+      action: () => updateCardService({
+        db,
+        storage,
+        classId: activeClassId,
+        cardId,
+        updates,
+      }),
+    });
+  }
+
+
+  // --- CLASS STREAK TYPES (per class) ---
+
+  async function getCardDataFast(classId, cardId) {
+    const local = (Array.isArray(cards) ? cards : []).find((c) => c.id === cardId);
+    if (local) return local;
+
+    const snap = await getDoc(doc(db, `classes/${classId}/cards/${cardId}`));
+    if (!snap.exists()) return null;
+    return { id: cardId, ...snap.data() };
+  }
+
+  async function quickAddPoints(classId, studentId, amount) {
+    return runMutation({
+      loadingMessage: "Adding points...",
+      successMessage: "Points added.",
+      errorMessage: "Could not add points.",
+      action: async () => {
+        await quickAddPointsService({
+          db,
+          classId,
+          studentId,
+          amount,
+          alertFn: notify,
+        });
+      },
+    });
+  }
+
+  // Profile cosmetics (guest allowed if rules permit)
+  async function saveStudentProfileCosmetics(
+    classId,
+    studentId,
+    { nameEmojis, profileColor }
+  ) {
+    return runMutation({
+      loadingMessage: "Saving profile...",
+      successMessage: "Profile saved.",
+      errorMessage: "Could not save profile. (Check Firestore rules)",
+      action: async () => {
+        const safeEmojis = (nameEmojis || "").toString().slice(0, 2);
+        const safeColor = (profileColor || "").toString();
+        await updateDoc(doc(db, `classes/${classId}/students/${studentId}`), {
+          nameEmojis: safeEmojis,
+          profileColor: safeColor,
+        });
+      },
+    });
+  }
+
+  async function saveStudentFlagPreference(flagValue) {
+    return runMutation({
+      loadingMessage: "Saving preference...",
+      successMessage: "Preference updated.",
+      errorMessage: "Could not save your preference. (Check Firestore rules)",
+      action: async () => {
+        await updateDoc(doc(db, `classes/${activeClassId}/students/${profileStudent.id}`), {
+          flagValue,
+        });
+      },
+    });
+  }
+
+  async function saveClassFlag(flagConfig) {
+    if (!activeClassId) return false;
+    const result = await runMutation({
+      loadingMessage: "Saving class flag...",
+      successMessage: "Class flag saved.",
+      errorMessage: "Could not save class flag.",
+      action: () =>
+        updateDoc(doc(db, `classes/${activeClassId}`), { flagConfig }),
+    });
+    if (result !== false) setShowClassFlagModal(false);
+    return result;
+  }
+
+  async function deleteClassFlag() {
+    if (!activeClassId) return false;
+    const result = await runAction({
+      action: () => updateDoc(doc(db, `classes/${activeClassId}`), { flagConfig: null }),
+      message: "Deleting class flag...",
+      successMessage: "Class flag deleted.",
+      errorMessage: "Could not delete class flag.",
+      confirmMessage: "Delete this class flag? Card artwork and student records will remain unchanged.",
+    });
+    if (result !== false) setShowClassFlagModal(false);
+    return result;
+  }
+
+  // ----- Student requests (card / points, pending professor approval) -----
+  async function createStudentRequest(classId, student, payload) {
+    return runMutation({
+      loadingMessage: "Enviando petición...",
+      successMessage: "Petición enviada.",
+      errorMessage: "No se pudo enviar la petición.",
+      action: async () => {
+        return createRequestService(
+          db,
+          classId,
+          {
+            studentId: student.id,
+            studentName: student.name,
+            className: activeClass?.name || "",
+            ...payload,
+          },
+          notify
+        );
+      },
+    });
+  }
+
+  async function cancelStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Cancelando...",
+      successMessage: "Petición cancelada.",
+      errorMessage: "No se pudo cancelar la petición.",
+      action: async () => cancelRequestService(db, request.classId, request.id, notify),
+    });
+  }
+
+  async function approveStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Aprobando petición...",
+      successMessage: "Petición aprobada.",
+      errorMessage: "No se pudo aprobar la petición.",
+      action: async () => {
+        if (request.amount && (request.type === "points" || request.type === "both" || request.cardId)) {
+          await quickAddPointsService({
+            db,
+            classId: request.classId,
+            studentId: request.studentId,
+            amount: request.amount,
+            alertFn: notify,
+          });
+        }
+        if (request.cardId && (request.type === "card" || request.type === "both" || request.cardTitle)) {
+          const classSnap = await getDoc(doc(db, `classes/${request.classId}`));
+          const requestClass = classSnap.exists() ? { id: request.classId, ...classSnap.data() } : null;
+          await giveCardToStudentService({
+            db,
+            classId: request.classId,
+            studentId: request.studentId,
+            cardId: request.cardId,
+            activeClass: requestClass,
+            getCardDataFast,
+            alertFn: notify,
+            scheduleFn: requestFloatSchedule,
+          });
+        }
+        await resolveRequestApproved(db, request.classId, request.id, notify);
+      },
+    });
+  }
+
+  async function rejectStudentRequest(request) {
+    return runMutation({
+      loadingMessage: "Rechazando...",
+      successMessage: "Petición rechazada.",
+      errorMessage: "No se pudo rechazar la petición.",
+      action: async () => rejectRequestService(db, request.classId, request.id, notify),
+    });
+  }
+
+  // ----- Cards: locked + unlocked -----
+  async function createCard({
+    title,
+    description,
+    points = 0,
+    category = "points",
+    linkedStreakIds = [],
+    lockedFile,
+    unlockedFile,
+    lockedFile_B,
+    unlockedFile_B,
+    evolution = null,
+  }) {
+    if (!ensureClassSelected()) return;
+
+    return runMutation({
+      loadingMessage: "Saving card...",
+      successMessage: "Card saved.",
+      errorMessage: "Could not save card.",
+      action: async () => {
+        await createCardService({
+          db,
+          storage,
+          classId: activeClassId,
+          title,
+          description,
+          points,
+          category,
+          linkedStreakIds,
+          lockedFile,
+          unlockedFile,
+          lockedFile_B,
+          unlockedFile_B,
+          lockedFileInputRef,
+          unlockedFileInputRef,
+          lockedFileBInputRef,
+          unlockedFileBInputRef,
+          evolution,
+        });
+      },
+    });
+  }
+
+  async function deleteCard(cardId) {
+    return runMutation({
+      loadingMessage: "Deleting card...",
+      successMessage: "Card deleted.",
+      errorMessage: "Could not delete card.",
+      confirmMessage: "Delete this card?",
+      action: async () => {
+        await deleteCardService({
+          db,
+          classId: activeClassId,
+          cardId,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
+    });
+  }
+
+  // Give card (silent success, no alert). Hard rule: don't give rewards-category cards here.
+  async function giveCardToStudent(classId, studentId, cardId) {
+    try {
+      await giveCardToStudentService({
+        db,
+        classId,
+        studentId,
+        cardId,
+        activeClass,
+        getCardDataFast,
+        alertFn: notify,
+        scheduleFn: requestFloatSchedule,
+      });
+    } catch (err) {
+      // already reported to the user via alertFn inside the service
+    }
+  }
+
+  // Bulk give: give ONE library card to MANY students (points are multiplied by each student's multiplier).
+  // Uses per-student reads to keep it correct even if points/cards changed elsewhere.
+  async function giveCardToStudentsBulk(classId, cardId, studentIds) {
+    await giveCardToStudentsBulkService({
+      db,
+      classId,
+      cardId,
+      studentIds,
+      activeClass,
+      getCardDataFast,
+      alertFn: notify,
+      scheduleFn: requestFloatSchedule,
+    });
+  }
+
+  function openBulkGive(card) {
+    setBulkGiveCard(card);
+    setBulkGiveSelectedIds([]);
+  }
+
+  function toggleBulkGiveStudent(studentId) {
+    setBulkGiveSelectedIds((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
+    );
+  }
+
+  function toggleBulkGiveSelectAll(eligibleIds) {
+    const targetIds = Array.isArray(eligibleIds)
+      ? eligibleIds
+      : students.map((s) => s.id);
+    setBulkGiveSelectedIds((prev) => {
+      const allSelected =
+        targetIds.length > 0 && targetIds.every((id) => prev.includes(id));
+      return allSelected ? [] : targetIds;
+    });
+  }
+  
+  // Owned cards removal (bulk) - ONE updateDoc
+  async function removeOwnedCardsBulk(classId, studentId, ownedIds) {
+    await removeOwnedCardsBulkService({
+      db,
+      classId,
+      studentId,
+      ownedIds,
+      alertFn: notify,
+    });
+  }
+
+  // ----- Rewards -----
+  async function deleteReward(rewardId) {
+    return runMutation({
+      loadingMessage: "Deleting reward...",
+      successMessage: "Reward deleted.",
+      errorMessage: "Could not delete reward.",
+      confirmMessage: "Delete this reward?",
+      action: async () => {
+        await deleteRewardService({
+          db,
+          classId: activeClassId,
+          rewardId,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
+    });
+  }
+
+  async function redeemIndividual(classId, studentId, rewardId) {
+    return runMutation({
+      loadingMessage: "Redeeming reward...",
+      successMessage: "Reward redeemed.",
+      errorMessage: "Could not redeem reward.",
+      action: async () => {
+        await redeemIndividualService({
+          db,
+          classId,
+          studentId,
+          rewardId,
+          rewards: unifiedRewards,
+          students,
+          cards,
+          alertFn: (data) => {
+            if (typeof data === "object" && data !== null && data.cards) {
+              const studentFlagValue =
+                activeClass?.flagConfig &&
+                students.find((student) => student.id === studentId)?.flagValue === "B"
+                  ? "B"
+                  : "A";
+              notifyLevelUp({ ...data, flagValue: studentFlagValue });
+            } else {
+              notify(data);
+            }
+          },
+          confirmFn: askConfirmation,
+        });
+      },
+    });
+  }
+
+  async function redeemGroup(classId, rewardId, participants) {
+    return runMutation({
+      loadingMessage: "Redeeming group reward...",
+      successMessage: "Group reward redeemed.",
+      errorMessage: "Could not redeem group reward.",
+      confirmMessage: "Redeem this reward for the selected group?",
+      action: async () => {
+        await redeemGroupService({
+          db,
+          classId,
+          rewardId,
+          participants,
+          rewards: unifiedRewards,
+          students,
+          cards,
+          alertFn: notify,
+          confirmFn: askConfirmation,
+        });
+      },
+    });
+  }
+
+  // ----- IMPROVED LOGIN SCREEN -----
+  if (!mode) {
+    return <LoginScreen
+      authChecked={authChecked}
+      checkingAdmin={checkingAdmin}
+      showAdminForm={showAdminForm}
+      setShowAdminForm={setShowAdminForm}
+      adminEmail={adminEmail}
+      setAdminEmail={setAdminEmail}
+      adminPass={adminPass}
+      setAdminPass={setAdminPass}
+      adminError={adminError}
+      setAdminError={setAdminError}
+      enterReader={enterReader}
+      loginAdminEmailPassword={loginAdminEmailPassword}
+      focusMode={focusMode}
+      onToggleFocus={() => setFocusMode((v) => !v)}
+    />;
+  }
+
+  const filteredStudents = (() => {
+    const q = safeLower(studentFilter).trim();
+    if (!q) return students;
+    return students.filter((s) => safeLower(s.name).includes(q));
+  })();
+
+  const classTotalPoints = round2(
+    students.reduce((sum, s) => sum + round2(s.currentPoints || 0), 0)
+  );
+
+  async function handleExecuteEvolution(studentId, evolutionCardId) {
+    if (!ensureClassSelected()) return;
+    const targetStudent = students.find((s) => s.id === studentId);
+    if (!targetStudent) return notify("Alumno no encontrado");
+
+    const canAct = mode === "admin" || (unlockedProfileIds && unlockedProfileIds.has(studentId));
+    if (!canAct) {
+      notify("Introduce tu PIN para poder evolucionar.");
+      setProfileStudentId(studentId);
+      return;
+    }
+
+    const evolutionCard = cardsById.get(evolutionCardId);
+    if (!evolutionCard || !isEvolutionCard(evolutionCard)) {
+      return notify("Esta carta no tiene configuración de evolución.");
+    }
+
+    const eligibility = checkEvolutionEligibility({
+      student: targetStudent,
+      evolutionCard,
+      catalystCardId: activeClass?.defaultCatalystCardId,
+    });
+
+    if (eligibility.isAlreadyUnlocked) {
+      return notify("Ya has desbloqueado esta evolución.");
+    }
+    if (eligibility.missingCatalystConfig) {
+      return notify("El profesor aún no ha configurado el objeto catalizador para esta evolución.");
+    }
+    if (!eligibility.hasCopies) {
+      const baseName = cardsById.get(eligibility.baseCardId)?.title || "la carta base";
+      return notify(
+        `Necesitas ${eligibility.requiredCopies} copias de ${baseName} (tienes ${eligibility.currentCopies}).`
+      );
+    }
+    if (!eligibility.hasCatalyst) {
+      const catalystName = cardsById.get(eligibility.catalystCardId)?.title || "el catalizador";
+      return notify(`Necesitas 1 ${catalystName} en tu panel para poder evolucionar.`);
+    }
+
+    return runMutation({
+      loadingMessage: "Despertando la evolución...",
+      successMessage: "¡Evolución desbloqueada! Ya puedes solicitar esta carta.",
+      errorMessage: "No se pudo desbloquear la evolución.",
+      action: async () => {
+        const result = await executeEvolution({
+          db,
+          classId: activeClassId,
+          studentId,
+          evolutionCardId,
+          classCatalystCardId: activeClass?.defaultCatalystCardId,
+        });
+
+        const baseCard = cardsById.get(result.baseCardId) || null;
+        setEvolutionModalData({
+          baseCard,
+          evolvedCard: result.evolvedCard,
+        });
+      },
+    });
+  }
+
+  function handleDropCatalyst(e, baseCard, childEvolutions = []) {
+    e.preventDefault();
+    try {
+      const raw = e.dataTransfer.getData("application/json");
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.type !== "student_card" || !data.studentId || !data.cardId) return;
+
+      const canAct = mode === "admin" || (unlockedProfileIds && unlockedProfileIds.has(data.studentId));
+      if (!canAct) {
+        notify("Introduce tu PIN para poder evolucionar.");
+        setProfileStudentId(data.studentId);
+        return;
+      }
+
+      const targetStudent = students.find((s) => s.id === data.studentId);
+      if (!targetStudent) {
+        notify("Alumno no encontrado");
+        return;
+      }
+
+      const evolutions =
+        Array.isArray(childEvolutions) && childEvolutions.length > 0
+          ? childEvolutions
+          : (cards || []).filter(
+              (card) => isEvolutionCard(card) && card.evolution?.baseCardId === baseCard?.id
+            );
+
+      if (evolutions.length === 0) return;
+
+      const configuredEvolutions = evolutions.filter(
+        (evo) => Boolean(evo.evolution?.catalystCardId || activeClass?.defaultCatalystCardId)
+      );
+      if (configuredEvolutions.length === 0) {
+        notify("El profesor aún no ha configurado el objeto catalizador para esta evolución.");
+        return;
+      }
+
+      const matchingByCatalyst = configuredEvolutions.filter((evo) => {
+        const requiredCatalystId =
+          evo.evolution?.catalystCardId || activeClass?.defaultCatalystCardId || "";
+        return data.cardId === requiredCatalystId;
+      });
+
+      if (matchingByCatalyst.length === 0) {
+        const expectedCatalystId =
+          configuredEvolutions[0].evolution?.catalystCardId ||
+          activeClass?.defaultCatalystCardId ||
+          "";
+        const catalystName = cardsById.get(expectedCatalystId)?.title || "el catalizador";
+        notify(
+          `Carta incorrecta: arrastra el catalizador («${catalystName}») sobre «${baseCard?.title || "la carta base"}» para iniciar la evolución.`
+        );
+        return;
+      }
+
+      const pendingEvolutions = matchingByCatalyst.filter(
+        (evo) => !isCardUnlockedForStudent(targetStudent, evo)
+      );
+
+      if (pendingEvolutions.length === 0) {
+        if (matchingByCatalyst.length === 1) {
+          handleExecuteEvolution(data.studentId, matchingByCatalyst[0].id);
+        } else {
+          notify("Ya has desbloqueado todas las evoluciones disponibles para esta carta.");
+        }
+        return;
+      }
+
+      if (pendingEvolutions.length === 1) {
+        handleExecuteEvolution(data.studentId, pendingEvolutions[0].id);
+        return;
+      }
+
+      setEvolutionChoiceModal({
+        student: targetStudent,
+        baseCard,
+        evolutions: pendingEvolutions,
+      });
+    } catch (err) {
+      console.error("Drop catalyst error:", err);
+    }
+  }
+
+  const backgroundStyle = {
+    fontFamily: "Inter, system-ui, sans-serif",
+    minHeight: "100vh",
+    height: activeClassId ? "100vh" : "auto",
+    overflow: activeClassId ? "hidden" : "visible",
+    display: "flex",
+    flexDirection: "column",
+    boxSizing: "border-box",
+    padding: 12,
+    backgroundImage: stickyBackground ? `url(${stickyBackground})` : "none",
+    backgroundSize: "cover",
+    backgroundAttachment: "fixed",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    transition: "background-image 1s ease-in-out" // Optional: makes the switch smooth
+  };
+
+  if (focusMode) {
+    return (
+      <div style={backgroundStyle}>
+        <EyeToggleButton focusMode onToggle={() => setFocusMode(false)} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={backgroundStyle}>
+      <style>{`
+        .card-thumb { transition: transform 160ms ease, box-shadow 160ms ease; transform-origin: center; }
+        .card-thumb:hover { transform: scale(1.14); box-shadow: 0 10px 24px rgba(0,0,0,0.25); z-index: 30; }
+
+        /* Contenedor que se mueve por toda la tarjeta */
+        .floating-emoji {
+          position: absolute;
+          top: 0;               /* punto de partida */
+          left: 0;
+          pointer-events: none;
+          animation: drift 16s linear infinite;
+        }
+
+        /* Círculo brillante + emoji dentro */
+        .floating-emoji-glow {
+          width: 90px;
+          height: 90px;
+          border-radius: 100px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          /* círculo de luz */
+          background: radial-gradient(
+            circle,
+            rgba(255, 255, 255, 0.98) 0%,
+            rgba(255, 255, 255, 0.6) 35%,
+            rgba(255, 255, 255, 0.0) 75%
+          );
+
+          box-shadow:
+            0 0 25px rgba(255, 255, 255, 0.95),
+            0 0 55px rgba(255, 255, 255, 0.9),
+            0 0 95px rgba(255, 255, 255, 0.8);
+
+          font-size: 60px;     /* tamaño del emoji */
+          animation: glowPulse 2.6s ease-in-out infinite;
+        }
+
+        /* Movimiento bien grande por toda la tarjeta */
+        @keyframes drift {
+          0% { transform: translate(-30%, -30%) rotate(0deg); }
+          25% { transform: translate(200%, -10%) rotate(8deg); }
+          50% { transform: translate(250%, 80%) rotate(16deg); }
+          75% { transform: translate(-10%, 70%) rotate(8deg); }
+          100% { transform: translate(-30%, -30%) rotate(0deg); }
+        }
+
+        /* Soft breathing glow */
+        @keyframes glowPulse {
+          0% { transform: scale(0.95); opacity: 0.55; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.55; }
+        }
+
+        /* Emoji party for reaching maximum streak */
+        .emoji-party-layer{
+          position:absolute;
+          inset:0;
+          pointer-events:none;
+          z-index: 20;
+        }
+
+        .emoji-party-particle{
+          position:absolute;
+          bottom:-24px;
+          will-change: transform, opacity;
+          animation-name: partyUp;
+          animation-timing-function: ease-out;
+          animation-iteration-count: infinite;
+        }
+
+        @keyframes partyUp{
+          0%   { transform: translate(-50%, 0) scale(0.85); opacity: 0; }
+          12%  { opacity: 1; }
+          70%  { opacity: 0.9; }
+          100% { transform: translate(-50%, -160px) scale(1.15); opacity: 0; }
+        }
+
+        .modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.38);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        .modal {
+          background: rgba(255, 255, 255, 0.84);
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
+          border: 1px solid rgba(255, 255, 255, 0.75);
+          border-radius: 18px;
+          padding: 18px;
+          max-width: 980px;
+          width: 92%;
+          max-height: 90vh;
+          overflow: auto;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+
+        .muted { color:#6b7280; font-size:13px; }
+
+        .btn{
+          padding: 8px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(226, 232, 240, 0.95);
+          background: #ffffff;
+          cursor: pointer;
+          font-weight: 600;
+          color: #1e293b;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+          transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+        }
+        .btn:hover{
+          background: #f8fafc;
+          border-color: #cbd5e1;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+          transform: translateY(-1px);
+        }
+        .btn:active{
+          transform: translateY(0);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        }
+        .btn.primary{
+          background: #2563eb;
+          color: white;
+          border: 1px solid #1d4ed8;
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+        .btn.primary:hover{
+          background: #1d4ed8;
+          border-color: #1e40af;
+          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+          transform: translateY(-1px);
+        }
+        .btn.danger{
+          background: #dc2626;
+          color: white;
+          border: 1px solid #b91c1c;
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.28);
+        }
+        .btn.danger:hover{
+          background: #b91c1c;
+          transform: translateY(-1px);
+        }
+        .btn-glass {
+          padding: 8px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.75);
+          background: rgba(255, 255, 255, 0.78);
+          backdrop-filter: blur(12px) saturate(160%);
+          -webkit-backdrop-filter: blur(12px) saturate(160%);
+          cursor: pointer;
+          font-weight: 600;
+          color: #1e293b;
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+          transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-glass:hover {
+          background: rgba(255, 255, 255, 0.92);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1);
+        }
+        .btn-glass:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+        }
+
+        .pill {
+          font-size: 12px;
+          padding: 3px 10px;
+          border-radius: 999px;
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+          color: #334155;
+          font-weight: 600;
+        }
+        .column-title-pill {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(12px) saturate(160%);
+          -webkit-backdrop-filter: blur(12px) saturate(160%);
+          border: 1px solid rgba(255, 255, 255, 0.75);
+          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+          font-size: 14px;
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        .input, .select, textarea{
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 12px;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          outline: none;
+          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+          color: #0f172a;
+          transition: all 150ms ease;
+        }
+        .input:focus, .select:focus, textarea:focus{
+          border-color: #93c5fd;
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.35);
+        }
+
+        .panel{
+          border: 1px solid rgba(255, 255, 255, 0.65);
+          background: rgba(255, 255, 255, 0.72);
+          backdrop-filter: blur(16px) saturate(160%);
+          -webkit-backdrop-filter: blur(16px) saturate(160%);
+          border-radius: 14px;
+          padding: 14px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .chip{
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 12px;
+          border-radius: 999px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+          font-size: 12px;
+          font-weight: 700;
+          color: #111827;
+        }
+
+        /* Direction 3: Tactile Holo-Foil Card & Sheen Animation */
+        .holo-foil-card {
+          position: relative;
+          overflow: hidden;
+          transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s ease, border-color 0.24s ease;
+          will-change: transform;
+        }
+        .holo-foil-card:hover {
+          transform: translateY(-4px) scale(1.04) rotate(0.4deg);
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45), 0 0 18px rgba(56, 189, 248, 0.55) !important;
+        }
+        .holo-foil-card::after {
+          content: "";
+          position: absolute;
+          inset: -60%;
+          background: linear-gradient(
+            115deg,
+            transparent 22%,
+            rgba(255, 255, 255, 0.45) 45%,
+            rgba(56, 189, 248, 0.55) 50%,
+            rgba(236, 72, 153, 0.45) 55%,
+            rgba(251, 191, 36, 0.45) 60%,
+            transparent 78%
+          );
+          opacity: 0;
+          transform: translateX(-100%) rotate(25deg);
+          pointer-events: none;
+          transition: opacity 0.2s ease;
+        }
+        .holo-foil-card:hover::after {
+          opacity: 1;
+          animation: holoSheen 1.3s ease-in-out infinite alternate;
+        }
+        @keyframes holoSheen {
+          0% { transform: translateX(-50%) translateY(-20%) rotate(25deg); }
+          100% { transform: translateX(50%) translateY(20%) rotate(25deg); }
+        }
+
+        /* Direction 2: Selective Glass with 1px inner glow */
+        .selective-glass {
+          background: rgba(255, 255, 255, 0.78);
+          backdrop-filter: blur(14px) saturate(160%);
+          -webkit-backdrop-filter: blur(14px) saturate(160%);
+          border: 1px solid rgba(255, 255, 255, 0.65);
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        }
+
+        /* Direction 3: Dark Bento Card */
+        .bento-dark-container {
+          background: rgba(15, 23, 42, 0.92);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(56, 189, 248, 0.28);
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+          color: #f8fafc;
+        }
+
+        input, textarea, select { font-family: inherit; }
+      `}</style>
+
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
+          gap: 12,
+          flexWrap: "wrap",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {mode === "admin" && (
+            <>
+              <input
+                type="file"
+                accept="image/*"
+                ref={bgInputRef}
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    uploadBackgroundImage(file, activeClass?.flagConfig ? viewFlag : "A");
+                    e.target.value = "";
+                  }
+                }}
+              />
+
+              <button
+                className="btn-glass"
+                onClick={() => bgInputRef.current?.click()}
+                title={
+                  activeClassId
+                    ? `Editing Background for: ${activeClass?.name || "selected class"}`
+                    : "Editing Global Background"
+                }
+              >
+                {activeClassId
+                  ? `Set Class Background (Option ${activeClass?.flagConfig ? viewFlag : "A"})`
+                  : "Set Global Background"}
+              </button>
+
+              {activeClassId && activeClass?.flagConfig && (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    gap: 6,
+                    padding: 3,
+                    borderRadius: 12,
+                    background: "rgba(255, 255, 255, 0.75)",
+                    backdropFilter: "blur(12px) saturate(160%)",
+                    WebkitBackdropFilter: "blur(12px) saturate(160%)",
+                    border: "1px solid rgba(255, 255, 255, 0.75)",
+                    boxShadow: "0 4px 14px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95)",
+                  }}
+                  role="group"
+                  aria-label="Background option"
+                >
+                  {[["A", activeClass.flagConfig.optionA], ["B", activeClass.flagConfig.optionB]].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className="btn"
+                      aria-pressed={viewFlag === value}
+                      onClick={() => setViewFlag(value)}
+                      style={{
+                        padding: "5px 12px",
+                        fontSize: 13,
+                        fontWeight: viewFlag === value ? 700 : 500,
+                        background: viewFlag === value ? "#dbeafe" : "transparent",
+                        border: viewFlag === value ? "1px solid #93c5fd" : "1px solid transparent",
+                        color: viewFlag === value ? "#1d4ed8" : "#334155",
+                        boxShadow: viewFlag === value ? "0 1px 3px rgba(15, 23, 42, 0.08)" : "none",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Show "Remove" if the CURRENT context has a background set */}
+              {((activeClassId &&
+                ((activeClass?.flagConfig && viewFlag === "B")
+                  ? activeClass?.backgroundUrl_B
+                  : activeClass?.backgroundUrl)) ||
+                (!activeClassId && globalBackgroundUrl)) && (
+                <button
+                  className="btn-glass"
+                  onClick={() => clearBackgroundImage(activeClass?.flagConfig ? viewFlag : "A")}
+                >
+                  {activeClassId
+                    ? `Clear Option ${viewFlag} Background`
+                    : "Remove Global Bg"}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto", flexWrap: "wrap" }}>
+          {mode === "admin" && (
+            <button className="btn-glass" onClick={() => setShowRequestsPanel(true)}>
+              Requests{pendingCount > 0 ? ` (${pendingCount})` : ""}
+            </button>
+          )}
+          {authUser ? (
+            <button className="btn-glass" onClick={logout}>
+              Switch role (now Admin)
+            </button>
+          ) : (
+            <button className="btn-glass" onClick={() => setMode(null)}>
+              Switch role (now Guest)
+            </button>
+          )}
+          <EyeToggleButton inline focusMode={false} onToggle={() => setFocusMode(true)} />
+        </div>
+      </header>
+
+      {errorMsg && (
+        <div style={{ marginBottom: 12, color: "crimson" }}>{errorMsg}</div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: activeClassId
+            ? "1fr 360px"
+            : mode === "admin"
+            ? "min(600px, 100%)"
+            : "min(360px, 100%)",
+          gridTemplateRows: activeClassId ? "minmax(0, 1fr)" : "auto",
+          gap: 14,
+          flex: activeClassId ? "1 1 0" : "none",
+          minHeight: 0,
+          height: activeClassId ? "100%" : "auto",
+        }}
+      >
+        {/* Classes: only on the main screen */}
+        {!activeClassId && <ClassesPanel
+          loadingClasses={loadingClasses}
+          classesList={classesList}
+          activeClassId={activeClassId}
+          setActiveClassId={setActiveClassId}
+          mode={mode}
+          db={db}
+          authUser={authUser}
+          newClassNameRef={newClassNameRef}
+          confirmFn={askConfirmation}
+          alertFn={notify}
+          onRenameClass={async (classId, currentName) => {
+            const nextName = await requestClassRename(currentName);
+            if (typeof nextName === "string" && nextName.trim()) {
+              await editClassName(db, classId, nextName.trim(), notify);
+            }
+          }}
+          onEndActivity={async (classId, className) => {
+            const archiveUrl = await requestClassArchiveUrl(className);
+            if (typeof archiveUrl === "string" && archiveUrl.trim()) {
+              await endClassActivity(db, classId, archiveUrl, notify);
+            }
+          }}
+        />}
+
+        {/* Only show these if a class is selected */}
+        {activeClassId && activeClass?.archivedUrl ? (
+          <section className="ended-class-panel" aria-labelledby="ended-class-title">
+            <div className="ended-class-icon" aria-hidden="true">✦</div>
+            <p className="ended-class-eyebrow">Class archive</p>
+            <h2 id="ended-class-title">This class has ended</h2>
+            <p>The activity is over, but the memories are still here.</p>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setActiveClassId(null)}
+              >
+                ← Back
+              </button>
+              <a className="btn primary ended-class-link" href={activeClass.archivedUrl} target="_blank" rel="noreferrer">
+                Open class archive
+              </a>
+            </div>
+          </section>
+        ) : activeClassId && (
+          <>
+            <StudentsPanel
+              activeClass={activeClass}
+              activeClassId={activeClassId}
+              cards={cards}
+              flagConfig={activeClass?.flagConfig}
+              classTotalPoints={classTotalPoints}
+              filteredStudents={filteredStudents}
+              loadingStudents={loadingStudents}
+              mode={mode}
+              studentFilter={studentFilter}
+              setStudentFilter={setStudentFilter}
+              onAddStreak={() => setShowBulkStreaks(true)}
+              onManageFlag={() => setShowClassFlagModal(true)}
+              onManageStudent={setSelectedStudentId}
+              onProfileStudent={setProfileStudentId}
+              onChangeStudentStreak={(classId, studentId, streakId, delta, cfg) =>
+                changeStudentStreakValue({
+                  db,
+                  classId,
+                  studentId,
+                  streakId,
+                  delta,
+                  maxValueOrCfg: cfg,
+                  scheduleFn: requestFloatSchedule,
+                  alertFn: notify,
+                  getCardDataFast,
+                })
+              }
+              onQuickAddPoints={quickAddPoints}
+              onPreviewCard={setCardPreview}
+              onAddStudent={() => {
+                const name = newStudentRef.current?.value?.trim();
+                if (!name) return notify("Enter name");
+                addStudent(db, activeClassId, name, ensureClassSelected, newStudentRef, notify);
+                if (newStudentRef.current) newStudentRef.current.value = "";
+              }}
+              newStudentRef={newStudentRef}
+              db={db}
+              setActiveClassId={setActiveClassId}
+              alertFn={notify}
+              unlockedProfileIds={unlockedProfileIds}
+              onPromptPin={(st) => setProfileStudentId(st.id)}
+            />
+
+            <LibrarySection
+              mode={mode}
+              cards={cards}
+              students={students}
+              rewards={rewards}
+              newsMessages={activeClass?.newsMessages || []}
+              loadingCards={loadingCards}
+              loadingRewards={loadingRewards}
+              streakConfigs={activeClass?.streakConfigs || []}
+              lockedInputRef={lockedFileInputRef}
+              unlockedInputRef={unlockedFileInputRef}
+              lockedInputBRef={lockedFileBInputRef}
+              unlockedInputBRef={unlockedFileBInputRef}
+              flagConfig={activeClass?.flagConfig}
+              viewFlag={viewFlag}
+              onChangeViewFlag={setViewFlag}
+              onCreateCard={createCard}
+              onPreviewCard={setCardPreview}
+              onOpenBulkGive={openBulkGive}
+              onEditCard={setEditCard}
+              onDeleteCard={deleteCard}
+              onDeleteReward={deleteReward}
+              onValidationError={notify}
+              cardsById={cardsById}
+              activeStudent={activeStudentForLibrary}
+              defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
+              onSetDefaultCatalyst={(cardId) =>
+                setDefaultCatalystForClass(db, activeClassId, cardId, notify)
+              }
+              onSaveNewsMessages={(nextMessages) =>
+                saveClassNewsMessages(db, activeClassId, nextMessages, notify)
+              }
+              confirmFn={askConfirmation}
+              onDropCatalyst={handleDropCatalyst}
+              onEvolve={(evoCard) => {
+                if (activeStudentForLibrary) {
+                  handleExecuteEvolution(activeStudentForLibrary.id, evoCard.id);
+                } else {
+                  notify("Abre el perfil de un alumno o introduce tu PIN para evolucionar");
+                }
+              }}
+            />
+          </>
+        )}
+      </div>
+
+      <CardPreviewModal
+        cardPreview={cardPreview}
+        mode={mode}
+        onClose={() => setCardPreview(null)}
+        onNavigate={ownedNav}
+        cardsById={cardsById}
+        activeStudent={activeStudentForLibrary}
+        defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
+        onEvolve={(evoCard) => {
+          if (activeStudentForLibrary) {
+            setCardPreview(null);
+            handleExecuteEvolution(activeStudentForLibrary.id, evoCard.id);
+          } else {
+            notify("Abre el perfil de un alumno o introduce tu PIN para evolucionar");
+          }
+        }}
+      />
+
+      {evolutionModalData && (
+        <EvolutionModal
+          baseCard={evolutionModalData.baseCard}
+          evolvedCard={evolutionModalData.evolvedCard}
+          flagValue={activeClass?.flagConfig ? viewFlag : "A"}
+          onClose={() => setEvolutionModalData(null)}
+        />
+      )}
+
+      {evolutionChoiceModal && (
+        <div className="modal-backdrop" onClick={() => setEvolutionChoiceModal(null)}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 520 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <h3 style={{ margin: 0 }}>🧬 Elige la evolución</h3>
+              <button className="btn" onClick={() => setEvolutionChoiceModal(null)}>
+                Cerrar
+              </button>
+            </div>
+            <p className="muted" style={{ marginTop: 6, marginBottom: 12 }}>
+              <strong>{evolutionChoiceModal.baseCard?.title}</strong> puede evolucionar a varias cartas para{" "}
+              <strong>{evolutionChoiceModal.student?.name}</strong>:
+            </p>
+            <div style={{ display: "grid", gap: 10 }}>
+              {evolutionChoiceModal.evolutions.map((evoCard) => {
+                const eligibility = checkEvolutionEligibility({
+                  student: evolutionChoiceModal.student,
+                  evolutionCard: evoCard,
+                  catalystCardId: activeClass?.defaultCatalystCardId,
+                });
+                const flagVal = activeClass?.flagConfig ? viewFlag : "A";
+                const thumbUrl = getCardDisplayImage(evoCard, flagVal, true);
+
+                return (
+                  <div
+                    key={evoCard.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: 10,
+                      borderRadius: 12,
+                      border: "1px solid #e2e8f0",
+                      background: "#f8fafc",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 52,
+                        height: 68,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        background: "#e2e8f0",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {thumbUrl && (
+                        <img
+                          src={thumbUrl}
+                          alt={evoCard.title}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.4)" }}
+                        />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 900, fontSize: 15, color: "#0f172a" }}>{evoCard.title}</div>
+                      <div style={{ fontSize: 12, color: eligibility.hasCopies ? "#15803d" : "#b91c1c", fontWeight: 700, marginTop: 2 }}>
+                        🃏 Owned: {eligibility.currentCopies}/{eligibility.requiredCopies}
+                      </div>
+                    </div>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        const sid = evolutionChoiceModal.student.id;
+                        setEvolutionChoiceModal(null);
+                        handleExecuteEvolution(sid, evoCard.id);
+                      }}
+                      style={{
+                        background: eligibility.canEvolve
+                          ? "linear-gradient(135deg, #8b5cf6, #ec4899)"
+                          : "#e2e8f0",
+                        color: eligibility.canEvolve ? "#ffffff" : "#475569",
+                        fontWeight: 800,
+                        border: "none",
+                        borderRadius: 10,
+                        padding: "8px 14px",
+                      }}
+                    >
+                      ✨ Evolucionar
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Card edit modal */}
+      {mode === "admin" && editCard && (
+        <CardEditModal
+          card={editCard}
+          cards={cards}
+          defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
+          streakConfigs={activeClass?.streakConfigs || []}
+          flagConfig={activeClass?.flagConfig}
+          onClose={() => setEditCard(null)}
+          onSave={async (updates) => {
+            const result = await updateCard(editCard.id, updates);
+            if (result !== false) setEditCard(null);
+          }}
+        />
+      )}
+
+      {/* PIN gate before opening a student's profile (guests only) */}
+      {profileStudent && profileNeedsPin && (
+        <PinGateModal
+          student={profileStudent}
+          onClose={() => setProfileStudentId(null)}
+          onSubmit={(pin) => {
+            if (verifyPin(profileStudent, pin)) {
+              rememberUnlockedProfile(profileStudent.id);
+            } else {
+              notify("PIN incorrecto.");
+            }
+          }}
+        />
+      )}
+
+      {/* Bulk streak management (admin only, active class) */}
+      {mode === "admin" && showBulkStreaks && activeClassId && (
+        <BulkStreakModal
+          className={activeClass?.name || ""}
+          students={students}
+          streakConfigs={activeClass?.streakConfigs || []}
+          onClose={() => setShowBulkStreaks(false)}
+          onBulkChange={(cfg, delta, selectedIds) =>
+            runAction({
+              action: () =>
+                bulkChangeStreakValue({
+                  db,
+                  classId: activeClassId,
+                  studentIds: selectedIds,
+                  streakId: cfg.id,
+                  delta,
+                  cfg,
+                  scheduleFn: requestFloatSchedule,
+                  alertFn: notify,
+                  getCardDataFast,
+                }),
+              message: "Updating streaks...",
+              confirmMessage: `${delta > 0 ? "Add +1" : "Subtract -1"} to the ${cfg.emoji || ""} streak for ${selectedIds.length} student(s)?`,
+              errorMessage: "Could not update streaks.",
+            })
+          }
+          onBulkReset={(cfg, selectedIds) =>
+            runAction({
+              action: () =>
+                bulkResetStreak({
+                  db,
+                  classId: activeClassId,
+                  studentIds: selectedIds,
+                  streakId: cfg.id,
+                  alertFn: notify,
+                }),
+              message: "Resetting streaks...",
+              confirmMessage: `Reset the ${cfg.emoji || ""} streak to 0 for ${selectedIds.length} student(s)? This cannot be undone.`,
+              errorMessage: "Could not reset streaks.",
+            })
+          }
+          onCreateStreakType={() =>
+            addStreakTypeForClass({
+              db,
+              classId: activeClassId,
+              classesList,
+              cards,
+              formFn: requestStreakForm,
+              alertFn: notify,
+            })
+          }
+        />
+      )}
+
+      {/* Requests panel (admin only, global across classes) */}
+      {mode === "admin" && showRequestsPanel && (
+        <RequestsPanel
+          pendingRequests={pendingRequests}
+          classesList={classesList}
+          activeClassId={activeClassId}
+          onApprove={approveStudentRequest}
+          onReject={rejectStudentRequest}
+          onClose={() => setShowRequestsPanel(false)}
+        />
+      )}
+
+      {/* Profile modal */}
+      {profileStudent && !profileNeedsPin && (
+        <ProfileModal
+          mode={mode}
+          student={profileStudent}
+          onClose={() => setProfileStudentId(null)}
+          db={db}
+          classId={activeClassId}
+          pastelColors={PASTEL_COLORS}
+          onSave={(cosmetics) =>
+            saveStudentProfileCosmetics(activeClassId, profileStudent.id, cosmetics)
+          }
+          flagConfig={activeClass?.flagConfig}
+          onChangeFlagValue={saveStudentFlagPreference}
+          onChangePin={(currentPin, newPin) =>
+            changePin(db, activeClassId, profileStudent.id, profileStudent, currentPin, newPin, notify)
+          }
+          onValidationError={notify}
+          giveableCards={giveableCardsForProfile}
+          allCards={cards}
+          rewards={unifiedRewards}
+          defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
+          onEvolve={(evoCard) => handleExecuteEvolution(profileStudent.id, evoCard.id)}
+          onRedeemReward={(rewardId) =>
+            redeemIndividual(activeClassId, profileStudent.id, rewardId)
+          }
+          myPendingRequests={myPendingRequests}
+          onCreateRequest={(payload) => createStudentRequest(activeClassId, profileStudent, payload)}
+          onCancelRequest={(request) => cancelStudentRequest(request)}
+        />
+      )}
+
+      {/* Manage student modal (admin only) */}
+      {mode === "admin" && selectedStudent && (
+        <ManageStudentModal
+          student={selectedStudent}
+          classId={activeClassId}
+          students={students}
+          cards={cards}
+          flagConfig={activeClass?.flagConfig}
+          rewards={unifiedRewards}
+          streakConfigs={activeClass?.streakConfigs || []}
+          changeStudentStreakValue={(classId, studentId, streakId, delta, cfg) =>
+            changeStudentStreakValue({
+              db,
+              classId,
+              studentId,
+              streakId,
+              delta,
+              maxValueOrCfg: cfg,
+              scheduleFn: requestFloatSchedule,
+              alertFn: notify,
+              getCardDataFast,
+            })
+          }
+          resetStudentStreak={(classId, studentId, streakId) =>
+            resetStudentStreak({ db, classId, studentId, streakId, alertFn: notify })
+          }
+          deleteStreakTypeForClass={(classId, streakId) =>
+            deleteStreakTypeForClass({ db, classId, streakId, alertFn: notify, confirmFn: askConfirmation })
+          }
+          setStickyCelebrateForClass={async (classId, streakId, stickyCelebrate) => {
+            try {
+              const classRef = doc(db, `classes/${classId}`);
+              const snap = await getDoc(classRef);
+              if (!snap.exists()) return;
+              const data = snap.data();
+              const list = data.streakConfigs || [];
+              const updated = list.map((cfg) =>
+                cfg.id === streakId ? { ...cfg, stickyCelebrate: !!stickyCelebrate } : cfg
+              );
+              await updateDoc(classRef, { streakConfigs: updated });
+            } catch (err) {
+              console.error("setStickyCelebrateForClass error", err);
+              notify("Could not update sticky celebration.");
+            }
+          }}
+          setStreakRewardCardsForClass={(classId, streakId, cfg) =>
+            setStreakRewardCardsForClass({
+              db,
+              classId,
+              classesList,
+              cards,
+              rewardCardPickerFn: requestRewardCardSelection,
+              alertFn: notify,
+              streakId,
+              cfg,
+            })
+          }
+          mode={mode}
+          onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates, notify)}
+          onClose={() => setSelectedStudentId(null)}
+          onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId, askConfirmation, notify)}
+          onResetPin={async () => {
+            if (!(await askConfirmation(`Reset PIN for ${selectedStudent.name} to 0000?`))) return;
+            const ok = await resetPin(db, activeClassId, selectedStudent.id, notify);
+            if (ok) notify("PIN reset to 0000.");
+          }}
+          onGiveCard={(cardId) => giveCardToStudent(activeClassId, selectedStudent.id, cardId)}
+          onRemoveOne={(ownedId) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, [ownedId])}
+          onRemoveAll={(ownedIds) => removeOwnedCardsBulk(activeClassId, selectedStudent.id, ownedIds)}
+          confirmFn={askConfirmation}
+          onRedeemIndividual={(rewardId) => {
+            // Pass classId, studentId, rewardId
+            redeemIndividual(activeClassId, selectedStudentId, rewardId);
+          }}
+          onRedeemGroup={(rewardId, sharesMap) => {
+            // 1. Convert the "Map" {id: 10} into an "Array" [[id, 10]]
+            const participants = Object.entries(sharesMap)
+              .filter(([_, amount]) => Number(amount) > 0); // Only include those who pay
+            
+            // 2. Call the main function with the correct arguments
+            redeemGroup(activeClassId, rewardId, participants);
+          }}
+          setCardPreview={setCardPreview}
+          onEditFloatWindow={openFloatWindowEdit}
+        />
+      )}
+
+      <BulkGiveModal
+        card={bulkGiveCard}
+        students={students}
+        selectedStudentIds={bulkGiveSelectedIds}
+        onClose={() => setBulkGiveCard(null)}
+        onToggleStudent={toggleBulkGiveStudent}
+        onToggleSelectAll={toggleBulkGiveSelectAll}
+        onGive={async () => {
+          await giveCardToStudentsBulk(activeClassId, bulkGiveCard.id, bulkGiveSelectedIds);
+          setBulkGiveCard(null);
+        }}
+      />
+
+      <FeedbackDialog
+        notice={notice}
+        levelUpNotice={levelUpNotice}
+        confirmation={confirmation}
+        pendingAction={pendingAction}
+        onDismissNotice={() => notify(null)}
+        onDismissLevelUp={() => notifyLevelUp(null)}
+        onResolveConfirmation={resolveConfirmation}
+      />
+
+      {mode === "admin" && showClassFlagModal && activeClassId && (
+        <ClassFlagModal
+          flagConfig={activeClass?.flagConfig}
+          onClose={() => setShowClassFlagModal(false)}
+          onSave={saveClassFlag}
+          onDelete={deleteClassFlag}
+        />
+      )}
+
+      <StreakFormModal
+        request={streakFormRequest}
+        cards={cards}
+        onClose={() => resolveStreakForm(null)}
+        onSave={resolveStreakForm}
+      />
+
+      <RewardCardPickerModal
+        request={rewardPickerRequest}
+        cards={cards}
+        onClose={() => resolveRewardCardSelection(undefined)}
+        onSave={resolveRewardCardSelection}
+      />
+
+      <FloatScheduleModal
+        request={scheduleRequest}
+        onClose={() => resolveFloatSchedule(null)}
+        onSave={resolveFloatSchedule}
+      />
+
+      <FloatWindowEditModal
+        request={floatWindowEditRequest}
+        onClose={() => setFloatWindowEditRequest(null)}
+        onSave={saveFloatWindowEdit}
+      />
+
+      {classRenameRequest && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="rename-class-title">
+            <h3 id="rename-class-title" style={{ marginTop: 0 }}>Rename class</h3>
+            <input
+              className="input"
+              defaultValue={classRenameRequest.currentName}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const nextValue = e.currentTarget.value;
+                  resolveClassRename(nextValue);
+                }
+              }}
+            />
+            <div className="feedback-dialog-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn" onClick={() => resolveClassRename(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={(e) => {
+                  const input = e.currentTarget.parentElement?.previousElementSibling;
+                  resolveClassRename(input?.value ?? "");
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {classArchiveRequest && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="archive-class-title">
+            <h3 id="archive-class-title" style={{ marginTop: 0 }}>End class activity</h3>
+            <p className="muted">Enter the complete archive URL, including <strong>https://</strong>. Leaving it empty cancels the action.</p>
+            <input
+              className="input"
+              type="url"
+              placeholder="https://example.com/archive"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") resolveClassArchiveUrl(e.currentTarget.value);
+              }}
+            />
+            <div className="feedback-dialog-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="btn" onClick={() => resolveClassArchiveUrl(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={(e) => {
+                  const input = e.currentTarget.parentElement?.previousElementSibling;
+                  resolveClassArchiveUrl(input?.value ?? "");
+                }}
+              >
+                End activity
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+
+/**
+ * Firestore rules note (optional but recommended if you allow guest editing):
+ *
+ * match /classes/{classId}/students/{studentId} {
+ *   allow read: if true;
+ *   // only allow updating profile cosmetics for guests
+ *   allow update: if request.resource.data.diff(resource.data).changedKeys().hasOnly(['nameEmojis','profileColor','flagValue'])
+ *     && (!('flagValue' in request.resource.data) || request.resource.data.flagValue in ['A','B']);
+ * }
+ *
+ * With Auth later, you can lock this down properly per-student.
+ */
+````
