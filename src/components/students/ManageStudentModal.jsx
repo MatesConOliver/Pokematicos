@@ -96,6 +96,25 @@ export default function ManageStudentModal({
     );
   }, [giveableCards, giveSearch]);
 
+  const categorizedGiveableCards = useMemo(() => {
+    const groups = [
+      { key: "points", label: "Points", cards: [] },
+      { key: "experience", label: "Experience", cards: [] },
+      { key: "extra", label: "Extra", cards: [] },
+    ];
+    filteredGiveableCards.forEach((c) => {
+      const cat = c.category || "points";
+      if (cat === "experience") {
+        groups[1].cards.push(c);
+      } else if (cat === "extra") {
+        groups[2].cards.push(c);
+      } else {
+        groups[0].cards.push(c);
+      }
+    });
+    return groups.filter((g) => g.cards.length > 0);
+  }, [filteredGiveableCards]);
+
   const [editName, setEditName] = useState(student.name || "");
   const [editCurrentPoints, setEditCurrentPoints] = useState(round2(student.currentPoints || 0));
   const [editXP, setEditXP] = useState(student.xp || 0);
@@ -129,16 +148,34 @@ export default function ManageStudentModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-          <div>
+      <div
+        className="modal manage-student-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{ overflowX: "hidden", overflowY: "auto", boxSizing: "border-box" }}
+      >
+        <style>{`
+          .manage-student-grid {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+          }
+          @media (max-width: 780px) {
+            .manage-student-grid {
+              grid-template-columns: minmax(0, 1fr);
+            }
+          }
+        `}</style>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}>
             <h3 style={{ margin: 0 }}>Manage: {student.name}</h3>
             <div className="muted">
               Current: <span className="pill">{formatPoints(student.currentPoints)} pts</span>{" "}
               • XP: <span className="pill">{student.xp || 0}</span>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn" onClick={onClose}>Close</button>
             {onResetPin && (
               <button className="btn" onClick={onResetPin}>Reset PIN</button>
@@ -147,8 +184,8 @@ export default function ManageStudentModal({
           </div>
         </div>
 
-        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 380px", gap: 12 }}>
-          <div>
+        <div className="manage-student-grid">
+          <div style={{ minWidth: 0 }}>
             <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
               <h4 style={{ marginTop: 0 }}>Editar alumno</h4>
 
@@ -158,18 +195,18 @@ export default function ManageStudentModal({
                   <input
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", boxSizing: "border-box" }}
                   />
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <div>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
                     <div className="muted" style={{ marginBottom: 6 }}>Puntos actuales</div>
                     <input
                       type="number"
                       value={editCurrentPoints}
                       onChange={(e) => setEditCurrentPoints(e.target.value)}
-                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", boxSizing: "border-box" }}
                     />
                     <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button className="btn" onClick={() => addQuickPoints(1)}>+1</button>
@@ -178,13 +215,13 @@ export default function ManageStudentModal({
                     </div>
                   </div>
 
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div className="muted" style={{ marginBottom: 6 }}>XP</div>
                     <input
                       type="number"
                       value={editXP}
                       onChange={(e) => setEditXP(e.target.value)}
-                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", boxSizing: "border-box" }}
                     />
                   </div>
                 </div>
@@ -372,11 +409,12 @@ export default function ManageStudentModal({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
                     gap: 10,
                     maxHeight: 320,
                     overflowY: "auto",
-                    paddingRight: 6,
+                    overflowX: "hidden",
+                    paddingRight: 4,
                   }}
                 >
                   {groupedOwned.map((g) => (
@@ -461,7 +499,7 @@ export default function ManageStudentModal({
                 <select
                   value={redeemRewardId}
                   onChange={(e) => setRedeemRewardId(e.target.value)}
-                  style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", minWidth: 240 }}
+                  style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", minWidth: 0, maxWidth: "100%", flex: "1 1 200px", boxSizing: "border-box" }}
                 >
                   <option value="">-- choose reward --</option>
                   {rewards.map((r) => (
@@ -563,7 +601,18 @@ export default function ManageStudentModal({
             </div>
           </div>
 
-          <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column" }}>
+          <div
+            style={{
+              border: "1px solid #eee",
+              borderRadius: 12,
+              padding: 12,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              boxSizing: "border-box",
+              overflow: "hidden",
+            }}
+          >
             <h4 style={{ marginTop: 0, marginBottom: 4 }}>Give card (not rewards)</h4>
             <div className="muted" style={{ marginBottom: 8, fontSize: 12 }}>
               Reward cards do not appear here. They are only obtained by redeeming rewards.
@@ -584,79 +633,132 @@ export default function ManageStudentModal({
                 }}
               />
             )}
-            <div style={{ display: "grid", gap: 8, maxHeight: 460, overflowY: "auto", paddingRight: 6 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr)",
+                gap: 12,
+                maxHeight: 520,
+                overflowY: "auto",
+                overflowX: "hidden",
+                paddingRight: 4,
+                minWidth: 0,
+              }}
+            >
               {!filteredGiveableCards.length ? (
                 <div className="muted" style={{ padding: 8 }}>No matching cards</div>
               ) : (
-                filteredGiveableCards.map((c) => {
-                  const unlocked = isCardUnlockedForStudent(student, c);
-                  return (
+                categorizedGiveableCards.map((group) => (
+                  <div key={group.key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8, minWidth: 0 }}>
                     <div
-                      key={c.id}
                       style={{
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 10,
-                        padding: 8,
-                        display: "flex",
-                        gap: 10,
-                        alignItems: "center",
-                        background: "#ffffff",
-                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-                        contentVisibility: "auto",
-                        containIntrinsicSize: "0 86px",
-                        opacity: unlocked ? 1 : 0.6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        color: "#475569",
+                        paddingBottom: 4,
+                        borderBottom: "1px solid #e2e8f0",
                       }}
                     >
-                      <div
-                        style={{
-                          width: 56,
-                          height: 72,
-                          borderRadius: 8,
-                          overflow: "hidden",
-                          background: "#f8fafc",
-                          cursor: "pointer",
-                          flexShrink: 0,
-                          border: "1px solid #e2e8f0",
-                        }}
-                      >
-                        {(c.lockedImageURL || c.imageURL) ? (
-                          <img
-                            src={(c.lockedImageURL || c.imageURL)}
-                            alt={c.title}
-                            loading="lazy"
-                            decoding="async"
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                        ) : (
-                          <div style={{ padding: 6, fontSize: 10 }}>{c.title}</div>
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 800, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {c.title}
-                        </div>
-                        <div className="muted" style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {unlocked ? (c.description || "—") : "🔒 Evolución sin desbloquear"}
-                        </div>
-                      </div>
-                      <button
-                        className="btn primary"
-                        disabled={!unlocked}
-                        title={unlocked ? "Dar carta" : "El alumno debe evolucionar esta carta primero"}
-                        style={{
-                          padding: "4px 10px",
-                          fontSize: 12,
-                          flexShrink: 0,
-                          opacity: unlocked ? 1 : 0.5,
-                          cursor: unlocked ? "pointer" : "not-allowed",
-                        }}
-                        onClick={() => unlocked && onGiveCard(c.id)}
-                      >
-                        {unlocked ? "Give" : "🔒"}
-                      </button>
+                      {group.label}
                     </div>
-                  );
-                })
+                    {group.cards.map((c) => {
+                      const unlocked = isCardUnlockedForStudent(student, c);
+                      const imgUrl =
+                        getCardDisplayImage(c, student.flagValue || "A", true) ||
+                        c.lockedImageURL ||
+                        c.imageURL;
+
+                      return (
+                        <div
+                          key={c.id}
+                          style={{
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 10,
+                            padding: 8,
+                            display: "flex",
+                            gap: 10,
+                            alignItems: "center",
+                            background: "#ffffff",
+                            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                            width: "100%",
+                            boxSizing: "border-box",
+                            minWidth: 0,
+                            overflow: "hidden",
+                            opacity: unlocked ? 1 : 0.6,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 50,
+                              height: 66,
+                              borderRadius: 8,
+                              overflow: "hidden",
+                              background: "#f8fafc",
+                              flexShrink: 0,
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            {imgUrl ? (
+                              <img
+                                src={imgUrl}
+                                alt={c.title}
+                                loading="lazy"
+                                decoding="async"
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            ) : (
+                              <div style={{ padding: 6, fontSize: 10 }}>{c.title}</div>
+                            )}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                fontSize: 13,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={c.title}
+                            >
+                              {c.title}
+                            </div>
+                            <div
+                              className="muted"
+                              style={{
+                                fontSize: 11,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={unlocked ? (c.description || "") : "Evolución sin desbloquear"}
+                            >
+                              {unlocked ? (c.description || "—") : "🔒 Evolución sin desbloquear"}
+                            </div>
+                          </div>
+                          <button
+                            className="btn primary"
+                            disabled={!unlocked}
+                            title={unlocked ? "Give card" : "El alumno debe evolucionar esta carta primero"}
+                            style={{
+                              padding: "5px 12px",
+                              fontSize: 12,
+                              flexShrink: 0,
+                              marginLeft: "auto",
+                              opacity: unlocked ? 1 : 0.5,
+                              cursor: unlocked ? "pointer" : "not-allowed",
+                            }}
+                            onClick={() => unlocked && onGiveCard(c.id)}
+                          >
+                            {unlocked ? "Give" : "🔒"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))
               )}
             </div>
           </div>
