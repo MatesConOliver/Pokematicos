@@ -1028,10 +1028,6 @@ export default function App() {
     return (
       <div style={backgroundStyle}>
         <EyeToggleButton focusMode onToggle={() => setFocusMode(false)} />
-        <div className="column-title-pill" style={{ fontSize: 18, fontWeight: 800 }}>
-          {activeClassId ? activeClass?.name || "Class" : "All classes"}
-        </div>
-        <style>{`.column-title-pill{display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.96);box-shadow:0 2px 6px rgba(15,23,42,.25)}`}</style>
       </div>
     );
   }
@@ -1506,9 +1502,18 @@ export default function App() {
             <p className="ended-class-eyebrow">Class archive</p>
             <h2 id="ended-class-title">This class has ended</h2>
             <p>The activity is over, but the memories are still here.</p>
-            <a className="btn primary ended-class-link" href={activeClass.archivedUrl} target="_blank" rel="noreferrer">
-              Open class archive
-            </a>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setActiveClassId(null)}
+              >
+                ← Back
+              </button>
+              <a className="btn primary ended-class-link" href={activeClass.archivedUrl} target="_blank" rel="noreferrer">
+                Open class archive
+              </a>
+            </div>
           </section>
         ) : activeClassId && (
           <>

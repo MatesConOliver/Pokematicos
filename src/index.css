@@ -207,7 +207,7 @@ html, body, #root { height: 100%; }
 }
 
 .ended-class-panel {
-  grid-column: 2 / -1;
+  grid-column: 1 / -1;
   align-self: start;
   margin: 36px auto 0;
   width: min(100%, 620px);
