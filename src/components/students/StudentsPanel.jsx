@@ -383,7 +383,7 @@ export default function StudentsPanel({
                           }}
                           title={
                             canDragThisStudent
-                              ? `${group.title} (Clic para ver / Arrastra a la biblioteca para evolucionar)`
+                              ? `${group.title} (Clic para ver / Arrastra sobre la carta pre-evolución en la biblioteca para evolucionar)`
                               : `${group.title} (Clic para previsualizar)`
                           }
                           onClick={() => onPreviewCard({ ownedList: ownedUniqueList, ownedIndex: index, isLibraryCard: false })}

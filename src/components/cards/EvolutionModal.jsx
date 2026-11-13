@@ -142,7 +142,7 @@ export default function EvolutionModal({
                 marginBottom: 8,
               }}
             >
-              ¡Evolución Completada!
+              ¡Evolución Desbloqueada!
             </span>
             <h1
               style={{
@@ -153,7 +153,7 @@ export default function EvolutionModal({
                 textShadow: "0 0 25px rgba(253, 224, 71, 0.8)",
               }}
             >
-              ¡{baseCard?.title} ha evolucionado a {evolvedCard?.title}!
+              ¡Has desbloqueado a {evolvedCard?.title}!
             </h1>
           </div>
         )}
@@ -250,7 +250,7 @@ export default function EvolutionModal({
               border: "1px solid rgba(255, 255, 255, 0.15)",
             }}
           >
-            🔮 Se ha consumido <b>1 Catalizador</b> de tu biblioteca. Tus cartas base se han conservado.
+            🔮 Se ha consumido <b>1 Catalizador</b>. Tus cartas base se conservan y ya puedes solicitar o conseguir <b>{evolvedCard?.title}</b>.
           </div>
         )}
 

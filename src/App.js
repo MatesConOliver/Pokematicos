@@ -61,7 +61,9 @@ import {
   executeEvolution,
   isEvolutionCard,
   checkEvolutionEligibility,
+  isCardUnlockedForStudent,
 } from "./services/cardEvolutionService";
+import { getCardDisplayImage } from "./utils/cardImageUtils";
 import { safeLower, round2, PASTEL_COLORS } from "./utils/helpers";
 import { todayISODate } from "./utils/dateUtils";
 import {
@@ -184,6 +186,7 @@ export default function App() {
   const [focusMode, setFocusMode] = useState(false);
   const [showBulkStreaks, setShowBulkStreaks] = useState(false);
   const [evolutionModalData, setEvolutionModalData] = useState(null);
+  const [evolutionChoiceModal, setEvolutionChoiceModal] = useState(null);
 
   const { pendingRequests, pendingCount } = useStudentRequests({ db });
 
@@ -912,8 +915,8 @@ export default function App() {
 
     return runMutation({
       loadingMessage: "Despertando la evolución...",
-      successMessage: "¡Evolución completada con éxito!",
-      errorMessage: "No se pudo completar la evolución.",
+      successMessage: "¡Evolución desbloqueada! Ya puedes solicitar esta carta.",
+      errorMessage: "No se pudo desbloquear la evolución.",
       action: async () => {
         const result = await executeEvolution({
           db,
@@ -932,29 +935,85 @@ export default function App() {
     });
   }
 
-  function handleDropCatalyst(e, evolutionCard) {
+  function handleDropCatalyst(e, baseCard, childEvolutions = []) {
     e.preventDefault();
     try {
-      if (!isEvolutionCard(evolutionCard)) return;
       const raw = e.dataTransfer.getData("application/json");
       if (!raw) return;
       const data = JSON.parse(raw);
       if (data.type !== "student_card" || !data.studentId || !data.cardId) return;
 
-      const requiredCatalystId =
-        evolutionCard.evolution?.catalystCardId || activeClass?.defaultCatalystCardId || "";
-      if (!requiredCatalystId) {
-        notify("Esta evolución no tiene ningún catalizador configurado todavía.");
+      const canAct = mode === "admin" || (unlockedProfileIds && unlockedProfileIds.has(data.studentId));
+      if (!canAct) {
+        notify("Introduce tu PIN para poder evolucionar.");
+        setProfileStudentId(data.studentId);
         return;
       }
 
-      if (data.cardId !== requiredCatalystId) {
-        const catalystName = cardsById.get(requiredCatalystId)?.title || "el catalizador";
-        notify(`Carta incorrecta: arrastra el catalizador («${catalystName}») para iniciar la evolución.`);
+      const targetStudent = students.find((s) => s.id === data.studentId);
+      if (!targetStudent) {
+        notify("Alumno no encontrado");
         return;
       }
 
-      handleExecuteEvolution(data.studentId, evolutionCard.id);
+      const evolutions =
+        Array.isArray(childEvolutions) && childEvolutions.length > 0
+          ? childEvolutions
+          : (cards || []).filter(
+              (card) => isEvolutionCard(card) && card.evolution?.baseCardId === baseCard?.id
+            );
+
+      if (evolutions.length === 0) return;
+
+      const configuredEvolutions = evolutions.filter(
+        (evo) => Boolean(evo.evolution?.catalystCardId || activeClass?.defaultCatalystCardId)
+      );
+      if (configuredEvolutions.length === 0) {
+        notify("El profesor aún no ha configurado el objeto catalizador para esta evolución.");
+        return;
+      }
+
+      const matchingByCatalyst = configuredEvolutions.filter((evo) => {
+        const requiredCatalystId =
+          evo.evolution?.catalystCardId || activeClass?.defaultCatalystCardId || "";
+        return data.cardId === requiredCatalystId;
+      });
+
+      if (matchingByCatalyst.length === 0) {
+        const expectedCatalystId =
+          configuredEvolutions[0].evolution?.catalystCardId ||
+          activeClass?.defaultCatalystCardId ||
+          "";
+        const catalystName = cardsById.get(expectedCatalystId)?.title || "el catalizador";
+        notify(
+          `Carta incorrecta: arrastra el catalizador («${catalystName}») sobre «${baseCard?.title || "la carta base"}» para iniciar la evolución.`
+        );
+        return;
+      }
+
+      const pendingEvolutions = matchingByCatalyst.filter(
+        (evo) => !isCardUnlockedForStudent(targetStudent, evo)
+      );
+
+      if (pendingEvolutions.length === 0) {
+        if (matchingByCatalyst.length === 1) {
+          handleExecuteEvolution(data.studentId, matchingByCatalyst[0].id);
+        } else {
+          notify("Ya has desbloqueado todas las evoluciones disponibles para esta carta.");
+        }
+        return;
+      }
+
+      if (pendingEvolutions.length === 1) {
+        handleExecuteEvolution(data.studentId, pendingEvolutions[0].id);
+        return;
+      }
+
+      setEvolutionChoiceModal({
+        student: targetStudent,
+        baseCard,
+        evolutions: pendingEvolutions,
+      });
     } catch (err) {
       console.error("Drop catalyst error:", err);
     }
@@ -1574,6 +1633,98 @@ export default function App() {
           flagValue={activeClass?.flagConfig ? viewFlag : "A"}
           onClose={() => setEvolutionModalData(null)}
         />
+      )}
+
+      {evolutionChoiceModal && (
+        <div className="modal-backdrop" onClick={() => setEvolutionChoiceModal(null)}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 520 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <h3 style={{ margin: 0 }}>🧬 Elige la evolución</h3>
+              <button className="btn" onClick={() => setEvolutionChoiceModal(null)}>
+                Cerrar
+              </button>
+            </div>
+            <p className="muted" style={{ marginTop: 6, marginBottom: 12 }}>
+              <strong>{evolutionChoiceModal.baseCard?.title}</strong> puede evolucionar a varias cartas para{" "}
+              <strong>{evolutionChoiceModal.student?.name}</strong>:
+            </p>
+            <div style={{ display: "grid", gap: 10 }}>
+              {evolutionChoiceModal.evolutions.map((evoCard) => {
+                const eligibility = checkEvolutionEligibility({
+                  student: evolutionChoiceModal.student,
+                  evolutionCard: evoCard,
+                  catalystCardId: activeClass?.defaultCatalystCardId,
+                });
+                const flagVal = activeClass?.flagConfig ? viewFlag : "A";
+                const thumbUrl = getCardDisplayImage(evoCard, flagVal, true);
+
+                return (
+                  <div
+                    key={evoCard.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: 10,
+                      borderRadius: 12,
+                      border: "1px solid #e2e8f0",
+                      background: "#f8fafc",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 52,
+                        height: 68,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        background: "#e2e8f0",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {thumbUrl && (
+                        <img
+                          src={thumbUrl}
+                          alt={evoCard.title}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.4)" }}
+                        />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 900, fontSize: 15, color: "#0f172a" }}>{evoCard.title}</div>
+                      <div style={{ fontSize: 12, color: eligibility.hasCopies ? "#15803d" : "#b91c1c", fontWeight: 700, marginTop: 2 }}>
+                        🃏 Copias: {eligibility.currentCopies}/{eligibility.requiredCopies}
+                      </div>
+                    </div>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        const sid = evolutionChoiceModal.student.id;
+                        setEvolutionChoiceModal(null);
+                        handleExecuteEvolution(sid, evoCard.id);
+                      }}
+                      style={{
+                        background: eligibility.canEvolve
+                          ? "linear-gradient(135deg, #8b5cf6, #ec4899)"
+                          : "#e2e8f0",
+                        color: eligibility.canEvolve ? "#ffffff" : "#475569",
+                        fontWeight: 800,
+                        border: "none",
+                        borderRadius: 10,
+                        padding: "8px 14px",
+                      }}
+                    >
+                      ✨ Evolucionar
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Card edit modal */}

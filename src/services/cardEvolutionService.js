@@ -3,7 +3,6 @@
  */
 
 import { doc, runTransaction } from "firebase/firestore";
-import { uid } from "../utils/helpers";
 
 /**
  * Validates if a card has evolution configuration
@@ -102,8 +101,9 @@ export function isCardUnlockedForStudent(student, card) {
 
 /**
  * Executes a card evolution inside a Firestore transaction.
- * Consumes 1 catalyst card, preserves base cards, grants 1 evolved card,
- * and marks the evolution as unlocked.
+ * Consumes 1 catalyst card, preserves base cards,
+ * and marks the evolution as unlocked so the student can request or earn it
+ * (does NOT automatically grant a copy of the evolved card).
  *
  * @param {Object} params
  * @param {*} params.db - Firestore instance
@@ -177,21 +177,8 @@ export async function executeEvolution({
       currentCards.splice(catalystIndex, 1);
     }
 
-    // Grant 1 copy of the evolved card to the student
-    const evolvedOwnedCard = {
-      id: uid("owned"),
-      cardId: evolutionCard.id,
-      title: evolutionCard.title || "Evolved Card",
-      imageURL: evolutionCard.imageURL || "",
-      lockedImageURL: evolutionCard.lockedImageURL || "",
-      imageURL_B: evolutionCard.imageURL_B || "",
-      lockedImageURL_B: evolutionCard.lockedImageURL_B || "",
-      category: evolutionCard.category || "points",
-      points: Number(evolutionCard.points) || 0,
-      obtainedAt: new Date().toISOString(),
-      obtainedFrom: "evolution",
-    };
-    currentCards.push(evolvedOwnedCard);
+    // Note: Do NOT automatically grant a copy of the evolved card here.
+    // Evolution only unlocks the card so the student can request/redeem/receive it.
 
     // Update unlocked evolution set
     const unlockedEvolutionIds = Array.isArray(studentData.unlockedEvolutionIds)
@@ -208,7 +195,7 @@ export async function executeEvolution({
     history.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type: "evolution",
-      title: `Evolución: ${evolutionCard.title}`,
+      title: `Evolución desbloqueada: ${evolutionCard.title}`,
       evolutionCardId: evolutionCard.id,
       baseCardId: eligibility.baseCardId,
       catalystCardId: targetCatalystId || null,

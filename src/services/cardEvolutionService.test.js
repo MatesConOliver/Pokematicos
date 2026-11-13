@@ -2,7 +2,14 @@ import {
   isEvolutionCard,
   checkEvolutionEligibility,
   isCardUnlockedForStudent,
+  executeEvolution,
 } from "./cardEvolutionService";
+import { doc, runTransaction } from "firebase/firestore";
+
+jest.mock("firebase/firestore", () => ({
+  doc: jest.fn(),
+  runTransaction: jest.fn(),
+}));
 
 describe("cardEvolutionService", () => {
   describe("isEvolutionCard", () => {
@@ -196,6 +203,58 @@ describe("cardEvolutionService", () => {
       expect(isCardUnlockedForStudent(null, evoCard)).toBe(false);
       expect(isCardUnlockedForStudent({ unlockedEvolutionIds: [] }, evoCard)).toBe(false);
       expect(isCardUnlockedForStudent({ unlockedEvolutionIds: ["card_evo"] }, evoCard)).toBe(true);
+    });
+  });
+
+  describe("executeEvolution", () => {
+    test("unlocks evolution and consumes 1 catalyst without granting evolved card automatically", async () => {
+      const studentData = {
+        cards: [
+          { id: "o1", cardId: "card_pikachu" },
+          { id: "o2", cardId: "card_pikachu" },
+          { id: "o3", cardId: "card_pikachu" },
+          { id: "c1", cardId: "item_stone" },
+        ],
+        unlockedEvolutionIds: [],
+        rewardsHistory: [],
+      };
+      const evoCardData = {
+        title: "Raichu",
+        evolution: {
+          isEvolution: true,
+          baseCardId: "card_pikachu",
+          requiredCopies: 3,
+          catalystCardId: "item_stone",
+        },
+      };
+
+      doc.mockImplementation((_db, path) => ({ path }));
+      const txUpdate = jest.fn();
+      runTransaction.mockImplementation(async (_db, fn) =>
+        fn({
+          get: jest.fn(async (ref) => {
+            if (ref.path.includes("/students/")) {
+              return { exists: () => true, id: "stu_1", data: () => studentData };
+            }
+            return { exists: () => true, id: "card_raichu", data: () => evoCardData };
+          }),
+          update: txUpdate,
+        })
+      );
+
+      await executeEvolution({
+        db: {},
+        classId: "class_1",
+        studentId: "stu_1",
+        evolutionCardId: "card_raichu",
+      });
+
+      expect(txUpdate).toHaveBeenCalledTimes(1);
+      const updatePayload = txUpdate.mock.calls[0][1];
+      expect(updatePayload.unlockedEvolutionIds).toEqual(["card_raichu"]);
+      // Preserves all 3 base cards, consumes the 1 catalyst, and does NOT add card_raichu
+      expect(updatePayload.cards).toHaveLength(3);
+      expect(updatePayload.cards.every((c) => c.cardId === "card_pikachu")).toBe(true);
     });
   });
 });

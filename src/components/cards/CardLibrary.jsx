@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import CardCreateForm from "./CardCreateForm";
 import LibraryCardRow from "./LibraryCardRow";
 import RewardCreateForm from "../rewards/RewardCreateForm";
+import { isEvolutionCard } from "../../services/cardEvolutionService";
 
 export default function CardLibrary({
   mode,
@@ -47,9 +48,21 @@ export default function CardLibrary({
   );
 
   const hasEvolutionCards = useMemo(
-    () => (cards || []).some((c) => Boolean(c.evolution?.isEvolution || c.evolution?.baseCardId)),
+    () => (cards || []).some((c) => isEvolutionCard(c)),
     [cards]
   );
+
+  const evolutionsByBaseCardId = useMemo(() => {
+    const map = new Map();
+    (cards || []).forEach((card) => {
+      if (isEvolutionCard(card) && card.evolution?.baseCardId) {
+        const baseId = card.evolution.baseCardId;
+        if (!map.has(baseId)) map.set(baseId, []);
+        map.get(baseId).push(card);
+      }
+    });
+    return map;
+  }, [cards]);
 
   return (
     <aside style={{ border: "none", background: "transparent", padding: 0, height: "100%", display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
@@ -251,6 +264,7 @@ export default function CardLibrary({
                     cardsById={cardsByIdMap}
                     activeStudent={activeStudent}
                     defaultCatalystCardId={defaultCatalystCardId}
+                    childEvolutions={evolutionsByBaseCardId.get(card.id) || []}
                     onPreview={() => onPreviewCard(card, effectivePreviewFlag)}
                     onGive={() => onOpenBulkGive(card)}
                     onEdit={() => onEditCard(card)}
@@ -278,6 +292,7 @@ export default function CardLibrary({
                       cardsById={cardsByIdMap}
                       activeStudent={activeStudent}
                       defaultCatalystCardId={defaultCatalystCardId}
+                      childEvolutions={evolutionsByBaseCardId.get(card.id) || []}
                       onPreview={() => onPreviewCard(card, effectivePreviewFlag)}
                       onGive={() => onOpenBulkGive(card)}
                       onEdit={() => onEditCard(card)}

@@ -9,6 +9,7 @@ export default function LibraryCardRow({
   cardsById,
   activeStudent,
   defaultCatalystCardId,
+  childEvolutions = [],
   onPreview,
   onGive = () => {},
   onDelete,
@@ -18,6 +19,7 @@ export default function LibraryCardRow({
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const isEvo = isEvolutionCard(c);
+  const hasChildEvolutions = Array.isArray(childEvolutions) && childEvolutions.length > 0;
   const baseCard = isEvo && cardsById ? cardsById.get(c.evolution?.baseCardId) : null;
 
   const eligibility =
@@ -37,7 +39,7 @@ export default function LibraryCardRow({
   return (
     <div
       onDragOver={(e) => {
-        if (isEvo) {
+        if (hasChildEvolutions) {
           e.preventDefault();
           e.dataTransfer.dropEffect = "copy";
           setIsDragOver(true);
@@ -46,8 +48,8 @@ export default function LibraryCardRow({
       onDragLeave={() => setIsDragOver(false)}
       onDrop={(e) => {
         setIsDragOver(false);
-        if (onDropCatalyst) {
-          onDropCatalyst(e, c);
+        if (hasChildEvolutions && onDropCatalyst) {
+          onDropCatalyst(e, c, childEvolutions);
         }
       }}
       style={{
@@ -129,6 +131,21 @@ export default function LibraryCardRow({
               }}
             >
               🧬 {isUnlockedByStudent ? "Evolución Desbloqueada" : `Evoluciona de ${baseCard?.title || "Carta Base"}`}
+            </span>
+          )}
+          {hasChildEvolutions && (
+            <span
+              style={{
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: isDragOver ? "#ddd6fe" : "#fef3c7",
+                color: isDragOver ? "#5b21b6" : "#92400e",
+                fontWeight: 700,
+              }}
+              title="Arrastra el catalizador sobre esta carta para evolucionar"
+            >
+              🔮 Suelta catalizador aquí → {childEvolutions.map((ev) => ev.title).join(" / ")}
             </span>
           )}
         </div>
