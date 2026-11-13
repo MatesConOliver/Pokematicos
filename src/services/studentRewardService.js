@@ -10,6 +10,7 @@ import { pushOwnedCard, getNewExperienceCards } from "./rewardService";
 import { todayISODate } from "../utils/dateUtils";
 import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
 import { round2 } from "../utils/helpers";
+import { isCardUnlockedForStudent } from "./cardEvolutionService";
 
 export async function quickAddPoints({
   db,
@@ -79,6 +80,15 @@ export async function redeemIndividual({
 
   if ((s.currentPoints || 0) < cost) {
     return alertFn ? alertFn("Not enough points!") : undefined;
+  }
+
+  if (r.cardId) {
+    const linkedCard = cards.find((c) => c.id === r.cardId);
+    if (linkedCard && !isCardUnlockedForStudent(s, linkedCard)) {
+      return alertFn
+        ? alertFn("Esta recompensa otorga una carta de evolución que aún está bloqueada para el alumno.")
+        : undefined;
+    }
   }
 
   if (confirmFn && !(await confirmFn(`Redeem "${r.title}" for ${cost} points?`))) return;
@@ -162,6 +172,23 @@ export async function redeemGroup({
   if (!participants || participants.length === 0) return;
   const r = rewards.find((x) => x.id === rewardId);
   if (!r) return;
+
+  if (r.cardId) {
+    const linkedCard = cards.find((c) => c.id === r.cardId);
+    if (linkedCard) {
+      const blockedNames = participants
+        .map(([sid]) => students.find((s) => s.id === sid))
+        .filter((st) => st && !isCardUnlockedForStudent(st, linkedCard))
+        .map((st) => st.name);
+      if (blockedNames.length > 0) {
+        return alertFn
+          ? alertFn(
+              `No se puede canjear: ${blockedNames.join(", ")} aún no ha(n) desbloqueado la evolución "${linkedCard.title}".`
+            )
+          : undefined;
+      }
+    }
+  }
 
   if (confirmFn && !(await confirmFn(`Redeem "${r.title}" for group?`))) return;
 

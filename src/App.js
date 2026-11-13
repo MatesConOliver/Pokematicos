@@ -4,6 +4,7 @@ import { db, storage, auth } from "./firebase";
 import LibrarySection from "./components/cards/LibrarySection";
 import CardEditModal from "./components/cards/CardEditModal";
 import CardPreviewModal from "./components/cards/CardPreviewModal";
+import EvolutionModal from "./components/cards/EvolutionModal";
 import BulkGiveModal from "./components/cards/BulkGiveModal";
 import FeedbackDialog from "./components/common/FeedbackDialog";
 import StreakFormModal from "./components/classes/StreakFormModal";
@@ -56,9 +57,18 @@ import {
   giveCardToStudent as giveCardToStudentService,
   giveCardToStudentsBulk as giveCardToStudentsBulkService,
 } from "./services/cardService";
+import {
+  executeEvolution,
+  isEvolutionCard,
+  checkEvolutionEligibility,
+} from "./services/cardEvolutionService";
 import { safeLower, round2, PASTEL_COLORS } from "./utils/helpers";
 import { todayISODate } from "./utils/dateUtils";
-import { editClassName, endClassActivity } from "./services/classService";
+import {
+  editClassName,
+  endClassActivity,
+  setDefaultCatalystForClass,
+} from "./services/classService";
 import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
 import useAuthMode from "./hooks/useAuthMode";
@@ -173,6 +183,7 @@ export default function App() {
   const [showRequestsPanel, setShowRequestsPanel] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [showBulkStreaks, setShowBulkStreaks] = useState(false);
+  const [evolutionModalData, setEvolutionModalData] = useState(null);
 
   const { pendingRequests, pendingCount } = useStudentRequests({ db });
 
@@ -234,6 +245,25 @@ export default function App() {
     () => (cards || []).filter((c) => (c.category || "points") === "points"),
     [cards]
   );
+
+  const cardsById = useMemo(
+    () => new Map((cards || []).map((c) => [c.id, c])),
+    [cards]
+  );
+
+  const activeStudentForLibrary = useMemo(() => {
+    if (profileStudentId) {
+      return students.find((s) => s.id === profileStudentId) || null;
+    }
+    if (mode === "admin" && selectedStudentId) {
+      return students.find((s) => s.id === selectedStudentId) || null;
+    }
+    if (unlockedProfileList && unlockedProfileList.length > 0) {
+      const lastId = unlockedProfileList[unlockedProfileList.length - 1];
+      return students.find((s) => s.id === lastId) || null;
+    }
+    return null;
+  }, [profileStudentId, selectedStudentId, mode, unlockedProfileList, students]);
 
   const myPendingRequests = useMemo(
     () => pendingRequests.filter((r) => r.studentId === profileStudentId),
@@ -602,6 +632,7 @@ export default function App() {
     unlockedFile,
     lockedFile_B,
     unlockedFile_B,
+    evolution = null,
   }) {
     if (!ensureClassSelected()) return;
 
@@ -627,6 +658,7 @@ export default function App() {
           unlockedFileInputRef,
           lockedFileBInputRef,
           unlockedFileBInputRef,
+          evolution,
         });
       },
     });
@@ -694,8 +726,15 @@ export default function App() {
     );
   }
 
-  function toggleBulkGiveSelectAll() {
-    setBulkGiveSelectedIds((prev) => (prev.length === students.length ? [] : students.map((s) => s.id)));
+  function toggleBulkGiveSelectAll(eligibleIds) {
+    const targetIds = Array.isArray(eligibleIds)
+      ? eligibleIds
+      : students.map((s) => s.id);
+    setBulkGiveSelectedIds((prev) => {
+      const allSelected =
+        targetIds.length > 0 && targetIds.every((id) => prev.includes(id));
+      return allSelected ? [] : targetIds;
+    });
   }
   
   // Owned cards removal (bulk) - ONE updateDoc
@@ -830,6 +869,96 @@ export default function App() {
   const classTotalPoints = round2(
     students.reduce((sum, s) => sum + round2(s.currentPoints || 0), 0)
   );
+
+  async function handleExecuteEvolution(studentId, evolutionCardId) {
+    if (!ensureClassSelected()) return;
+    const targetStudent = students.find((s) => s.id === studentId);
+    if (!targetStudent) return notify("Alumno no encontrado");
+
+    const canAct = mode === "admin" || (unlockedProfileIds && unlockedProfileIds.has(studentId));
+    if (!canAct) {
+      notify("Introduce tu PIN para poder evolucionar.");
+      setProfileStudentId(studentId);
+      return;
+    }
+
+    const evolutionCard = cardsById.get(evolutionCardId);
+    if (!evolutionCard || !isEvolutionCard(evolutionCard)) {
+      return notify("Esta carta no tiene configuración de evolución.");
+    }
+
+    const eligibility = checkEvolutionEligibility({
+      student: targetStudent,
+      evolutionCard,
+      catalystCardId: activeClass?.defaultCatalystCardId,
+    });
+
+    if (eligibility.isAlreadyUnlocked) {
+      return notify("Ya has desbloqueado esta evolución.");
+    }
+    if (eligibility.missingCatalystConfig) {
+      return notify("El profesor aún no ha configurado el objeto catalizador para esta evolución.");
+    }
+    if (!eligibility.hasCopies) {
+      const baseName = cardsById.get(eligibility.baseCardId)?.title || "la carta base";
+      return notify(
+        `Necesitas ${eligibility.requiredCopies} copias de ${baseName} (tienes ${eligibility.currentCopies}).`
+      );
+    }
+    if (!eligibility.hasCatalyst) {
+      const catalystName = cardsById.get(eligibility.catalystCardId)?.title || "el catalizador";
+      return notify(`Necesitas 1 ${catalystName} en tu panel para poder evolucionar.`);
+    }
+
+    return runMutation({
+      loadingMessage: "Despertando la evolución...",
+      successMessage: "¡Evolución completada con éxito!",
+      errorMessage: "No se pudo completar la evolución.",
+      action: async () => {
+        const result = await executeEvolution({
+          db,
+          classId: activeClassId,
+          studentId,
+          evolutionCardId,
+          classCatalystCardId: activeClass?.defaultCatalystCardId,
+        });
+
+        const baseCard = cardsById.get(result.baseCardId) || null;
+        setEvolutionModalData({
+          baseCard,
+          evolvedCard: result.evolvedCard,
+        });
+      },
+    });
+  }
+
+  function handleDropCatalyst(e, evolutionCard) {
+    e.preventDefault();
+    try {
+      if (!isEvolutionCard(evolutionCard)) return;
+      const raw = e.dataTransfer.getData("application/json");
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.type !== "student_card" || !data.studentId || !data.cardId) return;
+
+      const requiredCatalystId =
+        evolutionCard.evolution?.catalystCardId || activeClass?.defaultCatalystCardId || "";
+      if (!requiredCatalystId) {
+        notify("Esta evolución no tiene ningún catalizador configurado todavía.");
+        return;
+      }
+
+      if (data.cardId !== requiredCatalystId) {
+        const catalystName = cardsById.get(requiredCatalystId)?.title || "el catalizador";
+        notify(`Carta incorrecta: arrastra el catalizador («${catalystName}») para iniciar la evolución.`);
+        return;
+      }
+
+      handleExecuteEvolution(data.studentId, evolutionCard.id);
+    } catch (err) {
+      console.error("Drop catalyst error:", err);
+    }
+  }
 
   const backgroundStyle = {
     fontFamily: "Inter, system-ui, sans-serif",
@@ -1376,6 +1505,8 @@ export default function App() {
               db={db}
               setActiveClassId={setActiveClassId}
               alertFn={notify}
+              unlockedProfileIds={unlockedProfileIds}
+              onPromptPin={(st) => setProfileStudentId(st.id)}
             />
 
             <LibrarySection
@@ -1400,6 +1531,20 @@ export default function App() {
               onCreateReward={createReward}
               onDeleteReward={deleteReward}
               onValidationError={notify}
+              cardsById={cardsById}
+              activeStudent={activeStudentForLibrary}
+              defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
+              onSetDefaultCatalyst={(cardId) =>
+                setDefaultCatalystForClass(db, activeClassId, cardId, notify)
+              }
+              onDropCatalyst={handleDropCatalyst}
+              onEvolve={(evoCard) => {
+                if (activeStudentForLibrary) {
+                  handleExecuteEvolution(activeStudentForLibrary.id, evoCard.id);
+                } else {
+                  notify("Abre el perfil de un alumno o introduce tu PIN para evolucionar");
+                }
+              }}
             />
           </>
         )}
@@ -1409,12 +1554,34 @@ export default function App() {
         cardPreview={cardPreview}
         onClose={() => setCardPreview(null)}
         onNavigate={ownedNav}
+        cardsById={cardsById}
+        activeStudent={activeStudentForLibrary}
+        defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
+        onEvolve={(evoCard) => {
+          if (activeStudentForLibrary) {
+            setCardPreview(null);
+            handleExecuteEvolution(activeStudentForLibrary.id, evoCard.id);
+          } else {
+            notify("Abre el perfil de un alumno o introduce tu PIN para evolucionar");
+          }
+        }}
       />
+
+      {evolutionModalData && (
+        <EvolutionModal
+          baseCard={evolutionModalData.baseCard}
+          evolvedCard={evolutionModalData.evolvedCard}
+          flagValue={activeClass?.flagConfig ? viewFlag : "A"}
+          onClose={() => setEvolutionModalData(null)}
+        />
+      )}
 
       {/* Card edit modal */}
       {mode === "admin" && editCard && (
         <CardEditModal
           card={editCard}
+          cards={cards}
+          defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
           streakConfigs={activeClass?.streakConfigs || []}
           flagConfig={activeClass?.flagConfig}
           onClose={() => setEditCard(null)}
@@ -1527,6 +1694,8 @@ export default function App() {
           giveableCards={giveableCardsForProfile}
           allCards={cards}
           rewards={rewards}
+          defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
+          onEvolve={(evoCard) => handleExecuteEvolution(profileStudent.id, evoCard.id)}
           onRedeemReward={(rewardId) =>
             redeemIndividual(activeClassId, profileStudent.id, rewardId)
           }

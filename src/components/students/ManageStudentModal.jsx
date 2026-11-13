@@ -3,6 +3,7 @@ import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { pickEditableFloatWindow } from "../../services/streakService";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { round2, formatPoints } from "../../utils/helpers";
+import { isCardUnlockedForStudent } from "../../services/cardEvolutionService";
 
 function todayISODate() {
   const d = new Date();
@@ -587,63 +588,75 @@ export default function ManageStudentModal({
               {!filteredGiveableCards.length ? (
                 <div className="muted" style={{ padding: 8 }}>No matching cards</div>
               ) : (
-                filteredGiveableCards.map((c) => (
-                  <div
-                    key={c.id}
-                    style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 10,
-                      padding: 8,
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                      background: "#ffffff",
-                      boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-                      contentVisibility: "auto",
-                      containIntrinsicSize: "0 86px",
-                    }}
-                  >
+                filteredGiveableCards.map((c) => {
+                  const unlocked = isCardUnlockedForStudent(student, c);
+                  return (
                     <div
+                      key={c.id}
                       style={{
-                        width: 56,
-                        height: 72,
-                        borderRadius: 8,
-                        overflow: "hidden",
-                        background: "#f8fafc",
-                        cursor: "pointer",
-                        flexShrink: 0,
                         border: "1px solid #e2e8f0",
+                        borderRadius: 10,
+                        padding: 8,
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "center",
+                        background: "#ffffff",
+                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                        contentVisibility: "auto",
+                        containIntrinsicSize: "0 86px",
+                        opacity: unlocked ? 1 : 0.6,
                       }}
                     >
-                      {(c.lockedImageURL || c.imageURL) ? (
-                        <img
-                          src={(c.lockedImageURL || c.imageURL)}
-                          alt={c.title}
-                          loading="lazy"
-                          decoding="async"
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        <div style={{ padding: 6, fontSize: 10 }}>{c.title}</div>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {c.title}
+                      <div
+                        style={{
+                          width: 56,
+                          height: 72,
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          background: "#f8fafc",
+                          cursor: "pointer",
+                          flexShrink: 0,
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        {(c.lockedImageURL || c.imageURL) ? (
+                          <img
+                            src={(c.lockedImageURL || c.imageURL)}
+                            alt={c.title}
+                            loading="lazy"
+                            decoding="async"
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <div style={{ padding: 6, fontSize: 10 }}>{c.title}</div>
+                        )}
                       </div>
-                      <div className="muted" style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {c.description || "—"}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {c.title}
+                        </div>
+                        <div className="muted" style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {unlocked ? (c.description || "—") : "🔒 Evolución sin desbloquear"}
+                        </div>
                       </div>
+                      <button
+                        className="btn primary"
+                        disabled={!unlocked}
+                        title={unlocked ? "Dar carta" : "El alumno debe evolucionar esta carta primero"}
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 12,
+                          flexShrink: 0,
+                          opacity: unlocked ? 1 : 0.5,
+                          cursor: unlocked ? "pointer" : "not-allowed",
+                        }}
+                        onClick={() => unlocked && onGiveCard(c.id)}
+                      >
+                        {unlocked ? "Give" : "🔒"}
+                      </button>
                     </div>
-                    <button
-                      className="btn primary"
-                      style={{ padding: "4px 10px", fontSize: 12, flexShrink: 0 }}
-                      onClick={() => onGiveCard(c.id)}
-                    >
-                      Give
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

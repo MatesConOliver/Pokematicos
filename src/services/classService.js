@@ -70,6 +70,18 @@ export async function endClassActivity(db, classId, archivedUrl, alertFn = null)
   }
 }
 
+export async function setDefaultCatalystForClass(db, classId, cardId, alertFn = null) {
+  if (!classId) return;
+  try {
+    await updateDoc(doc(db, `classes/${classId}`), {
+      defaultCatalystCardId: cardId || "",
+    });
+  } catch (err) {
+    console.error("setDefaultCatalystForClass error:", err);
+    if (alertFn) alertFn("No se pudo actualizar el catalizador universal.");
+  }
+}
+
 /**
  * Delete a class
  * @param {Object} db - Firestore database instance

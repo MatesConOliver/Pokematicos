@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 
 export default function CardCreateForm({
+  cards = [],
+  defaultCatalystCardId = "",
   onCreate,
   lockedInputRef,
   unlockedInputRef,
@@ -22,11 +24,30 @@ export default function CardCreateForm({
   const [streakPick, setStreakPick] = useState("");
   const [streakLookup, setStreakLookup] = useState("");
 
+  // Evolution configuration
+  const [isEvolution, setIsEvolution] = useState(false);
+  const [baseCardId, setBaseCardId] = useState("");
+  const [requiredCopies, setRequiredCopies] = useState(3);
+  const [catalystCardId, setCatalystCardId] = useState("");
+
   async function handleCreate() {
     if (!title.trim()) {
       if (onValidationError) onValidationError("Title required");
       return;
     }
+
+    if (isEvolution && !baseCardId) {
+      if (onValidationError) onValidationError("Selecciona la carta base para la evolución");
+      return;
+    }
+
+    const evolution = isEvolution && baseCardId ? {
+      isEvolution: true,
+      baseCardId,
+      requiredCopies: Math.max(1, parseInt(requiredCopies, 10) || 1),
+      catalystCardId: catalystCardId || "",
+    } : null;
+
     const result = await onCreate({
       title,
       description,
@@ -37,12 +58,17 @@ export default function CardCreateForm({
       unlockedFile,
       lockedFile_B,
       unlockedFile_B,
+      evolution,
     });
     if (result === false) return;
     setTitle("");
     setDescription("");
     setPoints(1);
     setCategory("points");
+    setIsEvolution(false);
+    setBaseCardId("");
+    setRequiredCopies(3);
+    setCatalystCardId("");
     setLinkedStreakIds([]);
     setStreakPick("");
     setStreakLookup("");
@@ -189,8 +215,122 @@ export default function CardCreateForm({
         </div>
       )}
 
+      {/* Evolution configuration */}
+      <div
+        style={{
+          border: "1px solid #c7d2fe",
+          borderRadius: 12,
+          padding: 12,
+          marginTop: 12,
+          background: isEvolution ? "#eef2ff" : "#f8fafc",
+          transition: "background 0.2s",
+        }}
+      >
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+            fontWeight: 800,
+            fontSize: 14,
+            color: "#4338ca",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={isEvolution}
+            onChange={(e) => setIsEvolution(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: "#4f46e5" }}
+          />
+          🧬 ¿Es una evolución de otra carta?
+        </label>
+
+        {isEvolution && (
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                Carta base pre-evolución:
+              </div>
+              <select
+                value={baseCardId}
+                onChange={(e) => setBaseCardId(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: 8,
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                }}
+              >
+                <option value="">Selecciona carta base...</option>
+                {cards.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title} ({c.points || 0} pts - {c.category || "points"})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                  Copias base requeridas:
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  value={requiredCopies}
+                  onChange={(e) => setRequiredCopies(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: 8,
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                  Objeto Catalizador:
+                </div>
+                <select
+                  value={catalystCardId}
+                  onChange={(e) => setCatalystCardId(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: 8,
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                  }}
+                >
+                  <option value="">
+                    {defaultCatalystCardId
+                      ? `(Catalizador universal: ${cards.find((c) => c.id === defaultCatalystCardId)?.title || "Configurado"})`
+                      : "(Catalizador universal — selecciona uno en Biblioteca)"}
+                  </option>
+                  {cards
+                    .filter((c) => (c.category || "points") === "rewards" || c.category === "extra")
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "#6366f1" }}>
+              💡 Al evolucionar, se consumirá 1 Catalizador de la biblioteca del alumno y se conservarán las cartas base.
+            </div>
+          </div>
+        )}
+      </div>
+
       {flagConfig && (
-        <div style={{ fontWeight: 800, marginTop: 10 }}>
+        <div style={{ fontWeight: 800, marginTop: 12 }}>
           Option A ({flagConfig.optionA}) images
         </div>
       )}

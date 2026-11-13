@@ -29,6 +29,8 @@ export default function StudentsPanel({
   db,
   setActiveClassId,
   alertFn,
+  unlockedProfileIds,
+  onPromptPin,
 }) {
   const [showActivityCatalogue, setShowActivityCatalogue] = useState(false);
   const scrollContainerRef = useRef(null);
@@ -341,24 +343,49 @@ export default function StudentsPanel({
                       // Requirement 6: Use displayImageURL so full preview displays flag-specific image
                       const ownedUniqueList = groupedCards.map((card) => ({ title: card.title, imageURL: card.displayImageURL || card.imageURL }));
 
+                      const canDragThisStudent = mode === "admin" || (unlockedProfileIds && unlockedProfileIds.has(student.id));
+
                       return groupedCards.map((group, index) => (
                         <div
                           key={group.cardId}
                           className="card-thumb holo-foil-card"
+                          draggable={true}
+                          onDragStart={(e) => {
+                            if (!canDragThisStudent) {
+                              e.preventDefault();
+                              if (alertFn) alertFn("Introduce tu PIN para poder usar y arrastrar tus cartas.");
+                              onPromptPin?.(student);
+                              return;
+                            }
+                            e.dataTransfer.setData(
+                              "application/json",
+                              JSON.stringify({
+                                type: "student_card",
+                                studentId: student.id,
+                                cardId: group.cardId,
+                                title: group.title,
+                              })
+                            );
+                            e.dataTransfer.effectAllowed = "copy";
+                          }}
                           style={{
                             width: 80,
                             height: 110,
                             border: "1px solid #e2e8f0",
                             borderRadius: 10,
                             overflow: "hidden",
-                            cursor: "pointer",
+                            cursor: canDragThisStudent ? "grab" : "pointer",
                             position: "relative",
                             background: "#ffffff",
                             boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
                             contentVisibility: "auto",
                             containIntrinsicSize: "80px 110px",
                           }}
-                          title={`${group.title} (Click to preview)`}
+                          title={
+                            canDragThisStudent
+                              ? `${group.title} (Clic para ver / Arrastra a la biblioteca para evolucionar)`
+                              : `${group.title} (Clic para previsualizar)`
+                          }
                           onClick={() => onPreviewCard({ ownedList: ownedUniqueList, ownedIndex: index, isLibraryCard: false })}
                         >
                           {group.displayImageURL ? (

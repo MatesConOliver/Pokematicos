@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import CardCreateForm from "./CardCreateForm";
 import LibraryCardRow from "./LibraryCardRow";
 import RewardCreateForm from "../rewards/RewardCreateForm";
@@ -25,10 +25,31 @@ export default function CardLibrary({
   onCreateReward,
   onDeleteReward,
   onValidationError,
+  cardsById,
+  activeStudent,
+  defaultCatalystCardId,
+  onSetDefaultCatalyst,
+  onDropCatalyst,
+  onEvolve,
 }) {
   const [libraryTab, setLibraryTab] = useState("points");
   const [showCreateCard, setShowCreateCard] = useState(false);
   const effectivePreviewFlag = flagConfig ? viewFlag : "A";
+
+  const cardsByIdMap = useMemo(
+    () => cardsById || new Map((cards || []).map((c) => [c.id, c])),
+    [cards, cardsById]
+  );
+
+  const catalystCandidates = useMemo(
+    () => (cards || []).filter((c) => (c.category || "points") === "rewards" || c.category === "extra"),
+    [cards]
+  );
+
+  const hasEvolutionCards = useMemo(
+    () => (cards || []).some((c) => Boolean(c.evolution?.isEvolution || c.evolution?.baseCardId)),
+    [cards]
+  );
 
   return (
     <aside style={{ border: "none", background: "transparent", padding: 0, height: "100%", display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
@@ -124,6 +145,48 @@ export default function CardLibrary({
         )}
       </div>
 
+      {mode === "admin" && (libraryTab === "rewards" || (hasEvolutionCards && !defaultCatalystCardId)) && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            padding: "8px 12px",
+            marginBottom: 10,
+            borderRadius: 12,
+            background: !defaultCatalystCardId && hasEvolutionCards ? "#fef3c7" : "#eef2ff",
+            border: !defaultCatalystCardId && hasEvolutionCards ? "1px solid #fcd34d" : "1px solid #c7d2fe",
+            flexShrink: 0,
+            fontSize: 12,
+          }}
+        >
+          <span style={{ fontWeight: 800, color: "#312e81" }}>
+            🔮 Catalizador universal:
+          </span>
+          <select
+            value={defaultCatalystCardId || ""}
+            onChange={(e) => onSetDefaultCatalyst?.(e.target.value)}
+            style={{
+              flex: 1,
+              minWidth: 160,
+              padding: "4px 8px",
+              borderRadius: 8,
+              border: "1px solid #cbd5e1",
+              background: "#ffffff",
+              fontSize: 12,
+            }}
+          >
+            <option value="">Selecciona objeto catalizador (Rewards/Extra)...</option>
+            {catalystCandidates.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title} ({c.category || "points"})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {mode === "admin" && showCreateCard && (
         <div
           style={{
@@ -151,6 +214,8 @@ export default function CardLibrary({
             </button>
           </div>
           <CardCreateForm
+            cards={cards}
+            defaultCatalystCardId={defaultCatalystCardId}
             onCreate={async (cardData) => {
               const res = await onCreateCard(cardData);
               if (res !== false) {
@@ -183,10 +248,15 @@ export default function CardLibrary({
                     c={card}
                     mode={mode}
                     flagValue={effectivePreviewFlag}
+                    cardsById={cardsByIdMap}
+                    activeStudent={activeStudent}
+                    defaultCatalystCardId={defaultCatalystCardId}
                     onPreview={() => onPreviewCard(card, effectivePreviewFlag)}
                     onGive={() => onOpenBulkGive(card)}
                     onEdit={() => onEditCard(card)}
                     onDelete={() => onDeleteCard(card.id)}
+                    onDropCatalyst={onDropCatalyst}
+                    onEvolve={onEvolve}
                   />
                 ))
             )}
@@ -205,10 +275,15 @@ export default function CardLibrary({
                       c={card}
                       mode={mode}
                       flagValue={effectivePreviewFlag}
+                      cardsById={cardsByIdMap}
+                      activeStudent={activeStudent}
+                      defaultCatalystCardId={defaultCatalystCardId}
                       onPreview={() => onPreviewCard(card, effectivePreviewFlag)}
                       onGive={() => onOpenBulkGive(card)}
                       onEdit={() => onEditCard(card)}
                       onDelete={() => onDeleteCard(card.id)}
+                      onDropCatalyst={onDropCatalyst}
+                      onEvolve={onEvolve}
                     />
                   ))
               )}

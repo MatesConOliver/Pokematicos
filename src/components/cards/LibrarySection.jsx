@@ -1,5 +1,6 @@
 import CardLibrary from "./CardLibrary";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
+import { isEvolutionCard, isCardUnlockedForStudent } from "../../services/cardEvolutionService";
 
 export default function LibrarySection({
   mode,
@@ -22,6 +23,13 @@ export default function LibrarySection({
   onDeleteCard,
   onCreateReward,
   onDeleteReward,
+  onValidationError,
+  cardsById,
+  activeStudent,
+  defaultCatalystCardId,
+  onSetDefaultCatalyst,
+  onDropCatalyst,
+  onEvolve,
 }) {
   return (
     <CardLibrary
@@ -39,16 +47,27 @@ export default function LibrarySection({
       viewFlag={viewFlag}
       onChangeViewFlag={onChangeViewFlag}
       onCreateCard={onCreateCard}
-      onPreviewCard={(card, flagValue = "A") => onPreviewCard({
-        ...card,
-        imageURL: getCardDisplayImage(card, flagValue, true),
-        isLibraryCard: true,
-      })}
+      onPreviewCard={(card, flagValue = "A") => {
+        const isEvo = isEvolutionCard(card);
+        const unlocked = isEvo ? isCardUnlockedForStudent(activeStudent, card) : false;
+        onPreviewCard({
+          ...card,
+          imageURL: getCardDisplayImage(card, flagValue, isEvo ? !unlocked : true),
+          isLibraryCard: true,
+        });
+      }}
       onOpenBulkGive={onOpenBulkGive}
       onEditCard={onEditCard}
       onDeleteCard={onDeleteCard}
       onCreateReward={onCreateReward}
       onDeleteReward={onDeleteReward}
+      onValidationError={onValidationError}
+      cardsById={cardsById}
+      activeStudent={activeStudent}
+      defaultCatalystCardId={defaultCatalystCardId}
+      onSetDefaultCatalyst={onSetDefaultCatalyst}
+      onDropCatalyst={onDropCatalyst}
+      onEvolve={onEvolve}
     />
   );
 }

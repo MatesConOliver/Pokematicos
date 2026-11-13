@@ -6,6 +6,11 @@ import { PublicStudentIdDisplay } from "./PublicStudentIdDisplay";
 import { RewardCodeRedemption } from "./RewardCodeRedemption";
 import { reconcileAndEnrichStudentHistory } from "../../services/rewardCodeService.js";
 import { round2, formatPoints } from "../../utils/helpers";
+import {
+  isEvolutionCard,
+  checkEvolutionEligibility,
+  isCardUnlockedForStudent,
+} from "../../services/cardEvolutionService";
 
 export default function ProfileModal({
   mode,
@@ -22,12 +27,14 @@ export default function ProfileModal({
   giveableCards = [],
   allCards = [],
   rewards = [],
+  defaultCatalystCardId = "",
+  onEvolve,
   onRedeemReward,
   myPendingRequests = [],
   onCreateRequest,
   onCancelRequest,
 }) {
-  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "history" | "settings" | "redeem"
+  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "evolutions" | "history" | "settings" | "redeem"
 
   // Profile customization state
   const [emojis, setEmojis] = useState(student.nameEmojis || "");
@@ -90,6 +97,24 @@ export default function ProfileModal({
   const selectedCard = useMemo(
     () => giveableCards.find((c) => c.id === requestCardId) || null,
     [giveableCards, requestCardId]
+  );
+
+  const evolutionCards = useMemo(
+    () => (allCards || []).filter((c) => isEvolutionCard(c)),
+    [allCards]
+  );
+
+  const readyToEvolveCount = useMemo(
+    () =>
+      evolutionCards.filter(
+        (c) =>
+          checkEvolutionEligibility({
+            student,
+            evolutionCard: c,
+            catalystCardId: defaultCatalystCardId,
+          }).canEvolve
+      ).length,
+    [evolutionCards, student, defaultCatalystCardId]
   );
 
   return (
@@ -246,6 +271,41 @@ export default function ProfileModal({
             }}
           >
             ⚙️ Settings & PIN
+          </button>
+
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setActiveTab("evolutions")}
+            style={{
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              borderBottom: activeTab === "evolutions" ? "3px solid #7c3aed" : "3px solid transparent",
+              background: activeTab === "evolutions" ? "#f5f3ff" : "transparent",
+              color: activeTab === "evolutions" ? "#6d28d9" : "#4b5563",
+              fontWeight: activeTab === "evolutions" ? 700 : 500,
+              padding: "8px 14px",
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            🧬 Evoluciones
+            {readyToEvolveCount > 0 && (
+              <span
+                style={{
+                  background: "#7c3aed",
+                  color: "#fff",
+                  fontSize: 10,
+                  borderRadius: 999,
+                  padding: "1px 6px",
+                  fontWeight: 800,
+                }}
+              >
+                {readyToEvolveCount}
+              </span>
+            )}
           </button>
 
           <button
@@ -441,22 +501,34 @@ export default function ProfileModal({
                         }}
                       >
                         {giveableCards.map((c) => {
-                          const isSelected = requestCardId === c.id;
-                          const img = getCardDisplayImage(c, displayFlagValue, true);
+                          const isEvo = isEvolutionCard(c);
+                          const isUnlocked = isCardUnlockedForStudent(student, c);
+                          const isSelected = isUnlocked && requestCardId === c.id;
+                          const img = getCardDisplayImage(c, displayFlagValue, isEvo ? !isUnlocked : true);
                           return (
                             <div
                               key={c.id}
-                              onClick={() => setRequestCardId((prev) => (prev === c.id ? "" : c.id))}
+                              onClick={() => {
+                                if (!isUnlocked) {
+                                  if (onValidationError) {
+                                    onValidationError("Esta carta de evolución está bloqueada. ¡Evoluciónala primero!");
+                                  }
+                                  return;
+                                }
+                                setRequestCardId((prev) => (prev === c.id ? "" : c.id));
+                              }}
                               style={{
                                 border: isSelected ? "2px solid #2563eb" : "1px solid #e5e7eb",
                                 background: isSelected ? "#eff6ff" : "#ffffff",
                                 borderRadius: 8,
                                 padding: 6,
-                                cursor: "pointer",
+                                cursor: isUnlocked ? "pointer" : "not-allowed",
+                                opacity: isUnlocked ? 1 : 0.6,
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: 4,
                                 transition: "all 0.15s ease",
+                                position: "relative",
                               }}
                             >
                               <div
@@ -469,34 +541,55 @@ export default function ProfileModal({
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
+                                  position: "relative",
                                 }}
                               >
                                 {img ? (
                                   <img
                                     src={img}
                                     alt={c.title}
-                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                      filter: isUnlocked ? "none" : "grayscale(0.7)",
+                                    }}
                                   />
                                 ) : (
                                   <span style={{ fontSize: 24 }}>🃏</span>
+                                )}
+                                {!isUnlocked && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      inset: 0,
+                                      background: "rgba(15, 23, 42, 0.35)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontSize: 16,
+                                    }}
+                                  >
+                                    🔒
+                                  </div>
                                 )}
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 700, fontSize: 12, lineHeight: "1.2em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                   {c.title}
                                 </div>
-                                <div style={{ marginTop: 2 }}>
+                                <div style={{ marginTop: 2, display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
                                   <span
                                     className="pill"
                                     style={{
                                       fontSize: 10,
-                                      background: "#dbeafe",
-                                      color: "#1e40af",
+                                      background: isUnlocked ? "#dbeafe" : "#fee2e2",
+                                      color: isUnlocked ? "#1e40af" : "#b91c1c",
                                       fontWeight: 700,
                                       padding: "1px 5px",
                                     }}
                                   >
-                                    +{c.points || 0} pts
+                                    {isUnlocked ? `+${c.points || 0} pts` : "🔒 Evolución"}
                                   </span>
                                 </div>
                               </div>
@@ -707,7 +800,8 @@ export default function ProfileModal({
                     const cost = Number(r.cost || 0);
                     const canAfford = currentPoints >= cost;
                     const linkedCard = r.cardId ? cardsMap.get(r.cardId) : null;
-                    const cardImg = getCardDisplayImage(linkedCard, displayFlagValue, false);
+                    const evoUnlocked = !linkedCard || isCardUnlockedForStudent(student, linkedCard);
+                    const cardImg = getCardDisplayImage(linkedCard, displayFlagValue, !evoUnlocked);
                     const desc = linkedCard?.description || r.description || "";
 
                     return (
@@ -723,6 +817,7 @@ export default function ProfileModal({
                           flexDirection: "column",
                           justifyContent: "space-between",
                           gap: 10,
+                          opacity: evoUnlocked ? 1 : 0.72,
                         }}
                       >
                         <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -737,16 +832,37 @@ export default function ProfileModal({
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
+                              position: "relative",
                             }}
                           >
                             {cardImg ? (
                               <img
                                 src={cardImg}
                                 alt={r.title}
-                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  filter: evoUnlocked ? "none" : "grayscale(0.7)",
+                                }}
                               />
                             ) : (
                               <span style={{ fontSize: 28 }}>🎁</span>
+                            )}
+                            {!evoUnlocked && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  inset: 0,
+                                  background: "rgba(15, 23, 42, 0.35)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 16,
+                                }}
+                              >
+                                🔒
+                              </div>
                             )}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -782,7 +898,25 @@ export default function ProfileModal({
                         </div>
 
                         <div>
-                          {canAfford ? (
+                          {!evoUnlocked ? (
+                            <button
+                              type="button"
+                              className="btn"
+                              disabled
+                              style={{
+                                width: "100%",
+                                padding: "8px 12px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: "#f5f3ff",
+                                color: "#6d28d9",
+                                borderColor: "#ddd6fe",
+                                cursor: "not-allowed",
+                              }}
+                            >
+                              🔒 Evolución bloqueada
+                            </button>
+                          ) : canAfford ? (
                             <button
                               type="button"
                               className="btn primary"
@@ -809,6 +943,200 @@ export default function ProfileModal({
                               }}
                             >
                               Need {round2(cost - currentPoints)} more pts
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ================= TAB: EVOLUTIONS ================= */}
+          {activeTab === "evolutions" && (
+            <div>
+              <div style={{ marginBottom: 14 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    color: "#6b7280",
+                    fontWeight: 700,
+                  }}
+                >
+                  Evoluciones Disponibles
+                </div>
+                <div className="muted" style={{ fontSize: 12 }}>
+                  Consigue las copias de la carta base y 1 Catalizador consumible para desbloquear nuevas formas.
+                </div>
+              </div>
+
+              {evolutionCards.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px", color: "#9ca3af", fontStyle: "italic" }}>
+                  No hay cartas de evolución configuradas en esta clase todavía.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {evolutionCards.map((evoCard) => {
+                    const baseCard = cardsMap.get(evoCard.evolution?.baseCardId);
+                    const catalystId = evoCard.evolution?.catalystCardId || defaultCatalystCardId;
+                    const catalystCard = catalystId ? cardsMap.get(catalystId) : null;
+                    const eligibility = checkEvolutionEligibility({
+                      student,
+                      evolutionCard: evoCard,
+                      catalystCardId: defaultCatalystCardId,
+                    });
+                    const evoImg = getCardDisplayImage(evoCard, displayFlagValue, !eligibility.isAlreadyUnlocked);
+
+                    return (
+                      <div
+                        key={evoCard.id}
+                        style={{
+                          border: eligibility.canEvolve
+                            ? "2px solid #8b5cf6"
+                            : eligibility.isAlreadyUnlocked
+                            ? "1px solid #86efac"
+                            : "1px solid #e5e7eb",
+                          borderRadius: 12,
+                          padding: 12,
+                          background: eligibility.isAlreadyUnlocked ? "#f0fdf4" : "#ffffff",
+                          display: "flex",
+                          gap: 12,
+                          alignItems: "center",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 66,
+                            height: 88,
+                            borderRadius: 8,
+                            overflow: "hidden",
+                            background: "#f3f4f6",
+                            flexShrink: 0,
+                            position: "relative",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          {evoImg ? (
+                            <img
+                              src={evoImg}
+                              alt={evoCard.title}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                filter: eligibility.isAlreadyUnlocked ? "none" : "grayscale(0.65)",
+                              }}
+                            />
+                          ) : (
+                            <div style={{ padding: 6, fontSize: 10 }}>{evoCard.title}</div>
+                          )}
+                          {!eligibility.isAlreadyUnlocked && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                background: "rgba(15, 23, 42, 0.35)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 18,
+                              }}
+                            >
+                              🔒
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
+                              {evoCard.title}
+                            </span>
+                            {eligibility.isAlreadyUnlocked ? (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  background: "#dcfce7",
+                                  color: "#166534",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ✅ Desbloqueada
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  background: "#ede9fe",
+                                  color: "#6d28d9",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                🧬 de {baseCard?.title || "Carta Base"}
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                padding: "2px 7px",
+                                borderRadius: 6,
+                                background: eligibility.hasCopies ? "#dcfce7" : "#f1f5f9",
+                                color: eligibility.hasCopies ? "#15803d" : "#475569",
+                                fontWeight: 700,
+                              }}
+                            >
+                              🃏 {baseCard?.title || "Base"}: {eligibility.currentCopies}/{eligibility.requiredCopies}
+                            </span>
+
+                            <span
+                              style={{
+                                fontSize: 11,
+                                padding: "2px 7px",
+                                borderRadius: 6,
+                                background: eligibility.hasCatalyst ? "#e0e7ff" : "#fef2f2",
+                                color: eligibility.hasCatalyst ? "#4338ca" : "#b91c1c",
+                                fontWeight: 700,
+                              }}
+                            >
+                              🔮 {catalystCard?.title || "Catalizador"}:{" "}
+                              {eligibility.missingCatalystConfig
+                                ? "Sin configurar"
+                                : eligibility.hasCatalyst
+                                ? `${eligibility.catalystCount} disp. ✓`
+                                : "Falta canjear"}
+                            </span>
+                          </div>
+
+                          {eligibility.canEvolve && (
+                            <button
+                              type="button"
+                              className="btn"
+                              onClick={() => onEvolve?.(evoCard)}
+                              style={{
+                                marginTop: 8,
+                                padding: "6px 14px",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+                                color: "#ffffff",
+                                border: "none",
+                                borderRadius: 999,
+                                boxShadow: "0 2px 8px rgba(139, 92, 246, 0.4)",
+                                cursor: "pointer",
+                              }}
+                            >
+                              ✨ ¡Evolucionar ahora! (Consume 1 catalizador)
                             </button>
                           )}
                         </div>

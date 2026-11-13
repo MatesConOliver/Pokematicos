@@ -26,6 +26,7 @@ import {
   incrementLinkedStreakIfNeeded,
   incrementStreaksNoFloatWindows,
 } from "./streakService";
+import { isCardUnlockedForStudent } from "./cardEvolutionService";
 
 export async function updateCard({
   db,
@@ -55,6 +56,8 @@ export async function updateCard({
 
     let lockedImageURL = prev.lockedImageURL || "";
     let unlockedImageURL = prev.imageURL || "";
+    let lockedImageURL_B = prev.lockedImageURL_B || "";
+    let unlockedImageURL_B = prev.imageURL_B || "";
 
     const baseKey = uid(`cardedit_${cardId}`);
 
@@ -72,6 +75,20 @@ export async function updateCard({
       unlockedImageURL = await getDownloadURL(up.ref);
     }
 
+    if (updates.lockedFile_B) {
+      const keyLockedB = `${baseKey}_lockedB_${updates.lockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refLockedB = storageRef(storage, `classes/${classId}/cards/${keyLockedB}`);
+      const upB = await uploadBytes(refLockedB, updates.lockedFile_B);
+      lockedImageURL_B = await getDownloadURL(upB.ref);
+    }
+
+    if (updates.unlockedFile_B) {
+      const keyUnlockedB = `${baseKey}_unlockedB_${updates.unlockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refUnlockedB = storageRef(storage, `classes/${classId}/cards/${keyUnlockedB}`);
+      const upB = await uploadBytes(refUnlockedB, updates.unlockedFile_B);
+      unlockedImageURL_B = await getDownloadURL(upB.ref);
+    }
+
     if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
     if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
 
@@ -87,7 +104,7 @@ export async function updateCard({
           )
         : [];
 
-    await updateDoc(cardRef, {
+    const updatePayload = {
       title: (title || "").trim(),
       description: description || "",
       points: Number(points) || 0,
@@ -95,8 +112,16 @@ export async function updateCard({
       linkedStreakIds: cleanIds,
       imageURL: unlockedImageURL,
       lockedImageURL,
+      imageURL_B: unlockedImageURL_B,
+      lockedImageURL_B,
       updatedAt: Date.now(),
-    });
+    };
+
+    if (updates.evolution !== undefined) {
+      updatePayload.evolution = updates.evolution;
+    }
+
+    await updateDoc(cardRef, updatePayload);
   } catch (err) {
     console.error("updateCard error", err);
     if (alertFn) alertFn("Failed to update card. See console.");
@@ -114,8 +139,13 @@ export async function createCard({
   linkedStreakIds = [],
   lockedFile,
   unlockedFile,
+  lockedFile_B,
+  unlockedFile_B,
   lockedFileInputRef,
   unlockedFileInputRef,
+  lockedFileBInputRef,
+  unlockedFileBInputRef,
+  evolution = null,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
 }) {
   if (!classId) return;
@@ -128,6 +158,8 @@ export async function createCard({
     const baseKey = uid("card");
     let lockedImageURL = "";
     let unlockedImageURL = "";
+    let lockedImageURL_B = "";
+    let unlockedImageURL_B = "";
 
     if (lockedFile) {
       const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
@@ -143,6 +175,20 @@ export async function createCard({
       unlockedImageURL = await getDownloadURL(snapUnlocked.ref);
     }
 
+    if (lockedFile_B) {
+      const keyLockedB = `${baseKey}_lockedB_${lockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refLockedB = storageRef(storage, `classes/${classId}/cards/${keyLockedB}`);
+      const snapLockedB = await uploadBytes(refLockedB, lockedFile_B);
+      lockedImageURL_B = await getDownloadURL(snapLockedB.ref);
+    }
+
+    if (unlockedFile_B) {
+      const keyUnlockedB = `${baseKey}_unlockedB_${unlockedFile_B.name.replace(/\s+/g, "_")}`;
+      const refUnlockedB = storageRef(storage, `classes/${classId}/cards/${keyUnlockedB}`);
+      const snapUnlockedB = await uploadBytes(refUnlockedB, unlockedFile_B);
+      unlockedImageURL_B = await getDownloadURL(snapUnlockedB.ref);
+    }
+
     if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
     if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
 
@@ -156,6 +202,9 @@ export async function createCard({
       linkedStreakIds: category === "points" ? cleanLinked : [],
       imageURL: unlockedImageURL,
       lockedImageURL,
+      imageURL_B: unlockedImageURL_B,
+      lockedImageURL_B,
+      evolution: evolution || null,
       createdAt: Date.now(),
     };
 
@@ -163,6 +212,8 @@ export async function createCard({
 
     if (lockedFileInputRef?.current) lockedFileInputRef.current.value = "";
     if (unlockedFileInputRef?.current) unlockedFileInputRef.current.value = "";
+    if (lockedFileBInputRef?.current) lockedFileBInputRef.current.value = "";
+    if (unlockedFileBInputRef?.current) unlockedFileBInputRef.current.value = "";
   } catch (err) {
     console.error("createCard err:", err);
     if (alertFn) alertFn("Failed to add card. Check Storage permissions or console.");
@@ -207,6 +258,12 @@ export async function giveCardToStudent({
     const studentSnap = await getDoc(studentRef);
     if (!studentSnap.exists()) return alertFn ? alertFn("Student not found") : undefined;
     const sdata = studentSnap.data();
+
+    if (!isCardUnlockedForStudent(sdata, { id: cardId, ...cardData })) {
+      return alertFn
+        ? alertFn("Esta carta de evolución está bloqueada para este alumno. Debe evolucionarla primero.")
+        : undefined;
+    }
 
     const today = todayISODate();
     const multiplier = computeEffectiveMultiplier(sdata, today);
@@ -324,12 +381,19 @@ export async function giveCardToStudentsBulk({
     const pending = [];
     const maxHitsByStreak = new Map();
 
+    let skippedLocked = 0;
+
     for (let i = 0; i < studentIds.length; i++) {
       const studentId = studentIds[i];
       const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
       const studentSnap = await getDoc(studentRef);
       if (!studentSnap.exists()) continue;
       const sdata = studentSnap.data();
+
+      if (!isCardUnlockedForStudent(sdata, { id: cardId, ...cardData })) {
+        skippedLocked += 1;
+        continue;
+      }
 
       const baseMultiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
       const effectivePoints = round2(basePoints * computeEffectiveMultiplier(sdata, today));
@@ -482,7 +546,14 @@ export async function giveCardToStudentsBulk({
     }
 
     if (writes > 0) await batch.commit();
-    if (alertFn) alertFn(`Card given to ${given} student${given === 1 ? "" : "s"}.`);
+    if (alertFn) {
+      if (given === 0 && skippedLocked > 0) {
+        alertFn("Ninguno de los alumnos seleccionados ha desbloqueado todavía esta evolución.");
+      } else {
+        const extra = skippedLocked > 0 ? ` (${skippedLocked} omitidos por evolución bloqueada)` : "";
+        alertFn(`Card given to ${given} student${given === 1 ? "" : "s"}${extra}.`);
+      }
+    }
   } catch (err) {
     console.error("giveCardToStudentsBulk error", err);
     if (alertFn) alertFn("Failed to give card to students. See console.");
