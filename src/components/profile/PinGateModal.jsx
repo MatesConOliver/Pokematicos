@@ -13,7 +13,7 @@ export default function PinGateModal({ student, onClose, onSubmit }) {
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 340 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div>
-            <h3 style={{ margin: 0 }}>Introduce el PIN</h3>
+            <h3 style={{ margin: 0 }}>Enter PIN</h3>
             <div className="muted">{student.name}</div>
           </div>
           <button className="btn" onClick={onClose}>Close</button>
@@ -48,9 +48,9 @@ export default function PinGateModal({ student, onClose, onSubmit }) {
         </div>
 
         <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className="btn" onClick={onClose}>Cancelar</button>
+          <button className="btn" onClick={onClose}>Cancel</button>
           <button className="btn primary" disabled={pin.length !== 4} onClick={handleSubmit}>
-            Entrar
+            Enter
           </button>
         </div>
       </div>

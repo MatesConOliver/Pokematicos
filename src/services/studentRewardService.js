@@ -86,7 +86,7 @@ export async function redeemIndividual({
     const linkedCard = cards.find((c) => c.id === r.cardId);
     if (linkedCard && !isCardUnlockedForStudent(s, linkedCard)) {
       return alertFn
-        ? alertFn("Esta recompensa otorga una carta de evolución que aún está bloqueada para el alumno.")
+        ? alertFn("This reward grants an evolution card that is still locked for this student.")
         : undefined;
     }
   }
@@ -106,6 +106,7 @@ export async function redeemIndividual({
       cost,
       date: now,
       type: "individual",
+      ...(r.cardId ? { cardId: r.cardId } : {}),
     };
 
     let newCards = [...(s.cards || [])];
@@ -183,7 +184,7 @@ export async function redeemGroup({
       if (blockedNames.length > 0) {
         return alertFn
           ? alertFn(
-              `No se puede canjear: ${blockedNames.join(", ")} aún no ha(n) desbloqueado la evolución "${linkedCard.title}".`
+              `Cannot redeem: ${blockedNames.join(", ")} ${blockedNames.length === 1 ? "has" : "have"} not unlocked the evolution "${linkedCard.title}" yet.`
             )
           : undefined;
       }
@@ -219,6 +220,7 @@ export async function redeemGroup({
         date: now,
         type: "group",
         contributors,
+        ...(r.cardId ? { cardId: r.cardId } : {}),
       };
 
       let newCards = [...(st.cards || [])];

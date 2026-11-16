@@ -119,12 +119,12 @@ export default function EvolutionModal({
       <div style={{ textAlign: "center", marginBottom: 24, zIndex: 2 }}>
         {stage === 0 && (
           <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: "#e0e7ff" }}>
-            El poder de la evolución despierta...
+            The power of evolution awakens...
           </h2>
         )}
         {stage === 1 && (
           <h2 style={{ fontSize: 28, fontWeight: 900, margin: 0, color: "#fef08a", textShadow: "0 0 20px #eab308" }}>
-            ¡¿Qué?! ¡{baseCard?.title || "La carta"} está evolucionando!
+            What?! {baseCard?.title || "The card"} is evolving!
           </h2>
         )}
         {stage === 2 && (
@@ -142,7 +142,7 @@ export default function EvolutionModal({
                 marginBottom: 8,
               }}
             >
-              ¡Evolución Desbloqueada!
+              Evolution Unlocked!
             </span>
             <h1
               style={{
@@ -153,7 +153,7 @@ export default function EvolutionModal({
                 textShadow: "0 0 25px rgba(253, 224, 71, 0.8)",
               }}
             >
-              ¡Has desbloqueado a {evolvedCard?.title}!
+              You unlocked {evolvedCard?.title}!
             </h1>
           </div>
         )}
@@ -250,7 +250,7 @@ export default function EvolutionModal({
               border: "1px solid rgba(255, 255, 255, 0.15)",
             }}
           >
-            🔮 Se ha consumido <b>1 Catalizador</b>. Tus cartas base se conservan y ya puedes solicitar o conseguir <b>{evolvedCard?.title}</b>.
+            🔮 <b>1 Catalyst</b> was consumed. Your base cards are preserved and you can now request or earn <b>{evolvedCard?.title}</b>.
           </div>
         )}
 
@@ -270,11 +270,11 @@ export default function EvolutionModal({
               cursor: "pointer",
             }}
           >
-            ¡Genial! Continuar
+            Awesome! Continue
           </button>
         ) : (
           <div style={{ fontSize: 13, color: "#a1a1aa", fontStyle: "italic" }}>
-            Canalizando energía evolutiva...
+            Channeling evolutionary energy...
           </div>
         )}
       </div>

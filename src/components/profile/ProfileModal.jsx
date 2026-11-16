@@ -4,7 +4,6 @@ import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { PublicStudentIdDisplay } from "./PublicStudentIdDisplay";
 import { RewardCodeRedemption } from "./RewardCodeRedemption";
-import { reconcileAndEnrichStudentHistory } from "../../services/rewardCodeService.js";
 import { round2, formatPoints } from "../../utils/helpers";
 import {
   isEvolutionCard,
@@ -34,33 +33,13 @@ export default function ProfileModal({
   onCreateRequest,
   onCancelRequest,
 }) {
-  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "evolutions" | "history" | "settings" | "redeem"
+  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "evolutions" | "settings" | "redeem"
 
   // Profile customization state
   const [emojis, setEmojis] = useState(student.nameEmojis || "");
   const [color, setColor] = useState(student.profileColor || "");
   const [flagValue, setFlagValue] = useState(student.flagValue === "B" ? "B" : "A");
   const [savingFlagValue, setSavingFlagValue] = useState(false);
-
-  // Enriched history state for retrocompatibility
-  const [enrichedHistory, setEnrichedHistory] = useState(student.rewardsHistory || []);
-
-  useEffect(() => {
-    let isCancelled = false;
-    reconcileAndEnrichStudentHistory({ db, classId, student })
-      .then((history) => {
-        if (!isCancelled && Array.isArray(history)) {
-          setEnrichedHistory(history);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to reconcile history:", err);
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [db, classId, student]);
 
   useEffect(() => {
     setFlagValue(student.flagValue === "B" ? "B" : "A");
@@ -246,24 +225,6 @@ export default function ProfileModal({
             }}
           >
             🎁 Rewards
-          </button>
-
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setActiveTab("history")}
-            style={{
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              borderBottom: activeTab === "history" ? "3px solid #2563eb" : "3px solid transparent",
-              background: activeTab === "history" ? "#eff6ff" : "transparent",
-              color: activeTab === "history" ? "#1d4ed8" : "#4b5563",
-              fontWeight: activeTab === "history" ? 700 : 500,
-              padding: "8px 14px",
-              fontSize: 13,
-            }}
-          >
-            📜 History
           </button>
 
           <button
@@ -524,7 +485,7 @@ export default function ProfileModal({
                               onClick={() => {
                                 if (!isUnlocked) {
                                   if (onValidationError) {
-                                    onValidationError("Esta carta de evolución está bloqueada. ¡Evoluciónala primero!");
+                                    onValidationError("This evolution card is locked. Evolve it first!");
                                   }
                                   return;
                                 }
@@ -602,7 +563,7 @@ export default function ProfileModal({
                                       padding: "1px 5px",
                                     }}
                                   >
-                                    {isUnlocked ? `+${c.points || 0} pts` : "🔒 Evolución"}
+                                    {isUnlocked ? `+${c.points || 0} pts` : "🔒 Evolution"}
                                   </span>
                                 </div>
                               </div>
@@ -927,7 +888,7 @@ export default function ProfileModal({
                                 cursor: "not-allowed",
                               }}
                             >
-                              🔒 Evolución bloqueada
+                              🔒 Evolution locked
                             </button>
                           ) : canAfford ? (
                             <button
@@ -1157,207 +1118,7 @@ export default function ProfileModal({
             </div>
           )}
 
-          {/* ================= TAB 3: HISTORY ================= */}
-          {activeTab === "history" && (
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  color: "#6b7280",
-                  fontWeight: 700,
-                  marginBottom: 12,
-                }}
-              >
-                Reward & Code History
-              </div>
-
-              {((enrichedHistory && enrichedHistory.length > 0 ? enrichedHistory : (student.rewardsHistory || [])).length === 0) ? (
-                <div style={{ textAlign: "center", padding: "30px", color: "#9ca3af", fontStyle: "italic" }}>
-                  No rewards or codes redeemed yet.
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {[...(enrichedHistory.length > 0 ? enrichedHistory : (student.rewardsHistory || []))]
-                    .sort((a, b) => {
-                      const timeA = a.redeemedAt || (a.date ? new Date(a.date).getTime() : 0);
-                      const timeB = b.redeemedAt || (b.date ? new Date(b.date).getTime() : 0);
-                      return timeB - timeA;
-                    })
-                    .map((h) => {
-                      const isGroup = h.type === "group" || h.mode === "group";
-                      const isCode = Boolean(
-                        h.isCodeRedemption ||
-                        h.type === "achievement" ||
-                        h.type === "achievement_card" ||
-                        (!h.cost && (h.pointsAwarded !== undefined || h.source || h.sourceId))
-                      );
-
-                      const linkedCard = h.cardId ? cardsMap.get(h.cardId) : null;
-                      const cardImg = h.cardId
-                        ? getCardDisplayImage(linkedCard, displayFlagValue, false) || linkedCard?.imageURL || linkedCard?.displayImageURL
-                        : null;
-
-                      return (
-                        <div
-                          key={h.id || Math.random()}
-                          style={{
-                            background: "#ffffff",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: 12,
-                            padding: "12px 14px",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                          }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-                              {cardImg && (
-                                <img
-                                  src={cardImg}
-                                  alt=""
-                                  style={{
-                                    width: 34,
-                                    height: 46,
-                                    objectFit: "cover",
-                                    borderRadius: 6,
-                                    flexShrink: 0,
-                                    border: "1px solid #e2e8f0",
-                                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                                  }}
-                                />
-                              )}
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontWeight: 700, color: "#111827", fontSize: 14, wordBreak: "break-word" }}>
-                                  {isCode
-                                    ? (h.activityName || h.title || h.name || "Activity")
-                                    : (h.title || "Reward")}
-                                </div>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    fontSize: 11,
-                                    color: "#6b7280",
-                                    marginTop: 3,
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  {isCode ? (
-                                    <>
-                                      <span
-                                        style={{
-                                          background: "#f1f5f9",
-                                          color: "#334155",
-                                          padding: "1px 7px",
-                                          borderRadius: 4,
-                                          fontWeight: 700,
-                                        }}
-                                      >
-                                        Source: {h.source || h.sourceId || "Code"}
-                                      </span>
-                                      <span>•</span>
-                                      <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
-                                      {h.cardId && (
-                                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
-                                          • 🃏 Card: {linkedCard?.title || h.cardTitle || h.cardId}
-                                        </span>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
-                                      {isGroup && (
-                                        <span
-                                          style={{
-                                            background: "#e0f2fe",
-                                            color: "#0369a1",
-                                            padding: "1px 6px",
-                                            borderRadius: 4,
-                                            fontWeight: 600,
-                                            fontSize: 10,
-                                          }}
-                                        >
-                                          👥 GROUP
-                                        </span>
-                                      )}
-                                      {h.cardId && (
-                                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
-                                          • 🃏 Linked Card
-                                        </span>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            {isCode ? (
-                              <div
-                                style={{
-                                  background: "#dcfce7",
-                                  color: "#15803d",
-                                  border: "1px solid #bbf7d0",
-                                  fontWeight: 800,
-                                  fontSize: 12,
-                                  padding: "3px 10px",
-                                  borderRadius: 999,
-                                  whiteSpace: "nowrap",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                +{h.pointsAwarded ?? 0} pts
-                              </div>
-                            ) : (
-                              <div
-                                style={{
-                                  background: "#fee2e2",
-                                  color: "#991b1b",
-                                  border: "1px solid #fecaca",
-                                  fontWeight: 800,
-                                  fontSize: 12,
-                                  padding: "3px 10px",
-                                  borderRadius: 999,
-                                  whiteSpace: "nowrap",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                -{h.cost} pts
-                              </div>
-                            )}
-                          </div>
-
-                          {!isCode && isGroup && h.contributors && (
-                            <div
-                              style={{
-                                marginTop: 4,
-                                paddingTop: 6,
-                                borderTop: "1px dashed #e5e7eb",
-                                fontSize: 11,
-                                color: "#4b5563",
-                                lineHeight: "1.4em",
-                              }}
-                            >
-                              <span style={{ fontWeight: 600 }}>Splitting with: </span>
-                              {h.contributors
-                                .filter((c) => c.name !== student.name)
-                                .map((c) => `${c.name} (${c.cost})`)
-                                .join(", ")}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ================= TAB 4: SETTINGS & PIN ================= */}
+          {/* ================= TAB 3: SETTINGS & PIN ================= */}
           {activeTab === "settings" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <PublicStudentIdDisplay studentId={student.id} />
@@ -1597,11 +1358,6 @@ export default function ProfileModal({
                 studentId={student.id}
                 onSuccess={() => {
                   onValidationError("Achievement redeemed successfully! ✨");
-                  reconcileAndEnrichStudentHistory({ db, classId, student })
-                    .then((h) => {
-                      if (Array.isArray(h)) setEnrichedHistory(h);
-                    })
-                    .catch((e) => console.warn("History update error:", e));
                 }}
               />
             </div>

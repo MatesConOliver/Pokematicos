@@ -195,7 +195,7 @@ export async function executeEvolution({
     history.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type: "evolution",
-      title: `Evolución desbloqueada: ${evolutionCard.title}`,
+      title: `Evolution unlocked: ${evolutionCard.title}`,
       evolutionCardId: evolutionCard.id,
       baseCardId: eligibility.baseCardId,
       catalystCardId: targetCatalystId || null,

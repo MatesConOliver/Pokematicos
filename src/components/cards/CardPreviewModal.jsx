@@ -97,7 +97,7 @@ export default function CardPreviewModal({
                       fontWeight: 800,
                     }}
                   >
-                    🧬 {eligibility?.isAlreadyUnlocked ? "Evolución Desbloqueada" : "Carta de Evolución"}
+                    🧬 {eligibility?.isAlreadyUnlocked ? "Evolution Unlocked" : "Evolution Card"}
                   </span>
                 )}
               </div>
@@ -123,13 +123,13 @@ export default function CardPreviewModal({
                   }}
                 >
                   <div style={{ fontWeight: 800, fontSize: 13, color: "#4338ca", marginBottom: 6 }}>
-                    Requisitos de Evolución:
+                    Evolution Requirements:
                   </div>
 
                   <div style={{ fontSize: 12, display: "grid", gap: 6, color: "#334155" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>
-                        🃏 Carta base: <b>{baseCard?.title || "Carta Previa"}</b>
+                        🃏 Base card: <b>{baseCard?.title || "Base Card"}</b>
                       </span>
                       <span
                         style={{
@@ -141,13 +141,13 @@ export default function CardPreviewModal({
                           color: eligibility?.hasCopies ? "#166534" : "#475569",
                         }}
                       >
-                        {eligibility ? `${eligibility.currentCopies} / ${cardPreview.evolution?.requiredCopies || 1}` : `${cardPreview.evolution?.requiredCopies || 1} necesarias`}
+                        {eligibility ? `${eligibility.currentCopies} / ${cardPreview.evolution?.requiredCopies || 1}` : `${cardPreview.evolution?.requiredCopies || 1} required`}
                       </span>
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>
-                        🔮 Catalizador: <b>{catalystCard?.title || "Piedra / Objeto"}</b>
+                        🔮 Catalyst: <b>{catalystCard?.title || "Stone / Item"}</b>
                       </span>
                       <span
                         style={{
@@ -160,17 +160,17 @@ export default function CardPreviewModal({
                         }}
                       >
                         {!catalystCard
-                          ? "Sin configurar"
+                          ? "Not configured"
                           : eligibility?.hasCatalyst
-                          ? "Disponible ✓"
-                          : "1 Necesario"}
+                          ? "Available ✓"
+                          : "1 Required"}
                       </span>
                     </div>
                   </div>
 
                   {activeStudent && (
                     <div style={{ marginTop: 8, fontSize: 11, color: "#64748b" }}>
-                      Progreso de: <b>{activeStudent.name}</b>
+                      Progress for: <b>{activeStudent.name}</b>
                     </div>
                   )}
 
@@ -195,7 +195,7 @@ export default function CardPreviewModal({
                         cursor: "pointer",
                       }}
                     >
-                      ✨ ¡Evolucionar ahora!
+                      ✨ Evolve now!
                     </button>
                   )}
                 </div>
@@ -203,7 +203,7 @@ export default function CardPreviewModal({
 
               <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button className="btn" onClick={onClose}>
-                  Cerrar
+                  Close
                 </button>
               </div>
             </div>

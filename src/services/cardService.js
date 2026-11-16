@@ -261,7 +261,7 @@ export async function giveCardToStudent({
 
     if (!isCardUnlockedForStudent(sdata, { id: cardId, ...cardData })) {
       return alertFn
-        ? alertFn("Esta carta de evolución está bloqueada para este alumno. Debe evolucionarla primero.")
+        ? alertFn("This evolution card is locked for this student. They must evolve it first.")
         : undefined;
     }
 
@@ -548,9 +548,9 @@ export async function giveCardToStudentsBulk({
     if (writes > 0) await batch.commit();
     if (alertFn) {
       if (given === 0 && skippedLocked > 0) {
-        alertFn("Ninguno de los alumnos seleccionados ha desbloqueado todavía esta evolución.");
+        alertFn("None of the selected students have unlocked this evolution yet.");
       } else {
-        const extra = skippedLocked > 0 ? ` (${skippedLocked} omitidos por evolución bloqueada)` : "";
+        const extra = skippedLocked > 0 ? ` (${skippedLocked} skipped — evolution locked)` : "";
         alertFn(`Card given to ${given} student${given === 1 ? "" : "s"}${extra}.`);
       }
     }

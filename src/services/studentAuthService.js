@@ -17,11 +17,11 @@ export async function changePin(
   alertFn = null
 ) {
   if (!verifyPin(student, currentPin)) {
-    if (alertFn) alertFn("El PIN actual no es correcto.");
+    if (alertFn) alertFn("Current PIN is incorrect.");
     return false;
   }
   if (!/^\d{4}$/.test(String(newPin || ""))) {
-    if (alertFn) alertFn("El nuevo PIN debe tener 4 dígitos.");
+    if (alertFn) alertFn("New PIN must be 4 digits.");
     return false;
   }
   try {
@@ -31,7 +31,7 @@ export async function changePin(
     return true;
   } catch (err) {
     console.error(err);
-    if (alertFn) alertFn("No se pudo cambiar el PIN.");
+    if (alertFn) alertFn("Could not change PIN.");
     return false;
   }
 }
@@ -44,7 +44,7 @@ export async function resetPin(db, classId, studentId, alertFn = null) {
     return true;
   } catch (err) {
     console.error(err);
-    if (alertFn) alertFn("No se pudo resetear el PIN.");
+    if (alertFn) alertFn("Could not reset PIN.");
     return false;
   }
 }

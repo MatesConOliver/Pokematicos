@@ -226,14 +226,14 @@ export default function CardEditModal({
                 onChange={(e) => setIsEvolution(e.target.checked)}
                 style={{ width: 16, height: 16, accentColor: "#4f46e5" }}
               />
-              🧬 ¿Es una evolución de otra carta?
+              🧬 Is this an evolution of another card?
             </label>
 
             {isEvolution && (
               <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
-                    Carta base pre-evolución:
+                    Pre-evolution base card:
                   </div>
                   <select
                     value={baseCardId}
@@ -246,7 +246,7 @@ export default function CardEditModal({
                       background: "#ffffff",
                     }}
                   >
-                    <option value="">Selecciona carta base...</option>
+                    <option value="">Select base card...</option>
                     {cards
                       .filter((c) => c.id !== card.id)
                       .map((c) => {
@@ -267,7 +267,7 @@ export default function CardEditModal({
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                   <div style={{ flex: 1, minWidth: 140 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
-                      Copias base requeridas:
+                      Required base copies:
                     </div>
                     <input
                       type="number"
@@ -286,7 +286,7 @@ export default function CardEditModal({
 
                   <div style={{ flex: 1, minWidth: 160 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
-                      Objeto Catalizador:
+                      Catalyst item:
                     </div>
                     <select
                       value={catalystCardId}
@@ -299,7 +299,7 @@ export default function CardEditModal({
                         background: "#ffffff",
                       }}
                     >
-                      <option value="">(Catalizador universal)</option>
+                      <option value="">(Universal catalyst)</option>
                       {cards
                         .filter(
                           (c) =>
@@ -315,7 +315,7 @@ export default function CardEditModal({
                   </div>
                 </div>
                 <div style={{ fontSize: 11, color: "#6366f1" }}>
-                  💡 Al evolucionar, se consumirá 1 Catalizador de la biblioteca del alumno y se conservarán las cartas base.
+                  💡 When evolving, 1 Catalyst from the student's inventory will be consumed and the base cards will be kept.
                 </div>
               </div>
             )}
@@ -338,7 +338,7 @@ export default function CardEditModal({
               className="btn primary"
               onClick={() => {
                 if (isEvolution && !baseCardId) {
-                  if (onValidationError) onValidationError("Selecciona la carta base para la evolución");
+                  if (onValidationError) onValidationError("Select the base card for the evolution");
                   return;
                 }
 

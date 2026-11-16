@@ -191,7 +191,7 @@ export default function CardLibrary({
           }}
         >
           <span style={{ fontWeight: 800, color: "#312e81" }}>
-            🔮 Catalizador universal:
+            🔮 Universal catalyst:
           </span>
           <select
             value={defaultCatalystCardId || ""}
@@ -206,7 +206,7 @@ export default function CardLibrary({
               fontSize: 12,
             }}
           >
-            <option value="">Selecciona objeto catalizador (Rewards/Extra)...</option>
+            <option value="">Select catalyst item (Rewards/Extra)...</option>
             {catalystCandidates.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.title} ({c.category || "points"})

@@ -78,7 +78,7 @@ export async function setDefaultCatalystForClass(db, classId, cardId, alertFn = 
     });
   } catch (err) {
     console.error("setDefaultCatalystForClass error:", err);
-    if (alertFn) alertFn("No se pudo actualizar el catalizador universal.");
+    if (alertFn) alertFn("Could not update universal catalyst.");
   }
 }
 

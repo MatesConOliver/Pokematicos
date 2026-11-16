@@ -13,6 +13,7 @@ import RewardCardPickerModal from "./components/classes/RewardCardPickerModal";
 import FloatScheduleModal from "./components/classes/FloatScheduleModal";
 import FloatWindowEditModal from "./components/classes/FloatWindowEditModal";
 import ProfileModal from "./components/profile/ProfileModal";
+import StudentHistoryModal from "./components/profile/StudentHistoryModal";
 import PinGateModal from "./components/profile/PinGateModal";
 import ManageStudentModal from "./components/students/ManageStudentModal";
 import BulkStreakModal from "./components/classes/BulkStreakModal";
@@ -163,6 +164,8 @@ export default function App() {
 
   // Profile modal selection (guest + admin)
   const [profileStudentId, setProfileStudentId] = useState(null);
+  // Public student history modal selection (no PIN required)
+  const [historyStudentId, setHistoryStudentId] = useState(null);
   // Only the last PIN-verified student in THIS browser tab stays unlocked.
   // Opening/verifying another profile forgets the previous one.
   const [unlockedProfileList, setUnlockedProfileList] = useState(() => {
@@ -215,6 +218,11 @@ export default function App() {
   const profileStudent = useMemo(
     () => students.find((s) => s.id === profileStudentId) || null,
     [students, profileStudentId]
+  );
+
+  const historyStudent = useMemo(
+    () => students.find((s) => s.id === historyStudentId) || null,
+    [students, historyStudentId]
   );
 
   const profileNeedsPin =
@@ -561,9 +569,9 @@ export default function App() {
   // ----- Student requests (card / points, pending professor approval) -----
   async function createStudentRequest(classId, student, payload) {
     return runMutation({
-      loadingMessage: "Enviando petición...",
-      successMessage: "Petición enviada.",
-      errorMessage: "No se pudo enviar la petición.",
+      loadingMessage: "Sending request...",
+      successMessage: "Request sent.",
+      errorMessage: "Could not send request.",
       action: async () => {
         return createRequestService(
           db,
@@ -582,18 +590,18 @@ export default function App() {
 
   async function cancelStudentRequest(request) {
     return runMutation({
-      loadingMessage: "Cancelando...",
-      successMessage: "Petición cancelada.",
-      errorMessage: "No se pudo cancelar la petición.",
+      loadingMessage: "Cancelling...",
+      successMessage: "Request cancelled.",
+      errorMessage: "Could not cancel request.",
       action: async () => cancelRequestService(db, request.classId, request.id, notify),
     });
   }
 
   async function approveStudentRequest(request) {
     return runMutation({
-      loadingMessage: "Aprobando petición...",
-      successMessage: "Petición aprobada.",
-      errorMessage: "No se pudo aprobar la petición.",
+      loadingMessage: "Approving request...",
+      successMessage: "Request approved.",
+      errorMessage: "Could not approve request.",
       action: async () => {
         if (request.amount && (request.type === "points" || request.type === "both" || request.cardId)) {
           await quickAddPointsService({
@@ -625,9 +633,9 @@ export default function App() {
 
   async function rejectStudentRequest(request) {
     return runMutation({
-      loadingMessage: "Rechazando...",
-      successMessage: "Petición rechazada.",
-      errorMessage: "No se pudo rechazar la petición.",
+      loadingMessage: "Rejecting...",
+      successMessage: "Request rejected.",
+      errorMessage: "Could not reject request.",
       action: async () => rejectRequestService(db, request.classId, request.id, notify),
     });
   }
@@ -865,18 +873,18 @@ export default function App() {
   async function handleExecuteEvolution(studentId, evolutionCardId) {
     if (!ensureClassSelected()) return;
     const targetStudent = students.find((s) => s.id === studentId);
-    if (!targetStudent) return notify("Alumno no encontrado");
+    if (!targetStudent) return notify("Student not found");
 
     const canAct = mode === "admin" || (unlockedProfileIds && unlockedProfileIds.has(studentId));
     if (!canAct) {
-      notify("Introduce tu PIN para poder evolucionar.");
+      notify("Enter your PIN to evolve.");
       setProfileStudentId(studentId);
       return;
     }
 
     const evolutionCard = cardsById.get(evolutionCardId);
     if (!evolutionCard || !isEvolutionCard(evolutionCard)) {
-      return notify("Esta carta no tiene configuración de evolución.");
+      return notify("This card has no evolution configuration.");
     }
 
     const eligibility = checkEvolutionEligibility({
@@ -886,26 +894,26 @@ export default function App() {
     });
 
     if (eligibility.isAlreadyUnlocked) {
-      return notify("Ya has desbloqueado esta evolución.");
+      return notify("You have already unlocked this evolution.");
     }
     if (eligibility.missingCatalystConfig) {
-      return notify("El profesor aún no ha configurado el objeto catalizador para esta evolución.");
+      return notify("The teacher hasn't configured the catalyst item for this evolution yet.");
     }
     if (!eligibility.hasCopies) {
-      const baseName = cardsById.get(eligibility.baseCardId)?.title || "la carta base";
+      const baseName = cardsById.get(eligibility.baseCardId)?.title || "the base card";
       return notify(
-        `Necesitas ${eligibility.requiredCopies} copias de ${baseName} (tienes ${eligibility.currentCopies}).`
+        `You need ${eligibility.requiredCopies} copies of ${baseName} (you have ${eligibility.currentCopies}).`
       );
     }
     if (!eligibility.hasCatalyst) {
-      const catalystName = cardsById.get(eligibility.catalystCardId)?.title || "el catalizador";
-      return notify(`Necesitas 1 ${catalystName} en tu panel para poder evolucionar.`);
+      const catalystName = cardsById.get(eligibility.catalystCardId)?.title || "the catalyst";
+      return notify(`You need 1 ${catalystName} in your panel to evolve.`);
     }
 
     return runMutation({
-      loadingMessage: "Despertando la evolución...",
-      successMessage: "¡Evolución desbloqueada! Ya puedes solicitar esta carta.",
-      errorMessage: "No se pudo desbloquear la evolución.",
+      loadingMessage: "Awakening evolution...",
+      successMessage: "Evolution unlocked! You can now request this card.",
+      errorMessage: "Could not unlock evolution.",
       action: async () => {
         const result = await executeEvolution({
           db,
@@ -934,14 +942,14 @@ export default function App() {
 
       const canAct = mode === "admin" || (unlockedProfileIds && unlockedProfileIds.has(data.studentId));
       if (!canAct) {
-        notify("Introduce tu PIN para poder evolucionar.");
+        notify("Enter your PIN to evolve.");
         setProfileStudentId(data.studentId);
         return;
       }
 
       const targetStudent = students.find((s) => s.id === data.studentId);
       if (!targetStudent) {
-        notify("Alumno no encontrado");
+        notify("Student not found");
         return;
       }
 
@@ -958,7 +966,7 @@ export default function App() {
         (evo) => Boolean(evo.evolution?.catalystCardId || activeClass?.defaultCatalystCardId)
       );
       if (configuredEvolutions.length === 0) {
-        notify("El profesor aún no ha configurado el objeto catalizador para esta evolución.");
+        notify("The teacher hasn't configured the catalyst item for this evolution yet.");
         return;
       }
 
@@ -973,9 +981,9 @@ export default function App() {
           configuredEvolutions[0].evolution?.catalystCardId ||
           activeClass?.defaultCatalystCardId ||
           "";
-        const catalystName = cardsById.get(expectedCatalystId)?.title || "el catalizador";
+        const catalystName = cardsById.get(expectedCatalystId)?.title || "the catalyst";
         notify(
-          `Carta incorrecta: arrastra el catalizador («${catalystName}») sobre «${baseCard?.title || "la carta base"}» para iniciar la evolución.`
+          `Wrong card: drag the catalyst ("${catalystName}") onto "${baseCard?.title || "the base card"}" to start the evolution.`
         );
         return;
       }
@@ -988,7 +996,7 @@ export default function App() {
         if (matchingByCatalyst.length === 1) {
           handleExecuteEvolution(data.studentId, matchingByCatalyst[0].id);
         } else {
-          notify("Ya has desbloqueado todas las evoluciones disponibles para esta carta.");
+          notify("You have already unlocked all available evolutions for this card.");
         }
         return;
       }
@@ -1533,6 +1541,7 @@ export default function App() {
               onManageFlag={() => setShowClassFlagModal(true)}
               onManageStudent={setSelectedStudentId}
               onProfileStudent={setProfileStudentId}
+              onHistoryStudent={setHistoryStudentId}
               onChangeStudentStreak={(classId, studentId, streakId, delta, cfg) =>
                 changeStudentStreakValue({
                   db,
@@ -1600,7 +1609,7 @@ export default function App() {
                 if (activeStudentForLibrary) {
                   handleExecuteEvolution(activeStudentForLibrary.id, evoCard.id);
                 } else {
-                  notify("Abre el perfil de un alumno o introduce tu PIN para evolucionar");
+                  notify("Open a student's profile or enter your PIN to evolve.");
                 }
               }}
             />
@@ -1621,7 +1630,7 @@ export default function App() {
             setCardPreview(null);
             handleExecuteEvolution(activeStudentForLibrary.id, evoCard.id);
           } else {
-            notify("Abre el perfil de un alumno o introduce tu PIN para evolucionar");
+            notify("Open a student's profile or enter your PIN to evolve.");
           }
         }}
       />
@@ -1643,13 +1652,13 @@ export default function App() {
             style={{ maxWidth: 520 }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-              <h3 style={{ margin: 0 }}>🧬 Elige la evolución</h3>
+              <h3 style={{ margin: 0 }}>🧬 Choose Evolution</h3>
               <button className="btn" onClick={() => setEvolutionChoiceModal(null)}>
-                Cerrar
+                Close
               </button>
             </div>
             <p className="muted" style={{ marginTop: 6, marginBottom: 12 }}>
-              <strong>{evolutionChoiceModal.baseCard?.title}</strong> puede evolucionar a varias cartas para{" "}
+              <strong>{evolutionChoiceModal.baseCard?.title}</strong> can evolve into multiple cards for{" "}
               <strong>{evolutionChoiceModal.student?.name}</strong>:
             </p>
             <div style={{ display: "grid", gap: 10 }}>
@@ -1717,7 +1726,7 @@ export default function App() {
                         padding: "8px 14px",
                       }}
                     >
-                      ✨ Evolucionar
+                      ✨ Evolve
                     </button>
                   </div>
                 );
@@ -1752,7 +1761,7 @@ export default function App() {
             if (verifyPin(profileStudent, pin)) {
               rememberUnlockedProfile(profileStudent.id);
             } else {
-              notify("PIN incorrecto.");
+              notify("Incorrect PIN.");
             }
           }}
         />
@@ -1853,6 +1862,19 @@ export default function App() {
           myPendingRequests={myPendingRequests}
           onCreateRequest={(payload) => createStudentRequest(activeClassId, profileStudent, payload)}
           onCancelRequest={(request) => cancelStudentRequest(request)}
+        />
+      )}
+
+      {/* Public student history modal (visible to everyone without PIN) */}
+      {historyStudent && (
+        <StudentHistoryModal
+          student={historyStudent}
+          onClose={() => setHistoryStudentId(null)}
+          db={db}
+          classId={activeClassId}
+          allCards={cards}
+          rewards={unifiedRewards}
+          flagConfig={activeClass?.flagConfig}
         />
       )}
 

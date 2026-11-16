@@ -187,11 +187,11 @@ export default function ManageStudentModal({
         <div className="manage-student-grid">
           <div style={{ minWidth: 0 }}>
             <div style={{ marginTop: 12, border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-              <h4 style={{ marginTop: 0 }}>Editar alumno</h4>
+              <h4 style={{ marginTop: 0 }}>Edit student</h4>
 
               <div style={{ display: "grid", gap: 10 }}>
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>Nombre</div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Name</div>
                   <input
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
@@ -201,7 +201,7 @@ export default function ManageStudentModal({
 
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10 }}>
                   <div style={{ minWidth: 0 }}>
-                    <div className="muted" style={{ marginBottom: 6 }}>Puntos actuales</div>
+                    <div className="muted" style={{ marginBottom: 6 }}>Current points</div>
                     <input
                       type="number"
                       value={editCurrentPoints}
@@ -239,7 +239,7 @@ export default function ManageStudentModal({
                 </div>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button className="btn primary" onClick={saveEdits}>Guardar</button>
+                  <button className="btn primary" onClick={saveEdits}>Save</button>
                   <button
                     className="btn"
                     onClick={() => {
@@ -248,7 +248,7 @@ export default function ManageStudentModal({
                       setEditXP(student.xp || 0);
                     }}
                   >
-                    Deshacer
+                    Undo
                   </button>
                 </div>
               </div>
@@ -733,15 +733,15 @@ export default function ManageStudentModal({
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
                               }}
-                              title={unlocked ? (c.description || "") : "Evolución sin desbloquear"}
+                              title={unlocked ? (c.description || "") : "Evolution locked"}
                             >
-                              {unlocked ? (c.description || "—") : "🔒 Evolución sin desbloquear"}
+                              {unlocked ? (c.description || "—") : "🔒 Evolution locked"}
                             </div>
                           </div>
                           <button
                             className="btn primary"
                             disabled={!unlocked}
-                            title={unlocked ? "Give card" : "El alumno debe evolucionar esta carta primero"}
+                            title={unlocked ? "Give card" : "The student must evolve this card first"}
                             style={{
                               padding: "5px 12px",
                               fontSize: 12,

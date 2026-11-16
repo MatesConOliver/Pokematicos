@@ -28,7 +28,7 @@ export default function BulkGiveModal({
           Select students to receive this card. Points will be multiplied by each student's multiplier.
           {isEvo && (
             <div style={{ marginTop: 4, color: "#6d28d9", fontWeight: 700, fontSize: 12 }}>
-              🧬 Carta de evolución: solo los alumnos que ya la hayan desbloqueado pueden recibirla.
+              🧬 Evolution card: only students who have already unlocked it can receive it.
             </div>
           )}
         </div>
@@ -88,7 +88,7 @@ export default function BulkGiveModal({
                       fontWeight: 700,
                     }}
                   >
-                    🔒 Evolución bloqueada
+                    🔒 Evolution locked
                   </span>
                 )}
                 <span className="muted" style={{ marginLeft: "auto" }}>

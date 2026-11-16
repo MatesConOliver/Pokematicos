@@ -191,7 +191,7 @@ export default function LibraryCardRow({
                   cursor: "pointer",
                 }}
               >
-                ✨ ¡Evolucionar!
+                ✨ Evolve!
               </button>
             )}
           </div>

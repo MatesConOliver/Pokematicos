@@ -606,6 +606,12 @@ export async function reconcileAndEnrichStudentHistory({ db, classId, student })
     const catalogue = await getActivityCatalogue({ db, classId });
 
     // 3. Build lookup maps
+    const getActivityCardId = (item) => {
+      if (!item) return null;
+      if (item.rewardType === "points") return null;
+      return item.cardId || item.linkedCardId || item.rewardCardId || null;
+    };
+
     const achByComposite = new Map();
     const achByCardId = new Map();
     const achByName = new Map();
@@ -613,7 +619,8 @@ export async function reconcileAndEnrichStudentHistory({ db, classId, student })
     achievements.forEach((ach) => {
       const compId = `${ach.sourceId}_${ach.activityId}`;
       achByComposite.set(compId, ach);
-      if (ach.cardId) achByCardId.set(ach.cardId, ach);
+      const achCardId = ach.cardId || ach.linkedCardId || ach.rewardCardId || null;
+      if (achCardId) achByCardId.set(achCardId, ach);
       const nameKey = (ach.activityName || ach.name || "").trim().toLowerCase();
       if (nameKey) achByName.set(nameKey, ach);
     });
@@ -625,15 +632,18 @@ export async function reconcileAndEnrichStudentHistory({ db, classId, student })
     catalogue.forEach((act) => {
       const compId = `${act.sourceId}_${act.activityId}`;
       catByComposite.set(compId, act);
-      if (act.cardId) catByCardId.set(act.cardId, act);
+      const catCardId = getActivityCardId(act);
+      if (catCardId) catByCardId.set(catCardId, act);
       const nameKey = (act.name || "").trim().toLowerCase();
       if (nameKey) catByName.set(nameKey, act);
     });
 
     const studentCards = Array.isArray(student.cards) ? student.cards : [];
     const cardByCardId = new Map();
+    const cardByObtainedFrom = new Map();
     studentCards.forEach((c) => {
       if (c.cardId) cardByCardId.set(c.cardId, c);
+      if (c.obtainedFrom) cardByObtainedFrom.set(c.obtainedFrom, c);
     });
 
     const currentHistory = Array.isArray(student.rewardsHistory) ? [...student.rewardsHistory] : [];
@@ -649,6 +659,7 @@ export async function reconcileAndEnrichStudentHistory({ db, classId, student })
         h.isCodeRedemption ||
         isAchievementType ||
         isCardFromActivity ||
+        (h.obtainedFrom && String(h.obtainedFrom).startsWith("activity_")) ||
         (!h.cost && (h.pointsAwarded !== undefined || h.name || h.activityName))
       );
 
@@ -657,67 +668,101 @@ export async function reconcileAndEnrichStudentHistory({ db, classId, student })
         return h;
       }
 
-      // Try matching with an achievement or catalogue activity
-      let match = null;
+      // Try matching with an achievement AND/OR catalogue activity
+      let achMatch = null;
+      let catMatch = null;
       let matchedCompId = null;
 
       // Try 1: By sourceId + activityId if already on entry
       if (h.sourceId && h.activityId) {
         matchedCompId = `${h.sourceId}_${h.activityId}`;
-        match = achByComposite.get(matchedCompId) || catByComposite.get(matchedCompId);
+        achMatch = achByComposite.get(matchedCompId) || null;
+        catMatch = catByComposite.get(matchedCompId) || null;
       }
 
       // Try 2: By obtainedFrom string (e.g. "activity_math_quiz1")
-      if (!match && h.obtainedFrom && h.obtainedFrom.startsWith("activity_")) {
+      if (!achMatch && !catMatch && h.obtainedFrom && h.obtainedFrom.startsWith("activity_")) {
         const parts = h.obtainedFrom.replace("activity_", "").split("_");
         matchedCompId = `${parts[0]}_${parts.slice(1).join("_")}`;
-        match = achByComposite.get(matchedCompId) || catByComposite.get(matchedCompId);
+        achMatch = achByComposite.get(matchedCompId) || null;
+        catMatch = catByComposite.get(matchedCompId) || null;
       }
 
       // Try 3: By cardId
-      if (!match && h.cardId) {
-        match = achByCardId.get(h.cardId) || catByCardId.get(h.cardId);
-        if (match) matchedCompId = `${match.sourceId}_${match.activityId}`;
+      if (!achMatch && !catMatch && h.cardId) {
+        achMatch = achByCardId.get(h.cardId) || null;
+        catMatch = catByCardId.get(h.cardId) || null;
+        const found = achMatch || catMatch;
+        if (found) matchedCompId = `${found.sourceId}_${found.activityId}`;
       }
 
       // Try 4: Check student's owned cards by cardId for obtainedFrom
-      if (!match && h.cardId && cardByCardId.has(h.cardId)) {
+      if (!achMatch && !catMatch && h.cardId && cardByCardId.has(h.cardId)) {
         const c = cardByCardId.get(h.cardId);
         if (c.obtainedFrom && c.obtainedFrom.startsWith("activity_")) {
           const parts = c.obtainedFrom.replace("activity_", "").split("_");
           matchedCompId = `${parts[0]}_${parts.slice(1).join("_")}`;
-          match = achByComposite.get(matchedCompId) || catByComposite.get(matchedCompId);
+          achMatch = achByComposite.get(matchedCompId) || null;
+          catMatch = catByComposite.get(matchedCompId) || null;
         }
       }
 
       // Try 5: By name match
-      if (!match) {
+      if (!achMatch && !catMatch) {
         const searchName = (h.activityName || h.name || h.title || "").trim().toLowerCase();
         if (searchName) {
-          match = achByName.get(searchName) || catByName.get(searchName);
-          if (match) matchedCompId = `${match.sourceId}_${match.activityId}`;
+          achMatch = achByName.get(searchName) || null;
+          catMatch = catByName.get(searchName) || null;
+          const found = achMatch || catMatch;
+          if (found) matchedCompId = `${found.sourceId}_${found.activityId}`;
         }
       }
 
       if (matchedCompId) {
+        if (!achMatch) achMatch = achByComposite.get(matchedCompId) || null;
+        if (!catMatch) catMatch = catByComposite.get(matchedCompId) || null;
         matchedAchievementIds.add(matchedCompId);
       }
 
-      const resolvedActivityName = h.activityName || match?.activityName || match?.name || h.name || h.title || "Activity";
-      const resolvedSource = h.source || match?.sourceId || h.sourceId || "Code";
-      const resolvedSourceId = h.sourceId || match?.sourceId || "";
-      const resolvedActivityId = h.activityId || match?.activityId || "";
+      const match = achMatch || catMatch;
+      const obtainedCard =
+        (matchedCompId && cardByObtainedFrom.get(`activity_${matchedCompId}`)) ||
+        (h.obtainedFrom && cardByObtainedFrom.get(h.obtainedFrom)) ||
+        null;
+
+      const resolvedActivityName =
+        h.activityName ||
+        achMatch?.activityName ||
+        catMatch?.name ||
+        h.name ||
+        h.title ||
+        "Activity";
+      const resolvedSource = h.source || achMatch?.sourceId || catMatch?.sourceId || h.sourceId || "Code";
+      const resolvedSourceId = h.sourceId || achMatch?.sourceId || catMatch?.sourceId || "";
+      const resolvedActivityId = h.activityId || achMatch?.activityId || catMatch?.activityId || "";
       const resolvedPoints = Number(
         h.pointsAwarded !== undefined
           ? h.pointsAwarded
-          : match?.effectivePointsAwarded !== undefined
-          ? match.effectivePointsAwarded
-          : match?.pointsAwarded !== undefined
-          ? match.pointsAwarded
+          : achMatch?.effectivePointsAwarded !== undefined
+          ? achMatch.effectivePointsAwarded
+          : catMatch?.pointsAwarded !== undefined
+          ? catMatch.pointsAwarded
           : 0
       );
-      const resolvedCardId = h.cardId || match?.cardId || null;
-      const resolvedCardTitle = h.cardTitle || match?.cardName || (resolvedCardId && cardByCardId.get(resolvedCardId)?.title) || null;
+      const resolvedCardId =
+        h.cardId ||
+        achMatch?.cardId ||
+        achMatch?.linkedCardId ||
+        achMatch?.rewardCardId ||
+        getActivityCardId(catMatch) ||
+        obtainedCard?.cardId ||
+        null;
+      const resolvedCardTitle =
+        h.cardTitle ||
+        achMatch?.cardName ||
+        (resolvedCardId && cardByCardId.get(resolvedCardId)?.title) ||
+        obtainedCard?.title ||
+        null;
 
       const dateVal =
         h.date ||
@@ -747,7 +792,7 @@ export async function reconcileAndEnrichStudentHistory({ db, classId, student })
         h.activityName !== updated.activityName ||
         h.pointsAwarded !== updated.pointsAwarded ||
         !h.isCodeRedemption ||
-        h.cardId !== updated.cardId
+        (h.cardId || null) !== (updated.cardId || null)
       ) {
         hasChanges = true;
       }
@@ -759,6 +804,15 @@ export async function reconcileAndEnrichStudentHistory({ db, classId, student })
     achievements.forEach((ach) => {
       const compId = `${ach.sourceId}_${ach.activityId}`;
       if (!matchedAchievementIds.has(compId)) {
+        const catItem = catByComposite.get(compId) || null;
+        const obtainedCard = cardByObtainedFrom.get(`activity_${compId}`) || null;
+        const resolvedAchCardId =
+          ach.cardId ||
+          ach.linkedCardId ||
+          ach.rewardCardId ||
+          getActivityCardId(catItem) ||
+          obtainedCard?.cardId ||
+          null;
         const achDate = ach.redeemedAt?.toDate
           ? ach.redeemedAt.toDate().toISOString()
           : ach.redeemedAt
@@ -768,16 +822,20 @@ export async function reconcileAndEnrichStudentHistory({ db, classId, student })
         enrichedHistory.push({
           id: `ach_${compId}`,
           isCodeRedemption: true,
-          type: ach.cardId ? "achievement_card" : "achievement",
-          activityName: ach.activityName || ach.name || ach.activityId || "Activity",
-          title: ach.activityName || ach.name || ach.activityId || "Activity",
-          name: ach.activityName || ach.name || ach.activityId || "Activity",
+          type: resolvedAchCardId ? "achievement_card" : "achievement",
+          activityName: ach.activityName || ach.name || catItem?.name || ach.activityId || "Activity",
+          title: ach.activityName || ach.name || catItem?.name || ach.activityId || "Activity",
+          name: ach.activityName || ach.name || catItem?.name || ach.activityId || "Activity",
           source: ach.sourceId || "Code",
           sourceId: ach.sourceId || "",
           activityId: ach.activityId || "",
           pointsAwarded: Number(ach.effectivePointsAwarded ?? ach.pointsAwarded ?? 0),
-          cardId: ach.cardId || null,
-          cardTitle: ach.cardName || null,
+          cardId: resolvedAchCardId,
+          cardTitle:
+            ach.cardName ||
+            (resolvedAchCardId && cardByCardId.get(resolvedAchCardId)?.title) ||
+            obtainedCard?.title ||
+            null,
           date: achDate,
           redeemedAt: ach.redeemedAt?.toMillis ? ach.redeemedAt.toMillis() : Date.now(),
         });

@@ -21,6 +21,7 @@ export default function StudentsPanel({
   onManageFlag,
   onManageStudent,
   onProfileStudent,
+  onHistoryStudent,
   onChangeStudentStreak,
   onQuickAddPoints,
   onPreviewCard,
@@ -242,6 +243,13 @@ export default function StudentsPanel({
                         >
                           Profile
                         </button>
+                        <button
+                          className="btn"
+                          onClick={() => onHistoryStudent(student.id)}
+                          style={{ padding: "2px 7px", fontSize: 11 }}
+                        >
+                          History
+                        </button>
                       </div>
                     </div>
 
@@ -353,7 +361,7 @@ export default function StudentsPanel({
                           onDragStart={(e) => {
                             if (!canDragThisStudent) {
                               e.preventDefault();
-                              if (alertFn) alertFn("Introduce tu PIN para poder usar y arrastrar tus cartas.");
+                              if (alertFn) alertFn("Enter your PIN to use and drag your cards.");
                               onPromptPin?.(student);
                               return;
                             }
@@ -383,8 +391,8 @@ export default function StudentsPanel({
                           }}
                           title={
                             canDragThisStudent
-                              ? `${group.title} (Clic para ver / Arrastra sobre la carta pre-evolución en la biblioteca para evolucionar)`
-                              : `${group.title} (Clic para previsualizar)`
+                              ? `${group.title} (Click to view / Drag onto pre-evolution card in the library to evolve)`
+                              : `${group.title} (Click to preview)`
                           }
                           onClick={() => onPreviewCard({ ownedList: ownedUniqueList, ownedIndex: index, isLibraryCard: false })}
                         >

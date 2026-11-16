@@ -24,7 +24,7 @@ export async function createRequest(
     );
     const pendingSnap = await getDocs(pendingQ);
     if (pendingSnap.size >= MAX_PENDING_REQUESTS_PER_STUDENT) {
-      if (alertFn) alertFn(`Ya tienes ${MAX_PENDING_REQUESTS_PER_STUDENT} peticiones pendientes. Espera a que se resuelvan.`);
+      if (alertFn) alertFn(`You already have ${MAX_PENDING_REQUESTS_PER_STUDENT} pending requests. Wait for them to be resolved.`);
       return false;
     }
 
@@ -53,7 +53,7 @@ export async function createRequest(
     return true;
   } catch (err) {
     console.error("createRequest error", err);
-    if (alertFn) alertFn("No se pudo enviar la petición.");
+    if (alertFn) alertFn("Could not send request.");
     return false;
   }
 }
@@ -64,7 +64,7 @@ export async function cancelRequest(db, classId, requestId, alertFn = null) {
     return true;
   } catch (err) {
     console.error("cancelRequest error", err);
-    if (alertFn) alertFn("No se pudo cancelar la petición.");
+    if (alertFn) alertFn("Could not cancel request.");
     return false;
   }
 }
@@ -75,7 +75,7 @@ export async function rejectRequest(db, classId, requestId, alertFn = null) {
     return true;
   } catch (err) {
     console.error("rejectRequest error", err);
-    if (alertFn) alertFn("No se pudo rechazar la petición.");
+    if (alertFn) alertFn("Could not reject request.");
     return false;
   }
 }
@@ -86,7 +86,7 @@ export async function resolveRequestApproved(db, classId, requestId, alertFn = n
     return true;
   } catch (err) {
     console.error("resolveRequestApproved error", err);
-    if (alertFn) alertFn("La petición se concedió pero no se pudo limpiar de la lista.");
+    if (alertFn) alertFn("Request was granted, but could not be cleared from the list.");
     return false;
   }
 }
