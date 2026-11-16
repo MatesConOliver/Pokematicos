@@ -39,6 +39,7 @@ export async function redeemRewardCode({
   classId,
   studentId,
   codeString,
+  allCards = null,
   alertFn = null,
 }) {
   if (!db || !classId || !studentId || !codeString) {
@@ -187,6 +188,7 @@ export async function redeemRewardCode({
       sourceId: decoded.sourceId,
       activityId: decoded.activityId,
       activity,
+      allCards,
     });
 
     return {
@@ -288,6 +290,7 @@ export async function recordAndAwardAchievement({
   sourceId,
   activityId,
   activity,
+  allCards = null,
 }) {
   const batch = writeBatch(db);
 
@@ -300,7 +303,12 @@ export async function recordAndAwardAchievement({
     }
 
     const studentData = studentSnap.data();
-    const mult = computeEffectiveMultiplier(studentData, todayISODate());
+    let cardLibrary = Array.isArray(allCards) ? allCards : null;
+    if (!cardLibrary && Array.isArray(studentData.cards) && studentData.cards.length > 0) {
+      const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
+      cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+    const mult = computeEffectiveMultiplier(studentData, todayISODate(), cardLibrary || []);
     const effectivePoints = Number((activity.pointsAwarded * mult).toFixed(2));
 
     // Create achievement record

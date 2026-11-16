@@ -58,7 +58,7 @@ export default function ProfileModal({
   const displayName = `${student.name}${emojis ? " " + emojis : ""}`;
   const displayFlagValue = flagConfig ? flagValue : "A";
   const currentPoints = formatPoints(student.currentPoints);
-  const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate());
+  const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate(), allCards);
 
   // Cards indexed for quick reward thumbnail/description lookup
   const cardsMap = useMemo(() => {
@@ -1356,6 +1356,7 @@ export default function ProfileModal({
                 db={db}
                 classId={classId}
                 studentId={student.id}
+                allCards={allCards}
                 onSuccess={() => {
                   onValidationError("Achievement redeemed successfully! ✨");
                 }}

@@ -129,8 +129,11 @@ export default function ManageStudentModal({
     setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
   }, [student.id, student.name, student.currentPoints, student.xp, student.multiplier]);
 
+  const baseMultiplier = typeof student.multiplier === "number" ? student.multiplier : 1;
+  const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate(), cards);
+
   function addQuickPoints(amount) {
-    const m = computeEffectiveMultiplier(student, todayISODate());
+    const m = computeEffectiveMultiplier(student, todayISODate(), cards);
     const effective = round2(Number(amount || 0) * m);
     const next = round2(Number(student.currentPoints || 0) + effective);
     setEditCurrentPoints(next);
@@ -173,6 +176,11 @@ export default function ManageStudentModal({
             <div className="muted">
               Current: <span className="pill">{formatPoints(student.currentPoints)} pts</span>{" "}
               • XP: <span className="pill">{student.xp || 0}</span>
+              {effectiveMultiplier !== 1 && (
+                <>
+                  {" "}• Multiplier: <span className="pill">x{effectiveMultiplier}</span>
+                </>
+              )}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -235,7 +243,14 @@ export default function ManageStudentModal({
                     onChange={(e) => setEditMultiplier(e.target.value)}
                     className="input"
                   />
-                  <div className="muted">Default is 1. Example: 1.25, 2, etc.</div>
+                  <div className="muted">
+                    Default is 1. Example: 1.25, 2, etc.
+                    {effectiveMultiplier !== baseMultiplier && (
+                      <span style={{ display: "block", color: "#1d4ed8", fontWeight: 700, marginTop: 2 }}>
+                        Effective total: x{effectiveMultiplier} (includes active floating/XP card bonuses)
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -246,6 +261,7 @@ export default function ManageStudentModal({
                       setEditName(student.name || "");
                       setEditCurrentPoints(round2(student.currentPoints || 0));
                       setEditXP(student.xp || 0);
+                      setEditMultiplier(typeof student.multiplier === "number" ? student.multiplier : 1);
                     }}
                   >
                     Undo

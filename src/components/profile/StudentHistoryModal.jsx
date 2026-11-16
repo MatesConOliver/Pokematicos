@@ -91,7 +91,7 @@ export default function StudentHistoryModal({
   const displayName = `${student.name}${student.nameEmojis ? " " + student.nameEmojis : ""}`;
   const displayFlagValue = flagConfig ? (student.flagValue === "B" ? "B" : "A") : "A";
   const currentPoints = formatPoints(student.currentPoints);
-  const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate());
+  const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate(), allCards);
   const color = student.profileColor || "";
   const historyList =
     enrichedHistory && enrichedHistory.length > 0

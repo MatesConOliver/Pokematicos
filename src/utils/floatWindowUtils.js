@@ -91,8 +91,8 @@ function isTodayInFloatWindows(today, windows) {
   return list.some((w) => w && w.start <= today && today <= w.end);
 }
 
-// Base multiplier plus the sum of every streak's floating bonus currently active for this student.
-function computeEffectiveMultiplier(studentData, today) {
+// Base multiplier plus active floating bonuses plus unique owned XP card bonuses.
+function computeEffectiveMultiplier(studentData, today, allCards = []) {
   const base = typeof studentData?.multiplier === "number" ? studentData.multiplier : 1;
   const streaks = studentData?.streaks || {};
   let bonus = 0;
@@ -102,6 +102,27 @@ function computeEffectiveMultiplier(studentData, today) {
     for (const w of windows) {
       if (w && w.start <= today && today <= w.end) {
         bonus += Number(w.multiplierBonus || 0);
+      }
+    }
+  }
+
+  if (Array.isArray(allCards) && allCards.length > 0) {
+    const cardsById = new Map();
+    for (const c of allCards) {
+      if (c?.id) cardsById.set(c.id, c);
+    }
+    const seenXpCardIds = new Set();
+    const ownedCards = Array.isArray(studentData?.cards) ? studentData.cards : [];
+    for (const owned of ownedCards) {
+      const cardId = owned?.cardId;
+      if (!cardId || seenXpCardIds.has(cardId)) continue;
+      seenXpCardIds.add(cardId);
+      const libCard = cardsById.get(cardId);
+      if (libCard && (libCard.category || "points") === "experience") {
+        const xpBonus = Number(libCard.multiplierBonus || 0);
+        if (Number.isFinite(xpBonus)) {
+          bonus += xpBonus;
+        }
       }
     }
   }

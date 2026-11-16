@@ -1,8 +1,11 @@
 import { isEvolutionCard, isCardUnlockedForStudent } from "../../services/cardEvolutionService";
+import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
+import { todayISODate } from "../../utils/dateUtils";
 
 export default function BulkGiveModal({
   card,
   students,
+  allCards = [],
   selectedStudentIds,
   onClose,
   onToggleStudent,
@@ -10,6 +13,7 @@ export default function BulkGiveModal({
   onGive,
 }) {
   if (!card) return null;
+  const today = todayISODate();
 
   const isEvo = isEvolutionCard(card);
   const eligibleStudents = isEvo
@@ -92,7 +96,7 @@ export default function BulkGiveModal({
                   </span>
                 )}
                 <span className="muted" style={{ marginLeft: "auto" }}>
-                  x{typeof student.multiplier === "number" ? student.multiplier : 1}
+                  x{computeEffectiveMultiplier(student, today, allCards)}
                 </span>
               </label>
             );

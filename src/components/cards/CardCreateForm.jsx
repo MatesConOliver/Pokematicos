@@ -16,6 +16,7 @@ export default function CardCreateForm({
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState(1);
   const [category, setCategory] = useState("points");
+  const [multiplierBonus, setMultiplierBonus] = useState(0);
   const [lockedFile, setLockedFile] = useState(null);
   const [unlockedFile, setUnlockedFile] = useState(null);
   const [lockedFile_B, setLockedFileB] = useState(null);
@@ -48,11 +49,14 @@ export default function CardCreateForm({
       catalystCardId: catalystCardId || "",
     } : null;
 
+    const parsedMultBonus = parseFloat(multiplierBonus);
     const result = await onCreate({
       title,
       description,
       points: category === "extra" ? 0 : points,
       category,
+      multiplierBonus:
+        category === "experience" && Number.isFinite(parsedMultBonus) ? parsedMultBonus : 0,
       linkedStreakIds: category === "points" ? linkedStreakIds : [],
       lockedFile,
       unlockedFile,
@@ -65,6 +69,7 @@ export default function CardCreateForm({
     setDescription("");
     setPoints(1);
     setCategory("points");
+    setMultiplierBonus(0);
     setIsEvolution(false);
     setBaseCardId("");
     setRequiredCopies(3);
@@ -139,6 +144,9 @@ export default function CardCreateForm({
             if (next === "extra") {
               setPoints(0);
             }
+            if (next !== "experience") {
+              setMultiplierBonus(0);
+            }
             if (next !== "points") {
               setLinkedStreakIds([]);
               setStreakPick("");
@@ -152,6 +160,21 @@ export default function CardCreateForm({
           <option value="experience">Experience</option>
           <option value="extra">Extra</option>
         </select>
+
+        {category === "experience" && (
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#475569" }}>
+            <span>Multiplier (+x)</span>
+            <input
+              type="number"
+              step="0.01"
+              value={multiplierBonus}
+              onChange={(e) => setMultiplierBonus(e.target.value)}
+              placeholder="0"
+              title="Added to the student's multiplier when unlocked or owned (e.g. 0.25)"
+              style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+            />
+          </label>
+        )}
       </div>
 
       {category === "points" && (

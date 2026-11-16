@@ -1,4 +1,5 @@
-import { collection, doc, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, doc, addDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { getNewExperienceCards, pushOwnedCard } from "./rewardService";
 
 export async function addStudent(
   db,
@@ -37,12 +38,48 @@ export async function addStudent(
   }
 }
 
-export async function editStudent(db, classId, studentId, updates, alertFn = null) {
+export async function editStudent(db, classId, studentId, updates, alertFn = null, allCards = []) {
   try {
-    await updateDoc(
-      doc(db, `classes/${classId}/students/${studentId}`),
-      updates
-    );
+    const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
+    const finalUpdates = { ...updates };
+    let unlockedXpCards = [];
+
+    if (updates?.xp !== undefined && Array.isArray(allCards) && allCards.length > 0) {
+      const snap = await getDoc(studentRef);
+      if (snap.exists()) {
+        const freshData = snap.data();
+        const prevXp = Number(freshData.xp || 0);
+        const nextXp = Number(updates.xp || 0);
+        if (nextXp > prevXp) {
+          const freshCards = Array.isArray(freshData.cards) ? [...freshData.cards] : [];
+          unlockedXpCards = getNewExperienceCards(freshCards, nextXp, allCards)
+            .filter((c) => Number(c.points ?? 0) >= 0)
+            .sort((a, b) => Number(a.points ?? 0) - Number(b.points ?? 0));
+
+          if (unlockedXpCards.length > 0) {
+            unlockedXpCards.forEach((c) => {
+              pushOwnedCard({
+                cardsArr: freshCards,
+                cardId: c.id,
+                cardData: c,
+                pointsGranted: 0,
+                streakId: "xp_unlock",
+              });
+            });
+            finalUpdates.cards = freshCards;
+          }
+        }
+      }
+    }
+
+    await updateDoc(studentRef, finalUpdates);
+
+    if (unlockedXpCards.length > 0 && alertFn) {
+      alertFn({
+        message: `Unlocked ${unlockedXpCards.length} new Experience Card(s)!`,
+        cards: unlockedXpCards,
+      });
+    }
   } catch (err) {
     console.error(err);
     if (alertFn) alertFn("Failed saving student changes.");

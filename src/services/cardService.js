@@ -4,6 +4,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   runTransaction,
   updateDoc,
   writeBatch,
@@ -104,12 +105,20 @@ export async function updateCard({
           )
         : [];
 
+    const nextMultiplierBonus =
+      nextCategory === "experience"
+        ? Number.isFinite(Number(updates?.multiplierBonus))
+          ? Number(updates.multiplierBonus)
+          : Number(prev.multiplierBonus || 0)
+        : 0;
+
     const updatePayload = {
       title: (title || "").trim(),
       description: description || "",
       points: Number(points) || 0,
       category: nextCategory,
       linkedStreakIds: cleanIds,
+      multiplierBonus: nextMultiplierBonus,
       imageURL: unlockedImageURL,
       lockedImageURL,
       imageURL_B: unlockedImageURL_B,
@@ -146,6 +155,7 @@ export async function createCard({
   lockedFileBInputRef,
   unlockedFileBInputRef,
   evolution = null,
+  multiplierBonus = 0,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
 }) {
   if (!classId) return;
@@ -192,14 +202,20 @@ export async function createCard({
     if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
     if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
 
+    const nextCategory = category || "points";
     const cleanLinked = Array.isArray(linkedStreakIds) ? linkedStreakIds.filter(Boolean) : [];
+    const safeMultiplierBonus =
+      nextCategory === "experience" && Number.isFinite(Number(multiplierBonus))
+        ? Number(multiplierBonus)
+        : 0;
 
     const payload = {
       title: title.trim(),
       description: description || "",
       points: Number(points) || 0,
-      category: category || "points",
-      linkedStreakIds: category === "points" ? cleanLinked : [],
+      category: nextCategory,
+      linkedStreakIds: nextCategory === "points" ? cleanLinked : [],
+      multiplierBonus: safeMultiplierBonus,
       imageURL: unlockedImageURL,
       lockedImageURL,
       imageURL_B: unlockedImageURL_B,
@@ -242,6 +258,7 @@ export async function giveCardToStudent({
   studentId,
   cardId,
   activeClass,
+  allCards = null,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   getCardDataFast,
   scheduleFn,
@@ -265,8 +282,14 @@ export async function giveCardToStudent({
         : undefined;
     }
 
+    let cardLibrary = Array.isArray(allCards) ? allCards : null;
+    if (!cardLibrary && Array.isArray(sdata.cards) && sdata.cards.length > 0) {
+      const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
+      cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+
     const today = todayISODate();
-    const multiplier = computeEffectiveMultiplier(sdata, today);
+    const multiplier = computeEffectiveMultiplier(sdata, today, cardLibrary || []);
 
     let basePoints = 0;
     if (category === "points") basePoints = Number(cardData.points || 0);
@@ -307,7 +330,7 @@ export async function giveCardToStudent({
       const givenRewardCardIds = new Set();
       // Use the post-increment streaks so a window that just started today (delay 0) already counts.
       const postMultiplier = nextStreaks
-        ? computeEffectiveMultiplier({ ...sdata, streaks: nextStreaks }, today)
+        ? computeEffectiveMultiplier({ ...sdata, streaks: nextStreaks }, today, cardLibrary || [])
         : multiplier;
 
       for (const streakId of crossedMaxIds) {
@@ -353,6 +376,7 @@ export async function giveCardToStudentsBulk({
   cardId,
   studentIds,
   activeClass,
+  allCards = null,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   getCardDataFast,
   scheduleFn,
@@ -369,6 +393,12 @@ export async function giveCardToStudentsBulk({
 
     const category = cardData.category || "points";
     if (category === "rewards") return alertFn ? alertFn("Rewards cards can't be given directly.") : undefined;
+
+    let cardLibrary = Array.isArray(allCards) ? allCards : null;
+    if (!cardLibrary) {
+      const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
+      cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
 
     const basePoints = category === "points" ? Number(cardData.points || 0) : 0;
     const linkedIds =
@@ -396,7 +426,7 @@ export async function giveCardToStudentsBulk({
       }
 
       const baseMultiplier = typeof sdata.multiplier === "number" ? sdata.multiplier : 1;
-      const effectivePoints = round2(basePoints * computeEffectiveMultiplier(sdata, today));
+      const effectivePoints = round2(basePoints * computeEffectiveMultiplier(sdata, today, cardLibrary));
 
       const cardsArr = Array.isArray(sdata.cards) ? [...sdata.cards] : [];
       cardsArr.push({
@@ -510,8 +540,9 @@ export async function giveCardToStudentsBulk({
 
         // Use post-increment streaks so a window starting today (delay 0) already counts.
         const mult = computeEffectiveMultiplier(
-          { multiplier: item.baseMultiplier, streaks: item.nextStreaks || {} },
-          today
+          { multiplier: item.baseMultiplier, streaks: item.nextStreaks || {}, cards: item.cardsArr },
+          today,
+          cardLibrary
         );
         item.currentPoints = await grantStreakMaxRewardCards({
           rewardCardIds: rewardIds,

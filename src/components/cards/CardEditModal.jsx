@@ -14,6 +14,7 @@ export default function CardEditModal({
   const [description, setDescription] = useState(card.description || "");
   const [points, setPoints] = useState(card.points ?? 0);
   const [category, setCategory] = useState(card.category || "points");
+  const [multiplierBonus, setMultiplierBonus] = useState(card.multiplierBonus ?? 0);
 
   // Evolution configuration
   const [isEvolution, setIsEvolution] = useState(
@@ -110,6 +111,9 @@ export default function CardEditModal({
                 if (next === "extra") {
                   setPoints(0);
                 }
+                if (next !== "experience") {
+                  setMultiplierBonus(0);
+                }
                 if (next !== "points") {
                   setLinkedStreakIds([]);
                   setStreakPick("");
@@ -123,6 +127,22 @@ export default function CardEditModal({
               <option value="experience">Experience</option>
               <option value="extra">Extra</option>
             </select>
+
+            {category === "experience" && (
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#475569" }}>
+                <span>Multiplier (+x)</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  value={multiplierBonus}
+                  onChange={(e) => setMultiplierBonus(e.target.value)}
+                  style={{ width: 110 }}
+                  placeholder="0"
+                  title="Added to the student's multiplier when unlocked or owned (e.g. 0.25)"
+                />
+              </label>
+            )}
           </div>
 
           {category === "points" && (
@@ -349,11 +369,14 @@ export default function CardEditModal({
                   catalystCardId: catalystCardId || "",
                 } : null;
 
+                const parsedMultBonus = parseFloat(multiplierBonus);
                 onSave({
                   title,
                   description,
                   points: category === "extra" ? 0 : points,
                   category,
+                  multiplierBonus:
+                    category === "experience" && Number.isFinite(parsedMultBonus) ? parsedMultBonus : 0,
                   linkedStreakIds: category === "points" ? linkedStreakIds : [],
                   lockedFile,
                   unlockedFile,

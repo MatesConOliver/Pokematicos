@@ -305,7 +305,7 @@ export default function StudentsPanel({
                         XP: {student.xp || 0}
                       </div>
                       {(() => {
-                        const effectiveMultiplier = computeEffectiveMultiplier(student, today);
+                        const effectiveMultiplier = computeEffectiveMultiplier(student, today, cards);
                         return effectiveMultiplier !== 1 ? (
                           <div style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 700 }}>
                             x{effectiveMultiplier}

@@ -1,6 +1,8 @@
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   updateDoc,
   writeBatch,
   increment,
@@ -17,6 +19,7 @@ export async function quickAddPoints({
   classId,
   studentId,
   amount,
+  allCards = null,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
 }) {
   const rawAmount = Number(amount || 0);
@@ -27,7 +30,14 @@ export async function quickAddPoints({
     const snap = await getDoc(studentRef);
     if (!snap.exists()) return;
     const sdata = snap.data();
-    const mult = computeEffectiveMultiplier(sdata, todayISODate());
+
+    let cardLibrary = Array.isArray(allCards) ? allCards : null;
+    if (!cardLibrary && Array.isArray(sdata.cards) && sdata.cards.length > 0) {
+      const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
+      cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+
+    const mult = computeEffectiveMultiplier(sdata, todayISODate(), cardLibrary || []);
     const effective = Number((rawAmount * mult).toFixed(2));
     const nextPoints = round2(Number(sdata.currentPoints || 0) + effective);
     await updateDoc(studentRef, { currentPoints: nextPoints });

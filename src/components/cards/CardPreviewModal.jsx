@@ -106,8 +106,25 @@ export default function CardPreviewModal({
                 <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>{cardPreview.description}</div>
               )}
               {(cardPreview.category || "points") !== "extra" && (
-                <div style={{ marginTop: 8, fontWeight: 800, fontSize: 14, color: "#0f172a" }}>
-                  {cardPreview.points || 0} {(cardPreview.category || "points") === "experience" ? "XP" : "pts"}
+                <div style={{ marginTop: 8, fontWeight: 800, fontSize: 14, color: "#0f172a", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span>
+                    {cardPreview.points || 0} {(cardPreview.category || "points") === "experience" ? "XP" : "pts"}
+                  </span>
+                  {(cardPreview.category || "points") === "experience" && Number(cardPreview.multiplierBonus || 0) !== 0 && (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        background: "#f5f3ff",
+                        color: "#6d28d9",
+                        border: "1px solid #ddd6fe",
+                        fontWeight: 800,
+                      }}
+                    >
+                      ⚡ {Number(cardPreview.multiplierBonus) > 0 ? "+" : ""}{Number(cardPreview.multiplierBonus)}x multiplier
+                    </span>
+                  )}
                 </div>
               )}
 

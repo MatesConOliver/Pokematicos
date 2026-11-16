@@ -500,6 +500,7 @@ export default function App() {
           classId,
           studentId,
           amount,
+          allCards: cards,
           alertFn: notify,
         });
       },
@@ -603,12 +604,14 @@ export default function App() {
       successMessage: "Request approved.",
       errorMessage: "Could not approve request.",
       action: async () => {
+        const requestCards = request.classId === activeClassId ? cards : null;
         if (request.amount && (request.type === "points" || request.type === "both" || request.cardId)) {
           await quickAddPointsService({
             db,
             classId: request.classId,
             studentId: request.studentId,
             amount: request.amount,
+            allCards: requestCards,
             alertFn: notify,
           });
         }
@@ -621,6 +624,7 @@ export default function App() {
             studentId: request.studentId,
             cardId: request.cardId,
             activeClass: requestClass,
+            allCards: requestCards,
             getCardDataFast,
             alertFn: notify,
             scheduleFn: requestFloatSchedule,
@@ -646,6 +650,7 @@ export default function App() {
     description,
     points = 0,
     category = "points",
+    multiplierBonus = 0,
     linkedStreakIds = [],
     lockedFile,
     unlockedFile,
@@ -668,6 +673,7 @@ export default function App() {
           description,
           points,
           category,
+          multiplierBonus,
           linkedStreakIds,
           lockedFile,
           unlockedFile,
@@ -710,6 +716,7 @@ export default function App() {
         studentId,
         cardId,
         activeClass,
+        allCards: cards,
         getCardDataFast,
         alertFn: notify,
         scheduleFn: requestFloatSchedule,
@@ -728,6 +735,7 @@ export default function App() {
       cardId,
       studentIds,
       activeClass,
+      allCards: cards,
       getCardDataFast,
       alertFn: notify,
       scheduleFn: requestFloatSchedule,
@@ -1551,6 +1559,7 @@ export default function App() {
                   delta,
                   maxValueOrCfg: cfg,
                   scheduleFn: requestFloatSchedule,
+                  allCards: cards,
                   alertFn: notify,
                   getCardDataFast,
                 })
@@ -1785,6 +1794,7 @@ export default function App() {
                   delta,
                   cfg,
                   scheduleFn: requestFloatSchedule,
+                  allCards: cards,
                   alertFn: notify,
                   getCardDataFast,
                 }),
@@ -1897,6 +1907,7 @@ export default function App() {
               delta,
               maxValueOrCfg: cfg,
               scheduleFn: requestFloatSchedule,
+              allCards: cards,
               alertFn: notify,
               getCardDataFast,
             })
@@ -1936,7 +1947,24 @@ export default function App() {
             })
           }
           mode={mode}
-          onEditStudent={(updates) => editStudent(db, activeClassId, selectedStudent.id, updates, notify)}
+          onEditStudent={(updates) =>
+            editStudent(
+              db,
+              activeClassId,
+              selectedStudent.id,
+              updates,
+              (data) => {
+                if (data && typeof data === "object" && data.cards) {
+                  const studentFlagValue =
+                    activeClass?.flagConfig && selectedStudent?.flagValue === "B" ? "B" : "A";
+                  notifyLevelUp({ ...data, flagValue: studentFlagValue });
+                } else {
+                  notify(data);
+                }
+              },
+              cards
+            )
+          }
           onClose={() => setSelectedStudentId(null)}
           onDeleteStudent={() => deleteStudent(db, activeClassId, selectedStudent.id, setSelectedStudentId, setProfileStudentId, askConfirmation, notify)}
           onResetPin={async () => {
@@ -1968,6 +1996,7 @@ export default function App() {
       <BulkGiveModal
         card={bulkGiveCard}
         students={students}
+        allCards={cards}
         selectedStudentIds={bulkGiveSelectedIds}
         onClose={() => setBulkGiveCard(null)}
         onToggleStudent={toggleBulkGiveStudent}

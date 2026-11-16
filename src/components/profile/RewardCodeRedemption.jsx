@@ -7,7 +7,7 @@
 import React, { useState } from "react";
 import { redeemRewardCode } from "../../services/rewardCodeService.js";
 
-export function RewardCodeRedemption({ db, classId, studentId, onSuccess }) {
+export function RewardCodeRedemption({ db, classId, studentId, allCards = null, onSuccess }) {
   const [codeInput, setCodeInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -29,6 +29,7 @@ export function RewardCodeRedemption({ db, classId, studentId, onSuccess }) {
         classId,
         studentId,
         codeString: codeInput,
+        allCards,
       });
 
       if (result.success) {

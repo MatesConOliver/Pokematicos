@@ -198,12 +198,27 @@ export default function LibraryCardRow({
         )}
 
         {(c.category || "points") !== "extra" && (
-          <div style={{ marginTop: 6, fontWeight: 900, color: "#0f172a", display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ marginTop: 6, fontWeight: 900, color: "#0f172a", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span>
               {(c.category || "points") === "rewards"
                 ? `Cost: ${c.points || 0} pts`
                 : `${c.points || 0} ${(c.category || "points") === "experience" ? "XP" : "pts"}`}
             </span>
+            {(c.category || "points") === "experience" && Number(c.multiplierBonus || 0) !== 0 && (
+              <span
+                style={{
+                  fontSize: 11,
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                  background: "#f5f3ff",
+                  color: "#6d28d9",
+                  border: "1px solid #ddd6fe",
+                  fontWeight: 800,
+                }}
+              >
+                ⚡ {Number(c.multiplierBonus) > 0 ? "+" : ""}{Number(c.multiplierBonus)}x
+              </span>
+            )}
           </div>
         )}
       </div>

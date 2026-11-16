@@ -152,6 +152,7 @@ export async function changeStudentStreakValue({
   delta,
   maxValueOrCfg,
   scheduleFn,
+  allCards = null,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   getCardDataFast,
 }) {
@@ -232,7 +233,16 @@ export async function changeStudentStreakValue({
     if (crossedToMax) {
       const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
       if (rewardIds.length) {
-        const multiplier = computeEffectiveMultiplier({ ...data, streaks: updatedStreaks }, today);
+        let cardLibrary = Array.isArray(allCards) ? allCards : null;
+        if (!cardLibrary && Array.isArray(data.cards) && data.cards.length > 0) {
+          const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
+          cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        }
+        const multiplier = computeEffectiveMultiplier(
+          { ...data, streaks: updatedStreaks },
+          today,
+          cardLibrary || []
+        );
         const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
         const currentPoints = await grantStreakMaxRewardCards({
           rewardCardIds: rewardIds,
@@ -353,6 +363,7 @@ export async function bulkChangeStreakValue({
   delta,
   cfg,
   scheduleFn,
+  allCards = null,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   getCardDataFast,
 }) {
@@ -436,7 +447,16 @@ export async function bulkChangeStreakValue({
       if (crossedToMax) {
         const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
         if (rewardIds.length) {
-          const multiplier = computeEffectiveMultiplier({ ...data, streaks: payload.streaks }, today);
+          let cardLibrary = Array.isArray(allCards) ? allCards : null;
+          if (!cardLibrary && Array.isArray(data.cards) && data.cards.length > 0) {
+            const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
+            cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          }
+          const multiplier = computeEffectiveMultiplier(
+            { ...data, streaks: payload.streaks },
+            today,
+            cardLibrary || []
+          );
           const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
           const currentPoints = await grantStreakMaxRewardCards({
             rewardCardIds: rewardIds,
