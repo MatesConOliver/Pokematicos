@@ -122,7 +122,7 @@ export default function CardPreviewModal({
                         fontWeight: 800,
                       }}
                     >
-                      ⚡ {Number(cardPreview.multiplierBonus) > 0 ? "+" : ""}{Number(cardPreview.multiplierBonus)}x multiplier
+                      {Number(cardPreview.multiplierBonus) > 0 ? "+" : ""}{Number(cardPreview.multiplierBonus)}x points
                     </span>
                   )}
                 </div>

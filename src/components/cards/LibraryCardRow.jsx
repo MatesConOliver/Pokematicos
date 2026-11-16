@@ -216,7 +216,7 @@ export default function LibraryCardRow({
                   fontWeight: 800,
                 }}
               >
-                ⚡ {Number(c.multiplierBonus) > 0 ? "+" : ""}{Number(c.multiplierBonus)}x
+                {Number(c.multiplierBonus) > 0 ? "+" : ""}{Number(c.multiplierBonus)}x points
               </span>
             )}
           </div>
