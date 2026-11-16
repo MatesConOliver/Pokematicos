@@ -5,6 +5,7 @@ export default function RequestsPanel({
   classesList = [],
   activeClassId = null,
   onApprove,
+  onApproveBatch,
   onReject,
   onClose,
 }) {
@@ -28,6 +29,23 @@ export default function RequestsPanel({
 
   function toggle(id) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function bulkApprove() {
+    if (!selected.length) return;
+    setBusy(true);
+    try {
+      if (onApproveBatch) {
+        await onApproveBatch(selected);
+      } else {
+        for (const r of selected) {
+          await onApprove(r);
+        }
+      }
+      setSelectedIds([]);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function bulk(handler) {
@@ -64,7 +82,7 @@ export default function RequestsPanel({
           >
             {allSelected ? "Deselect all" : "Select all"}
           </button>
-          <button className="btn primary" disabled={!selected.length || busy} onClick={() => bulk(onApprove)}>
+          <button className="btn primary" disabled={!selected.length || busy} onClick={bulkApprove}>
             Accept selected ({selected.length})
           </button>
           <button className="btn" disabled={!selected.length || busy} onClick={() => bulk(onReject)}>

@@ -634,6 +634,8 @@ export async function incrementLinkedStreakIfNeeded(sdata, idsOrId, opts = {}, a
         const parsed = await opts.scheduleFn({
           delayDays: defaultDelay,
           durationDays: defaultDur,
+          classId: activeClass?.id || "",
+          streakId: id,
           message: `🎉 Max reached for ${studentName}${progress}. ${streakLabel} floating schedule applies to this student.`,
         });
         if (parsed) {

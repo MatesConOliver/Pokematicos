@@ -29,6 +29,7 @@ import {
   cancelRequest as cancelRequestService,
   rejectRequest as rejectRequestService,
   resolveRequestApproved,
+  prepareBatchFloatSchedules,
 } from "./services/requestService";
 import {
   addStreakTypeForClass,
@@ -631,6 +632,59 @@ export default function App() {
           });
         }
         await resolveRequestApproved(db, request.classId, request.id, notify);
+      },
+    });
+  }
+
+  async function approveStudentRequestsBulk(requests) {
+    if (!Array.isArray(requests) || requests.length === 0) return;
+    if (requests.length === 1) return approveStudentRequest(requests[0]);
+
+    return runMutation({
+      loadingMessage: `Approving ${requests.length} requests...`,
+      successMessage: `${requests.length} requests approved.`,
+      errorMessage: "Could not approve selected requests.",
+      action: async () => {
+        const { classById, batchScheduleFn } = await prepareBatchFloatSchedules({
+          db,
+          requests,
+          scheduleFn: requestFloatSchedule,
+          getCardDataFast,
+        });
+
+        for (const request of requests) {
+          const requestCards = request.classId === activeClassId ? cards : null;
+          if (request.amount && (request.type === "points" || request.type === "both" || request.cardId)) {
+            await quickAddPointsService({
+              db,
+              classId: request.classId,
+              studentId: request.studentId,
+              amount: request.amount,
+              allCards: requestCards,
+              alertFn: notify,
+            });
+          }
+          if (request.cardId && (request.type === "card" || request.type === "both" || request.cardTitle)) {
+            let requestClass = classById.get(request.classId) || null;
+            if (!requestClass) {
+              const classSnap = await getDoc(doc(db, `classes/${request.classId}`));
+              requestClass = classSnap.exists() ? { id: request.classId, ...classSnap.data() } : null;
+              if (requestClass) classById.set(request.classId, requestClass);
+            }
+            await giveCardToStudentService({
+              db,
+              classId: request.classId,
+              studentId: request.studentId,
+              cardId: request.cardId,
+              activeClass: requestClass,
+              allCards: requestCards,
+              getCardDataFast,
+              alertFn: notify,
+              scheduleFn: batchScheduleFn,
+            });
+          }
+          await resolveRequestApproved(db, request.classId, request.id, notify);
+        }
       },
     });
   }
@@ -1838,6 +1892,7 @@ export default function App() {
           classesList={classesList}
           activeClassId={activeClassId}
           onApprove={approveStudentRequest}
+          onApproveBatch={approveStudentRequestsBulk}
           onReject={rejectStudentRequest}
           onClose={() => setShowRequestsPanel(false)}
         />
