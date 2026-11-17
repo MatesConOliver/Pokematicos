@@ -29,7 +29,11 @@ export default function BulkGiveModal({
         <h3 style={{ marginTop: 0 }}>Give card</h3>
         <div style={{ fontWeight: 900, marginTop: 6 }}>{card.title}</div>
         <div className="muted" style={{ marginTop: 6 }}>
-          Select students to receive this card. Points will be multiplied by each student's multiplier.
+          {(card.category || "points") === "extra"
+            ? "Select students to receive this extra card."
+            : (card.category || "points") === "experience"
+            ? "Select students to receive this experience card."
+            : "Select students to receive this card. Points will be multiplied by each student's multiplier."}
           {isEvo && (
             <div style={{ marginTop: 4, color: "#6d28d9", fontWeight: 700, fontSize: 12 }}>
               🧬 Evolution card: only students who have already unlocked it can receive it.

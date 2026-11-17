@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 export default function CardCreateForm({
   cards = [],
+  defaultCategory = "points",
   defaultCatalystCardId = "",
   onCreate,
   lockedInputRef,
@@ -14,8 +15,8 @@ export default function CardCreateForm({
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [points, setPoints] = useState(1);
-  const [category, setCategory] = useState("points");
+  const [points, setPoints] = useState(defaultCategory === "extra" ? 0 : 1);
+  const [category, setCategory] = useState(defaultCategory);
   const [multiplierBonus, setMultiplierBonus] = useState(0);
   const [lockedFile, setLockedFile] = useState(null);
   const [unlockedFile, setUnlockedFile] = useState(null);
@@ -30,6 +31,23 @@ export default function CardCreateForm({
   const [baseCardId, setBaseCardId] = useState("");
   const [requiredCopies, setRequiredCopies] = useState(3);
   const [catalystCardId, setCatalystCardId] = useState("");
+
+  useEffect(() => {
+    setCategory(defaultCategory);
+    if (defaultCategory === "extra") {
+      setPoints(0);
+    } else {
+      setPoints((prev) => (Number(prev) === 0 ? 1 : prev));
+    }
+    if (defaultCategory !== "experience") {
+      setMultiplierBonus(0);
+    }
+    if (defaultCategory !== "points") {
+      setLinkedStreakIds([]);
+      setStreakPick("");
+      setStreakLookup("");
+    }
+  }, [defaultCategory]);
 
   async function handleCreate() {
     if (!title.trim()) {
@@ -67,8 +85,8 @@ export default function CardCreateForm({
     if (result === false) return;
     setTitle("");
     setDescription("");
-    setPoints(1);
-    setCategory("points");
+    setPoints(defaultCategory === "extra" ? 0 : 1);
+    setCategory(defaultCategory);
     setMultiplierBonus(0);
     setIsEvolution(false);
     setBaseCardId("");
@@ -121,21 +139,6 @@ export default function CardCreateForm({
         style={{ width: "100%", padding: 8, height: 70, borderRadius: 8, border: "1px solid #ddd" }}
       />
       <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
-        {category !== "extra" && (
-          <input
-            type="number"
-            value={points}
-            onChange={(e) => setPoints(e.target.value)}
-            placeholder={
-              category === "experience"
-                ? "XP"
-                : category === "rewards"
-                ? "Cost (pts)"
-                : "Points"
-            }
-            style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
-          />
-        )}
         <select
           value={category}
           onChange={(e) => {
@@ -143,6 +146,8 @@ export default function CardCreateForm({
             setCategory(next);
             if (next === "extra") {
               setPoints(0);
+            } else if (Number(points) === 0) {
+              setPoints(1);
             }
             if (next !== "experience") {
               setMultiplierBonus(0);
@@ -160,6 +165,22 @@ export default function CardCreateForm({
           <option value="experience">Experience</option>
           <option value="extra">Extra</option>
         </select>
+
+        {category !== "extra" && (
+          <input
+            type="number"
+            value={points}
+            onChange={(e) => setPoints(e.target.value)}
+            placeholder={
+              category === "experience"
+                ? "XP"
+                : category === "rewards"
+                ? "Cost (pts)"
+                : "Points"
+            }
+            style={{ width: 90, padding: 8, borderRadius: 8, border: "1px solid #ddd" }}
+          />
+        )}
 
         {category === "experience" && (
           <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#475569" }}>

@@ -85,23 +85,6 @@ export default function CardEditModal({
           />
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {category !== "extra" && (
-              <input
-                className="input"
-                type="number"
-                value={points}
-                onChange={(e) => setPoints(e.target.value)}
-                style={{ width: 140 }}
-                placeholder={
-                  category === "experience"
-                    ? "XP"
-                    : category === "rewards"
-                    ? "Cost (pts)"
-                    : "Points"
-                }
-              />
-            )}
-
             <select
               className="select"
               value={category}
@@ -127,6 +110,23 @@ export default function CardEditModal({
               <option value="experience">Experience</option>
               <option value="extra">Extra</option>
             </select>
+
+            {category !== "extra" && (
+              <input
+                className="input"
+                type="number"
+                value={points}
+                onChange={(e) => setPoints(e.target.value)}
+                style={{ width: 140 }}
+                placeholder={
+                  category === "experience"
+                    ? "XP"
+                    : category === "rewards"
+                    ? "Cost (pts)"
+                    : "Points"
+                }
+              />
+            )}
 
             {category === "experience" && (
               <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#475569" }}>

@@ -123,7 +123,7 @@ function renderHtml({ className, students, cards, rewards, bgImg }) {
           <div class="thumb ${c._img ? `img-${c.id}` : ""}"></div>
           <div class="card-title">${escapeHtml(c.title)}</div>
           <div class="card-desc">${escapeHtml(c.description)}</div>
-          <div class="card-points">${c.points || 0} pts</div>
+          ${(c.category || "points") === "extra" ? "" : `<div class="card-points">${c.points || 0} pts</div>`}
         </div>`
       )
       .join("\n");

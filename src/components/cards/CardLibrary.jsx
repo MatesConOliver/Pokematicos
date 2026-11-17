@@ -1,9 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import CardCreateForm from "./CardCreateForm";
 import LibraryCardRow from "./LibraryCardRow";
 import NoticeBoardPanel from "./NoticeBoardPanel";
 import StudyPanel from "./StudyPanel";
 import { isEvolutionCard } from "../../services/cardEvolutionService";
+
+export function getVisibleLibraryTabs(mode) {
+  return mode === "admin"
+    ? ["points", "rewards", "experience", "extra", "study", "notices"]
+    : ["points", "rewards", "experience", "study", "notices"];
+}
 
 export default function CardLibrary({
   mode,
@@ -42,6 +48,14 @@ export default function CardLibrary({
   const [libraryTab, setLibraryTab] = useState("points");
   const [showCreateCard, setShowCreateCard] = useState(false);
   const effectivePreviewFlag = flagConfig ? viewFlag : "A";
+  const visibleTabs = useMemo(() => getVisibleLibraryTabs(mode), [mode]);
+  const activeTab = visibleTabs.includes(libraryTab) ? libraryTab : "points";
+
+  useEffect(() => {
+    if (!visibleTabs.includes(libraryTab)) {
+      setLibraryTab("points");
+    }
+  }, [visibleTabs, libraryTab]);
 
   const cardsByIdMap = useMemo(
     () => cardsById || new Map((cards || []).map((c) => [c.id, c])),
@@ -152,8 +166,8 @@ export default function CardLibrary({
           flexShrink: 0,
         }}
       >
-        {["points", "rewards", "experience", "extra", "study", "notices"].map((tab) => {
-          const isActive = libraryTab === tab;
+        {visibleTabs.map((tab) => {
+          const isActive = activeTab === tab;
           const label =
             tab === "notices"
               ? "News"
@@ -181,7 +195,7 @@ export default function CardLibrary({
         })}
       </div>
 
-      {mode === "admin" && (libraryTab === "rewards" || (hasEvolutionCards && !defaultCatalystCardId)) && (
+      {mode === "admin" && (activeTab === "rewards" || (hasEvolutionCards && !defaultCatalystCardId)) && (
         <div
           style={{
             display: "flex",
@@ -251,6 +265,11 @@ export default function CardLibrary({
           </div>
           <CardCreateForm
             cards={cards}
+            defaultCategory={
+              ["points", "rewards", "experience", "extra"].includes(activeTab)
+                ? activeTab
+                : "points"
+            }
             defaultCatalystCardId={defaultCatalystCardId}
             onCreate={async (cardData) => {
               const res = await onCreateCard(cardData);
@@ -271,7 +290,7 @@ export default function CardLibrary({
       )}
 
       <div style={{ flex: "1 1 0", overflowY: "auto", minHeight: 0, paddingRight: 4, paddingBottom: 16, overscrollBehavior: "contain" }}>
-        {libraryTab === "study" ? (
+        {activeTab === "study" ? (
           <StudyPanel
             mode={mode}
             studyPosts={studyPosts}
@@ -279,7 +298,7 @@ export default function CardLibrary({
             confirmFn={confirmFn}
             onValidationError={onValidationError}
           />
-        ) : libraryTab === "notices" ? (
+        ) : activeTab === "notices" ? (
           <NoticeBoardPanel
             mode={mode}
             students={students}
@@ -292,13 +311,13 @@ export default function CardLibrary({
             confirmFn={confirmFn}
             onValidationError={onValidationError}
           />
-        ) : libraryTab !== "rewards" ? (
+        ) : activeTab !== "rewards" ? (
           <div style={{ display: "grid" }}>
             {loadingCards ? (
               <div className="muted">Loading cards...</div>
             ) : (
               cards
-                .filter((card) => (card.category || "points") === libraryTab)
+                .filter((card) => (card.category || "points") === activeTab)
                 .map((card) => (
                   <LibraryCardRow
                     key={card.id}

@@ -115,7 +115,7 @@ export async function updateCard({
     const updatePayload = {
       title: (title || "").trim(),
       description: description || "",
-      points: Number(points) || 0,
+      points: nextCategory === "extra" ? 0 : Number(points) || 0,
       category: nextCategory,
       linkedStreakIds: cleanIds,
       multiplierBonus: nextMultiplierBonus,
@@ -212,7 +212,7 @@ export async function createCard({
     const payload = {
       title: title.trim(),
       description: description || "",
-      points: Number(points) || 0,
+      points: nextCategory === "extra" ? 0 : Number(points) || 0,
       category: nextCategory,
       linkedStreakIds: nextCategory === "points" ? cleanLinked : [],
       multiplierBonus: safeMultiplierBonus,
