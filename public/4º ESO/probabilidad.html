@@ -1,0 +1,2333 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratorio de Probabilidad · Criterio B (4.º ESO / MYP 5)</title>
+<style>
+:root{
+  --bg:#f5f7fb;
+  --surface:#ffffff;
+  --surface-2:#f0f4fa;
+  --ink:#111c2d;
+  --ink-2:#44546b;
+  --muted:#63738a;
+  --line:#dbe3ee;
+  --cobalt:#1d4ed8;
+  --cobalt-dark:#1e3a8a;
+  --cobalt-soft:#e8effd;
+  --coral:#be123c;
+  --coral-soft:#ffeef2;
+  --teal:#0f766e;
+  --teal-soft:#e7f7f5;
+  --amber:#b45309;
+  --amber-soft:#fef6e4;
+  --radius:14px;
+  --radius-sm:10px;
+  --shadow:0 2px 10px rgba(17,28,45,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Plus Jakarta Sans","DM Sans",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+body.no-anim *,body.no-anim *::before,body.no-anim *::after{transition:none!important;animation:none!important}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid transparent;border-radius:var(--radius-sm);padding:9px 16px;min-height:40px;font-weight:600;transition:background-color .16s ease,border-color .16s ease,color .16s ease}
+button:disabled{opacity:.48;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--cobalt);outline-offset:2px}
+.mono,.num-cell{font-family:ui-monospace,"IBM Plex Mono",SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{line-height:1.25;text-wrap:balance}
+
+/* Top Bar Contract: 3 clean zones + secondary lab strip */
+header.topbar{
+  background:var(--surface);border-bottom:1px solid var(--line);
+  padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  position:sticky;top:0;z-index:20;
+}
+.brand-link{font-weight:800;font-size:1.18rem;letter-spacing:-.02em;color:var(--ink);white-space:nowrap;flex-shrink:0}
+.nav-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nav-tabs button{
+  background:transparent;color:var(--ink-2);padding:8px 13px;border-radius:8px;white-space:nowrap;flex-shrink:0;
+  border-bottom:2px solid transparent;border-radius:8px 8px 0 0;
+}
+.nav-tabs button:hover{color:var(--ink);background:var(--surface-2)}
+.nav-tabs button[aria-current="page"]{color:var(--cobalt-dark);border-bottom-color:var(--cobalt);background:var(--cobalt-soft)}
+.header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+
+.btn-primary{background:var(--cobalt);color:#fff;border-color:var(--cobalt)}
+.btn-primary:hover{background:var(--cobalt-dark)}
+.btn-teal{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn-teal:hover{background:#0b5d57}
+.btn-coral{background:var(--coral);color:#fff;border-color:var(--coral)}
+.btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn-ghost:hover{background:var(--surface-2);border-color:#bfd0e4}
+.btn-ghost[aria-pressed="true"]{background:var(--cobalt-soft);border-color:var(--cobalt);color:var(--cobalt-dark)}
+
+.toolbar-strip{
+  max-width:1200px;margin:14px auto 0;padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.meta-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.88rem;color:var(--muted)}
+.seg-group{display:inline-flex;background:var(--surface-2);padding:3px;border-radius:10px;border:1px solid var(--line);gap:3px}
+.seg-group button{min-height:34px;padding:5px 12px;font-size:.86rem;background:transparent;color:var(--ink-2);border-radius:7px}
+.seg-group button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+
+main{max-width:1200px;margin:0 auto;padding:16px 20px 64px}
+.notice{max-width:1200px;margin:8px auto 0;padding:0 20px;font-size:.9rem;color:var(--coral);font-weight:600}
+.notice:empty{display:none}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(16px,2.5vw,26px);box-shadow:var(--shadow);margin-top:14px}
+.subpanel{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px;margin-top:12px}
+.divider{height:1px;background:var(--line);margin:18px 0;border:0}
+
+.two-zone{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+.field-input,select.field-input,textarea.field-input{
+  width:100%;padding:9px 12px;min-height:40px;border:1px solid #c2cfdf;border-radius:8px;background:#fff;color:var(--ink)
+}
+textarea.field-input{min-height:84px;resize:vertical}
+.cell-input{width:100%;min-width:68px;padding:6px 8px;min-height:36px;border:1px solid #c2cfdf;border-radius:6px;text-align:center;background:#fff;font-variant-numeric:tabular-nums}
+.cell-input[readonly]{background:var(--surface-2);color:var(--ink-2)}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);border-right:1px solid #eef2f7;text-align:center}
+th:last-child,td:last-child{border-right:0}
+tr:last-child td,tr:last-child th{border-bottom:0}
+thead th{background:var(--surface-2);font-weight:700;color:var(--ink)}
+
+.status-txt{font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.st-pending{color:var(--muted)}
+.st-guided{color:var(--amber)}
+.st-auto{color:var(--teal)}
+.st-cons{color:var(--cobalt-dark)}
+
+.callout{padding:11px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);font-size:.93rem;margin-top:10px}
+.callout.ok{background:var(--teal-soft);border-color:#9bd8d1;color:#0b4f49}
+.callout.warn{background:var(--amber-soft);border-color:#f0ce8c;color:#78350f}
+.callout.err{background:var(--coral-soft);border-color:#f2b5c4;color:#881337}
+.callout.info{background:var(--cobalt-soft);border-color:#bdd0fb;color:#1e3a8a}
+
+.choice-opt{
+  display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:10px;background:#fff;cursor:pointer;text-align:left
+}
+.choice-opt:has(input:checked){border-color:var(--cobalt);background:var(--cobalt-soft)}
+.choice-opt input{width:18px;height:18px;margin-top:2px;accent-color:var(--cobalt);flex-shrink:0}
+
+.svg-stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}
+.svg-stage svg{display:block;max-width:100%;height:auto;margin:0 auto}
+
+.door-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+.door-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:18px 10px;min-height:112px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)
+}
+.door-btn.chosen{border-color:var(--cobalt);background:var(--cobalt-soft)}
+.door-btn.opened{border-color:var(--amber);background:var(--amber-soft)}
+.door-btn.win{border-color:var(--teal);background:var(--teal-soft)}
+
+.ev-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
+.ev-row:last-child{border-bottom:0}
+
+dialog{width:min(820px,calc(100% - 24px));max-height:90dvh;overflow:auto;border:1px solid var(--line);border-radius:16px;padding:0;background:#fff;color:var(--ink);box-shadow:0 20px 60px rgba(17,28,45,.25)}
+dialog::backdrop{background:rgba(17,28,45,.5)}
+.dlg-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+.dlg-body{padding:18px 20px}
+
+footer{max-width:1200px;margin:0 auto;padding:18px 20px 36px;border-top:1px solid var(--line);font-size:.86rem;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+@media(max-width:960px){
+  .two-zone,.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+}
+@media(max-width:650px){
+  header.topbar{padding:10px 14px;gap:10px}
+  button{min-height:44px}
+}
+@media print{
+  header.topbar,.toolbar-strip,footer,button,.no-print{display:none!important}
+  body{background:#fff}
+  main{max-width:none;padding:0}
+  .panel{border:0;box-shadow:none;padding:0}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand-link" id="brandTitle">Laboratorio de Probabilidad</div>
+  <nav class="nav-tabs" aria-label="Espacios principales">
+    <button type="button" data-nav="explora" id="tabExplora" aria-current="page">Explora</button>
+    <button type="button" data-nav="investiga" id="tabInvestiga">Investiga</button>
+    <button type="button" data-nav="taller" id="tabTaller">Taller</button>
+    <button type="button" data-nav="evidencias" id="tabEvidencias">Mis evidencias</button>
+  </nav>
+  <div class="header-actions">
+    <button type="button" class="btn-ghost" id="pkmBtn">Pokemáticos</button>
+  </div>
+</header>
+
+<div class="toolbar-strip">
+  <div class="meta-line">
+    <span id="courseMeta">4.º ESO / MYP 5 · Criterio B: Investigación de patrones</span>
+    <span aria-hidden="true">·</span>
+    <span id="activeModeLabel">Modo individual</span>
+  </div>
+  <div class="row">
+    <div class="seg-group" role="group" aria-label="Modo de trabajo">
+      <button type="button" id="modeSoloBtn" aria-pressed="true">Individual</button>
+      <button type="button" id="modePairBtn" aria-pressed="false">Pareja</button>
+    </div>
+    <button type="button" class="btn-ghost" id="animToggleBtn" aria-pressed="false" style="min-height:36px;padding:5px 11px;font-size:.86rem">Omitir animaciones</button>
+    <button type="button" class="btn-ghost" id="langBtn" style="min-height:36px;padding:5px 11px;font-size:.86rem">ES / EN</button>
+  </div>
+</div>
+
+<div id="saveNotice" class="notice" role="status" aria-live="polite"></div>
+<main id="app" tabindex="-1"></main>
+
+<footer>
+  <span id="footerLeft">Laboratorio de Probabilidad · Guardado local automático sin cuenta ni envío de datos.</span>
+  <span id="footerRight">Sin calificación automática MYP: las justificaciones quedan registradas para revisión docente.</span>
+</footer>
+
+<input id="upload" type="file" accept="application/json,.json" hidden>
+<dialog id="modal" aria-modal="true"></dialog>
+
+<script>
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+const app = $('app');
+const KEY = 'laboratorio-probabilidad-v1';
+const PKM_SOURCE = 'Probab';
+
+function escapeText(x) {
+  return String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+function ri(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+function pick(arr) { return arr[ri(0, arr.length - 1)]; }
+function clamp(x, a, b) { return Math.min(b, Math.max(a, x)); }
+function gcd(a, b) { a = Math.abs(Math.round(a)); b = Math.abs(Math.round(b)); while (b) [a, b] = [b, a % b]; return a || 1; }
+function simpFrac(n, d) {
+  if (d === 0) return null;
+  if (n === 0) return { n: 0, d: 1 };
+  const s = (n < 0) !== (d < 0) ? -1 : 1;
+  const g = gcd(n, d);
+  return { n: s * Math.abs(Math.round(n)) / g, d: Math.abs(Math.round(d)) / g };
+}
+function roundTo(n, d = 4) {
+  if (!Number.isFinite(n)) return NaN;
+  const f = 10 ** d;
+  return Math.round((n + Number.EPSILON) * f) / f;
+}
+function L() { return state?.lang === 'en' ? 'en' : 'es'; }
+function fmt(n, d = 3) {
+  if (!Number.isFinite(n)) return '—';
+  return roundTo(n, d).toLocaleString(L() === 'en' ? 'en-US' : 'es-ES', { useGrouping: false, maximumFractionDigits: d });
+}
+
+/* Accepts equivalent fractions "a/b", comma/dot decimals, percentages "40%", or simple arithmetic like "(6/36)/(11/36)" */
+function parseProb(raw) {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : NaN;
+  const s0 = String(raw == null ? '' : raw).trim().replace(/\s+/g, '').replace(/,/g, '.');
+  if (!s0) return NaN;
+  const isPct = s0.endsWith('%');
+  const s = isPct ? s0.slice(0, -1) : s0;
+  if (!s) return NaN;
+  if (/^[0-9.+\-*/()]+$/.test(s)) {
+    try {
+      const val = Function(`"use strict";return (${s})`)();
+      if (Number.isFinite(val)) return isPct ? val / 100 : val;
+    } catch { return NaN; }
+  }
+  return NaN;
+}
+
+function closeProb(raw, exact, tol = 0.005) {
+  const u = parseProb(raw);
+  if (!Number.isFinite(u) || !Number.isFinite(exact)) return false;
+  return Math.abs(u - exact) <= tol;
+}
+
+/* Safe algebraic evaluator for student rules in terms of N (e.g. "(N/2 - 1)/(N - 1)", "(n-2)/(2n-2)") */
+function evalRuleN(exprRaw, N) {
+  let s = String(exprRaw == null ? '' : exprRaw).trim().replace(/,/g, '.').replace(/\s+/g, '');
+  if (!s) return NaN;
+  // Support implicit multiplication like 2N, 2(N-1), )N, )(
+  s = s.replace(/[nN]/g, 'N')
+       .replace(/(\d)(N|\()/g, '$1*$2')
+       .replace(/(\)|N)(\d|\()/g, '$1*$2')
+       .replace(/\)\(/g, ')*(')
+       .replace(/\^/g, '**');
+  if (!/^[0-9N+\-*/().]+$/.test(s)) return NaN;
+  try {
+    const fn = Function('N', `"use strict";return (${s});`);
+    const v = fn(N);
+    return Number.isFinite(v) ? v : NaN;
+  } catch { return NaN; }
+}
+
+/* Pokemáticos Deterministic Reward Code Encoder (src/utils/rewardCodeUtils.js compatible) */
+function pkmCrc8(buf) {
+  let c = 0xFF;
+  for (let i = 0; i < buf.length; i++) {
+    c ^= buf[i];
+    for (let j = 0; j < 8; j++) c = (c & 0x80) ? (((c << 1) ^ 0x07) & 0xFF) : ((c << 1) & 0xFF);
+  }
+  return c ^ 0xFF;
+}
+function pkmCrc32(str) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < str.length; i++) {
+    c ^= (str.charCodeAt(i) & 0xFF);
+    for (let j = 0; j < 8; j++) c = (c >>> 1) ^ ((c & 1) ? 0xEDB88320 : 0);
+  }
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function generateRewardCode(studentId, sourceId, activityId) {
+  if (!studentId || !sourceId || !activityId) throw new Error('Missing code parameters');
+  const payload = [0x01], h = pkmCrc32(studentId);
+  payload.push((h >> 24) & 0xFF, (h >> 16) & 0xFF, (h >> 8) & 0xFF, h & 0xFF);
+  const s = sourceId.substring(0, 6).padEnd(6, ' '), a = activityId.substring(0, 6).padEnd(6, ' ');
+  for (let i = 0; i < 6; i++) payload.push(s.charCodeAt(i));
+  for (let i = 0; i < 6; i++) payload.push(a.charCodeAt(i));
+  payload.push(pkmCrc8(new Uint8Array(payload)));
+  let n = 0n;
+  for (const b of payload) n = (n << 8n) | BigInt(b);
+  const b36 = n.toString(36).toUpperCase().padStart(28, '0');
+  return `${b36.slice(0, 4)}-${b36.slice(4, 8)}-${b36.slice(8, 12)}-${b36.slice(12, 16)}-${b36.slice(16, 20)}-${b36.slice(20, 24)}-${b36.slice(24, 28)}`;
+}
+
+/* ================= RECOGNITION METADATA (STRICTLY SEPARATED) ================= */
+const HUELLAS_META = [
+  { id: 'huePre', max: 4, es: { name: 'Revisión de predicción', desc: 'Comparar tu predicción inicial con evidencia experimental o modelo y anotar una revisión.' }, en: { name: 'Prediction revision', desc: 'Compare an initial prediction with evidence and log a revision.' } },
+  { id: 'hueTab', max: 4, es: { name: 'Corrección de tabla o árbol', desc: 'Detectar y corregir una inconsistencia en frecuencias, denominadores o ramas.' }, en: { name: 'Table or tree fix', desc: 'Spot and fix an inconsistency in counts, denominators, or branches.' } },
+  { id: 'hueAyu', max: 4, es: { name: 'Uso útil de apoyo', desc: 'Consultar una pista conceptual y resolver después correctamente un caso nuevo.' }, en: { name: 'Applied hint', desc: 'Use a conceptual hint and solve a fresh case afterward.' } },
+  { id: 'hueCon', max: 4, es: { name: 'Revisión de conjetura fallida', desc: 'Comprobar que una primera regla no cumplía un caso y reformularla.' }, en: { name: 'Conjecture refinement', desc: 'Spot a failing rule on a test case and refine it.' } },
+  { id: 'hueRet', max: 3, es: { name: 'Retomar en otra sesión', desc: 'Continuar una investigación guardada en una fecha distinta.' }, en: { name: 'Return across sessions', desc: 'Resume a saved investigation on a later date.' } }
+];
+
+const SELLOS_META = [
+  { id: 'selRep', es: { name: 'Represento una situación correctamente', desc: 'Construyo tablas 2×2, Venn proporcionales/esquemáticos o árboles consistentes.' }, en: { name: 'Represent situations accurately', desc: 'Build consistent 2×2 tables, Venn diagrams, or probability trees.' } },
+  { id: 'selInv', es: { name: 'Distingo condicionales inversas y causalidad', desc: 'Diferencio P(A|B) de P(B|A), manejo denominador cero y no confundo correlación con causa.' }, en: { name: 'Distinguish inverse conditionals', desc: 'Separate P(A|B) from P(B|A), zero denominators, and causality.' } },
+  { id: 'selOrg', es: { name: 'Organizo casos útiles', desc: 'Elijo y registro múltiples valores estructurados (incluidos bordes como N=2) sin mezclar series.' }, en: { name: 'Organize useful cases', desc: 'Select and record multiple structured cases (including edge N=2) with isolated series.' } },
+  { id: 'selPat', es: { name: 'Describo un patrón con precisión', desc: 'Identifico regularidades numéricas y tendencia límite sin confundir simulación con demostración.' }, en: { name: 'Describe patterns precisely', desc: 'Identify numerical patterns and limiting behavior without equating simulation to proof.' } },
+  { id: 'selReg', es: { name: 'Formulo una regla general', desc: 'Expreso P(N) como fórmula algebraica verificada en todo el dominio.' }, en: { name: 'Formulate a general rule', desc: 'Express P(N) as a verified algebraic formula across the domain.' } },
+  { id: 'selCmp', es: { name: 'Compruebo en un caso nuevo', desc: 'Verifico mi regla comparando su predicción con un caso N nuevo independiente del ajuste.' }, en: { name: 'Verify on an unseen case', desc: 'Test the rule against a brand-new N excluded from rule construction.' } },
+  { id: 'selJus', humanReview: true, es: { name: 'Justifico matemáticamente (requiere revisión humana)', desc: 'Explico por qué funciona la reducción del espacio muestral; queda pendiente de validación docente/pares.' }, en: { name: 'Justify mathematically (human review)', desc: 'Explain why sample-space reduction works; remains flagged for teacher/peer review.' } },
+  { id: 'selTrn', es: { name: 'Transfiero el método a otra situación', desc: 'Aplico la estrategia completa de forma autónoma en una investigación nueva.' }, en: { name: 'Transfer method to new setting', desc: 'Apply the full inquiry process autonomously on a fresh scenario.' } }
+];
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function blankState(keepPrefs = false) {
+  return {
+    version: 1,
+    lang: keepPrefs && state ? state.lang : 'es',
+    publicId: keepPrefs && state ? state.publicId : '',
+    pairMode: keepPrefs && state ? state.pairMode : false,
+    skipAnim: keepPrefs && state ? state.skipAnim : false,
+    activeNav: 'explora',
+    activeExplore: 'cond', // 'cond' | 'monty' | 'diag' | 'urn'
+    activeInv: 'inv2',     // 'inv1' | 'inv2' | 'inv3'
+    lastSessionDate: todayKey(),
+    huellas: { huePre: 0, hueTab: 0, hueAyu: 0, hueCon: 0, hueRet: 0 },
+    sellos: {
+      selRep: 'pending', selInv: 'pending', selOrg: 'pending', selPat: 'pending',
+      selReg: 'pending', selCmp: 'pending', selJus: 'pending', selTrn: 'pending'
+    },
+    explore: {},
+    investigations: {},
+    taller: { topic: 'mix', current: null, errorQueue: [], solved: 0 }
+  };
+}
+
+let state = blankState();
+
+function validateSave(raw, opts = {}) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || raw.version !== 1) throw new Error('Invalid save');
+  const s = blankState(false);
+  s.lang = raw.lang === 'en' ? 'en' : (opts.preserveLang === 'en' ? 'en' : 'es');
+  s.publicId = typeof raw.publicId === 'string' ? raw.publicId.trim().slice(0, 128) : (opts.preserveId || '');
+  if (!s.publicId && opts.preserveId) s.publicId = opts.preserveId;
+  s.pairMode = Boolean(raw.pairMode);
+  s.skipAnim = Boolean(raw.skipAnim);
+  s.activeNav = ['explora', 'investiga', 'taller', 'evidencias'].includes(raw.activeNav) ? raw.activeNav : 'explora';
+  s.activeExplore = ['cond', 'monty', 'diag', 'urn'].includes(raw.activeExplore) ? raw.activeExplore : 'cond';
+  s.activeInv = ['inv1', 'inv2', 'inv3'].includes(raw.activeInv) ? raw.activeInv : 'inv2';
+  s.lastSessionDate = typeof raw.lastSessionDate === 'string' ? raw.lastSessionDate.slice(0, 16) : todayKey();
+  if (raw.huellas && typeof raw.huellas === 'object') {
+    for (const h of HUELLAS_META) {
+      const v = Number(raw.huellas[h.id]);
+      if (Number.isInteger(v) && v >= 0) s.huellas[h.id] = Math.min(v, h.max);
+    }
+  }
+  const validSellos = new Set(['pending', 'guided', 'autonomous', 'consolidated', 'pending_human']);
+  if (raw.sellos && typeof raw.sellos === 'object') {
+    for (const m of SELLOS_META) {
+      if (validSellos.has(raw.sellos[m.id])) s.sellos[m.id] = raw.sellos[m.id];
+    }
+  }
+  if (raw.explore && typeof raw.explore === 'object') s.explore = raw.explore;
+  if (raw.investigations && typeof raw.investigations === 'object') s.investigations = raw.investigations;
+  if (raw.taller && typeof raw.taller === 'object') s.taller = raw.taller;
+  return s;
+}
+
+try {
+  const saved = localStorage.getItem(KEY);
+  if (saved) {
+    state = validateSave(JSON.parse(saved));
+    const tk = todayKey();
+    if (state.lastSessionDate && state.lastSessionDate !== tk) {
+      state.lastSessionDate = tk;
+      if (state.huellas.hueRet < 3) state.huellas.hueRet += 1;
+    }
+  }
+} catch {
+  state = blankState();
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) localStorage.setItem(KEY + '-recovery', raw);
+  } catch {}
+  $('saveNotice').textContent = 'No se pudo recuperar el cuaderno local anterior. Puedes importar un respaldo JSON.';
+}
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch {
+    $('saveNotice').textContent = L() === 'es'
+      ? 'Error al guardar localmente. Exporta tu cuaderno en JSON antes de cerrar.'
+      : 'Local storage write failed. Export your JSON notebook before leaving.';
+  }
+}
+
+/* ================= RECOGNITION HELPERS ================= */
+const SELLO_RANK = { pending: 0, guided: 1, pending_human: 1, autonomous: 2, consolidated: 3 };
+function advanceSello(id, target) {
+  if (!state.sellos[id]) return;
+  if ((SELLO_RANK[target] || 0) > (SELLO_RANK[state.sellos[id]] || 0)) {
+    state.sellos[id] = target;
+    save();
+  }
+}
+function awardHuella(id) {
+  const m = HUELLAS_META.find((h) => h.id === id);
+  if (!m) return false;
+  if ((state.huellas[id] || 0) < m.max) {
+    state.huellas[id] += 1;
+    save();
+    return true;
+  }
+  return false;
+}
+function selloStatusText(st, id = '') {
+  const l = L();
+  if (id === 'selJus' && st === 'consolidated') {
+    return `<span class="status-txt st-cons">★ ${escapeText(l === 'es' ? 'Validado por docente' : 'Teacher-validated')}</span>`;
+  }
+  const map = l === 'es'
+    ? { pending: ['○', 'Pendiente', 'st-pending'], guided: ['◐', 'Practicado con ayuda', 'st-guided'], pending_human: ['◷', 'Pendiente de revisión docente', 'st-guided'], autonomous: ['✓', 'Demostrado autónomamente', 'st-auto'], consolidated: ['★', 'Consolidado por transferencia', 'st-cons'] }
+    : { pending: ['○', 'Pending', 'st-pending'], guided: ['◐', 'Practiced with support', 'st-guided'], pending_human: ['◷', 'Pending human review', 'st-guided'], autonomous: ['✓', 'Demonstrated autonomously', 'st-auto'], consolidated: ['★', 'Consolidated by transfer', 'st-cons'] };
+  const [glyph, label, cls] = map[st] || map.pending;
+  return `<span class="status-txt ${cls}">${glyph} ${escapeText(label)}</span>`;
+}
+
+/* ================= BILINGUAL UI DICTIONARY ================= */
+const UI = {
+  es: {
+    brand: 'Laboratorio de Probabilidad',
+    navExp: 'Explora', navInv: 'Investiga', navTal: 'Taller', navEvi: 'Mis evidencias',
+    pkmBtn: 'Pokemáticos', pkmBtnSet: 'Pokemáticos ✓',
+    courseMeta: '4.º ESO / MYP 5 · Criterio B: Investigación de patrones',
+    soloLbl: 'Modo individual', pairLbl: 'Modo pareja (2 integrantes)',
+    soloBtn: 'Individual', pairBtn: 'Pareja',
+    skipAnim: 'Omitir animaciones',
+    footerL: 'Laboratorio de Probabilidad · Guardado local automático sin cuenta ni envío de datos.',
+    footerR: 'Sin calificación automática MYP: las justificaciones quedan registradas para revisión docente.',
+    checkBtn: 'Comprobar',
+    states: { pending: 'Pendiente', guided: 'Practicado con ayuda', pending_human: 'Pendiente de revisión docente', autonomous: 'Demostrado autónomamente', consolidated: 'Consolidado por transferencia' },
+    pkmTitle: 'Pokemáticos · Public ID (opcional)',
+    pkmDesc: 'Pega tu Public ID para obtener códigos canjeables. Las Huellas de trabajo (constancia/revisión) y los Sellos de investigación (dominio) tienen categorías e identificadores separados.',
+    pkmPlaceholder: 'Pega aquí tu Public ID', pkmSave: 'Guardar ID', pkmClear: 'Borrar ID',
+    pkmSaved: 'ID guardado. Los códigos están disponibles en Mis evidencias.', pkmCleared: 'ID eliminado.',
+    codeBtn: 'Código Pokemáticos', copyBtn: 'Copiar código', copiedMsg: 'Código copiado al portapapeles.', copyFail: 'Selecciona el código manualmente.', closeBtn: 'Cerrar'
+  },
+  en: {
+    brand: 'Probability Lab',
+    navExp: 'Explore', navInv: 'Investigate', navTal: 'Workshop', navEvi: 'My Evidence',
+    pkmBtn: 'Pokemáticos', pkmBtnSet: 'Pokemáticos ✓',
+    courseMeta: 'Grade 10 / MYP 5 · Criterion B: Investigating Patterns',
+    soloLbl: 'Individual mode', pairLbl: 'Pair mode (2 partners)',
+    soloBtn: 'Solo', pairBtn: 'Pair',
+    skipAnim: 'Skip animations',
+    footerL: 'Probability Lab · Automatic local browser save, no sign-up or external tracking.',
+    footerR: 'No automatic MYP 1–8 grade assigned: open justifications stay flagged for teacher review.',
+    checkBtn: 'Check',
+    states: { pending: 'Pending', guided: 'Practiced with support', pending_human: 'Pending human review', autonomous: 'Demonstrated autonomously', consolidated: 'Consolidated by transfer' },
+    pkmTitle: 'Pokemáticos · Public ID (optional)',
+    pkmDesc: 'Paste your Public ID to generate redeemable codes. Work Traces (consistency/review) and Research Seals (mastery) keep separate categories and IDs.',
+    pkmPlaceholder: 'Paste your Public ID here', pkmSave: 'Save ID', pkmClear: 'Clear ID',
+    pkmSaved: 'ID saved. Codes are unlocked under My Evidence.', pkmCleared: 'ID cleared.',
+    codeBtn: 'Pokemáticos Code', copyBtn: 'Copy code', copiedMsg: 'Code copied to clipboard.', copyFail: 'Select and copy manually.', closeBtn: 'Close'
+  }
+};
+function tr(k) { return UI[L()][k]; }
+
+/* ================= EXPLORA: STATE & EXPERIENCES (A, B, C, D) ================= */
+function getExpCond() {
+  if (!state.explore.cond) {
+    state.explore.cond = {
+      Npop: 36, predA: '', predB: '', predLocked: false, predRevised: false,
+      series: { '36': { n: 0, lie: 0, truthAcc: 0, truthSafe: 0, last: null }, '72': { n: 0, lie: 0, truthAcc: 0, truthSafe: 0, last: null } },
+      table: { lieAcc: '', truthAcc: '', truthSafe: '' },
+      q: { pAcGivenTruth: '', pTruthGivenAc: '', pImpossible: '', causal: '' },
+      checkedTab: null, checkedQ: null, repView: 'venn'
+    };
+  }
+  return state.explore.cond;
+}
+function runCondSim(times) {
+  const c = getExpCond();
+  if (!c.predLocked) return;
+  const key = String(c.Npop);
+  if (!c.series[key]) c.series[key] = { n: 0, lie: 0, truthAcc: 0, truthSafe: 0, last: null };
+  const s = c.series[key];
+  let lastRun = null;
+  for (let i = 0; i < times; i++) {
+    const d1 = ri(1, 6);
+    if (d1 === 6) {
+      s.lie += 1;
+      lastRun = { d1, d2: null, cat: 'lie' };
+    } else {
+      const d2 = ri(1, 6);
+      if (d2 === 1) { s.truthAcc += 1; lastRun = { d1, d2, cat: 'truthAcc' }; }
+      else { s.truthSafe += 1; lastRun = { d1, d2, cat: 'truthSafe' }; }
+    }
+    s.n += 1;
+  }
+  s.last = lastRun;
+  save(); render();
+}
+
+function getExpMonty() {
+  if (!state.explore.monty) {
+    state.explore.monty = {
+      predA: '', predB: '', predLocked: false, predRevised: false,
+      game: { prize: ri(0, 2), chosen: -1, opened: -1, phase: 'pick', finalChoice: -1, won: null },
+      keepSeries: { n: 0, wins: 0 },
+      switchSeries: { n: 0, wins: 0 },
+      doorsMode: 3,
+      q: { pWinSwitch: '', pSwitchGivenCar: '', needDist: '' },
+      checkedQ: null
+    };
+  }
+  return state.explore.monty;
+}
+function runMontyBatch(strategy, times) {
+  const m = getExpMonty();
+  if (!m.predLocked) return;
+  const target = strategy === 'switch' ? m.switchSeries : m.keepSeries;
+  const doors = m.doorsMode;
+  for (let i = 0; i < times; i++) {
+    const prize = ri(0, doors - 1);
+    const chosen = ri(0, doors - 1);
+    const win = strategy === 'switch' ? (chosen !== prize) : (chosen === prize);
+    target.n += 1;
+    if (win) target.wins += 1;
+  }
+  save(); render();
+}
+
+function getExpDiag() {
+  if (!state.explore.diag) {
+    state.explore.diag = {
+      prevPct: 1, sensPct: 95, specPct: 95, popN: 1000,
+      table: { tp: '', fn: '', fp: '', tn: '' },
+      pCondGivenPos: '', predInit: '',
+      checked: null
+    };
+  }
+  return state.explore.diag;
+}
+
+function getExpUrn() {
+  if (!state.explore.urn) {
+    state.explore.urn = {
+      R: 3, B: 3, withRep: false, predA: '', predLocked: false,
+      series: {}, // key `${R}-${B}-${withRep}`
+      q: { pSame: '', pDiff: '' }, checkedQ: null
+    };
+  }
+  return state.explore.urn;
+}
+function urnSeriesKey(u) { return `${u.R}-${u.B}-${u.withRep ? 'W' : 'WO'}`; }
+function runUrnSim(times) {
+  const u = getExpUrn();
+  if (!u.predLocked) return;
+  const k = urnSeriesKey(u);
+  if (!u.series[k]) u.series[k] = { n: 0, same: 0, diff: 0, last: null };
+  const s = u.series[k];
+  const tot = u.R + u.B;
+  for (let i = 0; i < times; i++) {
+    const firstRed = ri(1, tot) <= u.R;
+    let secondRed;
+    if (u.withRep) {
+      secondRed = ri(1, tot) <= u.R;
+    } else {
+      const remR = firstRed ? u.R - 1 : u.R;
+      secondRed = ri(1, tot - 1) <= remR;
+    }
+    const isSame = firstRed === secondRed;
+    s.n += 1;
+    if (isSame) s.same += 1; else s.diff += 1;
+    s.last = { d1: firstRed ? 'R' : 'B', d2: secondRed ? 'R' : 'B', isSame };
+  }
+  save(); render();
+}
+
+/* ================= EXPLORA VIEW RENDERER ================= */
+function renderExplora() {
+  const l = L();
+  const tab = state.activeExplore;
+  const tabs = [
+    ['cond', l === 'es' ? 'A. Condicionalidad vs Causalidad' : 'A. Conditionality vs Causality'],
+    ['monty', l === 'es' ? 'B. Paradoja de Monty Hall' : 'B. Monty Hall Paradox'],
+    ['diag', l === 'es' ? 'C. Pruebas Diagnósticas' : 'C. Diagnostic Tests'],
+    ['urn', l === 'es' ? 'D. Con y sin Reemplazamiento' : 'D. With vs Without Replacement']
+  ];
+
+  let body = '';
+  if (tab === 'cond') body = renderExpCond(l);
+  else if (tab === 'monty') body = renderExpMonty(l);
+  else if (tab === 'diag') body = renderExpDiag(l);
+  else body = renderExpUrn(l);
+
+  return `
+    <section class="panel" style="margin-top:0">
+      <div class="row-between">
+        <div>
+          <span class="meta-line">${l === 'es' ? 'Experimentos interactivos · Sesiones 1 a 3' : 'Interactive Lab · Prerequisite Sessions'}</span>
+          <h1 style="margin:4px 0 0;font-size:clamp(1.35rem,2.5vw,1.8rem)">${l === 'es' ? 'Explora representaciones y espacio muestral' : 'Explore Representations & Sample Spaces'}</h1>
+        </div>
+        <div class="seg-group" role="tablist" aria-label="Experimentos Explora">
+          ${tabs.map(([id, label]) => `<button type="button" role="tab" aria-pressed="${tab === id}" data-exp-tab="${id}">${escapeText(label)}</button>`).join('')}
+        </div>
+      </div>
+    </section>
+    ${body}
+  `;
+}
+
+function renderExpCond(l) {
+  const c = getExpCond();
+  const key = String(c.Npop);
+  const s = c.series[key] || { n: 0, lie: 0, truthAcc: 0, truthSafe: 0, last: null };
+  const expLie = c.Npop / 6;
+  const expTA = (c.Npop * 5) / 36;
+  const expTS = (c.Npop * 25) / 36;
+
+  return `
+    <div class="panel two-zone">
+      <div>
+        <h2 style="margin-top:0">${l === 'es' ? 'A. ¿Quién se ha comido mis deberes?' : 'A. Who ate my homework?'}</h2>
+        <p>${l === 'es'
+          ? 'Todos dicen haber hecho los deberes. Dado 1 = 6 → miente (1/6). Si no es 6 (5/6), el docente acusa si Dado 2 = 1 (1/6 de los que dicen verdad). Nota: simular grande no equivale a demostrar la ley exacta.'
+          : 'All students claim they did homework. Die 1 = 6 → lies (1/6). Otherwise (5/6), teacher accuses if Die 2 = 1 (1/6 of truth-tellers). Large samples illustrate relative frequency, not algebraic proof.'}</p>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? '1. Predicción razonada previa (obligatoria antes de simular)' : '1. Pre-simulation reasoned prediction (required first)'}</strong>
+          <div class="${state.pairMode ? 'grid-2' : ''}" style="margin-top:8px">
+            <div>
+              <label for="condPredA">${state.pairMode ? (l === 'es' ? 'Predicción Integrante A (en 36 alumnos, ¿cuántos acusados dicen la verdad?)' : 'Partner A prediction (out of 36, how many accused tell truth?)') : (l === 'es' ? 'En 36 estudiantes, ¿cuántos acusados esperan decir verdad y cuántos mienten?' : 'Out of 36, how many accused tell truth vs lie?')}</label>
+              <input id="condPredA" class="field-input" value="${escapeText(c.predA)}" data-expcond="predA" style="margin-top:4px">
+            </div>
+            ${state.pairMode ? `<div><label for="condPredB">${l === 'es' ? 'Predicción Integrante B' : 'Partner B prediction'}</label><input id="condPredB" class="field-input" value="${escapeText(c.predB)}" data-expcond="predB" style="margin-top:4px"></div>` : ''}
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="btn-primary" data-lock-cond="1">${c.predLocked ? (l === 'es' ? 'Predicción registrada ✓' : 'Prediction logged ✓') : (l === 'es' ? 'Registrar predicción y habilitar simulador' : 'Log prediction & unlock simulator')}</button>
+            ${c.predLocked && s.n >= 36 && !c.predRevised ? `<button type="button" class="btn-ghost" data-rev-pred="cond">${l === 'es' ? 'Anotar revisión tras contraste' : 'Log prediction revision'}</button>` : ''}
+          </div>
+        </div>
+
+        <div class="subpanel">
+          <div class="row-between">
+            <strong>${l === 'es' ? '2. Simulador de estudiantes (series separadas por N)' : '2. Student Simulator (separate series per N)'}</strong>
+            <div class="seg-group">
+              <button type="button" aria-pressed="${c.Npop === 36}" data-cond-pop="36">N = 36</button>
+              <button type="button" aria-pressed="${c.Npop === 72}" data-cond-pop="72">N = 72</button>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="btn-teal" ${c.predLocked ? '' : 'disabled'} data-cond-sim="1">${l === 'es' ? '1 extracción visible' : '1 visible draw'}</button>
+            <button type="button" class="btn-ghost" ${c.predLocked ? '' : 'disabled'} data-cond-sim="10">×10</button>
+            <button type="button" class="btn-ghost" ${c.predLocked ? '' : 'disabled'} data-cond-sim="100">×100</button>
+            <button type="button" class="btn-ghost" ${c.predLocked ? '' : 'disabled'} data-cond-sim="1000">×1000</button>
+          </div>
+          ${s.last ? `<div class="callout info" style="margin-top:10px">Dado 1 = <strong>${s.last.d1}</strong> ${s.last.d2 !== null ? `· Dado 2 = <strong>${s.last.d2}</strong>` : ''} → ${s.last.cat === 'lie' ? (l === 'es' ? 'Miente y es acusado (si dice 6)' : 'Lies (d1=6)') : s.last.cat === 'truthAcc' ? (l === 'es' ? 'Dice la verdad pero es acusado' : 'Truthful & falsely accused') : (l === 'es' ? 'Dice la verdad y no es acusado' : 'Truthful & unaccused')}</div>` : ''}
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>${l === 'es' ? 'Serie N=' + c.Npop : 'Series N=' + c.Npop}</th><th>${l === 'es' ? 'Ensayos (n)' : 'Trials (n)'}</th><th>${l === 'es' ? 'Miente (1/6)' : 'Lies (1/6)'}</th><th>${l === 'es' ? 'Verdad + Acusado' : 'Truth + Accused'}</th><th>${l === 'es' ? 'Verdad + No acusado' : 'Truth + Safe'}</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>${l === 'es' ? 'Frecuencia relativa sim.' : 'Simulated rel. freq.'}</td>
+                  <td>${s.n}</td>
+                  <td>${s.n ? fmt(s.lie / s.n, 3) : '—'} (${s.lie})</td>
+                  <td>${s.n ? fmt(s.truthAcc / s.n, 3) : '—'} (${s.truthAcc})</td>
+                  <td>${s.n ? fmt(s.truthSafe / s.n, 3) : '—'} (${s.truthSafe})</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="subpanel" style="margin-top:0">
+          <div class="row-between">
+            <strong>${l === 'es' ? 'Representaciones múltiples' : 'Multiple Representations'}</strong>
+            <div class="seg-group">
+              <button type="button" aria-pressed="${c.repView === 'venn'}" data-cond-rep="venn">Venn</button>
+              <button type="button" aria-pressed="${c.repView === 'tree'}" data-cond-rep="tree">${l === 'es' ? 'Árbol' : 'Tree'}</button>
+            </div>
+          </div>
+          ${c.repView === 'venn' ? `
+            <div class="svg-stage">
+              <svg viewBox="0 0 360 180" width="100%" role="img" aria-label="Diagrama de Venn esquemático">
+                <rect x="6" y="6" width="348" height="168" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+                <text x="16" y="24" font-size="11" fill="#44546b">Ω = ${c.Npop} (${l === 'es' ? 'esquemático, no a escala' : 'schematic, not to scale'})</text>
+                <circle cx="135" cy="96" r="56" fill="#be123c" fill-opacity="0.14" stroke="#be123c" stroke-width="2"/>
+                <circle cx="220" cy="96" r="56" fill="#1d4ed8" fill-opacity="0.14" stroke="#1d4ed8" stroke-width="2"/>
+                <text x="102" y="88" font-size="11.5" font-weight="700" fill="#881337" text-anchor="middle">${l === 'es' ? 'Miente' : 'Lies'}</text>
+                <text x="102" y="105" font-size="11" fill="#881337" text-anchor="middle">(${fmt(expLie, 0)})</text>
+                <text x="178" y="92" font-size="10.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">${l === 'es' ? 'Acusado' : 'Accused'}</text>
+                <text x="178" y="107" font-size="10.5" fill="#1e3a8a" text-anchor="middle">&amp; Verdad (${fmt(expTA, 0)})</text>
+                <text x="242" y="88" font-size="11.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">${l === 'es' ? 'No acusado' : 'Unaccused'}</text>
+                <text x="242" y="105" font-size="11" fill="#1e3a8a" text-anchor="middle">(${fmt(expTS, 0)})</text>
+              </svg>
+            </div>
+          ` : `
+            <div class="svg-stage">
+              <svg viewBox="0 0 360 190" width="100%" role="img" aria-label="Árbol de probabilidad 2 etapas">
+                <line x1="30" y1="95" x2="145" y2="42" stroke="#be123c" stroke-width="2"/>
+                <line x1="30" y1="95" x2="145" y2="138" stroke="#1d4ed8" stroke-width="2"/>
+                <text x="72" y="56" font-size="11" fill="#881337">1/6</text>
+                <text x="72" y="132" font-size="11" fill="#1e3a8a">5/6</text>
+                <text x="150" y="46" font-size="11.5" font-weight="700" fill="#881337">${l === 'es' ? 'Miente → Acusado (6/' + c.Npop + ')' : 'Lies → Accused (6/' + c.Npop + ')'}</text>
+                <text x="150" y="142" font-size="11.5" font-weight="700" fill="#1e3a8a">${l === 'es' ? 'Dice verdad' : 'Tells truth'}</text>
+                <line x1="220" y1="138" x2="315" y2="105" stroke="#b45309" stroke-width="1.8"/>
+                <line x1="220" y1="138" x2="315" y2="168" stroke="#0f766e" stroke-width="1.8"/>
+                <text x="255" y="114" font-size="10.5" fill="#b45309">1/6</text>
+                <text x="255" y="166" font-size="10.5" fill="#0f766e">5/6</text>
+                <text x="320" y="108" font-size="11" font-weight="700" fill="#b45309">${fmt(expTA, 0)}/${c.Npop}</text>
+                <text x="320" y="171" font-size="11" font-weight="700" fill="#0f766e">${fmt(expTS, 0)}/${c.Npop}</text>
+              </svg>
+            </div>
+          `}
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? `3. Tabla 2×2 esperada para N = ${c.Npop}` : `3. Expected 2×2 table for N = ${c.Npop}`}</strong>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th></th><th>${l === 'es' ? 'Miente' : 'Lies'}</th><th>${l === 'es' ? 'Dice verdad' : 'Truth'}</th></tr></thead>
+              <tbody>
+                <tr><th>${l === 'es' ? 'Acusado' : 'Accused'}</th><td><input class="cell-input" value="${escapeText(c.table.lieAcc)}" data-expcond-tab="lieAcc"></td><td><input class="cell-input" value="${escapeText(c.table.truthAcc)}" data-expcond-tab="truthAcc"></td></tr>
+                <tr><th>${l === 'es' ? 'No acusado' : 'Unaccused'}</th><td>0</td><td><input class="cell-input" value="${escapeText(c.table.truthSafe)}" data-expcond-tab="truthSafe"></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="grid-2" style="margin-top:10px">
+            <div><label><strong>P(Acusado | Dice verdad)</strong></label><input class="field-input" value="${escapeText(c.q.pAcGivenTruth)}" data-expcond-q="pAcGivenTruth" placeholder="e.g. 1/6"></div>
+            <div><label><strong>P(Dice verdad | Acusado)</strong></label><input class="field-input" value="${escapeText(c.q.pTruthGivenAc)}" data-expcond-q="pTruthGivenAc" placeholder="e.g. 5/11"></div>
+          </div>
+          <div style="margin-top:8px">
+            <label><strong>${l === 'es' ? '¿Y P(Acusado | Miente y No acusado)? (suceso condicionante vacío)' : 'What about P(Accused | Lie & Unaccused)?'}</strong></label>
+            <select class="field-input" data-expcond-q="pImpossible" style="margin-top:4px">
+              <option value="">—</option>
+              <option value="undef" ${c.q.pImpossible === 'undef' ? 'selected' : ''}>${l === 'es' ? 'No definida (denominador = 0)' : 'Undefined (zero denominator)'}</option>
+              <option value="zero" ${c.q.pImpossible === 'zero' ? 'selected' : ''}>0</option>
+              <option value="one" ${c.q.pImpossible === 'one' ? 'selected' : ''}>1</option>
+            </select>
+          </div>
+          <div style="margin-top:8px">
+            <label><strong>${l === 'es' ? 'Diferencia entre condicionalidad y causalidad:' : 'Conditionality vs Causality:'}</strong></label>
+            <select class="field-input" data-expcond-q="causal" style="margin-top:4px">
+              <option value="">—</option>
+              <option value="inv" ${c.q.causal === 'inv' ? 'selected' : ''}>${l === 'es' ? 'P(A|B) ≠ P(B|A); restringir el espacio muestral no implica relación causa-efecto' : 'P(A|B) ≠ P(B|A); conditioning restricts the sample space without proving causation'}</option>
+              <option value="same" ${c.q.causal === 'same' ? 'selected' : ''}>${l === 'es' ? 'Si P(A|B) > 0, entonces B causa A necesariamente' : 'If P(A|B) > 0 then B causes A'}</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:10px"><button type="button" class="btn-primary" data-check-cond="1">${escapeText(tr('checkBtn'))}</button></div>
+          ${c.checkedQ ? `<div class="callout ${c.checkedQ.ok ? 'ok' : 'err'}">${escapeText(c.checkedQ.msg)}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderExpMonty(l) {
+  const m = getExpMonty();
+  const g = m.game;
+  const kRate = m.keepSeries.n ? m.keepSeries.wins / m.keepSeries.n : NaN;
+  const sRate = m.switchSeries.n ? m.switchSeries.wins / m.switchSeries.n : NaN;
+
+  return `
+    <div class="panel two-zone">
+      <div>
+        <h2 style="margin-top:0">${l === 'es' ? 'B. La Paradoja de Monty Hall' : 'B. The Monty Hall Paradox'}</h2>
+        <div class="callout info" style="margin-top:6px">
+          <strong>${l === 'es' ? 'Reglas clásicas explícitas:' : 'Explicit classical rules:'}</strong>
+          ${l === 'es'
+            ? '1) El presentador conoce dónde está el premio. 2) Abre siempre una puerta NO elegida que contiene una cabra. 3) Siempre te ofrece cambiar a la puerta restante.'
+            : '1) The host knows where the prize is. 2) Host always opens an unchosen goat door. 3) Host always offers you to switch.'}
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? '1. Predicción previa' : '1. Initial Prediction'}</strong>
+          <div class="${state.pairMode ? 'grid-2' : ''}" style="margin-top:8px">
+            <div><label>${l === 'es' ? '¿Qué estrategia da mayor probabilidad de premio y por qué?' : 'Which strategy gives a higher win probability and why?'}</label><input class="field-input" value="${escapeText(m.predA)}" data-expmonty="predA" style="margin-top:4px"></div>
+            ${state.pairMode ? `<div><label>${l === 'es' ? 'Predicción Integrante B' : 'Partner B prediction'}</label><input class="field-input" value="${escapeText(m.predB)}" data-expmonty="predB" style="margin-top:4px"></div>` : ''}
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="btn-primary" data-lock-monty="1">${m.predLocked ? (l === 'es' ? 'Predicción registrada ✓' : 'Prediction locked ✓') : (l === 'es' ? 'Registrar predicción y desbloquear puertas' : 'Lock prediction & unlock doors')}</button>
+          </div>
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? '2. Partida manual paso a paso (3 puertas)' : '2. Interactive Single Game (3 doors)'}</strong>
+          <div class="door-grid">
+            ${[0, 1, 2].map((d) => {
+              const isChosen = g.chosen === d || g.finalChoice === d;
+              const isOpened = g.opened === d;
+              const isEnd = g.phase === 'done';
+              const isPrize = d === g.prize;
+              const cls = isEnd && isPrize ? 'win' : isOpened ? 'opened' : isChosen ? 'chosen' : '';
+              const lbl = isOpened ? (l === 'es' ? 'Cabra (abierta)' : 'Goat (opened)') : isEnd ? (isPrize ? (l === 'es' ? '¡Premio!' : 'Prize!') : (l === 'es' ? 'Cabra' : 'Goat')) : isChosen ? (l === 'es' ? 'Tu elección' : 'Your pick') : (l === 'es' ? `Puerta ${d + 1}` : `Door ${d + 1}`);
+              return `<button type="button" class="door-btn ${cls}" ${!m.predLocked || g.phase !== 'pick' ? 'disabled' : ''} data-monty-door="${d}"><strong>${l === 'es' ? 'Puerta' : 'Door'} ${d + 1}</strong><span style="font-size:.85rem">${escapeText(lbl)}</span></button>`;
+            }).join('')}
+          </div>
+          ${g.phase === 'offer' ? `
+            <div class="row">
+              <button type="button" class="btn-primary" data-monty-act="keep">${l === 'es' ? `Mantener puerta ${g.chosen + 1}` : `Keep door ${g.chosen + 1}`}</button>
+              <button type="button" class="btn-teal" data-monty-act="switch">${l === 'es' ? 'Cambiar de puerta' : 'Switch door'}</button>
+            </div>` : g.phase === 'done' ? `
+            <div class="callout ${g.won ? 'ok' : 'warn'}">${g.won ? (l === 'es' ? '¡Ganaste el premio!' : 'You won the prize!') : (l === 'es' ? 'Salió cabra.' : 'Got a goat.')} <button type="button" class="btn-ghost" data-monty-reset="1" style="margin-left:8px">${l === 'es' ? 'Jugar otra vez' : 'Play again'}</button></div>` : ''}
+        </div>
+      </div>
+
+      <div>
+        <div class="subpanel" style="margin-top:0">
+          <div class="row-between">
+            <strong>${l === 'es' ? '3. Simulación separada por estrategia' : '3. Strategy-Separated Batch Simulation'}</strong>
+            <div class="seg-group">
+              <button type="button" aria-pressed="${m.doorsMode === 3}" data-monty-doors="3">3 ${l === 'es' ? 'puertas' : 'doors'}</button>
+              <button type="button" aria-pressed="${m.doorsMode === 100}" data-monty-doors="100">100 ${l === 'es' ? 'puertas' : 'doors'}</button>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <span><strong>${l === 'es' ? 'Mantener:' : 'Keep:'}</strong></span>
+            ${[10, 100, 1000].map((n) => `<button type="button" class="btn-ghost" ${m.predLocked ? '' : 'disabled'} data-monty-batch="keep:${n}">×${n}</button>`).join('')}
+          </div>
+          <div class="row" style="margin-top:8px">
+            <span><strong>${l === 'es' ? 'Cambiar:' : 'Switch:'}</strong></span>
+            ${[10, 100, 1000].map((n) => `<button type="button" class="btn-ghost" ${m.predLocked ? '' : 'disabled'} data-monty-batch="switch:${n}">×${n}</button>`).join('')}
+          </div>
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>${l === 'es' ? 'Estrategia' : 'Strategy'}</th><th>n</th><th>${l === 'es' ? 'Aciertos' : 'Wins'}</th><th>${l === 'es' ? 'Frec. relativa' : 'Rel. freq.'}</th></tr></thead>
+              <tbody>
+                <tr><td>${l === 'es' ? 'Mantener' : 'Keep'}</td><td>${m.keepSeries.n}</td><td>${m.keepSeries.wins}</td><td>${fmt(kRate, 3)}</td></tr>
+                <tr><td>${l === 'es' ? 'Cambiar' : 'Switch'}</td><td>${m.switchSeries.n}</td><td>${m.switchSeries.wins}</td><td>${fmt(sRate, 3)}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? '4. Preguntas condicionadas (modelo explícito)' : '4. Conditioned Strategy Questions'}</strong>
+          <div style="margin-top:8px">
+            <label><strong>P(${l === 'es' ? 'Ganar | Cambiar (3 puertas)' : 'Win | Switch (3 doors)'})</strong></label>
+            <input class="field-input" value="${escapeText(m.q.pWinSwitch)}" data-expmonty-q="pWinSwitch" placeholder="2/3">
+          </div>
+          <div style="margin-top:8px">
+            <label><strong>${l === 'es' ? 'Si el jugador elige Mantener o Cambiar al azar con probabilidad 1/2 cada una, calcula P(Cambió | Ganó el coche):' : 'If a player picks Keep or Switch at random with p=1/2 each, compute P(Switched | Won prize):'}</strong></label>
+            <input class="field-input" value="${escapeText(m.q.pSwitchGivenCar)}" data-expmonty-q="pSwitchGivenCar" placeholder="2/3">
+          </div>
+          <div style="margin-top:8px">
+            <label><strong>${l === 'es' ? '¿Y si NO se especifica cómo se elige la estrategia?' : 'What if strategy choice weights are NOT specified?'}</strong></label>
+            <select class="field-input" data-expmonty-q="needDist">
+              <option value="">—</option>
+              <option value="need" ${m.q.needDist === 'need' ? 'selected' : ''}>${l === 'es' ? 'Sin conocer P(Cambiar) y P(Mantener), no existe un valor único para P(Cambió | Ganó)' : 'Without prior P(Switch) & P(Keep), there is no unique P(Switched | Won)'}</option>
+              <option value="always" ${m.q.needDist === 'always' ? 'selected' : ''}>${l === 'es' ? 'Siempre vale 1/2 en cualquier caso' : 'Always 1/2 regardless'}</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:10px"><button type="button" class="btn-primary" data-check-monty="1">${escapeText(tr('checkBtn'))}</button></div>
+          ${m.checkedQ ? `<div class="callout ${m.checkedQ.ok ? 'ok' : 'err'}">${escapeText(m.checkedQ.msg)}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderExpDiag(l) {
+  const d = getExpDiag();
+  const N = d.popN;
+  const exactSick = (N * d.prevPct) / 100;
+  const exactHealthy = N - exactSick;
+  const tpExp = (exactSick * d.sensPct) / 100;
+  const fnExp = exactSick - tpExp;
+  const tnExp = (exactHealthy * d.specPct) / 100;
+  const fpExp = exactHealthy - tnExp;
+  const allInt = [tpExp, fnExp, fpExp, tnExp].every((x) => Math.abs(x - Math.round(x)) < 1e-6);
+  const ppv = (tpExp + fpExp) > 0 ? tpExp / (tpExp + fpExp) : NaN;
+
+  return `
+    <div class="panel two-zone">
+      <div>
+        <h2 style="margin-top:0">${l === 'es' ? 'C. Pruebas Diagnósticas y Falsos Positivos' : 'C. Diagnostic Tests & False Positives'}</h2>
+        <p>${l === 'es'
+          ? 'Trabaja con frecuencias naturales especificando Prevalencia, Sensibilidad (P(+|Enfermo)) y Especificidad (P(−|Sano)) por separado, sin expresiones ambiguas.'
+          : 'Use natural frequencies with explicit Prevalence, Sensitivity P(+|Cond.), and Specificity P(−|Healthy), avoiding ambiguous phrasing.'}</p>
+
+        <div class="subpanel">
+          <div class="grid-3">
+            <div><label><strong>${l === 'es' ? 'Prevalencia:' : 'Prevalence:'} ${d.prevPct}%</strong></label><input type="range" min="1" max="20" step="1" value="${d.prevPct}" data-diag-cfg="prevPct" style="width:100%"></div>
+            <div><label><strong>${l === 'es' ? 'Sensibilidad:' : 'Sensitivity:'} ${d.sensPct}%</strong></label><input type="range" min="80" max="99" step="1" value="${d.sensPct}" data-diag-cfg="sensPct" style="width:100%"></div>
+            <div><label><strong>${l === 'es' ? 'Especificidad:' : 'Specificity:'} ${d.specPct}%</strong></label><input type="range" min="80" max="99" step="1" value="${d.specPct}" data-diag-cfg="specPct" style="width:100%"></div>
+          </div>
+          <div class="row-between" style="margin-top:10px">
+            <div class="seg-group">
+              <button type="button" aria-pressed="${N === 1000}" data-diag-pop="1000">N = 1 000</button>
+              <button type="button" aria-pressed="${N === 10000}" data-diag-pop="10000">N = 10 000</button>
+            </div>
+            <span class="meta-line">${allInt ? (l === 'es' ? 'Recuentos enteros exactos ✓' : 'Exact integer counts ✓') : (l === 'es' ? 'Valores esperados decimales (usa N=10 000 si quieres enteros)' : 'Expected fractional counts (switch to N=10,000 for integers)')}</span>
+          </div>
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? `Completa la tabla de población hipotética (N = ${N})` : `Complete the natural-frequency table (N = ${N})`}</strong>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th></th><th>${l === 'es' ? 'Condición presente' : 'Condition +'} (${fmt(exactSick, 1)})</th><th>${l === 'es' ? 'Sin condición' : 'Healthy'} (${fmt(exactHealthy, 1)})</th></tr></thead>
+              <tbody>
+                <tr><th>Test +</th><td><input class="cell-input" value="${escapeText(d.table.tp)}" data-diag-tab="tp"></td><td><input class="cell-input" value="${escapeText(d.table.fp)}" data-diag-tab="fp"></td></tr>
+                <tr><th>Test −</th><td><input class="cell-input" value="${escapeText(d.table.fn)}" data-diag-tab="fn"></td><td><input class="cell-input" value="${escapeText(d.table.tn)}" data-diag-tab="tn"></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="grid-2" style="margin-top:10px">
+            <div><label><strong>${l === 'es' ? '¿Qué es mayor: P(+|Condición) o P(Condición|+)?' : 'Which is larger: P(+|Cond) or P(Cond|+)?'}</strong></label><input class="field-input" value="${escapeText(d.pCondGivenPos)}" data-diag-q="pCondGivenPos" placeholder="${l === 'es' ? 'Calcula P(Condición|+)' : 'Compute P(Cond|+)'}"></div>
+            <div><label><strong>${l === 'es' ? 'Si sube la prevalencia, P(Condición|+):' : 'As prevalence rises, P(Cond|+):'}</strong></label>
+              <select class="field-input" data-diag-q="predInit">
+                <option value="">—</option>
+                <option value="up" ${d.predInit === 'up' ? 'selected' : ''}>${l === 'es' ? 'Aumenta (menor proporción de falsos positivos)' : 'Increases (smaller false-positive share)'}</option>
+                <option value="down" ${d.predInit === 'down' ? 'selected' : ''}>${l === 'es' ? 'Disminuye siempre' : 'Always decreases'}</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px"><button type="button" class="btn-primary" data-check-diag="1">${escapeText(tr('checkBtn'))}</button></div>
+          ${d.checked ? `<div class="callout ${d.checked.ok ? 'ok' : 'err'}">${escapeText(d.checked.msg)}</div>` : ''}
+        </div>
+      </div>
+
+      <div>
+        <div class="svg-stage" style="margin-top:0">
+          <svg viewBox="0 0 360 220" width="100%" role="img" aria-label="Árbol de frecuencias naturales">
+            <text x="14" y="20" font-size="11.5" font-weight="700" fill="#111c2d">N = ${N}</text>
+            <line x1="40" y1="110" x2="155" y2="55" stroke="#be123c" stroke-width="2"/>
+            <line x1="40" y1="110" x2="155" y2="165" stroke="#1d4ed8" stroke-width="2"/>
+            <text x="88" y="68" font-size="11" fill="#881337">${d.prevPct}% (${fmt(exactSick, 1)})</text>
+            <text x="88" y="156" font-size="11" fill="#1e3a8a">${100 - d.prevPct}% (${fmt(exactHealthy, 1)})</text>
+            <line x1="175" y1="55" x2="295" y2="30" stroke="#0f766e" stroke-width="1.8"/>
+            <line x1="175" y1="55" x2="295" y2="80" stroke="#63738a" stroke-width="1.5"/>
+            <text x="300" y="34" font-size="10.5" font-weight="700" fill="#0f766e">TP: ${fmt(tpExp, 1)}</text>
+            <text x="300" y="84" font-size="10.5" fill="#63738a">FN: ${fmt(fnExp, 1)}</text>
+            <line x1="175" y1="165" x2="295" y2="140" stroke="#b45309" stroke-width="1.8"/>
+            <line x1="175" y1="165" x2="295" y2="190" stroke="#1d4ed8" stroke-width="1.5"/>
+            <text x="300" y="144" font-size="10.5" font-weight="700" fill="#b45309">FP: ${fmt(fpExp, 1)}</text>
+            <text x="300" y="194" font-size="10.5" fill="#1e3a8a">TN: ${fmt(tnExp, 1)}</text>
+          </svg>
+          <p class="meta-line" style="margin:6px 0 0">${l === 'es' ? `Total positivos = ${fmt(tpExp + fpExp, 1)} · P(Condición | +) ≈ ${fmt(ppv * 100, 1)}% frente a Sensibilidad ${d.sensPct}%.` : `Total positives = ${fmt(tpExp + fpExp, 1)} · P(Cond. | +) ≈ ${fmt(ppv * 100, 1)}% vs Sensitivity ${d.sensPct}%.`}</p>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderExpUrn(l) {
+  const u = getExpUrn();
+  const s = u.series[urnSeriesKey(u)] || { n: 0, same: 0, diff: 0, last: null };
+  const tot = u.R + u.B;
+  const d2 = u.withRep ? tot : Math.max(1, tot - 1);
+
+  return `
+    <div class="panel two-zone">
+      <div>
+        <h2 style="margin-top:0">${l === 'es' ? 'D. Extracciones con y sin reemplazamiento' : 'D. Draws With and Without Replacement'}</h2>
+        <div class="subpanel" style="margin-top:8px">
+          <div class="grid-3">
+            <div><label><strong>${l === 'es' ? 'Rojas (R):' : 'Red (R):'} ${u.R}</strong></label><input type="range" min="1" max="8" value="${u.R}" data-urn-cfg="R" style="width:100%"></div>
+            <div><label><strong>${l === 'es' ? 'Azules (B):' : 'Blue (B):'} ${u.B}</strong></label><input type="range" min="1" max="8" value="${u.B}" data-urn-cfg="B" style="width:100%"></div>
+            <div><label><strong>${l === 'es' ? 'Protocolo' : 'Protocol'}</strong></label>
+              <div class="seg-group" style="margin-top:4px">
+                <button type="button" aria-pressed="${!u.withRep}" data-urn-rep="0">${l === 'es' ? 'Sin reemp.' : 'Without'}</button>
+                <button type="button" aria-pressed="${u.withRep}" data-urn-rep="1">${l === 'es' ? 'Con reemp.' : 'With'}</button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <label><strong>${l === 'es' ? 'Predicción antes de extraer: ¿sube o baja P(mismo color) al quitar el reemplazamiento?' : 'Pre-draw prediction: does P(same color) rise or drop without replacement?'}</strong></label>
+            <div class="row" style="margin-top:6px">
+              <input class="field-input" style="flex:1;min-width:200px" value="${escapeText(u.predA)}" data-urn-pred="1">
+              <button type="button" class="btn-primary" data-lock-urn="1">${u.predLocked ? (l === 'es' ? 'Predicción ✓' : 'Logged ✓') : (l === 'es' ? 'Bloquear predicción' : 'Lock prediction')}</button>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="btn-teal" ${u.predLocked ? '' : 'disabled'} data-urn-sim="1">${l === 'es' ? '1 extracción' : '1 draw'}</button>
+            <button type="button" class="btn-ghost" ${u.predLocked ? '' : 'disabled'} data-urn-sim="10">×10</button>
+            <button type="button" class="btn-ghost" ${u.predLocked ? '' : 'disabled'} data-urn-sim="100">×100</button>
+            <button type="button" class="btn-ghost" ${u.predLocked ? '' : 'disabled'} data-urn-sim="1000">×1000</button>
+          </div>
+          ${s.last ? `<div class="callout info">1.ª: <strong>${s.last.d1}</strong> · 2.ª: <strong>${s.last.d2}</strong> (${s.last.isSame ? (l === 'es' ? 'Mismo color' : 'Same color') : (l === 'es' ? 'Distinto color' : 'Different colors')})</div>` : ''}
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>${l === 'es' ? `Serie (${u.R}R, ${u.B}B, ${u.withRep ? 'Con' : 'Sin'})` : `Series (${u.R}R, ${u.B}B)`}</th><th>n</th><th>P_sim(Mismo)</th><th>P_sim(Distinto)</th></tr></thead>
+              <tbody><tr><td>${l === 'es' ? 'Resultados sim.' : 'Sim. results'}</td><td>${s.n}</td><td>${s.n ? fmt(s.same / s.n, 3) : '—'}</td><td>${s.n ? fmt(s.diff / s.n, 3) : '—'}</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="svg-stage" style="margin-top:0">
+          <svg viewBox="0 0 360 190" width="100%" role="img" aria-label="Árbol de 2 extracciones">
+            <line x1="25" y1="95" x2="140" y2="50" stroke="#be123c" stroke-width="2"/>
+            <line x1="25" y1="95" x2="140" y2="140" stroke="#1d4ed8" stroke-width="2"/>
+            <text x="70" y="60" font-size="11" fill="#881337">R: ${u.R}/${tot}</text>
+            <text x="70" y="135" font-size="11" fill="#1e3a8a">A: ${u.B}/${tot}</text>
+            <line x1="150" y1="50" x2="290" y2="25" stroke="#be123c" stroke-width="1.6"/>
+            <line x1="150" y1="50" x2="290" y2="75" stroke="#1d4ed8" stroke-width="1.6"/>
+            <text x="295" y="29" font-size="10.5" fill="#881337">RR: ${u.withRep ? u.R : Math.max(0, u.R - 1)}/${d2}</text>
+            <text x="295" y="79" font-size="10.5" fill="#1e3a8a">RA: ${u.B}/${d2}</text>
+            <line x1="150" y1="140" x2="290" y2="115" stroke="#be123c" stroke-width="1.6"/>
+            <line x1="150" y1="140" x2="290" y2="165" stroke="#1d4ed8" stroke-width="1.6"/>
+            <text x="295" y="119" font-size="10.5" fill="#881337">AR: ${u.R}/${d2}</text>
+            <text x="295" y="169" font-size="10.5" fill="#1e3a8a">AA: ${u.withRep ? u.B : Math.max(0, u.B - 1)}/${d2}</text>
+          </svg>
+        </div>
+        <div class="subpanel">
+          <strong>${l === 'es' ? 'Calcula el modelo exacto para comparar con la simulación:' : 'Compute the exact model to compare with simulation:'}</strong>
+          <div class="grid-2" style="margin-top:8px">
+            <div><label><strong>P(${l === 'es' ? 'mismo color' : 'same color'})</strong></label><input class="field-input" value="${escapeText(u.q.pSame)}" data-urn-q="pSame" placeholder="a/b"></div>
+            <div><label><strong>P(${l === 'es' ? 'colores distintos' : 'different colors'})</strong></label><input class="field-input" value="${escapeText(u.q.pDiff)}" data-urn-q="pDiff" placeholder="a/b"></div>
+          </div>
+          <div class="row" style="margin-top:10px"><button type="button" class="btn-primary" data-check-urn="1">${escapeText(tr('checkBtn'))}</button></div>
+          ${u.checkedQ ? `<div class="callout ${u.checkedQ.ok ? 'ok' : 'err'}">${escapeText(u.checkedQ.msg)}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ================= CHECKERS FOR EXPLORA ================= */
+function checkExpCond() {
+  const c = getExpCond();
+  const l = L();
+  const expLie = c.Npop / 6;
+  const expTA = (c.Npop * 5) / 36;
+  const expTS = (c.Npop * 25) / 36;
+  const tabOk = closeProb(c.table.lieAcc, expLie, 0.05) &&
+    closeProb(c.table.truthAcc, expTA, 0.05) &&
+    closeProb(c.table.truthSafe, expTS, 0.05);
+  const qOk = closeProb(c.q.pAcGivenTruth, 1 / 6, 0.01) &&
+    closeProb(c.q.pTruthGivenAc, 5 / 11, 0.01) &&
+    c.q.pImpossible === 'undef' &&
+    c.q.causal === 'inv';
+
+  if (c.checkedQ && !c.checkedQ.ok && tabOk && qOk) awardHuella('hueTab');
+  const ok = tabOk && qOk;
+  c.checkedQ = {
+    ok,
+    msg: ok
+      ? (l === 'es' ? 'Tabla 2×2 y condicionales inversas verificadas. Observa que P(Acusado|Verdad)=1/6 ≠ P(Verdad|Acusado)=5/11.' : '2×2 table and inverse conditionals verified. Notice P(Accused|Truth)=1/6 ≠ P(Truth|Accused)=5/11.')
+      : (l === 'es' ? 'Revisa la tabla de N estudiantes, P(Acusado|Verdad)=5/30=1/6, P(Verdad|Acusado)=5/11 y el caso de denominador cero.' : 'Check the 2×2 table, P(Accused|Truth)=1/6, P(Truth|Accused)=5/11, and zero denominator.')
+  };
+  if (tabOk) advanceSello('selRep', 'autonomous');
+  if (qOk) advanceSello('selInv', 'autonomous');
+  save(); render();
+}
+
+function checkExpMonty() {
+  const m = getExpMonty();
+  const l = L();
+  const ok = closeProb(m.q.pWinSwitch, 2 / 3, 0.015) &&
+    closeProb(m.q.pSwitchGivenCar, 2 / 3, 0.015) &&
+    m.q.needDist === 'need';
+  m.checkedQ = {
+    ok,
+    msg: ok
+      ? (l === 'es' ? 'Correcto: cambiar gana 2/3; con elección previa 50/50, P(Cambió|Ganó)=2/3; y sin conocer la distribución de estrategias no hay respuesta única.' : 'Correct: switching wins 2/3; under 50/50 prior choice, P(Switched|Won)=2/3; without prior weights there is no unique answer.')
+      : (l === 'es' ? 'Revisa 2/3 al cambiar, Bayes con p=1/2 para P(Cambió|Coche) y la necesidad de conocer cómo se elige la estrategia.' : 'Check 2/3 win rate when switching, Bayes with p=1/2, and why prior strategy choice matters.')
+  };
+  if (ok) advanceSello('selInv', 'autonomous');
+  save(); render();
+}
+
+function checkExpDiag() {
+  const d = getExpDiag();
+  const l = L();
+  const N = d.popN;
+  const sick = (N * d.prevPct) / 100;
+  const healthy = N - sick;
+  const tp = (sick * d.sensPct) / 100, fn = sick - tp;
+  const tn = (healthy * d.specPct) / 100, fp = healthy - tn;
+  const ppv = (tp + fp) > 0 ? tp / (tp + fp) : NaN;
+  const ok = closeProb(d.table.tp, tp, 0.15) && closeProb(d.table.fn, fn, 0.15) &&
+    closeProb(d.table.fp, fp, 0.15) && closeProb(d.table.tn, tn, 0.15) &&
+    closeProb(d.pCondGivenPos, ppv, 0.02) && d.predInit === 'up';
+  if (d.checked && !d.checked.ok && ok) awardHuella('hueTab');
+  d.checked = {
+    ok,
+    msg: ok
+      ? (l === 'es' ? `Exacto: P(Condición|+) = ${fmt(ppv, 3)} frente a Sensibilidad = ${fmt(d.sensPct / 100, 2)}. Al aumentar la prevalencia se reduce el peso relativo de los falsos positivos.` : `Verified: P(Condition|+) = ${fmt(ppv, 3)} vs Sensitivity = ${fmt(d.sensPct / 100, 2)}. Higher prevalence increases PPV.`)
+      : (l === 'es' ? 'Revisa los 4 recuentos naturales en la tabla, calcula TP/(TP+FP) y comprueba cómo cambia al subir la prevalencia.' : 'Check the 4 natural counts, compute TP/(TP+FP), and verify how higher prevalence affects PPV.')
+  };
+  if (ok) { advanceSello('selRep', 'autonomous'); advanceSello('selInv', 'autonomous'); }
+  save(); render();
+}
+
+function checkExpUrn() {
+  const u = getExpUrn();
+  const l = L();
+  const tot = u.R + u.B;
+  const pSameExact = u.withRep
+    ? (u.R * u.R + u.B * u.B) / (tot * tot)
+    : (u.R * (u.R - 1) + u.B * (u.B - 1)) / (tot * (tot - 1));
+  const pDiffExact = 1 - pSameExact;
+  const ok = closeProb(u.q.pSame, pSameExact, 0.01) && closeProb(u.q.pDiff, pDiffExact, 0.01);
+  u.checkedQ = {
+    ok,
+    msg: ok
+      ? (l === 'es' ? 'Correcto: los denominadores y numeradores del árbol coinciden con el modelo exacto.' : 'Correct: tree numerators and denominators match the exact model.')
+      : (l === 'es' ? 'Multiplica cada rama y suma los caminos compatibles (RR + AA para mismo color; RA + AR para distinto).' : 'Multiply along each branch and sum compatible paths (RR + BB vs RB + BR).')
+  };
+  if (ok) advanceSello('selRep', 'autonomous');
+  save(); render();
+}
+
+/* ================= INVESTIGA: 3 CRITERIO B INVESTIGATIONS ================= */
+const INV_META = [
+  {
+    id: 'inv1',
+    step: 2, minN: 2, maxN: 200,
+    es: {
+      badge: 'Investigación 1 · Preparación guiada',
+      title: 'Bolas equilibradas: probabilidad de colores distintos',
+      prompt: 'Una bolsa contiene N fichas (N par, N ≥ 2), mitad rojas (N/2) y mitad azules (N/2). Se extraen dos fichas consecutivamente SIN reemplazamiento. ¿Cómo cambia la probabilidad de obtener colores distintos (una roja y una azul, en cualquier orden) al variar N?'
+    },
+    en: {
+      badge: 'Investigation 1 · Guided Warm-Up',
+      title: 'Balanced Bag: Probability of Different Colors',
+      prompt: 'A bag holds N tokens (even N ≥ 2), half red (N/2) and half blue (N/2). Draw two tokens sequentially WITHOUT replacement. How does P(different colors) change as N varies?'
+    },
+    validN: (N) => Number.isInteger(N) && N >= 2 && N % 2 === 0,
+    exactP: (N) => (N / 2) / (N - 1),
+    testNs: [2, 4, 6, 8, 10, 12, 20, 50],
+    help: {
+      es: {
+        example: 'Ejemplo con otra situación (3 bolas total: 2 verdes, 1 blanca, sin reemplazamiento): hay P(VB)+P(BV) = (2/3)(1/2)+(1/3)(2/2) = 2/3.',
+        hint1: 'Fíjate en la segunda extracción tras sacar la primera ficha: el denominador baja a N−1, pero ¿cuántas fichas del color OPUESTO siguen dentro?',
+        hint2: 'Hay dos caminos ganadores: Roja→Azul y Azul→Roja. En ambos casos, tras sacar la primera quedan exactamente N/2 fichas del otro color entre N−1 disponibles.'
+      },
+      en: {
+        example: 'Different scenario (2 green, 1 white without replacement): P(GW)+P(WG) = (2/3)(1/2)+(1/3)(2/2) = 2/3.',
+        hint1: 'Look at the second draw after picking the first color: total drops to N−1, while how many tokens of the OPPOSITE color remain?',
+        hint2: 'Two disjoint paths succeed: Red→Blue and Blue→Red. Either way, all N/2 opposite-color tokens remain out of N−1.'
+      }
+    }
+  },
+  {
+    id: 'inv2',
+    step: 2, minN: 2, maxN: 200,
+    es: {
+      badge: 'Investigación 2 · Evaluación central Criterio B',
+      title: 'Bolas de 2 colores: dos fichas del mismo color',
+      prompt: 'Una bolsa contiene N fichas (N par y N ≥ 2), mitad rojas y mitad azules. Se extraen dos sin reemplazamiento. Investiga con tus propios casos y representaciones cómo cambia la probabilidad de obtener dos fichas del mismo color al variar N.'
+    },
+    en: {
+      badge: 'Investigation 2 · Core Criterion B Task',
+      title: 'Two-Color Tokens: Same Color Without Replacement',
+      prompt: 'A bag contains N tokens (even N ≥ 2), half red and half blue. Draw two without replacement. Choose your own cases and representations to investigate how P(same color) varies with N.'
+    },
+    validN: (N) => Number.isInteger(N) && N >= 2 && N % 2 === 0,
+    exactP: (N) => (N / 2 - 1) / (N - 1),
+    testNs: [2, 4, 6, 8, 10, 12, 20, 150],
+    help: {
+      es: {
+        example: 'Ejemplo distinto (urnas con reemplazamiento de 2 colores iguales): con reposición P(mismo color) es siempre 1/2 para todo N; sin reposición cambia según cuántas fichas iguales quedan.',
+        hint1: 'Prueba casos pequeños incluyendo N = 2 (¿qué ocurre si solo hay una de cada color?) y observa numerador y denominador paso a paso.',
+        hint2: 'Cuando la 1.ª ficha ya salió (probabilidad 1 entre ambas ramas combinadas), de ese color solo quedan (N/2 − 1) fichas entre (N − 1) restantes.'
+      },
+      en: {
+        example: 'Different setting (with replacement): P(same color) stays 1/2 for every even N. Without replacement, counts shift after the first draw.',
+        hint1: 'Include edge case N = 2 alongside N = 4, 6, 8, 10... and compare simplified fractions carefully.',
+        hint2: 'Whatever color is drawn first, only (N/2 − 1) matching tokens remain out of (N − 1) total left in the bag.'
+      }
+    }
+  },
+  {
+    id: 'inv3',
+    step: 3, minN: 3, maxN: 210,
+    es: {
+      badge: 'Investigación 3 · Transferencia autónoma',
+      title: 'Bolsa equilibrada de 3 colores (N múltiplo de 3)',
+      prompt: 'Ahora la bolsa contiene N fichas repartidas por igual entre 3 colores (rojas, azules y verdes; N múltiplo de 3, N ≥ 3). Se extraen dos sin reemplazamiento. Transfiere tu método de investigación para descubrir cómo cambia P(dos del mismo color).'
+    },
+    en: {
+      badge: 'Investigation 3 · Transfer Task',
+      title: 'Balanced 3-Color Bag (N multiple of 3)',
+      prompt: 'Now a bag has N tokens split equally across 3 colors (red, blue, green; N multiple of 3, N ≥ 3). Draw two without replacement. Transfer your method to discover how P(same color) varies with N.'
+    },
+    validN: (N) => Number.isInteger(N) && N >= 3 && N % 3 === 0,
+    exactP: (N) => (N / 3 - 1) / (N - 1),
+    testNs: [3, 6, 9, 12, 15, 30, 90],
+    help: {
+      es: {
+        example: 'Recuerda cómo analizaste 2 colores: independientemente del color elegido primero, el análisis se reduce a cuántas fichas de ESE mismo color quedan.',
+        hint1: 'Comprueba primero N = 3 (1 de cada color) y luego N = 6, 9, 12. ¿A qué fracción se acercan?',
+        hint2: 'Cada color empieza con N/3 fichas; tras sacar una de ellas quedan (N/3 − 1) del mismo color sobre N − 1.'
+      },
+      en: {
+        example: 'Compare with 2 colors: whichever color comes out first, only tokens of THAT color matter on draw 2.',
+        hint1: 'Test edge case N = 3 (1 of each color), then N = 6, 9, 12. Notice what limit the fraction approaches.',
+        hint2: 'Each color starts with N/3 tokens; after drawing one, (N/3 − 1) matching remain out of N − 1.'
+      }
+    }
+  }
+];
+
+function getInvState(id) {
+  if (!state.investigations[id]) {
+    const meta = INV_META.find((m) => m.id === id) || INV_META[1];
+    state.investigations[id] = {
+      strategy: '',         // 'table' | 'tree' | 'counting' | 'sim'
+      repTool: 'tree',      // 'tree' | 'sim'
+      predA: '', predB: '',
+      workbenchN: meta.id === 'inv3' ? 6 : 4,
+      treeDraft: { p1Num: '', p1Den: '', p2SameNum: '', p2SameDen: '', treeOk: false },
+      simSeries: {},        // keyed by N -> { n, hits, last }
+      cases: [],            // [{ N, pairsDesc, userP, validN, checked, ok }]
+      newCaseInput: String(meta.id === 'inv3' ? 9 : 6),
+      patternText: '',
+      ruleExpr: '',
+      ruleHistory: [],      // tracks failed conjectures so fixing grants hueCon
+      ruleChecked: null,
+      verifyN: '',
+      verifyByRule: '',
+      verifyByCalc: '',
+      verifyChecked: null,
+      justOrig: '',
+      justRevised: '',
+      justPartnerB: '',
+      rubric: [false, false, false],
+      peerReview: { enabled: false, wellBacked: '', missing: '', suggest: '', saved: false },
+      helpsUsed: { example: false, hint1: false, hint2: false }
+    };
+  }
+  return state.investigations[id];
+}
+
+function anyInvHelpUsed(inv) {
+  return Boolean(inv.helpsUsed && (inv.helpsUsed.example || inv.helpsUsed.hint1 || inv.helpsUsed.hint2));
+}
+
+function runInvSim(invId, N, times) {
+  const meta = INV_META.find((m) => m.id === invId);
+  const inv = getInvState(invId);
+  if (!inv.predA.trim()) return; // require initial prediction before simulation!
+  const key = String(N);
+  if (!inv.simSeries[key]) inv.simSeries[key] = { n: 0, hits: 0, last: null };
+  const s = inv.simSeries[key];
+  const groupSize = invId === 'inv3' ? N / 3 : N / 2;
+  const numColors = invId === 'inv3' ? 3 : 2;
+
+  for (let i = 0; i < times; i++) {
+    const c1 = Math.floor(Math.random() * numColors); // uniform across balanced colors
+    const remSame = groupSize - 1;
+    const isSame2 = ri(1, N - 1) <= remSame;
+    const c2 = isSame2 ? c1 : (c1 + ri(1, numColors - 1)) % numColors;
+    const hit = invId === 'inv1' ? (c1 !== c2) : (c1 === c2);
+    s.n += 1;
+    if (hit) s.hits += 1;
+    s.last = { c1, c2, hit };
+  }
+  save(); render();
+}
+
+function renderInvestiga() {
+  const l = L();
+  const curMeta = INV_META.find((m) => m.id === state.activeInv) || INV_META[1];
+  const inv = getInvState(curMeta.id);
+  const usedHelp = anyInvHelpUsed(inv);
+
+  const navBtns = INV_META.map((m) => `
+    <button type="button" aria-pressed="${m.id === curMeta.id}" data-inv-select="${m.id}">
+      ${escapeText(m.id === 'inv1' ? (l === 'es' ? '1. Preparación' : '1. Warm-Up') : m.id === 'inv2' ? (l === 'es' ? '2. Central: 2 colores' : '2. Core: 2 Colors') : (l === 'es' ? '3. Transferencia: 3 colores' : '3. Transfer: 3 Colors'))}
+    </button>`).join('');
+
+  // Progress descriptor (formative ONLY, never MYP 1-8 grades)
+  const validCases = inv.cases.filter((c) => c.ok).length;
+  let descriptor = l === 'es' ? 'Etapa actual: Exploración inicial / resultados aislados' : 'Current stage: Initial exploration / isolated results';
+  if (validCases >= 3 && inv.patternText.trim()) descriptor = l === 'es' ? 'Etapa actual: Patrón identificado (falta regla general y caso nuevo)' : 'Current stage: Pattern described (needs general rule & unseen verification)';
+  if (inv.ruleChecked?.ok && inv.verifyChecked?.ok) descriptor = l === 'es' ? 'Etapa actual: Regla formulada y comprobada (justificación pendiente de revisión docente)' : 'Current stage: Rule & unseen check verified (justification pending teacher review)';
+
+  const curColors = curMeta.id === 'inv3'
+    ? (l === 'es' ? 'Rojas / Azules / Verdes' : 'Red / Blue / Green')
+    : (l === 'es' ? 'Rojas / Azules' : 'Red / Blue');
+
+  const wbN = Number(inv.workbenchN) || curMeta.minN;
+  const wbSim = inv.simSeries[String(wbN)] || { n: 0, hits: 0, last: null };
+
+  return `
+    <section class="panel" style="margin-top:0">
+      <div class="row-between">
+        <div>
+          <span class="meta-line">${escapeText(curMeta[l].badge)} · ${escapeText(descriptor)}</span>
+          <h1 style="margin:4px 0 0;font-size:clamp(1.3rem,2.4vw,1.75rem)">${escapeText(curMeta[l].title)}</h1>
+        </div>
+        <div class="seg-group" role="tablist" aria-label="Investigaciones">
+          ${navBtns}
+        </div>
+      </div>
+      <p style="margin:10px 0 0">${escapeText(curMeta[l].prompt)}</p>
+      <div class="meta-line" style="margin-top:8px">
+        <span>${usedHelp ? (l === 'es' ? 'Ayudas usadas en este cuaderno (registradas): si usaste apoyo, consolida en la Investigación 3 sin pistas.' : 'Hints logged on this notebook: consolidate autonomy on Investigation 3 without hints.') : (l === 'es' ? 'Sin pistas solicitadas en esta investigación' : 'No hints requested on this investigation')}</span>
+      </div>
+    </section>
+
+    <div class="two-zone" style="margin-top:14px">
+      <!-- LEFT ZONE: OPEN INVESTIGATION WORKBENCH (TOOLS WITHOUT PRE-SOLVED ANSWERS) -->
+      <div class="panel" style="margin-top:0">
+        <div class="row-between">
+          <h2 style="margin:0">${l === 'es' ? 'Banco de experimentación' : 'Experiment Workbench'}</h2>
+          <div class="seg-group">
+            <button type="button" aria-pressed="${inv.repTool === 'tree'}" data-inv-tool="tree">${l === 'es' ? 'Constructor de árbol' : 'Tree Builder'}</button>
+            <button type="button" aria-pressed="${inv.repTool === 'sim'}" data-inv-tool="sim">${l === 'es' ? 'Simulador por N' : 'Simulator by N'}</button>
+          </div>
+        </div>
+
+        <div class="subpanel">
+          <label for="wbNInp"><strong>${l === 'es' ? `Elige tú el valor de N (${curColors}) para inspeccionar:` : `Choose your own N (${curColors}) to test:`}</strong></label>
+          <div class="row" style="margin-top:6px">
+            <input id="wbNInp" type="number" min="${curMeta.minN}" max="${curMeta.maxN}" step="${curMeta.step}" class="field-input" style="max-width:130px" value="${wbN}" data-inv-wbn="${curMeta.id}">
+            <span class="meta-line">${curMeta.id === 'inv3'
+              ? `${l === 'es' ? 'Recuento actual:' : 'Counts:'} ${wbN / 3}R, ${wbN / 3}A, ${wbN / 3}V`
+              : `${l === 'es' ? 'Recuento actual:' : 'Counts:'} ${wbN / 2}R, ${wbN / 2}A`}</span>
+          </div>
+        </div>
+
+        ${inv.repTool === 'tree' ? `
+          <div class="subpanel">
+            <strong>${l === 'es' ? `Árbol de 2 etapas para N = ${wbN} (tú completas las ramas):` : `2-Stage Tree for N = ${wbN} (you fill in the branches):`}</strong>
+            <div class="svg-stage">
+              <svg viewBox="0 0 360 155" width="100%" role="img" aria-label="Esquema de árbol de 2 etapas editable">
+                <circle cx="24" cy="78" r="5" fill="#1d4ed8"/>
+                <line x1="29" y1="78" x2="140" y2="38" stroke="#be123c" stroke-width="2"/>
+                <line x1="29" y1="78" x2="140" y2="118" stroke="#1d4ed8" stroke-width="2"/>
+                <text x="75" y="48" font-size="11" fill="#881337">1.ª: ${inv.treeDraft.p1Num || '?'} / ${inv.treeDraft.p1Den || '?'}</text>
+                <text x="145" y="42" font-size="11.5" font-weight="700" fill="#881337">${l === 'es' ? 'Color 1' : 'Color 1'}</text>
+                <text x="145" y="122" font-size="11.5" font-weight="700" fill="#1e3a8a">${l === 'es' ? 'Otros colores' : 'Other colors'}</text>
+                <line x1="196" y1="38" x2="315" y2="20" stroke="#0f766e" stroke-width="1.8"/>
+                <line x1="196" y1="38" x2="315" y2="58" stroke="#63738a" stroke-width="1.5"/>
+                <text x="235" y="20" font-size="11" fill="#0f766e">${inv.treeDraft.p2SameNum || '?'} / ${inv.treeDraft.p2SameDen || '?'}</text>
+              </svg>
+            </div>
+            <div class="grid-4" style="margin-top:10px">
+              <div><label>${l === 'es' ? '1.ª num.' : '1st num.'}</label><input class="cell-input" value="${escapeText(inv.treeDraft.p1Num)}" data-inv-tree="p1Num"></div>
+              <div><label>${l === 'es' ? '1.ª den.' : '1st den.'}</label><input class="cell-input" value="${escapeText(inv.treeDraft.p1Den)}" data-inv-tree="p1Den"></div>
+              <div><label>${l === 'es' ? `2.ª (${curMeta.id === 'inv1' ? 'otro' : 'mismo'}) num.` : '2nd target num.'}</label><input class="cell-input" value="${escapeText(inv.treeDraft.p2SameNum)}" data-inv-tree="p2SameNum"></div>
+              <div><label>${l === 'es' ? '2.ª den.' : '2nd den.'}</label><input class="cell-input" value="${escapeText(inv.treeDraft.p2SameDen)}" data-inv-tree="p2SameDen"></div>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button type="button" class="btn-primary" data-check-inv-tree="${curMeta.id}">${l === 'es' ? 'Comprobar coherencia de ramas' : 'Check branch consistency'}</button>
+            </div>
+            ${inv.treeDraft.msg ? `<div class="callout ${inv.treeDraft.treeOk ? 'ok' : 'err'}">${escapeText(inv.treeDraft.msg)}</div>` : ''}
+          </div>
+        ` : `
+          <div class="subpanel">
+            <strong>${l === 'es' ? `Simulador experimental para N = ${wbN} (series separadas)` : `Experimental Simulator for N = ${wbN} (isolated series)`}</strong>
+            <p class="meta-line" style="margin:6px 0">${l === 'es' ? 'Recuerda: la simulación estima la tendencia, nunca sustituye al cálculo ni demuestra la regla.' : 'Reminder: simulation estimates frequency; it never proves the general rule.'}</p>
+            <div class="row">
+              <button type="button" class="btn-teal" ${inv.predA.trim() ? '' : 'disabled'} data-inv-sim="1">${l === 'es' ? '1 extracción' : '1 draw'}</button>
+              <button type="button" class="btn-ghost" ${inv.predA.trim() ? '' : 'disabled'} data-inv-sim="10">×10</button>
+              <button type="button" class="btn-ghost" ${inv.predA.trim() ? '' : 'disabled'} data-inv-sim="100">×100</button>
+              <button type="button" class="btn-ghost" ${inv.predA.trim() ? '' : 'disabled'} data-inv-sim="1000">×1000</button>
+            </div>
+            ${!inv.predA.trim() ? `<div class="callout warn">${l === 'es' ? 'Escribe primero tu predicción inicial en el cuaderno antes de simular.' : 'Write your initial prediction in the notebook before simulating.'}</div>` : ''}
+            <div class="table-wrap" style="margin-top:10px">
+              <table>
+                <thead><tr><th>N</th><th>${l === 'es' ? 'Ensayos' : 'Trials'}</th><th>${l === 'es' ? 'Éxitos' : 'Hits'}</th><th>${l === 'es' ? 'Frec. relativa sim.' : 'Sim. rel. freq.'}</th></tr></thead>
+                <tbody><tr><td>${wbN}</td><td>${wbSim.n}</td><td>${wbSim.hits}</td><td>${wbSim.n ? fmt(wbSim.hits / wbSim.n, 3) : '—'}</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        `}
+
+        <!-- HELP BAR IN INVESTIGA (NO RULE REVEALED!) -->
+        <div class="subpanel">
+          <strong>${l === 'es' ? 'Apoyos opcionales (quedan registrados en el cuaderno)' : 'Optional Support (logged in notebook)'}</strong>
+          <div class="row" style="margin-top:8px">
+            <button type="button" class="btn-ghost" data-inv-help="example">${l === 'es' ? 'Ejemplo de otra situación' : 'Different-context example'}</button>
+            <button type="button" class="btn-ghost" data-inv-help="hint1">${l === 'es' ? 'Pista conceptual 1' : 'Conceptual hint 1'}</button>
+            <button type="button" class="btn-ghost" data-inv-help="hint2">${l === 'es' ? 'Pista sobre espacio muestral' : 'Sample-space hint'}</button>
+          </div>
+          ${inv.helpsUsed.example ? `<div class="callout info">${escapeText(curMeta.help[l].example)}</div>` : ''}
+          ${inv.helpsUsed.hint1 ? `<div class="callout info">${escapeText(curMeta.help[l].hint1)}</div>` : ''}
+          ${inv.helpsUsed.hint2 ? `<div class="callout info">${escapeText(curMeta.help[l].hint2)}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- RIGHT ZONE: PERSISTENT CRITERIO B NOTEBOOK -->
+      <div class="panel" style="margin-top:0">
+        <h2 style="margin-top:0">${l === 'es' ? 'Cuaderno de investigación (Criterio B)' : 'Criterion B Research Notebook'}</h2>
+
+        <div class="subpanel" style="margin-top:8px">
+          <strong>${l === 'es' ? '1. Estrategia y predicción inicial' : '1. Strategy & Initial Prediction'}</strong>
+          <div style="margin-top:6px">
+            <label for="invStrat"><strong>${l === 'es' ? '¿Con qué estrategia decides investigar?' : 'Which strategy do you choose to start?'}</strong></label>
+            <select id="invStrat" class="field-input" data-inv-field="strategy" style="margin-top:4px">
+              <option value="">${l === 'es' ? '— Elige tú tu estrategia —' : '— Choose your strategy —'}</option>
+              <option value="table" ${inv.strategy === 'table' ? 'selected' : ''}>${l === 'es' ? 'Tabla sistemática de casos' : 'Systematic case table'}</option>
+              <option value="tree" ${inv.strategy === 'tree' ? 'selected' : ''}>${l === 'es' ? 'Diagramas de árbol de 2 etapas' : '2-stage probability trees'}</option>
+              <option value="counting" ${inv.strategy === 'counting' ? 'selected' : ''}>${l === 'es' ? 'Conteo de pares ordenados' : 'Ordered-pair counting'}</option>
+              <option value="sim" ${inv.strategy === 'sim' ? 'selected' : ''}>${l === 'es' ? 'Simulación exploratoria y contraste teórico' : 'Exploratory simulation + exact calculation'}</option>
+            </select>
+          </div>
+          <div class="${state.pairMode ? 'grid-2' : ''}" style="margin-top:8px">
+            <div><label>${state.pairMode ? (l === 'es' ? 'Predicción Integrante A' : 'Partner A prediction') : (l === 'es' ? 'Predicción razonada (antes de operar)' : 'Reasoned prediction (before computing)')}</label><input class="field-input" value="${escapeText(inv.predA)}" data-inv-field="predA" style="margin-top:4px"></div>
+            ${state.pairMode ? `<div><label>${l === 'es' ? 'Predicción Integrante B' : 'Partner B prediction'}</label><input class="field-input" value="${escapeText(inv.predB)}" data-inv-field="predB" style="margin-top:4px"></div>` : ''}
+          </div>
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? '2. Tus casos investigados (tú decides qué N añadir)' : '2. Your Investigated Cases (you choose which N to add)'}</strong>
+          <div class="row" style="margin-top:8px">
+            <input type="number" class="field-input" style="max-width:110px" value="${escapeText(inv.newCaseInput)}" data-inv-field="newCaseInput" aria-label="Valor N a añadir">
+            <button type="button" class="btn-ghost" data-inv-addcase="${curMeta.id}">${l === 'es' ? '+ Añadir caso N' : '+ Add case N'}</button>
+          </div>
+          ${inv.cases.length === 0 ? `<p class="meta-line" style="margin-top:8px">${l === 'es' ? 'Aún no hay casos añadidos. Elige valores como N=2 o 3, 4, 6, 8, 10...' : 'No cases added yet. Pick values like N=2 or 3, 4, 6, 8, 10...'}</p>` : `
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>N</th><th>${l === 'es' ? 'Probabilidad exacta P(N)' : 'Exact P(N)'}</th><th>${l === 'es' ? 'Estado' : 'Status'}</th><th></th></tr></thead>
+                <tbody>
+                  ${inv.cases.map((c, idx) => `
+                    <tr>
+                      <td><strong>${c.N}</strong></td>
+                      <td><input class="cell-input" value="${escapeText(c.userP)}" data-inv-casep="${idx}" placeholder="e.g. 1/3"></td>
+                      <td>${c.checked ? (c.ok ? '✓' : '✗') : '—'}</td>
+                      <td><button type="button" class="btn-ghost" style="min-height:32px;padding:4px 8px" data-inv-delcase="${idx}">✕</button></td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+            <div class="row" style="margin-top:8px"><button type="button" class="btn-primary" data-check-cases="${curMeta.id}">${l === 'es' ? 'Validar mis casos' : 'Validate my cases'}</button></div>
+          `}
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? '3. Descripción del patrón y regla general P(N)' : '3. Pattern Description & General Rule P(N)'}</strong>
+          <label for="invPat" style="display:block;margin-top:6px"><strong>${l === 'es' ? 'Describe con precisión el patrón que observas (numerador, denominador y tendencia límite):' : 'Describe the numerical pattern and limiting trend clearly:'}</strong></label>
+          <textarea id="invPat" class="field-input" data-inv-field="patternText" placeholder="${l === 'es' ? 'Ej.: Al crecer N, P(N) crece acercándose a...' : 'E.g., As N increases, P(N) approaches...'}">${escapeText(inv.patternText)}</textarea>
+          <label for="invRule" style="display:block;margin-top:8px"><strong>${l === 'es' ? 'Expresa tu regla general en función de N:' : 'Write your general rule in terms of N:'}</strong></label>
+          <div class="row" style="margin-top:4px">
+            <input id="invRule" class="field-input mono" style="flex:1;min-width:160px" value="${escapeText(inv.ruleExpr)}" data-inv-field="ruleExpr" placeholder="P(N) = ...">
+            <button type="button" class="btn-primary" data-check-rule="${curMeta.id}">${l === 'es' ? 'Comprobar regla' : 'Test rule'}</button>
+          </div>
+          ${inv.ruleChecked ? `<div class="callout ${inv.ruleChecked.ok ? 'ok' : 'err'}">${escapeText(inv.ruleChecked.msg)}</div>` : ''}
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? '4. Comprobación en un caso nuevo (NO incluido en tu tabla)' : '4. Verification on an Unseen Case (NOT in your table)'}</strong>
+          <div class="grid-3" style="margin-top:8px">
+            <div><label><strong>${l === 'es' ? 'Nuevo N' : 'New N'}</strong></label><input type="number" class="field-input" value="${escapeText(inv.verifyN)}" data-inv-field="verifyN"></div>
+            <div><label><strong>${l === 'es' ? 'Por tu regla' : 'Via rule'}</strong></label><input class="field-input" value="${escapeText(inv.verifyByRule)}" data-inv-field="verifyByRule" placeholder="a/b"></div>
+            <div><label><strong>${l === 'es' ? 'Por cálculo/árbol' : 'Via tree/count'}</strong></label><input class="field-input" value="${escapeText(inv.verifyByCalc)}" data-inv-field="verifyByCalc" placeholder="a/b"></div>
+          </div>
+          <div class="row" style="margin-top:8px"><button type="button" class="btn-primary" data-check-verify="${curMeta.id}">${l === 'es' ? 'Validar comprobación nueva' : 'Validate unseen check'}</button></div>
+          ${inv.verifyChecked ? `<div class="callout ${inv.verifyChecked.ok ? 'ok' : 'err'}">${escapeText(inv.verifyChecked.msg)}</div>` : ''}
+        </div>
+
+        <div class="subpanel">
+          <strong>${l === 'es' ? '5. Justificación matemática (pendiente de revisión humana/docente)' : '5. Mathematical Justification (pending human review)'}</strong>
+          <p class="meta-line" style="margin:4px 0 8px">${l === 'es'
+            ? 'Explica por qué funciona la fórmula usando la reducción del espacio muestral. No se califica automáticamente por palabras clave: se conserva tu texto original para revisión.'
+            : 'Explain why the formula holds using sample-space reduction. Never graded by keywords: your original text is saved for teacher review.'}</p>
+          <textarea class="field-input" data-inv-field="justOrig" placeholder="${l === 'es' ? 'Borrrador / respuesta inicial...' : 'Initial justification...'}">${escapeText(inv.justOrig)}</textarea>
+          ${state.pairMode ? `
+            <label style="display:block;margin-top:8px"><strong>${l === 'es' ? 'Explicación del segundo integrante de la pareja:' : 'Second partner explanation:'}</strong></label>
+            <textarea class="field-input" data-inv-field="justPartnerB">${escapeText(inv.justPartnerB)}</textarea>
+          ` : ''}
+
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
+            <label class="choice-opt" style="padding:8px 10px">
+              <input type="checkbox" ${inv.peerReview.enabled ? 'checked' : ''} data-inv-peer-toggle="1">
+              <span><strong>${l === 'es' ? 'Incluir revisión opcional por pares (mismo dispositivo; no califica ni valida matemáticamente)' : 'Include optional on-device peer review (non-grading feedback)'}</strong></span>
+            </label>
+            ${inv.peerReview.enabled ? `
+              <div class="grid-3" style="margin-top:8px">
+                <div><label><strong>${l === 'es' ? '¿Qué está bien respaldado?' : 'What is well supported?'}</strong></label><textarea class="field-input" data-inv-peer="wellBacked">${escapeText(inv.peerReview.wellBacked)}</textarea></div>
+                <div><label><strong>${l === 'es' ? '¿Qué falta explicar?' : 'What is missing?'}</strong></label><textarea class="field-input" data-inv-peer="missing">${escapeText(inv.peerReview.missing)}</textarea></div>
+                <div><label><strong>${l === 'es' ? '¿Qué propones revisar?' : 'What to revise?'}</strong></label><textarea class="field-input" data-inv-peer="suggest">${escapeText(inv.peerReview.suggest)}</textarea></div>
+              </div>
+              <label style="display:block;margin-top:8px"><strong>${l === 'es' ? 'Versión revisada (conservando tu texto inicial):' : 'Revised justification (preserving original):'}</strong></label>
+              <textarea class="field-input" data-inv-field="justRevised">${escapeText(inv.justRevised)}</textarea>
+            ` : ''}
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="btn-teal" data-save-just="${curMeta.id}">${l === 'es' ? 'Guardar justificación en el cuaderno' : 'Save justification to notebook'}</button>
+          </div>
+          ${inv.justSaved ? `<div class="callout info">${l === 'es' ? 'Justificación guardada y marcada como «Pendiente de revisión docente» (puedes exportarla en JSON o PDF en Mis evidencias).' : 'Justification saved and flagged «Pending teacher review» (exportable via JSON or PDF in My Evidence).'}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ================= CHECKERS FOR INVESTIGA ================= */
+function checkInvTree(id) {
+  const l = L();
+  const meta = INV_META.find((m) => m.id === id);
+  const inv = getInvState(id);
+  const N = Number(inv.workbenchN);
+  const td = inv.treeDraft;
+  const p1n = parseProb(td.p1Num), p1d = parseProb(td.p1Den);
+  const p2n = parseProb(td.p2SameNum), p2d = parseProb(td.p2SameDen);
+  const expFirst = id === 'inv3' ? N / 3 : N / 2;
+  const expSecond = id === 'inv1' ? N / 2 : (id === 'inv3' ? N / 3 - 1 : N / 2 - 1);
+  const wasWrong = td.msg && !td.treeOk;
+
+  const ok = meta.validN(N) && Math.abs(p1n - expFirst) < 1e-6 && Math.abs(p1d - N) < 1e-6 &&
+    Math.abs(p2n - expSecond) < 1e-6 && Math.abs(p2d - (N - 1)) < 1e-6;
+  td.treeOk = ok;
+  td.msg = ok
+    ? (l === 'es' ? `Ramas coherentes para N = ${N}: 1.ª extracción sobre ${N} y 2.ª sobre ${N - 1}.` : `Consistent branches for N = ${N}: 1st draw out of ${N}, 2nd out of ${N - 1}.`)
+    : (l === 'es' ? 'Revisa el número de fichas favorables y el total restante en cada etapa (sin reemplazamiento pasa de N a N − 1).' : 'Check favorable counts and remaining total at each stage (without replacement drops from N to N − 1).');
+  if (ok) {
+    if (wasWrong) awardHuella('hueTab');
+    advanceSello('selRep', anyInvHelpUsed(inv) ? 'guided' : 'autonomous');
+  }
+  save(); render();
+}
+
+function checkInvCases(id) {
+  const l = L();
+  const meta = INV_META.find((m) => m.id === id);
+  const inv = getInvState(id);
+  const hadBad = inv.cases.some((c) => c.checked && !c.ok);
+  inv.cases.forEach((c) => {
+    const exact = meta.exactP(c.N);
+    c.checked = true;
+    c.ok = meta.validN(c.N) && closeProb(c.userP, exact, 0.006);
+  });
+  const okCount = inv.cases.filter((c) => c.ok).length;
+  const help = anyInvHelpUsed(inv);
+  if (okCount >= 3) {
+    if (hadBad) awardHuella('hueTab');
+    advanceSello('selOrg', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
+    if (inv.patternText.trim().length > 0) {
+      advanceSello('selPat', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
+    }
+  }
+  save(); render();
+}
+
+function checkInvRule(id) {
+  const l = L();
+  const meta = INV_META.find((m) => m.id === id);
+  const inv = getInvState(id);
+  const expr = (inv.ruleExpr || '').trim();
+  if (!expr) {
+    inv.ruleChecked = { ok: false, msg: l === 'es' ? 'Escribe primero una expresión algebraica en función de N.' : 'Write an algebraic rule in terms of N first.' };
+    save(); render(); return;
+  }
+  const ok = meta.testNs.every((N) => {
+    const v = evalRuleN(expr, N);
+    return Number.isFinite(v) && Math.abs(v - meta.exactP(N)) < 1e-6;
+  });
+  if (!ok) {
+    inv.ruleHistory.push({ expr, ok: false });
+    inv.ruleChecked = { ok: false, msg: l === 'es' ? 'La fórmula propuesta no coincide en todos los casos (prueba N = 2 ó 3 y otros N mayores).' : 'The proposed rule fails on some valid N (check edge cases like N = 2 or 3 and larger N).' };
+  } else {
+    if (inv.ruleHistory.some((h) => !h.ok)) awardHuella('hueCon');
+    inv.ruleHistory.push({ expr, ok: true });
+    inv.ruleChecked = { ok: true, msg: l === 'es' ? 'Regla algebraica equivalente verificada para todos los casos del dominio. Ahora compruébala en un caso nuevo N fuera de tu tabla.' : 'Equivalent algebraic rule verified across domain cases. Now test it on an unseen N outside your table.' };
+    const help = anyInvHelpUsed(inv);
+    advanceSello('selReg', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
+    if (inv.patternText.trim().length > 0) advanceSello('selPat', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
+  }
+  save(); render();
+}
+
+function checkInvVerify(id) {
+  const l = L();
+  const meta = INV_META.find((m) => m.id === id);
+  const inv = getInvState(id);
+  const vN = Number(inv.verifyN);
+  if (!meta.validN(vN)) {
+    inv.verifyChecked = { ok: false, msg: l === 'es' ? `Introduce un N válido para esta investigación (múltiplo de ${meta.step}, ≥ ${meta.minN}).` : `Enter a valid N (multiple of ${meta.step}, ≥ ${meta.minN}).` };
+    save(); render(); return;
+  }
+  if (inv.cases.some((c) => Number(c.N) === vN)) {
+    inv.verifyChecked = { ok: false, msg: l === 'es' ? `N = ${vN} ya estaba en tu tabla de casos. Elige un valor NUEVO distinto para comprobar.` : `N = ${vN} is already in your case table. Choose a BRAND-NEW N to verify.` };
+    save(); render(); return;
+  }
+  const exact = meta.exactP(vN);
+  const byRule = closeProb(inv.verifyByRule, exact, 0.006);
+  const byCalc = closeProb(inv.verifyByCalc, exact, 0.006);
+  const ok = byRule && byCalc;
+  inv.verifyChecked = {
+    ok,
+    msg: ok
+      ? (l === 'es' ? `Comprobación verificada en N = ${vN}: tu regla y tu cálculo coinciden. Recuerda: comprobar un caso apoya la regla, pero justificar requiere explicar por qué vale para todo N.` : `Unseen case N = ${vN} verified: rule and direct calculation agree. Remember: checking a case is not yet a general justification.`)
+      : (l === 'es' ? 'Comprueba ambos cálculos para tu nuevo N (por regla y por árbol/conteo).' : 'Check both values for your new N (via rule and via tree/counting).')
+  };
+  if (ok) {
+    const help = anyInvHelpUsed(inv);
+    advanceSello('selCmp', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
+    if (id === 'inv3' && inv.ruleChecked?.ok && !help) {
+      advanceSello('selTrn', 'consolidated');
+      if (help === false && inv.helpsUsed) awardHuella('hueAyu');
+    } else if (!help && state.investigations.inv2 && anyInvHelpUsed(state.investigations.inv2) && id === 'inv3') {
+      awardHuella('hueAyu');
+    }
+  }
+  save(); render();
+}
+
+function saveInvJustification(id) {
+  const inv = getInvState(id);
+  const l = L();
+  if (!(inv.justOrig || '').trim() && !(inv.justRevised || '').trim()) return;
+  inv.justSaved = true;
+  if (inv.peerReview.enabled && ((inv.peerReview.wellBacked || '').trim() || (inv.peerReview.suggest || '').trim())) {
+    inv.peerReview.saved = true;
+  }
+  // Never promote selJus automatically to autonomous — remains flagged as pending_human!
+  if (state.sellos.selJus === 'pending') state.sellos.selJus = 'pending_human';
+  save(); render();
+}
+
+/* ================= TALLER (TARGETED PRACTICE & HELPS) ================= */
+const TALLER_PROB_TOPICS = [
+  { id: 'mix', es: 'Mixto (todas las herramientas)', en: 'Mixed (all tools)' },
+  { id: 'cond2x2', es: 'Tabla 2×2 y condicionales inversas', en: '2×2 Tables & inverse conditionals' },
+  { id: 'tree', es: 'Árboles con/sin reemplazamiento', en: 'Trees with/without replacement' },
+  { id: 'diag', es: 'Frecuencias naturales (Sens./Espec.)', en: 'Natural frequencies (Sens./Spec.)' },
+  { id: 'alg', es: 'Álgebra de sucesos y denominador cero', en: 'Event algebra & zero denominator' },
+  { id: 'edge', es: 'Casos límite y prueba de conjeturas', en: 'Edge cases & testing rules' }
+];
+
+function generateTallerProb(topicReq = state.taller.topic, isReview = false) {
+  let topic = topicReq;
+  if (topic === 'mix') topic = pick(['cond2x2', 'tree', 'diag', 'alg', 'edge']);
+
+  if (topic === 'cond2x2') {
+    const a = ri(4, 10), b = ri(6, 12), c = ri(5, 11), d = ri(15, 25);
+    return {
+      topic, kind: 'cond2x2', isReview, a, b, c, d,
+      user: { pAgB: '', pBgA: '' }, checked: false, ok: false, counted: false,
+      usedHelp: { example: false, hint1: false, solution: false }
+    };
+  }
+  if (topic === 'tree') {
+    const r = ri(2, 5), b = ri(2, 5), withRep = Math.random() < 0.45;
+    const tot = r + b, d2 = withRep ? tot : tot - 1;
+    const exactSame = withRep ? (r * r + b * b) / (tot * tot) : (r * (r - 1) + b * (b - 1)) / (tot * d2);
+    return {
+      topic, kind: 'tree', isReview, r, b, withRep, exactSame, exactDiff: 1 - exactSame,
+      user: { same: '', diff: '' }, checked: false, ok: false, counted: false,
+      usedHelp: { example: false, hint1: false, solution: false }
+    };
+  }
+  if (topic === 'diag') {
+    const prev = pick([2, 5]), sens = 90, spec = 90, N = 1000;
+    const sick = (N * prev) / 100, healthy = N - sick;
+    const tp = (sick * sens) / 100, fp = (healthy * (100 - spec)) / 100;
+    const ppv = tp / (tp + fp);
+    return {
+      topic, kind: 'diag', isReview, N, prev, sens, spec, tp, fp, ppv,
+      user: { ppv: '' }, checked: false, ok: false, counted: false,
+      usedHelp: { example: false, hint1: false, solution: false }
+    };
+  }
+  if (topic === 'alg') {
+    const pA = 0.4, pB = 0.5, pInter = 0.2;
+    return {
+      topic, kind: 'alg', isReview, pA, pB, pInter, pUnion: pA + pB - pInter,
+      user: { union: '', zeroDen: '' }, checked: false, ok: false, counted: false,
+      usedHelp: { example: false, hint1: false, solution: false }
+    };
+  }
+  // edge
+  const N = pick([2, 4, 6, 8]);
+  return {
+    topic: 'edge', kind: 'edge', isReview, N, exact: (N / 2 - 1) / (N - 1),
+    user: { ans: '', indVsIncomp: '' }, checked: false, ok: false, counted: false,
+    usedHelp: { example: false, hint1: false, solution: false }
+  };
+}
+
+function getTallerProbHelp(kind) {
+  const l = L();
+  const bank = {
+    cond2x2: {
+      es: { example: 'Ejemplo: en 20 personas (A∩B=4, A∩Bᶜ=6, Aᶜ∩B=2), P(A|B) = 4/(4+2) = 4/6 y P(B|A) = 4/(4+6) = 4/10.', hint1: 'El suceso tras la barra | fija el denominador (la fila o columna restringida).', solution: 'Calcula P(A|B) = a/(a+c) y P(B|A) = a/(a+b).' },
+      en: { example: 'Example: P(A|B) divides by column B total, while P(B|A) divides by row A total.', hint1: 'The event after | sets the restricted denominator.', solution: 'Compute P(A|B) = a/(a+c) and P(B|A) = a/(a+b).' }
+    },
+    tree: {
+      es: { example: 'Ejemplo: 3R y 2A sin reposición → P(RR) = (3/5)(2/4), P(AA) = (2/5)(1/4).', hint1: 'Multiplica a lo largo de cada rama y suma caminos incompatibles.', solution: 'Sin reemplazamiento el segundo denominador es total−1 y disminuye en 1 la ficha extraída.' },
+      en: { example: 'Example: 3R, 2B without replacement → P(RR) = (3/5)(2/4), P(BB) = (2/5)(1/4).', hint1: 'Multiply probabilities along a path and add disjoint outcomes.', solution: 'Without replacement lowers total denominator by 1 and matching color count by 1.' }
+    },
+    diag: {
+      es: { example: 'Ejemplo: de 1000 con 5% prevalencia (50 enfermos), TP = Sens·50 y FP = (1−Espec)·950.', hint1: 'P(Condición|+) = Verdaderos Positivos / (Verdaderos Positivos + Falsos Positivos).', solution: 'Divide TP entre (TP + FP).' },
+      en: { example: 'Example: out of 1000 at 5% prevalence (50 cases), TP = Sens·50 and FP = (1−Spec)·950.', hint1: 'P(Condition|+) = TP / (TP + FP).', solution: 'Divide TP by total positives (TP + FP).' }
+    },
+    alg: {
+      es: { example: 'Ejemplo: P(A∪B) = P(A)+P(B)−P(A∩B). Si el condicionante tiene probabilidad 0, P(X|∅) no está definida.', hint1: 'No restes dos veces P(A∩B) y nunca dividas por cero.', solution: 'P(A∪B) = 0,4 + 0,5 − 0,2 = 0,7; con suceso condicionante imposible es no definida.' },
+      en: { example: 'Example: P(A∪B) = P(A)+P(B)−P(A∩B). Zero conditioning denominator is undefined.', hint1: 'Avoid double counting the intersection and never divide by zero.', solution: 'P(A∪B) = 0.4 + 0.5 − 0.2 = 0.7; zero denominator is undefined.' }
+    },
+    edge: {
+      es: { example: 'Ejemplo: si N = 2 (1 roja, 1 azul sin reposición), al sacar una roja no queda ninguna roja: P = 0.', hint1: 'Independencia significa P(A∩B)=P(A)·P(B); incompatibilidad significa P(A∩B)=0.', solution: 'Para N = 2 sale 0; para N par general vale (N/2−1)/(N−1). Independencia e incompatibilidad son conceptos distintos.' },
+      en: { example: 'Example: at N = 2 (1 red, 1 blue without replacement), second token cannot match the first: P = 0.', hint1: 'Independence means P(A∩B)=P(A)·P(B); mutual exclusivity means P(A∩B)=0.', solution: 'At N = 2, P = 0; generally (N/2−1)/(N−1). Independence differs from mutual exclusivity.' }
+    }
+  };
+  return (bank[kind] || bank.cond2x2)[l];
+}
+
+function renderTaller() {
+  const l = L();
+  if (!state.taller.current) state.taller.current = generateTallerProb(state.taller.topic, false);
+  const cur = state.taller.current;
+  const u = cur.user;
+  const qLen = state.taller.errorQueue.length;
+  const helpTxt = getTallerProbHelp(cur.kind);
+
+  let body = '';
+  if (cur.kind === 'cond2x2') {
+    body = `
+      <p>${l === 'es' ? 'Dada la tabla 2×2 de frecuencias, calcula ambas probabilidades condicionadas inversas:' : 'Given the 2×2 count table, compute both inverse conditional probabilities:'}</p>
+      <div class="table-wrap" style="max-width:360px">
+        <table>
+          <thead><tr><th></th><th>B</th><th>Bᶜ</th></tr></thead>
+          <tbody>
+            <tr><th>A</th><td>${cur.a}</td><td>${cur.b}</td></tr>
+            <tr><th>Aᶜ</th><td>${cur.c}</td><td>${cur.d}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid-2" style="margin-top:10px;max-width:460px">
+        <div><label><strong>P(A | B)</strong></label><input class="field-input" value="${escapeText(u.pAgB)}" data-tal-f="pAgB" placeholder="a/b"></div>
+        <div><label><strong>P(B | A)</strong></label><input class="field-input" value="${escapeText(u.pBgA)}" data-tal-f="pBgA" placeholder="a/b"></div>
+      </div>`;
+  } else if (cur.kind === 'tree') {
+    body = `
+      <p>${l === 'es'
+        ? `Urna con <strong>${cur.r} rojas y ${cur.b} azules</strong>. Extraemos 2 fichas <strong>${cur.withRep ? 'CON reemplazamiento' : 'SIN reemplazamiento'}</strong>:`
+        : `Urn with <strong>${cur.r} red and ${cur.b} blue</strong> tokens. Draw 2 <strong>${cur.withRep ? 'WITH replacement' : 'WITHOUT replacement'}</strong>:`}</p>
+      <div class="grid-2" style="max-width:460px">
+        <div><label><strong>P(${l === 'es' ? 'mismo color' : 'same color'})</strong></label><input class="field-input" value="${escapeText(u.same)}" data-tal-f="same"></div>
+        <div><label><strong>P(${l === 'es' ? 'colores distintos' : 'different colors'})</strong></label><input class="field-input" value="${escapeText(u.diff)}" data-tal-f="diff"></div>
+      </div>`;
+  } else if (cur.kind === 'diag') {
+    body = `
+      <p>${l === 'es'
+        ? `Población N = ${cur.N}, prevalencia = ${cur.prev}%, sensibilidad = ${cur.sens}%, especificidad = ${cur.spec}%. Calcula P(Condición | Test +):`
+        : `Population N = ${cur.N}, prevalence = ${cur.prev}%, sensitivity = ${cur.sens}%, specificity = ${cur.spec}%. Compute P(Condition | Test +):`}</p>
+      <div style="max-width:260px">
+        <label><strong>P(${l === 'es' ? 'Condición | +' : 'Cond. | +'})</strong></label>
+        <input class="field-input" value="${escapeText(u.ppv)}" data-tal-f="ppv" placeholder="TP/(TP+FP)">
+      </div>`;
+  } else if (cur.kind === 'alg') {
+    body = `
+      <p>${l === 'es'
+        ? `Si P(A) = 0,4, P(B) = 0,5 y P(A∩B) = 0,2, y C es un suceso imposible (P(C) = 0):`
+        : `Given P(A) = 0.4, P(B) = 0.5, P(A∩B) = 0.2, and impossible event C (P(C) = 0):`}</p>
+      <div class="grid-2" style="max-width:520px">
+        <div><label><strong>P(A ∪ B)</strong></label><input class="field-input" value="${escapeText(u.union)}" data-tal-f="union"></div>
+        <div><label><strong>P(A | C)</strong></label>
+          <select class="field-input" data-tal-f="zeroDen">
+            <option value="">—</option>
+            <option value="undef" ${u.zeroDen === 'undef' ? 'selected' : ''}>${l === 'es' ? 'No definida (denominador 0)' : 'Undefined (zero denominator)'}</option>
+            <option value="zero" ${u.zeroDen === 'zero' ? 'selected' : ''}>0</option>
+          </select>
+        </div>
+      </div>`;
+  } else {
+    body = `
+      <p>${l === 'es'
+        ? `Bolsa equilibrada con N = ${cur.N} fichas (mitad rojas, mitad azules) sin reemplazamiento. Calcula P(mismo color) y distingue independencia de incompatibilidad:`
+        : `Balanced bag with N = ${cur.N} tokens (half red, half blue) without replacement. Compute P(same color) and distinguish independence from mutual exclusivity:`}</p>
+      <div class="grid-2" style="max-width:560px">
+        <div><label><strong>P(${l === 'es' ? `mismo color, N=${cur.N}` : `same color, N=${cur.N}`})</strong></label><input class="field-input" value="${escapeText(u.ans)}" data-tal-f="ans"></div>
+        <div><label><strong>${l === 'es' ? 'Relación entre independencia e incompatibilidad:' : 'Independence vs mutual exclusivity:'}</strong></label>
+          <select class="field-input" data-tal-f="indVsIncomp">
+            <option value="">—</option>
+            <option value="diff" ${u.indVsIncomp === 'diff' ? 'selected' : ''}>${l === 'es' ? 'Son distintas: incompatible exige P(A∩B)=0; independiente exige P(A∩B)=P(A)·P(B)' : 'Different: mutually exclusive means P(A∩B)=0; independent means P(A∩B)=P(A)P(B)'}</option>
+            <option value="same" ${u.indVsIncomp === 'same' ? 'selected' : ''}>${l === 'es' ? 'Significan exactamente lo mismo' : 'They mean the exact same thing'}</option>
+          </select>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <section class="panel" style="margin-top:0">
+      <div class="row-between">
+        <div>
+          <span class="meta-line">${l === 'es' ? 'Práctica focalizada · Sin penalizaciones por ayuda' : 'Targeted Practice · No penalties for hints'}</span>
+          <h1 style="margin:4px 0 0;font-size:clamp(1.3rem,2.4vw,1.75rem)">${escapeText(tr('navTal'))}</h1>
+        </div>
+        <span class="meta-line">${l === 'es' ? 'Resueltos:' : 'Solved:'} <strong>${state.taller.solved}</strong></span>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <select class="field-input" style="max-width:340px" data-tal-topic="1" aria-label="Tema del taller">
+          ${TALLER_PROB_TOPICS.map((t) => `<option value="${t.id}" ${state.taller.topic === t.id ? 'selected' : ''}>${escapeText(t[l])}</option>`).join('')}
+        </select>
+        <button type="button" class="btn-ghost" data-tal-next="0">${l === 'es' ? 'Ejercicio nuevo' : 'New exercise'}</button>
+        <button type="button" class="btn-teal" ${qLen ? '' : 'disabled'} data-tal-next="1">${l === 'es' ? `Revisar fallo (${qLen})` : `Review mistake (${qLen})`}</button>
+      </div>
+      <div class="subpanel">
+        ${cur.isReview ? `<div class="callout info" style="margin-top:0;margin-bottom:10px">${l === 'es' ? 'Caso equivalente de revisión tras error o consulta de solución.' : 'Equivalent review case following an earlier mistake or solution view.'}</div>` : ''}
+        ${body}
+        <div class="row" style="margin-top:12px">
+          <button type="button" class="btn-primary" data-check-taller="1">${escapeText(tr('checkBtn'))}</button>
+          <button type="button" class="btn-ghost" data-tal-help="example">${l === 'es' ? 'Ejemplo resuelto' : 'Worked example'}</button>
+          <button type="button" class="btn-ghost" data-tal-help="hint1">${l === 'es' ? 'Pista conceptual' : 'Conceptual hint'}</button>
+          <button type="button" class="btn-ghost" data-tal-help="solution">${l === 'es' ? 'Solución razonada' : 'Reasoned solution'}</button>
+        </div>
+        ${cur.checked ? `<div class="callout ${cur.ok ? 'ok' : 'err'}">${escapeText(cur.msg)}</div>` : ''}
+        ${cur.usedHelp.example ? `<div class="callout info">${escapeText(helpTxt.example)}</div>` : ''}
+        ${cur.usedHelp.hint1 ? `<div class="callout info">${escapeText(helpTxt.hint1)}</div>` : ''}
+        ${cur.usedHelp.solution ? `<div class="callout warn">${escapeText(helpTxt.solution)}</div>` : ''}
+      </div>
+    </section>`;
+}
+
+function checkTallerProb() {
+  const cur = state.taller.current;
+  if (!cur) return;
+  const l = L(), u = cur.user;
+  let ok = false;
+  if (cur.kind === 'cond2x2') ok = closeProb(u.pAgB, cur.a / (cur.a + cur.c), 0.01) && closeProb(u.pBgA, cur.a / (cur.a + cur.b), 0.01);
+  else if (cur.kind === 'tree') ok = closeProb(u.same, cur.exactSame, 0.01) && closeProb(u.diff, cur.exactDiff, 0.01);
+  else if (cur.kind === 'diag') ok = closeProb(u.ppv, cur.ppv, 0.015);
+  else if (cur.kind === 'alg') ok = closeProb(u.union, cur.pUnion, 0.01) && u.zeroDen === 'undef';
+  else ok = closeProb(u.ans, cur.exact, 0.01) && u.indVsIncomp === 'diff';
+
+  cur.checked = true;
+  cur.ok = ok;
+  cur.msg = ok
+    ? (l === 'es' ? 'Correcto.' : 'Correct.')
+    : (l === 'es' ? 'Revisa el procedimiento o consulta una pista.' : 'Review your steps or open a hint.');
+  if (ok && !cur.counted) {
+    cur.counted = true;
+    state.taller.solved += 1;
+    if ((cur.usedHelp.example || cur.usedHelp.hint1) && cur.isReview) awardHuella('hueAyu');
+    if (cur.isReview) awardHuella('hueCon');
+  } else if (!ok && !cur.queuedErr) {
+    cur.queuedErr = true;
+    if (state.taller.errorQueue.length < 15) state.taller.errorQueue.push(cur.topic);
+  }
+  save(); render();
+}
+
+/* ================= MIS EVIDENCIAS (HUELLAS VS SELLOS SEPARADOS) ================= */
+function renderEvidencias() {
+  const l = L();
+  const hasId = Boolean(state.publicId);
+
+  const sellosHtml = SELLOS_META.map((m) => {
+    const st = state.sellos[m.id];
+    const unlocked = st === 'autonomous' || st === 'consolidated';
+    return `
+      <div class="ev-row">
+        <div>
+          <strong>${escapeText(m[l].name)}</strong><br>
+          <span class="meta-line">${escapeText(m[l].desc)}</span>
+        </div>
+        <div class="row">
+          ${selloStatusText(st, m.id)}
+          ${hasId && unlocked && !m.humanReview ? `<button type="button" class="btn-teal" data-pkm-code="${m.id}:sello">${escapeText(tr('codeBtn'))}</button>` : ''}
+          ${m.humanReview && st !== 'consolidated' ? `<button type="button" class="btn-ghost" data-validate-jus="1">${l === 'es' ? 'Validar con código' : 'Validate with code'}</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  const huellasHtml = HUELLAS_META.map((h) => {
+    const v = state.huellas[h.id] || 0;
+    return `
+      <div class="ev-row">
+        <div>
+          <strong>${escapeText(h[l].name)}</strong><br>
+          <span class="meta-line">${escapeText(h[l].desc)}</span>
+        </div>
+        <div class="row">
+          <span class="status-txt ${v > 0 ? 'st-auto' : 'st-pending'}">${v} / ${h.max}</span>
+          ${hasId && v > 0 ? `<button type="button" class="btn-ghost" data-pkm-code="${h.id}:huella">${escapeText(tr('codeBtn'))}</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <section class="panel" style="margin-top:0">
+      <div class="row-between">
+        <div>
+          <span class="meta-line">${l === 'es' ? 'Evaluación formativa Criterio B · Sin nota automática 1–8' : 'Formative Criterion B Portfolio · No automatic 1–8 grade'}</span>
+          <h1 style="margin:4px 0 0;font-size:clamp(1.3rem,2.4vw,1.75rem)">${escapeText(tr('navEvi'))}</h1>
+        </div>
+        <div class="row">
+          <button type="button" class="btn-primary" id="btnPrintNotebook">${l === 'es' ? 'Cuaderno imprimible (PDF)' : 'Printable Notebook (PDF)'}</button>
+          <button type="button" class="btn-ghost" id="btnExportJson">${l === 'es' ? 'Exportar cuaderno (.json)' : 'Export notebook (.json)'}</button>
+          <button type="button" class="btn-ghost" id="btnImportJson">${l === 'es' ? 'Importar (.json)' : 'Import (.json)'}</button>
+          <button type="button" class="btn-coral" id="btnResetAll">${l === 'es' ? 'Reiniciar progreso' : 'Reset progress'}</button>
+        </div>
+      </div>
+      ${!hasId ? `<div class="callout info">${l === 'es' ? 'Si utilizas Pokemáticos, guarda tu Public ID arriba para desbloquear los códigos diferenciados de Huellas y Sellos.' : 'If your class uses Pokemáticos, save your Public ID above to unlock separate Trace and Seal codes.'}</div>` : ''}
+    </section>
+
+    <div class="grid-2" style="margin-top:14px">
+      <section class="panel" style="margin-top:0">
+        <span class="meta-line">${l === 'es' ? 'Panel B · Dominio investigador' : 'Panel B · Research Mastery'}</span>
+        <h2 style="margin:4px 0 6px">${l === 'es' ? 'Sellos de investigación' : 'Research Seals'}</h2>
+        <p class="meta-line" style="margin:0 0 10px">${l === 'es'
+          ? 'La justificación matemática permanece «Pendiente de revisión docente» y nunca se otorga automáticamente por fórmulas ni ejemplos.'
+          : 'Mathematical justification stays «Pending teacher review» and is never auto-awarded from formulas or examples.'}</p>
+        ${sellosHtml}
+      </section>
+
+      <section class="panel" style="margin-top:0">
+        <span class="meta-line">${l === 'es' ? 'Panel A · Constancia y revisión observable' : 'Panel A · Observable Traces'}</span>
+        <h2 style="margin:4px 0 6px">${l === 'es' ? 'Huellas de trabajo' : 'Work Traces'}</h2>
+        <p class="meta-line" style="margin:0 0 10px">${l === 'es'
+          ? 'Registran hechos observables (corregir tablas, revisar predicciones o conjeturas). No premian clics ni tiempo conectado.'
+          : 'Log observable revisions (fixing tables, revising predictions or conjectures). Never award clicks or idle time.'}</p>
+        ${huellasHtml}
+      </section>
+    </div>`;
+}
+
+/* ================= MODALS & EXPORT / PRINT ================= */
+function openDialog(html) {
+  const dlg = $('modal');
+  dlg.innerHTML = html;
+  if (typeof dlg.showModal === 'function') dlg.showModal();
+  else dlg.setAttribute('open', '');
+}
+function closeDialog() {
+  const dlg = $('modal');
+  if (typeof dlg.close === 'function' && dlg.open) dlg.close();
+  else dlg.removeAttribute('open');
+}
+
+function openPkmDialog(msg = '') {
+  openDialog(`
+    <div class="dlg-head">
+      <h3 style="margin:0">${escapeText(tr('pkmTitle'))}</h3>
+      <button type="button" class="btn-ghost" data-close-dlg="1">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p style="margin-top:0">${escapeText(tr('pkmDesc'))}</p>
+      <input id="pkmIdInp" class="field-input" placeholder="${escapeText(tr('pkmPlaceholder'))}" value="${escapeText(state.publicId)}">
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn-primary" id="savePkmBtn">${escapeText(tr('pkmSave'))}</button>
+        <button type="button" class="btn-coral" id="clearPkmBtn">${escapeText(tr('pkmClear'))}</button>
+      </div>
+      ${msg ? `<div class="callout ok">${escapeText(msg)}</div>` : ''}
+    </div>`);
+}
+
+function openCodeDialog(itemId, kind) {
+  if (!state.publicId) { openPkmDialog(); return; }
+  const l = L();
+  const code = generateRewardCode(state.publicId, PKM_SOURCE, itemId);
+  const catLabel = kind === 'huella'
+    ? (l === 'es' ? 'Categoría: Huella de trabajo' : 'Category: Work Trace')
+    : (l === 'es' ? 'Categoría: Sello de investigación' : 'Category: Research Seal');
+  openDialog(`
+    <div class="dlg-head">
+      <h3 style="margin:0">${escapeText(tr('codeBtn'))}</h3>
+      <button type="button" class="btn-ghost" data-close-dlg="1">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p style="margin-top:0"><strong>${escapeText(catLabel)}</strong> · <span class="mono">${escapeText(PKM_SOURCE)}/${escapeText(itemId)}</span></p>
+      <div class="subpanel mono" style="text-align:center;font-size:1.05rem;word-break:break-all" id="codeShow">${escapeText(code)}</div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn-primary" id="copyPkmCode">${escapeText(tr('copyBtn'))}</button>
+      </div>
+      <div id="copyFb" class="meta-line" style="margin-top:8px"></div>
+    </div>`);
+}
+
+function openValidateJusDialog(msg = '', isErr = false) {
+  if (!state.publicId) {
+    openPkmDialog(L() === 'es' ? 'Guarda primero tu Public ID para poder introducir el código de validación docente.' : 'Save your Public ID first so you can enter your teacher validation code.');
+    return;
+  }
+  const l = L();
+  openDialog(`
+    <div class="dlg-head">
+      <h3 style="margin:0">${l === 'es' ? 'Validar justificación matemática' : 'Validate mathematical justification'}</h3>
+      <button type="button" class="btn-ghost" data-close-dlg="1">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p style="margin-top:0">${l === 'es'
+        ? 'Cuando el docente revise tu justificación, introduce aquí el código de actividad Probab/selJus que te entregue (el mismo código sirve también para canjear en Pokemáticos).'
+        : 'Once your teacher reviews your justification, paste the Probab/selJus code they give you here (the same code also redeems in Pokemáticos).'}</p>
+      <input id="jusCodeInp" class="field-input mono" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn-primary" id="applyJusCodeBtn">${l === 'es' ? 'Validar sello' : 'Validate seal'}</button>
+        <button type="button" class="btn-ghost" data-close-dlg="1">${escapeText(tr('closeBtn'))}</button>
+      </div>
+      ${msg ? `<div class="callout ${isErr ? 'err' : 'ok'}" style="margin-top:10px">${escapeText(msg)}</div>` : ''}
+    </div>`);
+}
+
+function buildTeacherExportPayload() {
+  return {
+    ...state,
+    exportedAt: new Date().toISOString(),
+    auditSummary: {
+      note: 'Aids used, original justifications, peer feedback, revised versions, and automated algebraic checks are kept separately. Open justifications require teacher review.',
+      sellos: state.sellos,
+      huellas: state.huellas
+    }
+  };
+}
+
+function openPrintNotebookDialog() {
+  const l = L();
+  const blocks = INV_META.map((m) => {
+    const inv = state.investigations[m.id];
+    if (!inv) return `<div style="border-bottom:1px solid #dbe3ee;padding:10px 0"><strong>${escapeText(m[l].title)}</strong><p class="meta-line">${l === 'es' ? 'Sin iniciar' : 'Not started'}</p></div>`;
+    const aids = Object.entries(inv.helpsUsed || {}).filter(([, v]) => v).map(([k]) => k).join(', ') || (l === 'es' ? 'Ninguna' : 'None');
+    const simStr = Object.entries(inv.simSeries || {}).map(([N, s]) => `N=${N}: ${s.hits}/${s.n}`).join(' · ') || '—';
+    return `
+      <div style="border-bottom:1px solid #dbe3ee;padding:12px 0">
+        <h4 style="margin:0 0 6px">${escapeText(m[l].title)}</h4>
+        <p style="margin:2px 0"><strong>${l === 'es' ? 'Estrategia elegida:' : 'Strategy:'}</strong> ${escapeText(inv.strategy || '—')} · <strong>${l === 'es' ? 'Ayudas usadas:' : 'Aids used:'}</strong> ${escapeText(aids)}</p>
+        <p style="margin:2px 0"><strong>${l === 'es' ? 'Predicción A / B:' : 'Prediction A / B:'}</strong> ${escapeText(inv.predA || '—')} ${state.pairMode ? `/ ${escapeText(inv.predB || '—')}` : ''}</p>
+        <p style="margin:2px 0"><strong>${l === 'es' ? 'Casos investigados:' : 'Cases:'}</strong> ${inv.cases.map((c) => `N=${c.N} → ${c.userP} (${c.ok ? '✓' : '✗'})`).join('; ') || '—'}</p>
+        <p style="margin:2px 0"><strong>${l === 'es' ? 'Series experimentales:' : 'Simulations:'}</strong> ${escapeText(simStr)}</p>
+        <p style="margin:2px 0"><strong>${l === 'es' ? 'Patrón:' : 'Pattern:'}</strong> ${escapeText(inv.patternText || '—')}</p>
+        <p style="margin:2px 0"><strong>${l === 'es' ? 'Regla P(N):' : 'Rule P(N):'}</strong> <span class="mono">${escapeText(inv.ruleExpr || '—')}</span> (${inv.ruleChecked?.ok ? (l === 'es' ? 'Validada algebraicamente' : 'Algebraically verified') : (l === 'es' ? 'Sin validar' : 'Unverified')})</p>
+        <p style="margin:2px 0"><strong>${l === 'es' ? 'Caso nuevo de comprobación:' : 'Unseen verification:'}</strong> N=${escapeText(inv.verifyN || '—')} (${inv.verifyChecked?.ok ? '✓' : '—'})</p>
+        <p style="margin:2px 0;white-space:pre-wrap"><strong>${l === 'es'
+          ? (state.sellos.selJus === 'consolidated' ? 'Justificación inicial (validada por docente):' : 'Justificación inicial (pendiente de revisión docente):')
+          : (state.sellos.selJus === 'consolidated' ? 'Initial justification (teacher-validated):' : 'Initial justification (pending teacher review):')}</strong> ${escapeText(inv.justOrig || '—')}</p>
+        ${inv.peerReview?.enabled ? `<p style="margin:2px 0"><strong>${l === 'es' ? 'Revisión por pares:' : 'Peer review:'}</strong> + ${escapeText(inv.peerReview.wellBacked)} | ? ${escapeText(inv.peerReview.missing)} | → ${escapeText(inv.peerReview.suggest)}</p><p style="margin:2px 0;white-space:pre-wrap"><strong>${l === 'es' ? 'Versión revisada:' : 'Revised version:'}</strong> ${escapeText(inv.justRevised || '—')}</p>` : ''}
+        ${state.pairMode && inv.justPartnerB ? `<p style="margin:2px 0;white-space:pre-wrap"><strong>${l === 'es' ? 'Explicación integrante B:' : 'Partner B explanation:'}</strong> ${escapeText(inv.justPartnerB)}</p>` : ''}
+      </div>`;
+  }).join('');
+
+  openDialog(`
+    <div class="dlg-head">
+      <h3 style="margin:0">${l === 'es' ? 'Cuaderno de investigación imprimible' : 'Printable Research Notebook'}</h3>
+      <button type="button" class="btn-ghost" data-close-dlg="1">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p class="meta-line" style="margin-top:0">${l === 'es' ? 'Usa «Imprimir / Guardar como PDF» para generar el documento oficial sin alterar tus borradores originales.' : 'Use "Print / Save as PDF" to generate a PDF while preserving original drafts and peer notes.'}</p>
+      <div style="border:1px solid var(--line);border-radius:10px;padding:14px;background:#fff">
+        <h3 style="margin-top:0">${escapeText(tr('brand'))} · Criterio B (${todayKey()})</h3>
+        ${blocks}
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="btn-primary" onclick="window.print()">${l === 'es' ? 'Imprimir / Guardar como PDF' : 'Print / Save as PDF'}</button>
+      </div>
+    </div>`);
+}
+
+/* ================= CHROME, RENDER & EVENT WIRING ================= */
+function updateChrome() {
+  const l = L();
+  document.documentElement.lang = l;
+  document.body.classList.toggle('no-anim', Boolean(state.skipAnim));
+  $('brandTitle').textContent = tr('brand');
+  $('tabExplora').textContent = tr('navExp');
+  $('tabInvestiga').textContent = tr('navInv');
+  $('tabTaller').textContent = tr('navTal');
+  $('tabEvidencias').textContent = tr('navEvi');
+  $('pkmBtn').textContent = state.publicId ? tr('pkmBtnSet') : tr('pkmBtn');
+  $('courseMeta').textContent = tr('courseMeta');
+  $('activeModeLabel').textContent = state.pairMode ? tr('pairLbl') : tr('soloLbl');
+  $('modeSoloBtn').textContent = tr('soloBtn');
+  $('modePairBtn').textContent = tr('pairBtn');
+  $('modeSoloBtn').setAttribute('aria-pressed', String(!state.pairMode));
+  $('modePairBtn').setAttribute('aria-pressed', String(state.pairMode));
+  $('animToggleBtn').textContent = tr('skipAnim');
+  $('animToggleBtn').setAttribute('aria-pressed', String(state.skipAnim));
+  $('langBtn').textContent = l === 'es' ? 'ES / EN' : 'EN / ES';
+  $('footerLeft').textContent = tr('footerL');
+  $('footerRight').textContent = tr('footerR');
+  document.querySelectorAll('[data-nav]').forEach((btn) => {
+    btn.setAttribute('aria-current', btn.dataset.nav === state.activeNav ? 'page' : 'false');
+  });
+}
+
+function render() {
+  updateChrome();
+  if (state.activeNav === 'explora') app.innerHTML = renderExplora();
+  else if (state.activeNav === 'investiga') app.innerHTML = renderInvestiga();
+  else if (state.activeNav === 'taller') app.innerHTML = renderTaller();
+  else app.innerHTML = renderEvidencias();
+}
+
+document.querySelectorAll('[data-nav]').forEach((btn) => {
+  btn.addEventListener('click', () => { state.activeNav = btn.dataset.nav; save(); render(); });
+});
+$('modeSoloBtn').addEventListener('click', () => { state.pairMode = false; save(); render(); });
+$('modePairBtn').addEventListener('click', () => { state.pairMode = true; save(); render(); });
+$('animToggleBtn').addEventListener('click', () => { state.skipAnim = !state.skipAnim; save(); render(); });
+$('langBtn').addEventListener('click', () => { state.lang = L() === 'es' ? 'en' : 'es'; save(); render(); });
+$('pkmBtn').addEventListener('click', () => openPkmDialog(''));
+
+app.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+
+  if (t.dataset.expTab) { state.activeExplore = t.dataset.expTab; save(); render(); return; }
+  if (t.dataset.condPop) { getExpCond().Npop = Number(t.dataset.condPop); save(); render(); return; }
+  if (t.dataset.condRep) { getExpCond().repView = t.dataset.condRep; save(); render(); return; }
+  if (t.dataset.lockCond) {
+    const c = getExpCond();
+    if (c.predA.trim()) { c.predLocked = true; save(); render(); }
+    return;
+  }
+  if (t.dataset.revPred === 'cond') { getExpCond().predRevised = true; awardHuella('huePre'); save(); render(); return; }
+  if (t.dataset.condSim) { runCondSim(Number(t.dataset.condSim)); return; }
+  if (t.dataset.checkCond) { checkExpCond(); return; }
+
+  if (t.dataset.lockMonty) {
+    const m = getExpMonty();
+    if (m.predA.trim()) { m.predLocked = true; save(); render(); }
+    return;
+  }
+  if (t.dataset.montyDoors) { getExpMonty().doorsMode = Number(t.dataset.montyDoors); save(); render(); return; }
+  if (t.dataset.montyDoor != null) {
+    const m = getExpMonty();
+    const d = Number(t.dataset.montyDoor);
+    const avail = [0, 1, 2].filter((x) => x !== d && x !== m.game.prize);
+    m.game.chosen = d;
+    m.game.opened = pick(avail);
+    m.game.phase = 'offer';
+    save(); render(); return;
+  }
+  if (t.dataset.montyAct) {
+    const m = getExpMonty(), g = m.game;
+    const final = t.dataset.montyAct === 'keep' ? g.chosen : [0, 1, 2].find((x) => x !== g.chosen && x !== g.opened);
+    g.finalChoice = final;
+    g.won = final === g.prize;
+    g.phase = 'done';
+    const tgt = t.dataset.montyAct === 'switch' ? m.switchSeries : m.keepSeries;
+    tgt.n += 1; if (g.won) tgt.wins += 1;
+    save(); render(); return;
+  }
+  if (t.dataset.montyReset) {
+    getExpMonty().game = { prize: ri(0, 2), chosen: -1, opened: -1, phase: 'pick', finalChoice: -1, won: null };
+    save(); render(); return;
+  }
+  if (t.dataset.montyBatch) {
+    const [strat, cnt] = t.dataset.montyBatch.split(':');
+    runMontyBatch(strat, Number(cnt)); return;
+  }
+  if (t.dataset.checkMonty) { checkExpMonty(); return; }
+
+  if (t.dataset.diagPop) { getExpDiag().popN = Number(t.dataset.diagPop); save(); render(); return; }
+  if (t.dataset.checkDiag) { checkExpDiag(); return; }
+
+  if (t.dataset.urnRep != null) { getExpUrn().withRep = t.dataset.urnRep === '1'; save(); render(); return; }
+  if (t.dataset.lockUrn) { const u = getExpUrn(); if (u.predA.trim()) { u.predLocked = true; save(); render(); } return; }
+  if (t.dataset.urnSim) { runUrnSim(Number(t.dataset.urnSim)); return; }
+  if (t.dataset.checkUrn) { checkExpUrn(); return; }
+
+  if (t.dataset.invSelect) { state.activeInv = t.dataset.invSelect; save(); render(); return; }
+  if (t.dataset.invTool) { getInvState(state.activeInv).repTool = t.dataset.invTool; save(); render(); return; }
+  if (t.dataset.checkInvTree) { checkInvTree(t.dataset.checkInvTree); return; }
+  if (t.dataset.invSim) {
+    const inv = getInvState(state.activeInv);
+    runInvSim(state.activeInv, Number(inv.workbenchN), Number(t.dataset.invSim));
+    return;
+  }
+  if (t.dataset.invHelp) {
+    const inv = getInvState(state.activeInv);
+    inv.helpsUsed[t.dataset.invHelp] = !inv.helpsUsed[t.dataset.invHelp];
+    save(); render(); return;
+  }
+  if (t.dataset.invAddcase) {
+    const id = t.dataset.invAddcase;
+    const meta = INV_META.find((m) => m.id === id);
+    const inv = getInvState(id);
+    const nVal = Number(inv.newCaseInput);
+    if (meta.validN(nVal) && !inv.cases.some((c) => Number(c.N) === nVal)) {
+      inv.cases.push({ N: nVal, userP: '', checked: false, ok: false });
+      inv.cases.sort((a, b) => a.N - b.N);
+      save(); render();
+    }
+    return;
+  }
+  if (t.dataset.invDelcase != null) {
+    getInvState(state.activeInv).cases.splice(Number(t.dataset.invDelcase), 1);
+    save(); render(); return;
+  }
+  if (t.dataset.checkCases) { checkInvCases(t.dataset.checkCases); return; }
+  if (t.dataset.checkRule) { checkInvRule(t.dataset.checkRule); return; }
+  if (t.dataset.checkVerify) { checkInvVerify(t.dataset.checkVerify); return; }
+  if (t.dataset.saveJust) { saveInvJustification(t.dataset.saveJust); return; }
+
+  if (t.dataset.talNext != null) {
+    const isRev = t.dataset.talNext === '1';
+    if (isRev && state.taller.errorQueue.length) {
+      const top = state.taller.errorQueue.shift();
+      state.taller.current = generateTallerProb(top, true);
+    } else {
+      state.taller.current = generateTallerProb(state.taller.topic, false);
+    }
+    save(); render(); return;
+  }
+  if (t.dataset.checkTaller) { checkTallerProb(); return; }
+  if (t.dataset.talHelp && state.taller.current) {
+    const hk = t.dataset.talHelp;
+    state.taller.current.usedHelp[hk] = !state.taller.current.usedHelp[hk];
+    if (hk === 'solution' && !state.taller.current.queuedErr) {
+      state.taller.current.queuedErr = true;
+      if (state.taller.errorQueue.length < 15) state.taller.errorQueue.push(state.taller.current.topic);
+    }
+    save(); render(); return;
+  }
+
+  if (t.dataset.pkmCode) {
+    const [id, kind] = t.dataset.pkmCode.split(':');
+    openCodeDialog(id, kind);
+    return;
+  }
+  if (t.dataset.validateJus) {
+    openValidateJusDialog();
+    return;
+  }
+  if (t.id === 'btnPrintNotebook') { openPrintNotebookDialog(); return; }
+  if (t.id === 'btnExportJson') {
+    const blob = new Blob([JSON.stringify(buildTeacherExportPayload(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cuaderno-probabilidad-${todayKey()}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    return;
+  }
+  if (t.id === 'btnImportJson') { $('upload').click(); return; }
+  if (t.id === 'btnResetAll') {
+    const l = L();
+    openDialog(`
+      <div class="dlg-head"><h3 style="margin:0">${l === 'es' ? 'Reiniciar progreso' : 'Reset progress'}</h3><button type="button" class="btn-ghost" data-close-dlg="1">✕</button></div>
+      <div class="dlg-body">
+        <p style="margin-top:0">${l === 'es' ? '¿Borrar todo tu cuaderno local? Exporta un respaldo JSON antes si deseas conservar tus evidencias.' : 'Erase all local progress? Export a JSON backup first to keep your evidences.'}</p>
+        <div class="row">
+          <button type="button" class="btn-coral" id="confirmDoReset">${l === 'es' ? 'Reiniciar' : 'Reset'}</button>
+          <button type="button" class="btn-ghost" data-close-dlg="1">${escapeText(tr('closeBtn'))}</button>
+        </div>
+      </div>`);
+  }
+});
+
+app.addEventListener('input', (e) => {
+  const el = e.target;
+  if (el.dataset.expcond) { getExpCond()[el.dataset.expcond] = el.value; save(); }
+  else if (el.dataset.expcondTab) { getExpCond().table[el.dataset.expcondTab] = el.value; save(); }
+  else if (el.dataset.expcondQ) { getExpCond().q[el.dataset.expcondQ] = el.value; save(); }
+  else if (el.dataset.expmonty) { getExpMonty()[el.dataset.expmonty] = el.value; save(); }
+  else if (el.dataset.expmontyQ) { getExpMonty().q[el.dataset.expmontyQ] = el.value; save(); }
+  else if (el.dataset.diagCfg) { getExpDiag()[el.dataset.diagCfg] = Number(el.value); save(); render(); }
+  else if (el.dataset.diagTab) { getExpDiag().table[el.dataset.diagTab] = el.value; save(); }
+  else if (el.dataset.diagQ) { getExpDiag()[el.dataset.diagQ] = el.value; save(); }
+  else if (el.dataset.urnCfg) { getExpUrn()[el.dataset.urnCfg] = Number(el.value); save(); render(); }
+  else if (el.dataset.urnPred) { getExpUrn().predA = el.value; save(); }
+  else if (el.dataset.urnQ) { getExpUrn().q[el.dataset.urnQ] = el.value; save(); }
+  else if (el.dataset.invWbn) { getInvState(el.dataset.invWbn).workbenchN = Number(el.value); save(); render(); }
+  else if (el.dataset.invTree) { getInvState(state.activeInv).treeDraft[el.dataset.invTree] = el.value; save(); }
+  else if (el.dataset.invField) { getInvState(state.activeInv)[el.dataset.invField] = el.value; save(); }
+  else if (el.dataset.invCasep != null) { getInvState(state.activeInv).cases[Number(el.dataset.invCasep)].userP = el.value; save(); }
+  else if (el.dataset.invPeerToggle) { getInvState(state.activeInv).peerReview.enabled = el.checked; save(); render(); }
+  else if (el.dataset.invPeer) { getInvState(state.activeInv).peerReview[el.dataset.invPeer] = el.value; save(); }
+  else if (el.dataset.talF && state.taller.current) { state.taller.current.user[el.dataset.talF] = el.value; save(); }
+  else if (el.dataset.talTopic) {
+    state.taller.topic = el.value;
+    state.taller.current = generateTallerProb(state.taller.topic, false);
+    save(); render();
+  }
+});
+
+$('modal').addEventListener('click', (e) => {
+  if (e.target === $('modal') || e.target.dataset.closeDlg) { closeDialog(); return; }
+  if (e.target.id === 'savePkmBtn') {
+    state.publicId = ($('pkmIdInp').value || '').trim().slice(0, 128);
+    save(); render();
+    openPkmDialog(state.publicId ? tr('pkmSaved') : tr('pkmCleared'));
+    return;
+  }
+  if (e.target.id === 'clearPkmBtn') {
+    state.publicId = ''; save(); render(); openPkmDialog(tr('pkmCleared')); return;
+  }
+  if (e.target.id === 'copyPkmCode') {
+    const txt = $('codeShow')?.textContent || '';
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(txt).then(() => { if ($('copyFb')) $('copyFb').textContent = tr('copiedMsg'); }, () => { if ($('copyFb')) $('copyFb').textContent = tr('copyFail'); });
+    } else if ($('copyFb')) $('copyFb').textContent = tr('copyFail');
+    return;
+  }
+  if (e.target.id === 'applyJusCodeBtn') {
+    const l = L();
+    const raw = ($('jusCodeInp')?.value || '').trim().toUpperCase().replace(/[-\s]/g, '');
+    if (!raw) {
+      openValidateJusDialog(l === 'es' ? 'Introduce el código proporcionado por tu docente.' : 'Enter the code provided by your teacher.', true);
+      return;
+    }
+    const expected = generateRewardCode(state.publicId, PKM_SOURCE, 'selJus').toUpperCase().replace(/[-\s]/g, '');
+    if (raw === expected) {
+      state.sellos.selJus = 'consolidated';
+      save(); render(); closeDialog();
+    } else {
+      openValidateJusDialog(l === 'es' ? 'El código no coincide con tu Public ID o no corresponde a Probab/selJus.' : 'Code does not match your Public ID or Probab/selJus.', true);
+    }
+    return;
+  }
+  if (e.target.id === 'confirmDoReset') {
+    state = blankState(true); save(); closeDialog(); render();
+  }
+});
+
+$('upload').addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      state = validateSave(JSON.parse(String(reader.result)), { preserveLang: state.lang, preserveId: state.publicId });
+      save(); render();
+    } catch {
+      $('saveNotice').textContent = L() === 'es' ? 'Archivo JSON no válido para Laboratorio de Probabilidad.' : 'Invalid JSON backup for Probability Lab.';
+    }
+  };
+  reader.readAsText(file);
+});
+
+render();
+</script>
+</body>
+</html>

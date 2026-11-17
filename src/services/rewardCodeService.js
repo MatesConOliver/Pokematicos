@@ -484,6 +484,83 @@ export async function addActivityToCatalogue({ db, classId, activity }) {
 }
 
 /**
+ * Bulk add or update multiple activities in the class's catalogue using writeBatch
+ *
+ * @param {Object} params
+ * @param {*} params.db - Firestore instance
+ * @param {string} params.classId - Class ID
+ * @param {Array<Object>} params.activities - Array of activity definitions
+ * @returns {Promise<{count: number}>} Number of activities written
+ */
+export async function bulkAddActivitiesToCatalogue({ db, classId, activities }) {
+  if (!db || !classId || !Array.isArray(activities) || activities.length === 0) {
+    throw new Error("Missing required parameters for bulk upload");
+  }
+
+  const normalized = activities.map((act, idx) => {
+    const sourceId = String(act?.sourceId || "").trim().slice(0, 6);
+    const activityId = String(act?.activityId || "").trim().slice(0, 6);
+    if (!sourceId || !activityId) {
+      throw new Error(`Row ${idx + 1}: Source ID and Activity ID are required.`);
+    }
+
+    const rewardType = ["points", "card", "both"].includes(act?.rewardType)
+      ? act.rewardType
+      : "points";
+    const cardId = String(act?.cardId || "").trim();
+    const givesCard = rewardType === "card" || rewardType === "both";
+    if (givesCard && !cardId) {
+      throw new Error(`Row ${idx + 1} (${sourceId}/${activityId}): Select a card for card rewards.`);
+    }
+
+    return {
+      sourceId,
+      activityId,
+      name: String(act?.name || "").trim() || `${sourceId}/${activityId}`,
+      description: String(act?.description || "").trim(),
+      pointsAwarded: Math.max(0, Number(act?.pointsAwarded) || 0),
+      rewardType,
+      cardId: givesCard ? cardId : null,
+      isActive: act?.isActive !== false,
+    };
+  });
+
+  try {
+    const CHUNK_SIZE = 400;
+    for (let i = 0; i < normalized.length; i += CHUNK_SIZE) {
+      const batch = writeBatch(db);
+      const chunk = normalized.slice(i, i + CHUNK_SIZE);
+      for (const act of chunk) {
+        const activityRef = doc(
+          db,
+          `classes/${classId}/activityCatalogue/${act.sourceId}_${act.activityId}`
+        );
+        const docData = {
+          sourceId: act.sourceId,
+          activityId: act.activityId,
+          name: act.name,
+          description: act.description,
+          pointsAwarded: act.pointsAwarded,
+          rewardType: act.rewardType,
+          isActive: act.isActive,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+        if (act.cardId) {
+          docData.cardId = act.cardId;
+        }
+        batch.set(activityRef, docData, { merge: true });
+      }
+      await batch.commit();
+    }
+    return { count: normalized.length };
+  } catch (err) {
+    console.error("bulkAddActivitiesToCatalogue error:", err);
+    throw err;
+  }
+}
+
+/**
  * Update an activity in the catalogue
  *
  * @param {Object} params
