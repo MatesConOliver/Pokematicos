@@ -6,268 +6,378 @@
 <title>Observatorio de Datos · Estadística 4.º ESO</title>
 <style>
 :root{
-  --bg:#f4f6f9;
+  --ink:#30234c;
+  --muted:#655a77;
+  --purple:#6741b5;
+  --purple-dark:#4a2c89;
+  --mint:#d9f7ec;
+  --peach:#ffe1d2;
+  --lav:#eee5ff;
+  --yellow:#fff0b5;
+  --bg:#fffaf5;
   --surface:#ffffff;
-  --surface-alt:#f8fafc;
-  --ink:#0f172a;
-  --muted:#475569;
-  --line:#cbd5e1;
-  --line-soft:#e2e8f0;
-  --accent:#1d4ed8;
-  --accent-dark:#1e3a8a;
-  --accent-soft:#eff6ff;
-  --ok:#047857;
-  --ok-soft:#ecfdf5;
-  --warn:#b45309;
-  --warn-soft:#fffbeb;
-  --err:#be123c;
-  --err-soft:#fff1f2;
-  --pkm:#0f766e;
-  --pkm-soft:#f0fdfa;
+  --surface-alt:#faf7ff;
+  --line:#d9c9ec;
+  --line-soft:#eee5f7;
+  --accent:#6741b5;
+  --accent-dark:#4a2c89;
+  --accent-soft:#eee5ff;
+  --ok:#08715e;
+  --ok-soft:#d9f7ec;
+  --warn:#9a5b00;
+  --warn-soft:#fff0d2;
+  --err:#b42318;
+  --err-soft:#ffe7df;
+  --pkm:#08715e;
+  --pkm-soft:#eefaf5;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+body{
+  margin:0;
+  background:radial-gradient(ellipse at top left,#f2e8ff,transparent 45%),radial-gradient(ellipse at top right,#d9f7ec,transparent 45%),var(--bg);
+  color:var(--ink);
+  font:16.5px/1.55 var(--sans);
+  -webkit-font-smoothing:antialiased;
+}
 button,input,select,textarea{font:inherit;color:inherit}
 button{
-  cursor:pointer;border:1px solid var(--accent-dark);border-radius:10px;
-  padding:10px 16px;min-height:42px;font-weight:700;background:var(--accent);color:#fff;
+  cursor:pointer;border:0;border-radius:14px;
+  padding:10px 16px;min-height:42px;font-weight:750;
+  background:var(--purple);color:#fff;box-shadow:0 4px 0 var(--purple-dark);
   display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
-  transition:background-color .15s ease,border-color .15s ease,transform .1s ease;
+  transition:filter .14s ease,transform .1s ease;
 }
-button:hover:not(:disabled){background:var(--accent-dark)}
+button:hover:not(:disabled){filter:brightness(1.07)}
 button:active:not(:disabled){transform:translateY(1px)}
-button:disabled{cursor:not-allowed;opacity:.48}
-button.secondary{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
-button.secondary:hover:not(:disabled){background:var(--surface-alt);border-color:#94a3b8}
-button.ghost{background:transparent;color:var(--accent);border:1px solid transparent;padding:8px 12px}
-button.ghost:hover:not(:disabled){background:var(--accent-soft)}
-button.pkm-btn{background:var(--pkm);border-color:#115e59;color:#fff}
-button.pkm-btn:hover:not(:disabled){background:#115e59}
-button.pkm-trigger.has-id{background:var(--pkm-soft);border-color:var(--pkm);color:var(--pkm)}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{
-  outline:3px solid #0284c7;outline-offset:2px;
+button:disabled{cursor:not-allowed;opacity:.48;box-shadow:none}
+button.btn-primary{background:var(--purple);color:#fff;box-shadow:0 4px 0 var(--purple-dark)}
+button.btn-accent{background:var(--pkm);color:#fff;box-shadow:0 4px 0 #054d40}
+button.btn-ghost,button.secondary{
+  background:#fff;color:var(--purple);border:1px solid #c9b8ee;box-shadow:0 3px 0 #e2d8fa;
 }
-.num,td.num,th.num,.kpi-val,.mono{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+button.btn-danger{background:#c83e3b;color:#fff;box-shadow:0 4px 0 #8d2422}
+button.pkm-trigger.has-id{background:var(--pkm-soft);border-color:var(--pkm);color:var(--pkm);box-shadow:0 3px 0 #bfe6d8}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{
+  outline:3px solid #15806b;outline-offset:3px;
+}
+.mono,.num,td.num,th.num{font-variant-numeric:tabular-nums;font-family:var(--mono)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 
-/* Top Navigation Bar (Clean Observatory Chrome) */
-.topbar{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+/* Topbar (Level Up family style) */
+.topbar{background:rgba(255,250,245,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
 .topbar-inner{
-  max-width:1200px;margin:0 auto;padding:10px 18px;
-  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  max-width:1160px;margin:0 auto;padding:12px 18px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
 }
-.brand-link{font-weight:800;font-size:19px;letter-spacing:-.02em;color:var(--ink);white-space:nowrap;flex-shrink:0;text-decoration:none}
+.brand-link{
+  font-weight:900;font-size:clamp(20px,2.8vw,25px);letter-spacing:-.03em;color:var(--ink);
+  white-space:nowrap;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;gap:8px;
+}
 .main-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .nav-tab{
-  background:transparent;border:1px solid transparent;color:var(--muted);
-  padding:8px 13px;min-height:40px;font-weight:600;border-radius:8px;
+  background:#fff;border:1px solid #d9c9ec;color:var(--ink);box-shadow:0 2px 0 #e2d8fa;
+  padding:8px 13px;min-height:40px;font-weight:700;border-radius:12px;
 }
-.nav-tab:hover{color:var(--ink);background:var(--surface-alt)}
-.nav-tab[aria-current="page"]{color:var(--accent-dark);background:var(--accent-soft);border-color:#bfdbfe;font-weight:700}
+.nav-tab:hover:not(:disabled){background:var(--lav)}
+.nav-tab[aria-current="page"]{background:var(--purple);color:#fff;border-color:var(--purple);box-shadow:0 3px 0 var(--purple-dark)}
 .util-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.lang-toggle{display:inline-flex;border:1px solid var(--line);border-radius:10px;background:var(--surface-alt);padding:2px;gap:2px}
-.lang-toggle button{border:0;background:transparent;color:var(--muted);padding:6px 10px;min-height:36px;font-size:13px;border-radius:8px}
-.lang-toggle button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.lang-toggle{display:inline-flex;background:#eee5ff;padding:4px;border-radius:14px;gap:4px;border:1px solid #d9c9ec}
+.lang-toggle button{
+  background:transparent;color:var(--ink);box-shadow:none;padding:6px 11px;min-height:34px;
+  border-radius:10px;font-size:13.5px;font-weight:700;white-space:nowrap;
+}
+.lang-toggle button[aria-pressed="true"]{background:var(--purple);color:#fff;box-shadow:0 2px 0 var(--purple-dark)}
 
-main{max-width:1200px;margin:0 auto;padding:22px 18px 64px}
-.notice{margin-bottom:12px;padding:10px 14px;border-radius:10px;background:var(--warn-soft);border:1px solid #fcd34d;color:#78350f;font-size:14px;font-weight:600}
+main{max-width:1160px;margin:0 auto;padding:22px 18px 64px}
+.notice{
+  margin-bottom:12px;padding:10px 14px;border-radius:14px;
+  background:var(--warn-soft);border:1px solid #f0d08a;color:#7a4400;font-size:14px;font-weight:700;
+}
 .notice:empty{display:none}
-footer{max-width:1200px;margin:0 auto;padding:18px;border-top:1px solid var(--line-soft);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-
-/* Layout Primitives */
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
-.panel-muted{background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:12px;padding:16px}
-.hero-bar{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px}
-.hero-bar h1{margin:0 0 8px;font-size:clamp(24px,3vw,32px);line-height:1.2;text-wrap:balance;letter-spacing:-.02em}
-.hero-bar p{margin:0;color:var(--muted);max-width:62ch}
-.meta-line{font-size:13px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-.kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.kpi-box{background:var(--surface-alt);border:1px solid var(--line-soft);border-radius:10px;padding:12px}
-.kpi-label{font-size:12px;color:var(--muted);font-weight:600}
-.kpi-val{font-size:22px;font-weight:800;color:var(--ink);margin-top:4px}
-
-.case-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.case-card{
-  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;
-  display:flex;flex-direction:column;justify-content:space-between;gap:14px;
+footer{
+  max-width:1160px;margin:0 auto;padding:18px 18px 36px;border-top:1px solid var(--line-soft);
+  color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
 }
-.case-card.recommended{border-color:#93c5fd;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)}
-.case-card h2,.case-card h3{margin:0;font-size:19px;line-height:1.25}
-.case-card p{margin:6px 0 0;font-size:14.5px;color:var(--muted)}
-.card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--line-soft)}
 
-/* Stepper inside Case */
-.stage-bar{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 18px}
-.stage-btn{
-  background:var(--surface-alt);color:var(--muted);border:1px solid var(--line-soft);
-  padding:8px 12px;min-height:38px;font-size:13.5px;border-radius:8px;
-}
-.stage-btn.active{background:var(--ink);color:#fff;border-color:var(--ink)}
-.stage-btn.done{background:var(--ok-soft);color:var(--ok);border-color:#a7f3d0}
-
-/* Workspace 2-column split */
+/* Shared Layout Helpers */
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .split-2{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:start}
-.dataset-box{
-  background:var(--surface-alt);border:1px solid var(--line);border-radius:12px;padding:14px;
-  font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14.5px;
-}
-.token-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.data-token{
-  border:1px solid var(--line);background:var(--surface);color:var(--ink);
-  border-radius:8px;padding:5px 10px;min-height:36px;font-family:var(--mono);font-size:14px;font-weight:700;
-}
-.data-token.marked{background:#dbeafe;border-color:#3b82f6;color:#1e3a8a;text-decoration:line-through}
 
-/* Tables */
-.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:12px 0}
-table.stat-tbl{width:100%;border-collapse:collapse;font-size:14px}
-.stat-tbl th,.stat-tbl td{padding:9px 10px;border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line-soft);text-align:center;vertical-align:middle}
-.stat-tbl th:last-child,.stat-tbl td:last-child{border-right:0}
-.stat-tbl tr:last-child td{border-bottom:0}
-.stat-tbl th{background:var(--surface-alt);font-weight:700;color:var(--ink);white-space:nowrap}
-.stat-tbl tr.total-row td{background:#f1f5f9;font-weight:800}
+/* Panels & Hero with Nova */
+.panel{
+  background:var(--surface);border-radius:24px;padding:clamp(18px,3vw,28px);
+  margin-bottom:18px;box-shadow:0 5px 25px #58407812;border:1px solid var(--line-soft);
+}
+.subcard{
+  background:var(--surface-alt);border:1px solid var(--line);border-radius:18px;
+  padding:16px;margin:12px 0;
+}
+.hero{
+  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  background:linear-gradient(120deg,#eee5ff,#fff0d9);
+  border:2px solid #fff;border-radius:28px;padding:24px;margin:0 0 20px;
+  box-shadow:0 8px 25px #58407815;
+}
+.mascot{flex:none;width:112px;height:112px}
+.hero-kicker{font-size:13px;font-weight:800;letter-spacing:.1em;color:var(--purple);text-transform:uppercase}
+.hero h1{margin:4px 0 8px;font-size:clamp(24px,3.2vw,32px);line-height:1.18;letter-spacing:-.02em}
+.hero p{margin:0 0 12px;color:var(--muted);max-width:62ch}
+.track{height:14px;background:#e4d9f1;border-radius:20px;overflow:hidden;margin:8px 0 14px}
+.track span{display:block;height:100%;background:linear-gradient(90deg,#8759df,#20a88b);transition:width .3s}
+.hero-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kpi{background:rgba(255,255,255,.78);border:1px solid #fff;border-radius:16px;padding:10px 14px}
+.kpi .k{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.kpi .v{display:block;font-size:21px;font-weight:900;color:var(--ink);font-family:var(--mono);margin-top:2px}
+.nova-note{
+  display:flex;align-items:center;gap:12px;background:#eef9f4;border:1px solid #bfe6d8;
+  border-radius:16px;padding:12px 16px;margin:12px 0;
+}
+.nova-note .mascot{width:46px;height:46px}
+.nova-note p{margin:0;font-size:14.5px}
+
+/* Case Tiles (warm pastel palette like monica/radicales) */
+.exp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:20px}
+.case-card{
+  border:2px solid #fff;border-radius:22px;padding:18px;background:#fff;
+  box-shadow:0 5px 18px #58407812;display:flex;flex-direction:column;gap:8px;
+}
+.case-card:nth-child(4n+1){background:var(--lav)}
+.case-card:nth-child(4n+2){background:var(--mint)}
+.case-card:nth-child(4n+3){background:var(--peach)}
+.case-card:nth-child(4n+4){background:var(--yellow)}
+.case-card.active{outline:3px solid var(--purple);outline-offset:2px}
+.case-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.case-num{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--purple);text-transform:uppercase}
+.case-card h3{margin:2px 0 0;font-size:19px;line-height:1.25}
+.case-card p{margin:2px 0 0;font-size:14.5px;color:#4a3d66}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:30px;font-size:12.5px;font-weight:800}
+.b-pend{background:#fff;color:var(--muted);border:1px solid var(--line)}
+.b-rec{background:#fff;color:var(--purple);border:1px solid #c9b8ee}
+.b-guided{background:var(--warn-soft);color:var(--warn);border:1px solid #f0d08a}
+.b-auto{background:var(--ok-soft);color:var(--ok);border:1px solid #a7dfcc}
+.b-cons{background:#fff6cf;color:#7a4f00;border:1px solid #edd072}
+
+/* Stepper */
+.stepper{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 18px}
+.step-btn{
+  background:#eee5ff;color:var(--ink);border:1px solid #d9c9ec;box-shadow:none;
+  border-radius:10px;padding:7px 12px;min-height:36px;font-size:13px;font-weight:750;
+}
+.step-btn.done{background:var(--ok-soft);color:var(--ok);border-color:#9bd8c1}
+.step-btn.active{background:var(--purple);color:#fff;border-color:var(--purple);box-shadow:0 2px 0 var(--purple-dark)}
+
+/* Inputs, Choices, Tables & Notes */
+.field-input{
+  width:100%;padding:10px 12px;min-height:42px;border:2px solid #cbbbe9;
+  border-radius:12px;background:#fff;color:var(--ink);
+}
+textarea.field-input{min-height:92px;resize:vertical}
 .cell-input{
-  width:84px;max-width:100%;padding:6px 7px;min-height:36px;border:1.5px solid #94a3b8;
-  border-radius:8px;text-align:center;background:#fff;font-family:var(--mono);font-size:14px;
+  width:78px;max-width:100%;padding:6px 7px;min-height:36px;border:2px solid #cbbbe9;
+  border-radius:10px;text-align:center;background:#fff;font-family:var(--mono);font-size:14px;
   font-variant-numeric:tabular-nums;
 }
-.cell-input.wide{width:112px}
+.cell-input.wide{width:110px}
 .cell-input.ok{border-color:var(--ok);background:var(--ok-soft)}
 .cell-input.bad{border-color:var(--err);background:var(--err-soft)}
 
-/* Inputs & Choices */
-.field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:12px 0}
-.field{display:flex;flex-direction:column;gap:5px}
-.field label{font-size:13.5px;font-weight:700;color:var(--ink)}
-.field input,.field select,.field textarea{
-  padding:9px 12px;border:1.5px solid #94a3b8;border-radius:10px;background:#fff;min-height:42px;
-}
-.field textarea{min-height:110px;resize:vertical;line-height:1.5}
-.choice-list{display:grid;gap:8px;margin:10px 0;border:0;padding:0}
-.choice-list legend{font-weight:700;margin-bottom:8px;font-size:15px}
 .choice-opt{
-  display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1.5px solid var(--line);
-  border-radius:10px;background:var(--surface);cursor:pointer;font-weight:500;
+  display:flex;align-items:flex-start;gap:10px;padding:12px;border:2px solid #d9c9ec;
+  border-radius:14px;background:#faf7ff;cursor:pointer;font-weight:600;margin-bottom:8px;
 }
-.choice-opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
-.choice-opt input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent);flex-shrink:0}
+.choice-opt:has(input:checked){border-color:var(--purple);background:var(--lav)}
+.choice-opt input{width:19px;height:19px;margin-top:2px;accent-color:var(--purple);flex-shrink:0}
 
-/* Help / Feedback / Rubrics */
-.help-bar{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;padding-top:12px;border-top:1px solid var(--line-soft)}
-.callout{border-radius:10px;padding:12px 14px;margin:10px 0;border:1px solid var(--line);background:var(--surface-alt);font-size:14.5px}
-.callout.good{background:var(--ok-soft);border-color:#6ee7b7;color:#064e3b}
-.callout.bad{background:var(--err-soft);border-color:#fda4af;color:#881337}
-.callout.warn{background:var(--warn-soft);border-color:#fcd34d;color:#78350f}
-.callout.info{background:var(--accent-soft);border-color:#93c5fd;color:#1e3a8a}
+.table-wrap{overflow-x:auto;border:1.5px solid var(--line);border-radius:14px;background:#fff;margin:12px 0}
+.table-wrap table,table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.table-wrap th,.table-wrap td,.tbl th,.tbl td{padding:9px 10px;border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line-soft);text-align:center;vertical-align:middle}
+.table-wrap th:last-child,.table-wrap td:last-child,.tbl th:last-child,.tbl td:last-child{border-right:0}
+.table-wrap tr:last-child td,.table-wrap tr:last-child th,.tbl tr:last-child td{border-bottom:0}
+.table-wrap th,.tbl th{background:#f7f1ff;font-weight:800;color:var(--ink);white-space:nowrap}
 
-.rubric-box{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface-alt);margin:12px 0}
-.rubric-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft)}
+.note{border-radius:14px;padding:12px 15px;margin:10px 0;border:1px solid var(--line);background:#faf7ff;font-size:14.5px}
+.note.ok{background:var(--ok-soft);border-color:#9bd8c1;color:#054d40}
+.note.warn{background:var(--warn-soft);border-color:#f0d08a;color:#7a4400}
+.note.err{background:var(--err-soft);border-color:#f5b7aa;color:#7a1c14}
+.note.info{background:#f5efff;border-color:#cbbbe9;color:var(--ink)}
+
+.help-box{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;padding-top:12px;border-top:1px solid var(--line-soft)}
+.rubric{border:1.5px solid var(--line);border-radius:16px;padding:14px;background:#faf7ff;margin:12px 0}
+.rubric-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft);cursor:pointer}
 .rubric-item:last-child{border-bottom:0}
-.rubric-item input{width:18px;height:18px;margin-top:3px;accent-color:var(--accent)}
+.rubric-item input{width:18px;height:18px;margin-top:3px;accent-color:var(--purple);flex-shrink:0}
 
-/* SVG Charts */
-.chart-wrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
-.chart-wrap svg{width:100%;height:auto;display:block;max-height:360px}
-.chart-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:13.5px}
-.chart-point{cursor:pointer}
-.chart-point:focus-visible{outline:3px solid #0284c7}
-
-/* Recognition Panels */
-.ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+/* Charts & Recognition Panels */
+.svg-wrap{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;margin:10px 0}
+.svg-wrap svg{width:100%;height:auto;display:block;max-height:360px}
+.hist-kbd{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft)}
+.ev-list{display:grid;gap:10px;margin:12px 0}
 .ev-row{
-  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;
-  padding:12px 14px;border:1px solid var(--line-soft);border-radius:10px;background:var(--surface-alt);margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:12px 14px;border:1px solid #e5daf5;border-radius:16px;background:#faf7ff;
 }
-.ev-row.active{border-color:#93c5fd;background:#f8fbff}
-.ev-row.mastered{border-color:#6ee7b7;background:var(--ok-soft)}
-.state-tag{font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:5px}
 
-/* Dialogs */
+/* Dialogs, Scientific Calculator & Code Box */
 dialog{
   width:min(860px,calc(100% - 24px));max-height:90dvh;overflow:auto;
-  border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--surface);color:var(--ink);
-  box-shadow:0 20px 50px rgba(15,23,42,.24);
+  border:1px solid #d9c9ec;border-radius:24px;padding:0;background:var(--bg);color:var(--ink);
+  box-shadow:0 15px 60px #30234c44;
 }
-dialog::backdrop{background:rgba(15,23,42,.55)}
-.dialog-head{
-  position:sticky;top:-22px;background:var(--surface);z-index:2;
+dialog::backdrop{background:#30234c88}
+.dlg-head{
+  position:sticky;top:0;background:var(--bg);z-index:2;
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:6px 0 12px;margin-bottom:12px;border-bottom:1px solid var(--line-soft);
+  padding:14px 22px;border-bottom:1px solid var(--line-soft);
 }
-.dialog-head h2{margin:0;font-size:20px}
-.calc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
-.calc-grid button{min-height:42px;padding:8px;font-family:var(--mono)}
-.calc-display{
-  width:100%;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface-alt);
-  font-family:var(--mono);font-size:20px;font-weight:700;text-align:right;
+.dlg-body{padding:18px 22px}
+.calc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.calc-btn{min-height:42px;padding:8px;font-family:var(--mono)}
+.calc-screen{
+  width:100%;padding:12px 14px;border:2px solid #cbbbe9;border-radius:14px;background:#fff;
+  font-family:var(--mono);font-size:20px;font-weight:800;text-align:right;margin-bottom:8px;
 }
-.code-box{background:var(--pkm-soft);border:2px dashed var(--pkm);border-radius:12px;padding:14px;text-align:center;margin:12px 0}
-.code-value{font-family:var(--mono);font-size:clamp(15px,2.8vw,20px);font-weight:800;letter-spacing:.05em;word-break:break-all;user-select:all}
-
-.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.code-box{background:#f7f1ff;border:2px dashed #b49be6;border-radius:16px;padding:16px;text-align:center;margin:14px 0}
+.code-value{font-family:var(--mono);font-size:clamp(16px,3vw,21px);font-weight:800;letter-spacing:.06em;word-break:break-all;user-select:all}
 .muted{color:var(--muted);font-size:14px}
 .hidden{display:none!important}
 
 @media(max-width:880px){
-  .hero-bar,.split-2,.ev-grid,.case-grid{grid-template-columns:1fr}
-  .kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .split-2,.grid-2,.grid-3,.exp-grid{grid-template-columns:1fr}
+  .hero-kpis{grid-template-columns:1fr}
 }
 @media(max-width:600px){
-  .topbar-inner{padding:8px 12px}
+  .topbar-inner{padding:10px 12px}
   main{padding:14px 12px 52px}
-  .panel{padding:15px}
-  .kpi-grid{grid-template-columns:1fr}
+  .panel{padding:16px}
+  .hero{padding:16px;gap:14px}
+  .mascot{width:80px;height:80px}
   button{min-height:44px}
-  .cell-input{width:68px;font-size:13px}
+  .cell-input{width:64px;font-size:13px}
 }
-@media(prefers-reduced-motion:reduce){
-  *{transition:none!important;animation:none!important}
-}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media print{
   .topbar,footer,.no-print{display:none!important}
   body{background:#fff;color:#000}
-  .panel,.panel-muted{border:1px solid #999;box-shadow:none;break-inside:avoid}
+  .panel,.subcard{border:1px solid #999;box-shadow:none;break-inside:avoid}
 }
+
+/* Familiar Level Up family: Nova, warm pastels and spacious controls. */
+body { background:radial-gradient(ellipse at top left,#f2e8ff,transparent 48%),radial-gradient(ellipse at top right,#d9f7ec,transparent 48%),#fffaf5; background-attachment:fixed; font-size:17px; }
+.topbar {position:static;background:transparent;backdrop-filter:none;border:0;}
+.topbar-inner {max-width:1040px;padding:26px 20px 12px;gap:18px;}
+.brand-link {font-size:clamp(26px,4.5vw,40px);font-weight:900;letter-spacing:-.04em;white-space:normal;line-height:1.12;}
+.main-nav {width:100%;order:3;gap:10px;padding:12px;background:#eee5ff80;border:2px solid white;border-radius:22px;}
+.nav-tab {flex:1;min-height:46px;}
+main {max-width:1040px;}
+.hero .mascot {width:116px;height:116px;}
+.hero h1 {font-size:clamp(26px,4vw,34px);}
+.case-card {padding:20px;transition:box-shadow .15s;}
+.case-card:hover {box-shadow:0 8px 24px #58407822;}
+.case-card.active {outline-width:2px;}
+.case-card h3 {font-size:20px;}
+button {min-height:44px;}
+#caseWorkspace {scroll-margin-top:20px;}
+.case-card,.panel,.hero {overflow-wrap:anywhere;}
+.nova-note {border:0;background:#e1f8ef;}
+.nova-note .mascot {width:52px;height:52px;}
+@media(max-width:600px) {
+ .topbar-inner {padding:20px 16px 8px;gap:12px;}
+ .main-nav {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+ .nav-tab {white-space:normal;font-size:14px;padding:10px;}
+ .util-bar {width:100%;gap:8px;}
+ .util-bar > button {font-size:13px;padding:8px 10px;white-space:normal;}
+ .hero {flex-wrap:nowrap;align-items:flex-start;padding:18px;gap:12px;}
+ .hero .mascot {width:70px;height:70px;}
+ .hero > div {min-width:0!important;}
+ .hero-kpis {grid-template-columns:1fr;}
+ .hero-kicker {letter-spacing:.03em;font-size:11px;}
+ .hero h1 {font-size:23px;}
+ .nova-note {align-items:flex-start;}
+ .nova-note .mascot {width:40px;height:40px;}
+ .stepper {overflow-x:auto;flex-wrap:nowrap;padding-bottom:8px;}
+ .step-btn {flex-shrink:0;}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;}}
+@media print { .topbar {display:none;} }
+
+
+/* A calm entry point, shared by both Level Up apps. */
+header.topbar{position:static;background:transparent;backdrop-filter:none;border:0}
+.topbar-inner{max-width:1040px;padding:24px 20px 12px;gap:16px}
+.brand-link{font-size:clamp(25px,4vw,38px);white-space:normal;line-height:1.15;letter-spacing:-.04em}
+body{background:radial-gradient(ellipse at top left,#f2e8ff,transparent 48%),radial-gradient(ellipse at top right,#d9f7ec,transparent 48%),#fffaf5;background-attachment:fixed}
+body[data-screen="home"] .main-nav,body[data-screen="home"] .nav-tabs,body[data-screen="home"] .toolbar-strip{display:none}
+.home-welcome{display:flex;align-items:center;gap:22px;padding:26px;background:linear-gradient(120deg,#eee5ff,#fff0d9);border:2px solid white;border-radius:28px;margin:12px 0 22px;box-shadow:0 8px 25px #58407815}
+.home-welcome .mascot{width:106px;height:106px;flex:none}
+.home-welcome h1{font-size:clamp(25px,4vw,34px);margin:0 0 8px;line-height:1.2}
+.home-welcome p{margin:0;color:#655a77}
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.home-choice{display:flex;flex-direction:column;align-items:flex-start;white-space:normal;text-align:left;padding:24px;border-radius:24px;border:2px solid white;box-shadow:0 5px 18px #58407812;color:#30234c;gap:8px;min-width:0}
+.home-choice:nth-child(4n+1){background:#eee5ff}
+.home-choice:nth-child(4n+2){background:#d9f7ec}
+.home-choice:nth-child(4n+3){background:#ffe1d2}
+.home-choice:nth-child(4n+4){background:#fff0b5}
+.home-choice .home-icon{font-size:34px;line-height:1.3}
+.home-choice strong{font-size:21px}
+.home-choice .home-desc{font-size:15px;font-weight:400;line-height:1.55}
+.home-choice .home-enter{margin-top:10px;color:#6741b5;font-size:15px}
+.home-resume{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:22px}
+.home-resume p{font-size:14px;color:#655a77;margin:0}
+#homeMenuBtn{font-size:14px;padding:9px 14px;min-height:44px;background:white;color:#6741b5;border:1px solid #c9b8ee;box-shadow:0 3px 0 #e2d8fa}
+#app:focus{outline:none}
+@media(max-width:600px){.home-grid{grid-template-columns:1fr}.home-choice{padding:20px;gap:5px}.home-welcome{padding:18px;gap:12px;align-items:flex-start}.home-welcome .mascot{width:68px;height:68px}.home-welcome h1{font-size:25px}.home-choice .home-icon{font-size:28px}.topbar-inner{padding:20px 16px 8px}}
+@media print{.home-resume,#homeMenuBtn{display:none}}
+
+.formula-card{background:#faf7ff;border:1px solid #e5daf5;border-radius:16px;padding:14px 12px;margin:12px 0;overflow-x:auto}.formula-card h5{font:700 14px/1.4 system-ui;margin:0 0 12px;color:#6741b5}.formula-card math{font-size:1.35rem;margin:12px 0;min-width:max-content}.calc-grid{position:relative}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
-    <a href="#expedientes" class="brand-link" id="hdrBrand">Observatorio de Datos</a>
+    <a href="#expedientes" class="brand-link" id="brandTitle">⭐ Level Up: Estadística</a>
     <nav class="main-nav" aria-label="Navegación principal" id="mainNav">
-      <button type="button" class="nav-tab" data-nav="expedientes" aria-current="page" id="navExp">Expedientes</button>
-      <button type="button" class="nav-tab" data-nav="taller" id="navTal">Taller</button>
-      <button type="button" class="nav-tab" data-nav="evidencias" id="navEvi">Mis evidencias</button>
-      <button type="button" class="nav-tab" data-nav="prueba" id="navPru">Preparación de prueba</button>
+      <button type="button" class="nav-tab" data-nav="expedientes" aria-current="page" id="tabExp">🗂️ Expedientes</button>
+      <button type="button" class="nav-tab" data-nav="taller" id="tabTal">🛠️ Taller</button>
+      <button type="button" class="nav-tab" data-nav="evidencias" id="tabEvi">🏅 Mis evidencias</button>
+      <button type="button" class="nav-tab" data-nav="prueba" id="tabPru">📝 Prueba global</button>
     </nav>
     <div class="util-bar">
-      <button type="button" class="secondary" id="formulaBtn">Formulario y calc.</button>
-      <button type="button" class="secondary" id="configBtn">Config. docente</button>
+      <button type="button" class="btn-ghost" id="formulaBtn">🧮 Formulario y calc.</button>
+      <button type="button" class="btn-ghost" id="configBtn">⚙️ Config. docente</button>
       <div class="lang-toggle" role="group" id="langGroup" aria-label="Idioma">
-        <button type="button" id="langEs" aria-pressed="true">ES</button>
-        <button type="button" id="langEn" aria-pressed="false">EN</button>
+        <button type="button" id="langEs" aria-pressed="true">🇪🇸 Español</button>
+        <button type="button" id="langEn" aria-pressed="false">🇬🇧 English</button>
       </div>
-      <button type="button" class="secondary pkm-trigger" id="pkmBtn">Pokemáticos</button>
+      <button type="button" class="btn-ghost pkm-trigger" id="pkmBtn">🎫 Pokemáticos</button>
     </div>
   </div>
 </header>
 <main id="mainContent">
   <div id="saveNotice" class="notice" role="status" aria-live="polite"></div>
-  <div id="app"></div>
+  <div id="app"><section class="panel" id="startupStatus" role="status"><h2>⭐ Nova prepara tu observatorio</h2><p>Si este mensaje permanece y los botones no responden, descarga este HTML y ábrelo en Chrome, Edge, Firefox o Safari. Algunas vistas previas de archivos no permiten ejecutar JavaScript.</p></section></div>
 </main>
 <footer>
   <span id="footerNote">Observatorio de Estadística 4.º ESO / MYP 5 · Funcionamiento local sin cuenta ni envío de datos.</span>
   <span id="footerConfigSummary" class="muted"></span>
 </footer>
 <input id="upload" type="file" accept="application/json,.json" hidden>
+<dialog id="modal" aria-modal="true"></dialog>
 
 <script>
 'use strict';
 
 const $ = (id) => document.getElementById(id);
 const app = $('app');
+window.addEventListener('error', () => {
+  $('saveNotice').textContent = '⚠️ Ha ocurrido un error. Exporta tu partida desde Mis evidencias si está disponible y recarga la página. Si persiste, conserva el archivo y el respaldo para revisarlos.';
+});
 const KEY = 'observatorio-estadistica-v1';
 const PKM_SOURCE = 'Estadi';
 
@@ -300,12 +410,12 @@ function roundTo(n, d = 2) {
 }
 
 function L() { return state?.lang === 'en' ? 'en' : 'es'; }
-function fmt(n, d = 2) {
+function fmt(n, d = 3) {
   if (!Number.isFinite(n)) return '—';
   const r = roundTo(n, d);
   return r.toLocaleString(L() === 'en' ? 'en-US' : 'es-ES', {
     useGrouping: false,
-    maximumFractionDigits: d
+    minimumFractionDigits: d, maximumFractionDigits: d
   });
 }
 
@@ -350,34 +460,34 @@ function generateRewardCode(studentId, sourceId, activityId) {
 
 const DEFAULT_TEACHER_CONFIG = () => ({
   discreteQuantile: 'rank_ceil',      // 'rank_ceil' | 'rank_interp'
-  groupedQuantile: 'class_and_interp', // 'class_and_interp' | 'class_and_ci'
-  decimals: 2,                         // 2 | 3
+  groupedQuantile: 'class_only', // Identify the interval [a,b), without point estimation
+  decimals: 3,                         // fixed class convention
   exam2DWeight: 60                     // 50 | 60 | 70
 });
 
 const CONSTANCIA_META = [
   {
-    id: 'cstRev', max: 5,
+    id: 'cstRev', icon: '🔁', max: 5,
     es: { name: 'Revisión tras error', desc: 'Revisar un error y resolver correctamente un caso equivalente nuevo.' },
     en: { name: 'Error review', desc: 'Review a mistake and solve a fresh equivalent case correctly.' }
   },
   {
-    id: 'cstPst', max: 5,
+    id: 'cstPst', icon: '💡', max: 5,
     es: { name: 'Uso reflexivo de pistas', desc: 'Consultar una pista y aplicarla en un siguiente intento correcto.' },
     en: { name: 'Thoughtful hint use', desc: 'Use a hint and apply it in a subsequent correct attempt.' }
   },
   {
-    id: 'cstRet', max: 3,
+    id: 'cstRet', icon: '📅', max: 3,
     es: { name: 'Retomar en otra sesión', desc: 'Volver a trabajar una competencia o expediente en una fecha distinta.' },
     en: { name: 'Return across sessions', desc: 'Resume a competence or case file on a later date.' }
   },
   {
-    id: 'cstInf', max: 6,
+    id: 'cstInf', icon: '📝', max: 6,
     es: { name: 'Informe y rúbrica revisados', desc: 'Completar un informe breve y verificar su rúbrica de autoevaluación.' },
     en: { name: 'Report & rubric review', desc: 'Complete a short report and verify its self-assessment rubric.' }
   },
   {
-    id: 'cstCoh', max: 4,
+    id: 'cstCoh', icon: '🔍', max: 4,
     es: { name: 'Corrección por evidencia', desc: 'Ajustar una conclusión inicial al detectar datos o gráficos incompatibles.' },
     en: { name: 'Evidence-led revision', desc: 'Revise an initial claim after detecting incompatible data or graphs.' }
   }
@@ -385,32 +495,32 @@ const CONSTANCIA_META = [
 
 const COMPETENCIAS_META = [
   {
-    id: 'expMue', expIndex: 0,
+    id: 'expMue', icon: '🎯', expIndex: 0,
     es: { name: 'Selecciono muestras razonables', desc: 'Detecto sesgos muestrales, propongo mejoras y clasifico variables.' },
     en: { name: 'Select sound samples', desc: 'Spot sampling bias, propose improvements, and classify variables.' }
   },
   {
-    id: 'expTab', expIndex: 1,
+    id: 'expTab', icon: '📊', expIndex: 1,
     es: { name: 'Construyo tablas coherentes', desc: 'Organizo datos aislados (xi, ni, Ni, fi, Fi) y calculo centralización.' },
     en: { name: 'Build coherent tables', desc: 'Organize ungrouped data (xi, ni, Ni, fi, Fi) and compute central tendency.' }
   },
   {
-    id: 'expAgr', expIndex: 2,
+    id: 'expAgr', icon: '📏', expIndex: 2,
     es: { name: 'Interpreto posición y agrupación', desc: 'Completo tablas por intervalos, marcas de clase ci, percentiles y RIC.' },
     en: { name: 'Interpret position & grouping', desc: 'Complete grouped tables, class marks ci, percentiles, and IQR.' }
   },
   {
-    id: 'expDis', expIndex: 3,
+    id: 'expDis', icon: '⚖️', expIndex: 3,
     es: { name: 'Comparo dispersión relativa', desc: 'Calculo R, varianza (divisor N), desviación típica y CV entre variables.' },
     en: { name: 'Compare relative dispersion', desc: 'Compute R, variance (N), std. deviation, and CV across variables.' }
   },
   {
-    id: 'expAud', expIndex: 4,
+    id: 'expAud', icon: '🔗', expIndex: 4,
     es: { name: 'Detecto incoherencias bidimensionales', desc: 'Distinguo dependencia estadística y audito gráficos, Sxy y r.' },
     en: { name: 'Audit bivariate inconsistencies', desc: 'Distinguish statistical dependence and audit plots, Sxy, and r.' }
   },
   {
-    id: 'expReg', expIndex: 5,
+    id: 'expReg', icon: '📈', expIndex: 5,
     es: { name: 'Estimo con modelos y concluyo con datos', desc: 'Aplico y = mx + n, distingo interpolación/extrapolación y argumento.' },
     en: { name: 'Estimate with models & conclude', desc: 'Apply y = mx + n, distinguish interpolation/extrapolation, and justify.' }
   }
@@ -512,6 +622,7 @@ function validateSave(raw, opts = {}) {
       s.taller.stats.reviewed = Number.isInteger(raw.taller.stats.reviewed) ? raw.taller.stats.reviewed : 0;
     }
   }
+  s.teacherConfig = DEFAULT_TEACHER_CONFIG();
   return s;
 }
 
@@ -546,48 +657,49 @@ function save() {
 const UI = {
   es: {
     docTitle: 'Observatorio de Datos · Estadística 4.º ESO',
-    brand: 'Observatorio de Datos',
-    navExp: 'Expedientes',
-    navTal: 'Taller',
-    navEvi: 'Mis evidencias',
-    navPru: 'Preparación de prueba',
-    formulaBtn: 'Formulario y calc.',
-    configBtn: 'Config. docente',
-    pkmBtn: 'Pokemáticos',
-    pkmBtnSet: 'Pokemáticos ✓',
+    brand: '⭐ Level Up: Estadística',
+    navExp: '🗂️ Expedientes',
+    navTal: '🛠️ Taller',
+    navEvi: '🏅 Mis evidencias',
+    navPru: '📝 Prueba global',
+    formulaBtn: '🧮 Formulario y calc.',
+    configBtn: '⚙️ Config. docente',
+    pkmBtn: '🎫 Pokemáticos',
+    pkmBtnSet: '🎫 Pokemáticos ✓',
+    mascotAlt: 'Nova, una estrella exploradora sonriente',
     footer: 'Observatorio de Estadística 4.º ESO / MYP 5 · Guardado local sin cuenta ni envío de datos.',
     storageFail: 'No se pudo guardar en este navegador. Exporta tu progreso en JSON antes de salir.',
     confirmImport: '¿Sustituir el progreso actual por el archivo importado?',
     invalidSave: 'El archivo seleccionado no es un respaldo válido de Observatorio de Datos.',
     confirmReset: '¿Borrar todo tu progreso local? Se recomienda exportar primero un respaldo en JSON.',
-    heroKicker: 'Mesa de análisis · 4.º ESO / MYP 5',
-    heroTitle: 'Investiga datos reales, detecta errores y justifica tus conclusiones',
-    heroSub: 'Trabaja los 6 expedientes en orden recomendado o elige el caso que necesites reforzar. Ningún fallo bloquea la plataforma.',
+    heroKicker: 'Tu compañera de misión · Nova ⭐',
+    heroTitle: 'Investiga datos reales, detecta errores y justifica conclusiones',
+    heroSub: 'Trabaja los 6 expedientes en orden recomendado o elige el caso que necesites reforzar. Equivocarse forma parte del entrenamiento.',
     kpiComp: 'Competencias demostradas',
     kpiConst: 'Acciones de constancia',
     kpiExam: 'Preparación prueba',
-    recommendedTag: 'Ruta recomendada',
+    recommendedTag: '⭐ Ruta recomendada',
     openCase: 'Abrir expediente',
     resumeCase: 'Continuar expediente',
     reviewCase: 'Revisar expediente',
     stages: ['1. Pregunta', '2. Decisión inicial', '3. Análisis', '4. Contraste', '5. Informe', '6. Transferencia'],
-    checkBtn: 'Comprobar',
+    checkBtn: '✓ Comprobar',
     nextBtn: 'Siguiente paso →',
     prevBtn: '← Paso anterior',
-    newVariantBtn: 'Generar variante nueva',
-    helpExample: 'Ver ejemplo resuelto (otros datos)',
-    helpHint1: 'Pista conceptual',
-    helpHint2: 'Pista de procedimiento',
-    helpSol: 'Solicitar solución razonada',
-    guidedBadge: 'Con apoyo (se requerirá transferencia sin pistas para acreditar autonomía)',
-    autoBadge: 'Sin ayudas solicitadas en este tramo',
+    newVariantBtn: '🔄 Variante nueva',
+    helpExample: '📖 Ver ejemplo resuelto',
+    helpHint1: '💡 Pista conceptual',
+    helpHint2: '🧭 Pista de procedimiento',
+    helpSol: '🔑 Ver solución razonada',
+    guidedBadge: '🌓 Con apoyo (supera la transferencia sin pistas para acreditar autonomía)',
+    autoBadge: '✨ Sin ayudas solicitadas en este tramo',
     openTextNote: 'Autoevaluación explícita: enviar texto no acredita la competencia por sí solo. Revisa la rúbrica, compárala con los modelos y exporta el informe si tu docente lo solicita.',
     rubricTitle: 'Rúbrica de revisión (autoevaluación)',
     confirmRubric: 'He revisado mi texto con la rúbrica y lo he contrastado con el ejemplo',
-    saveReportBtn: 'Guardar informe y revisar rúbrica',
-    printReportBtn: 'Vista imprimible (guardar PDF)',
-    exportJsonBtn: 'Exportar progreso (.json)',
-    importJsonBtn: 'Importar progreso (.json)',
+    saveReportBtn: '💾 Guardar informe y revisar rúbrica',
+    printReportBtn: '🖨️ Vista imprimible (PDF)',
+    exportJsonBtn: 'Guardar progreso ↓',
+    importJsonBtn: 'Cargar progreso ↑',
     resetBtn: 'Reiniciar progreso',
     states: {
       pending: 'Pendiente',
@@ -595,64 +707,65 @@ const UI = {
       autonomous: 'Demostrada con autonomía',
       consolidated: 'Consolidada en caso nuevo'
     },
-    pkmTitle: 'Pokemáticos · Public ID (opcional)',
+    pkmTitle: '🎫 Pokemáticos · Public ID (opcional)',
     pkmDesc: 'Si tu clase usa Pokemáticos, pega tu Public ID para generar códigos canjeables. Las recompensas de Constancia y las de Competencias tienen categorías e identificadores separados.',
     pkmPlaceholder: 'Pega aquí tu Public ID',
     pkmSave: 'Guardar ID',
     pkmClear: 'Borrar ID',
-    pkmSaved: 'ID guardado correctamente. Los códigos aparecen en Mis evidencias.',
+    pkmSaved: '✓ ID guardado correctamente. Los códigos aparecen en Mis evidencias.',
     pkmCleared: 'ID eliminado.',
-    codeBtn: 'Código Pokemáticos',
-    codeModalTitle: 'Código Pokemáticos',
+    codeBtn: '🎫 Código Pokemáticos',
+    codeModalTitle: '🎫 Código Pokemáticos',
     copyBtn: 'Copiar código',
-    copiedMsg: 'Código copiado al portapapeles.',
+    copiedMsg: '✓ Código copiado al portapapeles.',
     copyFail: 'Selecciona el código manualmente y cópialo.',
     closeBtn: 'Cerrar'
   },
   en: {
     docTitle: 'Data Observatory · Statistics MYP 5',
-    brand: 'Data Observatory',
-    navExp: 'Case Files',
-    navTal: 'Workshop',
-    navEvi: 'My Evidence',
-    navPru: 'Exam Prep',
-    formulaBtn: 'Formulas & Calc.',
-    configBtn: 'Teacher Config',
-    pkmBtn: 'Pokemáticos',
-    pkmBtnSet: 'Pokemáticos ✓',
+    brand: '⭐ Level Up: Statistics',
+    navExp: '🗂️ Case Files',
+    navTal: '🛠️ Workshop',
+    navEvi: '🏅 My Evidence',
+    navPru: '📝 Exam Prep',
+    formulaBtn: '🧮 Formulas & Calc.',
+    configBtn: '⚙️ Teacher Config',
+    pkmBtn: '🎫 Pokemáticos',
+    pkmBtnSet: '🎫 Pokemáticos ✓',
+    mascotAlt: 'Nova, a smiling explorer star',
     footer: 'Statistics Observatory Grade 10 / MYP 5 · Local browser storage, no account or data transmission.',
     storageFail: 'Could not save to this browser. Export your JSON backup before leaving.',
     confirmImport: 'Replace current progress with the imported file?',
     invalidSave: 'The selected file is not a valid Data Observatory backup.',
     confirmReset: 'Erase all local progress? Consider exporting a JSON backup first.',
-    heroKicker: 'Analysis Desk · Grade 10 / MYP 5',
+    heroKicker: 'Your mission companion · Nova ⭐',
     heroTitle: 'Investigate real datasets, spot inconsistencies, and justify conclusions',
     heroSub: 'Follow the recommended route across 6 case files or jump to any skill you want to strengthen. Mistakes never lock the app.',
     kpiComp: 'Demonstrated competencies',
     kpiConst: 'Consistency actions',
     kpiExam: 'Exam prep',
-    recommendedTag: 'Recommended path',
+    recommendedTag: '⭐ Recommended path',
     openCase: 'Open case file',
     resumeCase: 'Resume case file',
     reviewCase: 'Review case file',
     stages: ['1. Question', '2. Initial claim', '3. Analysis', '4. Contrast', '5. Report', '6. Transfer'],
-    checkBtn: 'Check',
+    checkBtn: '✓ Check',
     nextBtn: 'Next step →',
     prevBtn: '← Previous step',
-    newVariantBtn: 'Generate fresh variant',
-    helpExample: 'Worked example (different data)',
-    helpHint1: 'Conceptual hint',
-    helpHint2: 'Procedural hint',
-    helpSol: 'Show reasoned solution',
-    guidedBadge: 'Guided attempt (a fresh hint-free transfer problem is needed for autonomy)',
-    autoBadge: 'No hints requested in this section',
+    newVariantBtn: '🔄 Fresh variant',
+    helpExample: '📖 Worked example',
+    helpHint1: '💡 Conceptual hint',
+    helpHint2: '🧭 Procedural hint',
+    helpSol: '🔑 Show reasoned solution',
+    guidedBadge: '🌓 Guided attempt (a fresh hint-free transfer problem is needed for autonomy)',
+    autoBadge: '✨ No hints requested in this section',
     openTextNote: 'Explicit self-assessment: submitting text alone does not certify competence. Check each rubric criterion, compare with models, and print/export for teacher review.',
     rubricTitle: 'Review rubric (self-assessment)',
     confirmRubric: 'I reviewed my explanation against the rubric and model contrast',
-    saveReportBtn: 'Save report & mark rubric reviewed',
-    printReportBtn: 'Printable report (save as PDF)',
-    exportJsonBtn: 'Export progress (.json)',
-    importJsonBtn: 'Import progress (.json)',
+    saveReportBtn: '💾 Save report & mark rubric reviewed',
+    printReportBtn: '🖨️ Printable report (PDF)',
+    exportJsonBtn: 'Save progress ↓',
+    importJsonBtn: 'Load progress ↑',
     resetBtn: 'Reset progress',
     states: {
       pending: 'Pending',
@@ -660,23 +773,28 @@ const UI = {
       autonomous: 'Demonstrated autonomously',
       consolidated: 'Consolidated on new case'
     },
-    pkmTitle: 'Pokemáticos · Public ID (optional)',
+    pkmTitle: '🎫 Pokemáticos · Public ID (optional)',
     pkmDesc: 'If your class uses Pokemáticos, paste your Public ID to generate redeemable codes. Consistency awards and Mathematical Competency awards use separate categories and IDs.',
     pkmPlaceholder: 'Paste your Public ID here',
     pkmSave: 'Save ID',
     pkmClear: 'Clear ID',
-    pkmSaved: 'ID saved. Codes are now available under My Evidence.',
+    pkmSaved: '✓ ID saved. Codes are now available under My Evidence.',
     pkmCleared: 'ID cleared.',
-    codeBtn: 'Pokemáticos Code',
-    codeModalTitle: 'Pokemáticos Code',
+    codeBtn: '🎫 Pokemáticos Code',
+    codeModalTitle: '🎫 Pokemáticos Code',
     copyBtn: 'Copy code',
-    copiedMsg: 'Code copied to clipboard.',
+    copiedMsg: '✓ Code copied to clipboard.',
     copyFail: 'Select the code manually and copy it.',
     closeBtn: 'Close'
   }
 };
 
 function tr(k) { return UI[L()][k]; }
+
+const mascot = () => `<svg class="mascot" viewBox="0 0 120 120" role="img" aria-label="${escapeText(tr('mascotAlt'))}"><path d="M60 9 75 39 109 44 84 69 90 104 60 88 30 104 36 69 11 44 45 39Z" fill="#ffd76d" stroke="#bd831a" stroke-width="3" stroke-linejoin="round"/><ellipse cx="47" cy="57" rx="4" ry="6" fill="#30234c"/><ellipse cx="73" cy="57" rx="4" ry="6" fill="#30234c"/><path d="M51 69 Q60 79 69 69" fill="none" stroke="#30234c" stroke-width="3" stroke-linecap="round"/><circle cx="39" cy="67" r="5" fill="#f5a3a4"/><circle cx="81" cy="67" r="5" fill="#f5a3a4"/><path d="M91 14v16m-8-8h16M17 82v12m-6-6h12" stroke="#8759df" stroke-width="3" stroke-linecap="round"/></svg>`;
+function novaNote(message) {
+  return `<div class="nova-note">${mascot()}<p><strong>Nova · </strong>${escapeText(message)}</p></div>`;
+}
 
 /* ================= STATISTICAL ENGINE (FULL INTERNAL PRECISION) ================= */
 const Stats = {
@@ -719,7 +837,7 @@ const Stats = {
     const modes = rows.filter((r) => r.ni === maxNi && r.ni > 0).map((r) => r.xi);
     const sorted = [];
     for (const r of rows) for (let i = 0; i < r.ni; i++) sorted.push(r.xi);
-    const median = N === 0 ? NaN : (N % 2 === 1 ? sorted[(N - 1) / 2] : (sorted[N / 2 - 1] + sorted[N / 2]) / 2);
+    const median = N ? this.discreteQuantile(rows, N, 0.5, mode) : NaN;
     const q1 = this.discreteQuantile(rows, N, 0.25, mode);
     const q3 = this.discreteQuantile(rows, N, 0.75, mode);
     const iqr = q3 - q1;
@@ -757,8 +875,8 @@ const Stats = {
       cum += ni;
       const fi = N ? ni / N : 0;
       const Fi = N ? cum / N : 0;
-      const isLast = idx === intervals.length - 1 || iv.closedRight;
-      const label = `[${iv.lo}, ${iv.hi}${isLast ? ']' : ')'}`;
+      const isLast = false;
+      const label = `[${iv.lo}, ${iv.hi})`;
       return { ...iv, idx, ci, width, ni, Ni: cum, fi, Fi, label, isLast };
     });
     const mean = N ? rows.reduce((s, r) => s + r.ci * r.ni, 0) / N : NaN;
@@ -970,7 +1088,7 @@ function renderScatterSVG(bi, opts = {}) {
   }
 
   const dots = bi.pts.map((p, idx) =>
-    `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="4.5" fill="#1d4ed8" fill-opacity="0.82" stroke="#ffffff" stroke-width="1.2"><title>(${fmt(p.x, 2)}, ${fmt(p.y, 2)})</title></circle>`
+    `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="4.5" fill="#1d4ed8" fill-opacity="0.82" stroke="#ffffff" stroke-width="1.2"><title>(${fmt(p.x, 3)}, ${fmt(p.y, 3)})</title></circle>`
   ).join('');
 
   return `
@@ -1419,16 +1537,16 @@ const EXP_HELPS = {
   },
   expAgr: {
     es: {
-      example: 'Ejemplo con otros datos: Intervalo [10, 20) con nᵢ=6 sobre N=20 y N_{prev}=4. Marca cᵢ=(10+20)/2=15. Para P40: 0,40·20=8 → cae en este intervalo porque Nᵢ=10 ≥ 8. Interpolando: 10 + ((8−4)/6)·10 = 16,67.',
-      hint1: 'Los intervalos deben ser disjuntos ([a, b), [b, c) y el último cerrado [c, d]). Recuerda que con datos agrupados la media usa cᵢ como aproximación, no es exacta como con datos sueltos.',
+      example: 'Ejemplo con otros datos: Intervalo [10, 20) con nᵢ=6 sobre N=20 y N_{prev}=4. Marca cᵢ=(10+20)/2=15. Para P40: 0,40·20=8 → cae en este intervalo porque Nᵢ=10 ≥ 8. Por tanto, informa: P40 está en [10, 20).',
+      hint1: 'Los intervalos deben ser disjuntos ([a, b), [b, c) y [c, d)). Recuerda que con datos agrupados la media usa cᵢ como aproximación, no es exacta como con datos sueltos.',
       hint2: 'Deduce la nᵢ faltante restando a N el resto de frecuencias. Calcula cᵢ = (Lᵢ + Lₛ)/2. Localiza la clase percentílica mirando la primera fila donde Nᵢ ≥ (k/100)·N y aplica el criterio configurado en Config. docente.',
       solution: '1) Completa nᵢ faltante con N − ∑otras. 2) Obtén cᵢ, Nᵢ, fᵢ y Fᵢ (las fᵢ redondeadas pueden sumar 0,99 o 1,01). 3) x̄ ≈ ∑(cᵢ·nᵢ)/N. 4) Localiza la clase donde Nᵢ supera 0,40·N, 0,25·N (Q₁) y 0,75·N (Q₃) según la convención activa.'
     },
     en: {
-      example: 'Different-data example: Interval [10, 20) with nᵢ=6 out of N=20 and N_{prev}=4. Class mark cᵢ=15. For P40: 0.40·20=8 → lies here since Nᵢ=10 ≥ 8. Linear interp: 10 + ((8−4)/6)·10 = 16.67.',
-      hint1: 'Intervals must not overlap ([a, b), [b, c), closing the last [c, d]). Grouped means and quantiles are estimates based on class marks or linear interpolation.',
+      example: 'Different-data example: Interval [10, 20) with nᵢ=6 out of N=20 and N_{prev}=4. Class mark cᵢ=15. For P40: 0.40·20=8 → lies here since Nᵢ=10 ≥ 8. Report: P40 lies in [10, 20).',
+      hint1: 'Use nonoverlapping intervals [a, b), [b, c). The mean is estimated using class midpoints; quantiles are reported as intervals using cumulative counts.',
       hint2: 'Find the missing nᵢ from N minus known counts. Compute cᵢ = (Lᵢ + Lₛ)/2. Locate percentile classes using Nᵢ ≥ (k/100)·N and apply the active Teacher Config method.',
-      solution: 'Deduce missing nᵢ, fill cᵢ, Nᵢ, fᵢ, Fᵢ (rounded fᵢ totals like 0.99 are valid), compute grouped mean ∑(cᵢ·nᵢ)/N, and evaluate P40, Q1, Q3, IQR = Q3 − Q1 under the configured convention.'
+      solution: 'Deduce missing nᵢ, fill cᵢ, Nᵢ, fᵢ, Fᵢ (rounded fᵢ totals like 0.99 are valid), compute grouped mean ∑(cᵢ·nᵢ)/N, and identify the intervals for P40, Q1 and Q3 using cumulative counts. No numerical IQR is required from grouped intervals.'
     }
   },
   expDis: {
@@ -1626,6 +1744,15 @@ function generateExamProblem() {
   };
 }
 
+
+function matchesClass(raw, cls) {
+ const normalized = String(raw ?? '').replace(/\s+/g,'').replace(/;/g,',');
+ return normalized === `[${cls.lo},${cls.hi})`;
+}
+function classSelect(g, value, attributes) {
+ return `<select class="field-input" ${attributes}><option value="">—</option>${g.rows.map(r=>`<option value="${escapeText(r.label)}" ${value===r.label?'selected':''}>${escapeText(r.label)}</option>`).join('')}</select>`;
+}
+
 /* ================= RENDERERS: EXPEDIENTES & CASE WORKSPACE ================= */
 function renderExpedientes() {
   const l = L();
@@ -1643,7 +1770,7 @@ function renderExpedientes() {
     return `
       <article class="case-card ${isSel ? 'active' : ''}">
         <div class="case-top">
-          <span class="case-num">EXP 0${idx + 1} · ${escapeText(sc.tag || m[l].name)}</span>
+          <span class="case-num">${m.icon || '📊'} EXP 0${idx + 1} · ${escapeText(sc.tag || m[l].name)}</span>
           ${isNextRec ? `<span class="badge b-rec">${escapeText(tr('recommendedTag'))}</span>` : stateBadgeHTML(st)}
         </div>
         <h3>${escapeText(m[l].name)}</h3>
@@ -1662,13 +1789,19 @@ function renderExpedientes() {
 
   return `
     <section class="hero">
-      <div class="hero-kicker">${escapeText(tr('heroKicker'))}</div>
-      <h1>${escapeText(tr('heroTitle'))}</h1>
-      <p>${escapeText(tr('heroSub'))}</p>
-      <div class="hero-kpis">
-        <div class="kpi"><span class="k">${escapeText(tr('kpiComp'))}</span><span class="v">${doneComp} / ${COMPETENCIAS_META.length}</span></div>
-        <div class="kpi"><span class="k">${escapeText(tr('kpiConst'))}</span><span class="v">${sumConst} / ${maxConst}</span></div>
-        <div class="kpi"><span class="k">${escapeText(tr('kpiExam'))}</span><span class="v">${state.prueba.passed ? `${fmt(state.prueba.bestScore, 1)} / 10` : `${state.teacherConfig.exam2DWeight}% 2D`}</span></div>
+      ${mascot()}
+      <div style="flex:1;min-width:240px">
+        <div class="hero-kicker">${escapeText(tr('heroKicker'))}</div>
+        <h1>${escapeText(tr('heroTitle'))}</h1>
+        <p>${escapeText(tr('heroSub'))}</p>
+        <div class="track" role="progressbar" aria-valuenow="${doneComp}" aria-valuemin="0" aria-valuemax="${COMPETENCIAS_META.length}">
+          <span style="width:${(doneComp / COMPETENCIAS_META.length) * 100}%"></span>
+        </div>
+        <div class="hero-kpis">
+          <div class="kpi"><span class="k">🎯 ${escapeText(tr('kpiComp'))}</span><span class="v">${doneComp} / ${COMPETENCIAS_META.length}</span></div>
+          <div class="kpi"><span class="k">🏅 ${escapeText(tr('kpiConst'))}</span><span class="v">${sumConst} / ${maxConst}</span></div>
+          <div class="kpi"><span class="k">📝 ${escapeText(tr('kpiExam'))}</span><span class="v">${state.prueba.passed ? `${fmt(state.prueba.bestScore, 1)} / 10` : `${state.teacherConfig.exam2DWeight}% 2D`}</span></div>
+        </div>
       </div>
     </section>
 
@@ -1715,11 +1848,29 @@ function renderCaseWorkspace(meta, rec) {
       ${renderHelpBar(EXP_HELPS[meta.id], rec.usedHelpTransfer, `exp:${meta.id}:T`)}`;
   }
 
+  const novaHints = l === 'es'
+    ? [
+        'Lee primero qué pregunta quieres responder antes de hacer ningún cálculo.',
+        'Anota tu intuición inicial; contrastarla después te ayudará a detectar sesgos.',
+        'Completa los cálculos paso a paso y usa las pistas si te atascas sin miedo.',
+        'Compara tu hipótesis inicial con los datos reales que acabas de calcular.',
+        'Redacta tu informe apoyándote en valores concretos y revisa la rúbrica.',
+        'Resuelve este caso nuevo sin pistas para demostrar dominio autónomo.'
+      ]
+    : [
+        'Read the main question first before computing anything.',
+        'Log your initial claim; checking it against data later sharpens intuition.',
+        'Work through the analysis step by step; hints stay open without penalty.',
+        'Contrast your starting intuition with the exact evidence you just computed.',
+        'Write a short evidence-backed report and verify every rubric item.',
+        'Solve this fresh scenario without hints to demonstrate autonomous mastery.'
+      ];
+
   return `
     <section class="panel" id="caseWorkspace" aria-live="polite">
       <div class="row-between" style="margin-bottom:10px">
         <div>
-          <span class="case-num">EXP 0${meta.expIndex + 1} · ${escapeText(sc.tag || meta[l].name)}</span>
+          <span class="case-num">${meta.icon || '📊'} EXP 0${meta.expIndex + 1} · ${escapeText(sc.tag || meta[l].name)}</span>
           <h2 style="margin:2px 0 0">${escapeText(sc.title || meta[l].name)}</h2>
         </div>
         <div class="row">
@@ -1727,6 +1878,8 @@ function renderCaseWorkspace(meta, rec) {
           <button type="button" class="btn-ghost" data-new-exp-var="${meta.id}">${escapeText(tr('newVariantBtn'))}</button>
         </div>
       </div>
+
+      ${novaNote(novaHints[stg] || novaHints[0])}
 
       <div class="stepper" role="tablist" aria-label="Etapas del expediente">
         ${stepper}
@@ -1764,8 +1917,8 @@ function renderExpStage0(meta, rec, inst, sc) {
       : `A draft report claims exact dependence between ${sc.xLabel} and ${sc.yLabel} and states an impossible correlation r. Audit the 2D table, covariance, and r.`;
   } else {
     prompt = l === 'es'
-      ? `A partir de la nube de puntos (${sc.xLabel} vs ${sc.yLabel}) y su recta y = ${fmt(inst.mShown, 2)}x + ${fmt(inst.nShown, 2)} (r = ${fmt(inst.bi.r, 2)}), debes estimar valores, juzgar el modelo y redactar conclusiones con límites.`
-      : `Using the scatter plot (${sc.xLabel} vs ${sc.yLabel}) and line y = ${fmt(inst.mShown, 2)}x + ${fmt(inst.nShown, 2)} (r = ${fmt(inst.bi.r, 2)}), estimate values, judge model utility, and justify limits.`;
+      ? `A partir de la nube de puntos (${sc.xLabel} vs ${sc.yLabel}) y su recta y = ${fmt(inst.mShown, 3)}x + ${fmt(inst.nShown, 3)} (r = ${fmt(inst.bi.r, 3)}), debes estimar valores, juzgar el modelo y redactar conclusiones con límites.`
+      : `Using the scatter plot (${sc.xLabel} vs ${sc.yLabel}) and line y = ${fmt(inst.mShown, 3)}x + ${fmt(inst.nShown, 3)} (r = ${fmt(inst.bi.r, 3)}), estimate values, judge model utility, and justify limits.`;
   }
   return `
     <div class="grid-2">
@@ -1943,9 +2096,7 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
 
   if (id === 'expAgr') {
     const g = inst.g;
-    const methodNote = state.teacherConfig.groupedQuantile === 'class_and_interp'
-      ? (l === 'es' ? 'Convención activa (Config. docente): localizar clase percentílica e interpolar linealmente dentro del intervalo.' : 'Active rule (Teacher Config): locate class + linear interpolation inside interval.')
-      : (l === 'es' ? 'Convención activa (Config. docente): localizar clase percentílica y usar su marca de clase cᵢ.' : 'Active rule (Teacher Config): locate class + use class mark cᵢ.');
+    const methodNote = l === 'es' ? 'Localiza el primer intervalo [a, b) cuya frecuencia acumulada alcanza p·N. No se pide estimar un valor dentro del intervalo.' : 'Find the first interval [a, b) whose cumulative count reaches p·N. No within-class point estimate is required.';
     return `
       <div class="subcard">
         <p><strong>N = ${g.N}</strong> · <span class="muted">${escapeText(methodNote)}</span></p>
@@ -1971,8 +2122,8 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
 
         <div class="grid-3" style="margin-top:12px">
           <div><label><strong>${l === 'es' ? 'Media estimada (x̄)' : 'Estimated mean (x̄)'}</strong></label><input class="field-input" value="${escapeText(u.mean)}" data-exp-field="mean" data-tr="${pfx}"></div>
-          <div><label><strong>P${inst.sc.pTarget}</strong></label><input class="field-input" value="${escapeText(u.pkVal)}" data-exp-field="pkVal" data-tr="${pfx}"></div>
-          <div><label><strong>${l === 'es' ? 'RIC = Q₃ − Q₁' : 'IQR = Q₃ − Q₁'}</strong></label><input class="field-input" value="${escapeText(u.iqr)}" data-exp-field="iqr" data-tr="${pfx}"></div>
+          <div><label><strong>${l==='es'?'Intervalo de':'Interval for'} P${inst.sc.pTarget}</strong></label>${classSelect(g,u.pkVal,`data-exp-field="pkVal" data-tr="${pfx}"`)}</div>
+          <div><label><strong>${l==='es'?'Intervalo de':'Interval for'} Q₁</strong></label>${classSelect(g,u.q1Interval,`data-exp-field="q1Interval" data-tr="${pfx}"`)}</div><div><label><strong>${l==='es'?'Intervalo de':'Interval for'} Q₃</strong></label>${classSelect(g,u.q3Interval,`data-exp-field="q3Interval" data-tr="${pfx}"`)}</div><p class="small">${l==='es'?'Con intervalos no se obtiene un RIC numérico exacto sin añadir un método de estimación.':'Intervals alone do not give an exact numerical IQR without further estimation.'}</p>
         </div>
         <div class="row" style="margin-top:14px">
           <button type="button" class="btn-primary" data-check-analysis="expAgr:${pfx}">${escapeText(tr('checkBtn'))}</button>
@@ -1988,12 +2139,12 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
           <div style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff">
             <h4>${escapeText(sc.nameA)}</h4>
             <p class="mono">${inst.sc.arrA.join(', ')}</p>
-            <p class="muted" style="font-size:.85rem">x̄ = ${fmt(inst.stA.mean, 2)} ${escapeText(sc.unitA)} · (N = ${inst.stA.N})</p>
+            <p class="muted" style="font-size:.85rem">x̄ = ${fmt(inst.stA.mean, 3)} ${escapeText(sc.unitA)} · (N = ${inst.stA.N})</p>
           </div>
           <div style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff">
             <h4>${escapeText(sc.nameB)}</h4>
             <p class="mono">${inst.sc.arrB.join(', ')}</p>
-            <p class="muted" style="font-size:.85rem">x̄ = ${fmt(inst.stB.mean, 2)} ${escapeText(sc.unitB)} · σ = ${fmt(inst.stB.std, 2)} ${escapeText(sc.unitB)}</p>
+            <p class="muted" style="font-size:.85rem">x̄ = ${fmt(inst.stB.mean, 3)} ${escapeText(sc.unitB)} · σ = ${fmt(inst.stB.std, 3)} ${escapeText(sc.unitB)}</p>
           </div>
         </div>
         <p class="muted" style="margin-top:10px;font-size:.86rem">${l === 'es' ? 'Convención: varianza poblacional σ² con divisor N.' : 'Convention: population variance σ² with divisor N.'}</p>
@@ -2032,8 +2183,8 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
           <div>
             <div class="note warn" style="margin-top:0">
               <strong>${l === 'es' ? 'Borrador a auditar:' : 'Draft report to audit:'}</strong><br>
-              • Sxy = ${fmt(inst.bi.sxy, 2)}<br>
-              • r ${l === 'es' ? 'declarado en el borrador' : 'claimed in draft'} = <strong>${fmt(inst.fakeR, 2)}</strong>
+              • Sxy = ${fmt(inst.bi.sxy, 3)}<br>
+              • r ${l === 'es' ? 'declarado en el borrador' : 'claimed in draft'} = <strong>${fmt(inst.fakeR, 3)}</strong>
             </div>
             <h4 style="margin-top:12px">${l === 'es' ? 'Tabla de contingencia 2D (completa casilla y total faltantes)' : '2D Contingency table (fill missing cell & total)'}</h4>
             <div class="table-wrap">
@@ -2093,8 +2244,8 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
         <div>
           <div class="note ok" style="margin-top:0">
             <strong>${l === 'es' ? 'Recta de regresión proporcionada:' : 'Provided regression line:'}</strong><br>
-            <span class="mono" style="font-size:1.05rem">y = ${fmt(inst.mShown, 2)}·x + ${fmt(inst.nShown, 2)}</span><br>
-            <span>r = ${fmt(inst.bi.r, 2)} · x ∈ [${inst.sc.xMin}, ${inst.sc.xMax}]</span>
+            <span class="mono" style="font-size:1.05rem">y = ${fmt(inst.mShown, 3)}·x + ${fmt(inst.nShown, 3)}</span><br>
+            <span>r = ${fmt(inst.bi.r, 3)} · x ∈ [${inst.sc.xMin}, ${inst.sc.xMax}]</span>
           </div>
           <div style="margin-top:12px">
             <label><strong>${l === 'es' ? '1. ¿Es útil el modelo lineal para estimar dentro del rango?' : '1. Is the linear model useful within range?'}</strong></label>
@@ -2148,8 +2299,8 @@ function renderExpContrast(id, rec, inst) {
       <div class="subcard">
         <h4>${l === 'es' ? 'Contraste: impacto de un valor extremo' : 'Contrast: Outlier Sensitivity'}</h4>
         <p>${l === 'es'
-          ? `Con el valor extremo (${inst.xMax}) la media vale ${fmt(inst.st.mean, 2)} y sin él pasa a ${fmt(inst.stNoOut.mean, 2)}. La mediana pasa de ${fmt(inst.st.median, 2)} a ${fmt(inst.stNoOut.median, 2)}. ¿Qué parámetro describe mejor el centro cuando hay valores extremos aislados?`
-          : `With outlier (${inst.xMax}), the mean is ${fmt(inst.st.mean, 2)} and without it ${fmt(inst.stNoOut.mean, 2)}. Median shifts from ${fmt(inst.st.median, 2)} to ${fmt(inst.stNoOut.median, 2)}. Which measure resists extreme outliers better?`}</p>
+          ? `Con el valor extremo (${inst.xMax}) la media vale ${fmt(inst.st.mean, 3)} y sin él pasa a ${fmt(inst.stNoOut.mean, 3)}. La mediana pasa de ${fmt(inst.st.median, 3)} a ${fmt(inst.stNoOut.median, 3)}. ¿Qué parámetro describe mejor el centro cuando hay valores extremos aislados?`
+          : `With outlier (${inst.xMax}), the mean is ${fmt(inst.st.mean, 3)} and without it ${fmt(inst.stNoOut.mean, 3)}. Median shifts from ${fmt(inst.st.median, 3)} to ${fmt(inst.stNoOut.median, 3)}. Which measure resists extreme outliers better?`}</p>
         <div style="display:grid;gap:8px;margin-top:8px">
           <label class="choice-opt"><input type="radio" name="expContr" value="median" ${u.contrast === 'median' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'La mediana, porque depende del orden central y apenas se altera por extremos' : 'The median, because it depends on central rank and resists extreme values'}</span></label>
           <label class="choice-opt"><input type="radio" name="expContr" value="mean" ${u.contrast === 'mean' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'La media siempre es insensible a valores atípicos' : 'The mean is insensitive to outliers'}</span></label>
@@ -2162,10 +2313,10 @@ function renderExpContrast(id, rec, inst) {
   if (id === 'expAgr') {
     return `
       <div class="subcard">
-        <h4>${l === 'es' ? 'Contraste: localizar clase vs interpolar un valor' : 'Contrast: Class Location vs Interpolation'}</h4>
-        <p>${l === 'es' ? 'Si solo conoces las frecuencias agrupadas por intervalos, ¿son exactos la media calculada con cᵢ y P40 interpolado?' : 'Given only grouped interval counts, are the cᵢ-based mean and interpolated P40 exact raw values?'}</p>
+        <h4>${l === 'es' ? 'Contraste: intervalo del cuantil y media estimada' : 'Contrast: Quantile Interval and Estimated Mean'}</h4>
+        <p>${l === 'es' ? 'Si solo conoces frecuencias por intervalos, ¿puedes obtener la media y el valor numérico de P40 exactos?' : 'Can grouped counts alone give the exact raw-data mean and numerical P40?'}</p>
         <div style="display:grid;gap:8px;margin-top:8px">
-          <label class="choice-opt"><input type="radio" name="expContr" value="approx" ${u.contrast === 'approx' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No: localizar la clase es exacto según Nᵢ, pero cᵢ e interpolación son estimaciones al desconocer los datos individuales' : 'No: locating the class via Nᵢ is exact for intervals, whereas cᵢ and linear interpolation estimate individual values'}</span></label>
+          <label class="choice-opt"><input type="radio" name="expContr" value="approx" ${u.contrast === 'approx' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No: localizamos el intervalo de P40 por Nᵢ; la media con cᵢ es una estimación y desconocemos el valor exacto de P40' : 'No: use Nᵢ to identify the P40 interval; the midpoint-based mean is an estimate and exact P40 is unknown'}</span></label>
           <label class="choice-opt"><input type="radio" name="expContr" value="exact" ${u.contrast === 'exact' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Sí, coinciden exactamente con los datos brutos originales sin margen de error' : 'Yes, they always match raw ungrouped data with zero error'}</span></label>
         </div>
         <div class="row" style="margin-top:12px"><button type="button" class="btn-primary" data-check-contrast="${id}">${escapeText(tr('checkBtn'))}</button></div>
@@ -2207,7 +2358,7 @@ function renderExpContrast(id, rec, inst) {
   return `
     <div class="subcard">
       <h4>${l === 'es' ? 'Contraste: estimación frente a garantía' : 'Contrast: Estimate vs Guarantee'}</h4>
-      <p>${l === 'es' ? `Si el modelo predice ŷ = ${fmt(inst.yPred, 2)} para x = ${inst.sc.xPred}, ¿significa que todo individuo con x = ${inst.sc.xPred} obtendrá exactamente ${fmt(inst.yPred, 2)}?` : `If the model predicts ŷ = ${fmt(inst.yPred, 2)} at x = ${inst.sc.xPred}, does every individual with x = ${inst.sc.xPred} get exactly ${fmt(inst.yPred, 2)}?`}</p>
+      <p>${l === 'es' ? `Si el modelo predice ŷ = ${fmt(inst.yPred, 3)} para x = ${inst.sc.xPred}, ¿significa que todo individuo con x = ${inst.sc.xPred} obtendrá exactamente ${fmt(inst.yPred, 3)}?` : `If the model predicts ŷ = ${fmt(inst.yPred, 3)} at x = ${inst.sc.xPred}, does every individual with x = ${inst.sc.xPred} get exactly ${fmt(inst.yPred, 3)}?`}</p>
       <div style="display:grid;gap:8px;margin-top:8px">
         <label class="choice-opt"><input type="radio" name="expContr" value="est" ${u.contrast === 'est' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No: es un valor medio esperado según la tendencia; los casos reales presentan dispersión alrededor de la recta' : 'No: it is an expected trend estimate; real individual outcomes scatter around the line'}</span></label>
         <label class="choice-opt"><input type="radio" name="expContr" value="guar" ${u.contrast === 'guar' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Sí, por eso la recta sustituye cualquier medición real' : 'Yes, so the line guarantees every single outcome'}</span></label>
@@ -2284,7 +2435,7 @@ function checkExpAnalysis(id, isTransfer) {
     const expCls = g.locateClass(inst.sc.pTarget);
     const barOk = inst.selectedBar === expCls.idx;
     const expPk = g.percentileValue(inst.sc.pTarget);
-    const pOk = closeNum(u.mean, g.mean, 0.08) && closeNum(u.pkVal, expPk, 0.15) && closeNum(u.iqr, g.iqr, 0.25);
+    const pOk = closeNum(u.mean, g.mean, 0.08) && matchesClass(u.pkVal, expCls) && matchesClass(u.q1Interval,g.locateClass(25)) && matchesClass(u.q3Interval,g.locateClass(75));
     ok = rowsOk && barOk && pOk;
     if (!ok) badMsg = l === 'es' ? `Verifica cᵢ, nᵢ faltante, el intervalo de P${inst.sc.pTarget} en el histograma y las medidas según Config. docente.` : `Verify cᵢ, missing nᵢ, P${inst.sc.pTarget} bar on histogram, and measures per Teacher Config.`;
   } else if (id === 'expDis') {
@@ -2446,7 +2597,7 @@ function renderTaller() {
       </div>`;
   } else if (cur.kind === 'agr1d') {
     bodyHtml = `
-      <p>${l === 'es' ? `Tabla agrupada (N = ${cur.g.N}). Calcula media aproximada x̄, elige la clase de P${cur.pTarget} y su valor (${state.teacherConfig.groupedQuantile === 'class_and_interp' ? 'interpolación' : 'marca cᵢ'}):` : `Grouped table (N = ${cur.g.N}). Compute grouped mean x̄, select P${cur.pTarget} class and value:`}</p>
+      <p>${l === 'es' ? `Tabla agrupada (N = ${cur.g.N}). Calcula la media aproximada x̄ y elige el intervalo [a, b) que contiene P${cur.pTarget}:` : `Grouped table (N = ${cur.g.N}). Compute the grouped mean x̄ and select the interval [a, b) containing P${cur.pTarget}:`}</p>
       <div class="table-wrap" style="max-width:520px">
         <table>
           <thead><tr><th>Intervalo</th><th>cᵢ</th><th>nᵢ</th><th>Nᵢ</th></tr></thead>
@@ -2461,11 +2612,11 @@ function renderTaller() {
             ${cur.g.rows.map((r, i) => `<option value="${i}" ${u.pClassIdx === String(i) ? 'selected' : ''}>${escapeText(r.label)}</option>`).join('')}
           </select>
         </div>
-        <div><label><strong>P${cur.pTarget}</strong></label><input class="field-input" value="${escapeText(u.pVal)}" data-taller-field="pVal"></div>
+
       </div>`;
   } else if (cur.kind === 'disp') {
     bodyHtml = `
-      <p><strong>${l === 'es' ? 'Conjunto:' : 'Dataset:'}</strong> <span class="mono">[${cur.arr.join(', ')}]</span> (x̄ = ${fmt(cur.st.mean, 2)})</p>
+      <p><strong>${l === 'es' ? 'Conjunto:' : 'Dataset:'}</strong> <span class="mono">[${cur.arr.join(', ')}]</span> (x̄ = ${fmt(cur.st.mean, 3)})</p>
       <div class="grid-3" style="margin-top:10px">
         <div><label><strong>σ² (divisor N)</strong></label><input class="field-input" value="${escapeText(u.varN)}" data-taller-field="varN"></div>
         <div><label><strong>σ</strong></label><input class="field-input" value="${escapeText(u.std)}" data-taller-field="std"></div>
@@ -2482,7 +2633,7 @@ function renderTaller() {
         <div>
           <div class="note warn" style="margin-top:0">
             <strong>${l === 'es' ? 'Datos declarados:' : 'Reported metrics:'}</strong><br>
-            Sxy = ${fmt(cur.bi.sxy, 2)} · r ${l === 'es' ? 'declarado' : 'claimed'} = <strong>${fmt(cur.claimedR, 2)}</strong>
+            Sxy = ${fmt(cur.bi.sxy, 3)} · r ${l === 'es' ? 'declarado' : 'claimed'} = <strong>${fmt(cur.claimedR, 3)}</strong>
           </div>
           <div style="margin-top:10px">
             <label><strong>${l === 'es' ? 'Sentido de la nube' : 'Scatter direction'}</strong></label>
@@ -2509,7 +2660,7 @@ function renderTaller() {
         <div>${renderScatterSVG(cur.bi, { showLine: true, xLabel: 'X', yLabel: 'Y' })}</div>
         <div>
           <div class="note ok" style="margin-top:0">
-            <strong>y = ${fmt(cur.mS, 2)}·x + ${fmt(cur.nS, 2)}</strong> · r = ${fmt(cur.bi.r, 2)} · x ∈ [2, 10]
+            <strong>y = ${fmt(cur.mS, 3)}·x + ${fmt(cur.nS, 3)}</strong> · r = ${fmt(cur.bi.r, 3)} · x ∈ [2, 10]
           </div>
           <div style="margin-top:10px">
             <label><strong>${l === 'es' ? `Estima ŷ en x = ${cur.xQ}` : `Estimate ŷ at x = ${cur.xQ}`}</strong></label>
@@ -2587,7 +2738,7 @@ function checkTaller() {
   else if (cur.kind === 'agr1d') {
     const cls = cur.g.locateClass(cur.pTarget);
     const val = cur.g.percentileValue(cur.pTarget);
-    ok = closeNum(u.mean, cur.g.mean, 0.1) && u.pClassIdx === String(cls.idx) && closeNum(u.pVal, val, 0.2);
+    ok = closeNum(u.mean, cur.g.mean, 0.1) && u.pClassIdx === String(cls.idx);
   } else if (cur.kind === 'disp') {
     const cvOk = cur.isZero ? Boolean(u.cvInvalid) : (!u.cvInvalid && closeNum(u.cv, cur.st.cv, 0.02));
     ok = closeNum(u.varN, cur.st.variance, 0.25) && closeNum(u.std, cur.st.std, 0.12) && cvOk;
@@ -2633,7 +2784,7 @@ function renderEvidencias() {
     return `
       <div class="ev-row">
         <div>
-          <strong>${escapeText(m[l].name)}</strong><br>
+          <strong>${m.icon || '🎯'} ${escapeText(m[l].name)}</strong><br>
           <span class="muted" style="font-size:.86rem">${escapeText(m[l].desc)}</span>
         </div>
         <div class="row">
@@ -2646,7 +2797,7 @@ function renderEvidencias() {
   const pruRow = `
     <div class="ev-row">
       <div>
-        <strong>${l === 'es' ? 'Preparación de prueba global' : 'Global Exam Preparation'}</strong><br>
+        <strong>🏆 ${l === 'es' ? 'Preparación de prueba global' : 'Global Exam Preparation'}</strong><br>
         <span class="muted" style="font-size:.86rem">${l === 'es' ? `Mejor calificación automática: ${fmt(state.prueba.bestScore, 1)} / 10 (peso 2D: ${state.teacherConfig.exam2DWeight}%).` : `Best objective score: ${fmt(state.prueba.bestScore, 1)} / 10 (2D weight: ${state.teacherConfig.exam2DWeight}%).`}</span>
       </div>
       <div class="row">
@@ -2660,7 +2811,7 @@ function renderEvidencias() {
     return `
       <div class="ev-row">
         <div>
-          <strong>${escapeText(c[l].name)}</strong><br>
+          <strong>${c.icon || '🏅'} ${escapeText(c[l].name)}</strong><br>
           <span class="muted" style="font-size:.86rem">${escapeText(c[l].desc)}</span>
         </div>
         <div class="row">
@@ -2731,7 +2882,7 @@ function renderPrueba() {
       <div class="subcard" style="margin-top:14px">
         <h3>${l === 'es' ? `Parte 1 (${ex.w1}%): Estadística unidimensional` : `Part 1 (${ex.w1}%): Unidimensional Statistics`}</h3>
         <p>${l === 'es'
-          ? `1.1 Completa la tabla agrupada (N = ${ex.g1.N}; recuerda que las fᵢ redondeadas pueden sumar 0,99 o 1,00), calcula la media aproximada x̄, la clase modal y P40 (${state.teacherConfig.groupedQuantile === 'class_and_interp' ? 'interpolación' : 'marca cᵢ'}):`
+          ? `1.1 Completa la tabla agrupada (N = ${ex.g1.N}; recuerda que las fᵢ redondeadas pueden sumar 0,99 o 1,00), calcula la media aproximada x̄, la clase modal y el intervalo [a, b) de P40:`
           : `1.1 Complete the grouped table (N = ${ex.g1.N}; rounded fᵢ may sum to 0.99 or 1.00), then compute approximate mean x̄, modal class, and P40:`}</p>
         <div class="table-wrap">
           <table>
@@ -2757,12 +2908,12 @@ function renderPrueba() {
               ${ex.g1.rows.map((r, i) => `<option value="${i}" ${u.modal1 === String(i) ? 'selected' : ''}>${escapeText(r.label)}</option>`).join('')}
             </select>
           </div>
-          <div><label><strong>P40</strong></label><input class="field-input" value="${escapeText(u.p40)}" data-ex-field="p40"></div>
+          <div><label><strong>${l==='es'?'Intervalo de':'Interval for'} P40</strong></label>${classSelect(ex.g1,u.p40,'data-ex-field="p40"')}</div>
         </div>
 
         <p style="margin-top:16px">${l === 'es'
-          ? `1.2 Comparación de dispersión relativa: Estatura (cm): x̄=${fmt(ex.stA.mean, 1)}, σ=${fmt(ex.stA.std, 2)} · Masa (kg): x̄=${fmt(ex.stB.mean, 1)}, σ=${fmt(ex.stB.std, 2)}. Calcula ambos CV y señala cuál presenta mayor dispersión relativa:`
-          : `1.2 Relative dispersion comparison: Height (cm): x̄=${fmt(ex.stA.mean, 1)}, σ=${fmt(ex.stA.std, 2)} · Mass (kg): x̄=${fmt(ex.stB.mean, 1)}, σ=${fmt(ex.stB.std, 2)}. Compute both CVs and select greater relative dispersion:`}</p>
+          ? `1.2 Comparación de dispersión relativa: Estatura (cm): x̄=${fmt(ex.stA.mean, 1)}, σ=${fmt(ex.stA.std, 3)} · Masa (kg): x̄=${fmt(ex.stB.mean, 1)}, σ=${fmt(ex.stB.std, 3)}. Calcula ambos CV y señala cuál presenta mayor dispersión relativa:`
+          : `1.2 Relative dispersion comparison: Height (cm): x̄=${fmt(ex.stA.mean, 1)}, σ=${fmt(ex.stA.std, 3)} · Mass (kg): x̄=${fmt(ex.stB.mean, 1)}, σ=${fmt(ex.stB.std, 3)}. Compute both CVs and select greater relative dispersion:`}</p>
         <div class="grid-3">
           <div><label><strong>CV (Estatura)</strong></label><input class="field-input" value="${escapeText(u.cvA)}" data-ex-field="cvA"></div>
           <div><label><strong>CV (Masa)</strong></label><input class="field-input" value="${escapeText(u.cvB)}" data-ex-field="cvB"></div>
@@ -2785,8 +2936,8 @@ function renderPrueba() {
           <div>
             <div class="note warn" style="margin-top:0">
               <strong>${l === 'es' ? 'Datos del estudio (N = 22):' : 'Study summary (N = 22):'}</strong><br>
-              • ${l === 'es' ? 'Recta dada:' : 'Given line:'} <span class="mono">y = ${fmt(ex.mShown, 2)}x + ${fmt(ex.nShown, 2)}</span><br>
-              • Sxy = ${fmt(ex.bi.sxy, 2)} · r ${l === 'es' ? 'propuesto en borrador' : 'proposed in draft'} = <strong>${fmt(ex.fakeR, 2)}</strong>
+              • ${l === 'es' ? 'Recta dada:' : 'Given line:'} <span class="mono">y = ${fmt(ex.mShown, 3)}x + ${fmt(ex.nShown, 3)}</span><br>
+              • Sxy = ${fmt(ex.bi.sxy, 3)} · r ${l === 'es' ? 'propuesto en borrador' : 'proposed in draft'} = <strong>${fmt(ex.fakeR, 3)}</strong>
             </div>
             <div class="table-wrap" style="margin-top:10px">
               <table>
@@ -2860,7 +3011,7 @@ function renderPrueba() {
       ${ex.graded && ex.scoreBreakdown ? `
         <div class="note ${ex.scoreBreakdown.total >= 6 ? 'ok' : 'warn'}">
           <strong>${l === 'es' ? 'Resultado objetivo:' : 'Objective score:'} ${fmt(ex.scoreBreakdown.total, 1)} / 10</strong>
-          (${l === 'es' ? 'Parte 1 (1D):' : 'Part 1 (1D):'} ${fmt(ex.scoreBreakdown.p1, 2)}/${ex.w1 / 10} · ${l === 'es' ? 'Parte 2 (2D):' : 'Part 2 (2D):'} ${fmt(ex.scoreBreakdown.p2, 2)}/${ex.w2 / 10}).
+          (${l === 'es' ? 'Parte 1 (1D):' : 'Part 1 (1D):'} ${fmt(ex.scoreBreakdown.p1, 3)}/${ex.w1 / 10} · ${l === 'es' ? 'Parte 2 (2D):' : 'Part 2 (2D):'} ${fmt(ex.scoreBreakdown.p2, 3)}/${ex.w2 / 10}).
           ${l === 'es' ? 'Revisa además tu conclusión abierta con la rúbrica o imprímela para revisión docente.' : 'Also review your open conclusion with the rubric or print for teacher review.'}
         </div>` : ''}
     </section>`;
@@ -2878,7 +3029,7 @@ function gradeExam() {
     rowsOk,
     closeNum(u.mean1, ex.g1.mean, 0.08),
     u.modal1 === String(ex.g1.modalRow.idx),
-    closeNum(u.p40, ex.g1.percentileValue(40), 0.15),
+    matchesClass(u.p40, ex.g1.locateClass(40)),
     closeNum(u.cvA, ex.stA.cv, 0.02),
     closeNum(u.cvB, ex.stB.cv, 0.02),
     u.moreDisp === 'B'
@@ -2941,16 +3092,7 @@ function openFormulaCalcModal() {
       <div class="grid-2">
         <div>
           <h4 style="margin-top:0">${l === 'es' ? 'Formulario y notación' : 'Formula Sheet & Notation'}</h4>
-          <ul style="padding-left:18px;line-height:1.65;font-size:.9rem">
-            <li><strong>nᵢ</strong>: ${l === 'es' ? 'frecuencia absoluta' : 'count'} · <strong>Nᵢ</strong>: ${l === 'es' ? 'acumulada' : 'cumulative'} · <strong>fᵢ = nᵢ/N</strong> · <strong>Fᵢ = Nᵢ/N</strong></li>
-            <li><strong>x̄</strong> = ∑(xᵢ·nᵢ)/N (${l === 'es' ? 'o ∑(cᵢ·nᵢ)/N agrupados' : 'or ∑(cᵢ·nᵢ)/N grouped'})</li>
-            <li><strong>R</strong> = xₘₐₓ − xₘᵢₙ · <strong>RIC</strong> = Q₃ − Q₁</li>
-            <li><strong>σ²</strong> = ∑nᵢ·(xᵢ − x̄)² / N <em>(${l === 'es' ? 'divisor N' : 'divisor N'})</em> · <strong>σ</strong> = √σ²</li>
-            <li><strong>CV</strong> = σ / |x̄| <em>(${l === 'es' ? 'solo válido si x̄ ≠ 0' : 'valid only if x̄ ≠ 0'})</em></li>
-            <li><strong>Pₖ (interp.)</strong> = Lᵢ + ((k·N/100 − Nᵢ₋₁)/nᵢ)·aᵢ</li>
-            <li><strong>Sxy</strong> = ∑(xᵢ − x̄)(yᵢ − ȳ)/N · <strong>r</strong> = Sxy/(σₓ·σᵧ) ∈ [−1, 1]</li>
-            <li><strong>${l === 'es' ? 'Recta:' : 'Line:'}</strong> y = m·x + n (${l === 'es' ? 'dada en gráfico/enunciado' : 'given in graph'})</li>
-          </ul>
+<p class="small">${l === 'es' ? 'N: número de datos · k: número de valores o clases en los sumatorios · nᵢ: frecuencia absoluta · Nᵢ: frecuencia acumulada · cᵢ: marca de clase.' : 'N: number of observations · k: number of values or classes in sums · nᵢ: count · Nᵢ: cumulative count · cᵢ: class midpoint.'}</p><section class="formula-card"><h5>${l === 'es' ? 'Frecuencias relativas' : 'Relative frequencies'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>f</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><mi>N</mi></mfrac><mo> </mo><msub><mi>F</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>N</mi><mi>i</mi></msub><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Media · datos aislados' : 'Mean · discrete data'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>x</mi><mo>¯</mo></mover><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>x</mi><mi>i</mi></msub><mo>·</mo><msub><mi>n</mi><mi>i</mi></msub></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Media estimada · datos agrupados' : 'Estimated mean · grouped data'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>x</mi><mo>¯</mo></mover><mo>≈</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>c</mi><mi>i</mi></msub><mo>·</mo><msub><mi>n</mi><mi>i</mi></msub></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Rango y rango intercuartílico' : 'Range and interquartile range'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>R</mi><mo>=</mo><msub><mi>x</mi><mi>máx</mi></msub><mo>−</mo><msub><mi>x</mi><mi>mín</mi></msub><mo> </mo><mi>RIC</mi><mo>=</mo><msub><mi>Q</mi><mi>3</mi></msub><mo>−</mo><msub><mi>Q</mi><mi>1</mi></msub></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Varianza · divisor N' : 'Variance · divisor N'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msup><mi>σ</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>n</mi><mi>i</mi></msub><mo>·</mo><msup><mrow><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>)</mo></mrow><mn>2</mn></msup></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Desviación típica' : 'Standard deviation'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>σ</mi><mo>=</mo><msqrt><msup><mi>σ</mi><mn>2</mn></msup></msqrt></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Coeficiente de variación · media distinta de cero' : 'Coefficient of variation · nonzero mean'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>CV</mi><mo>=</mo><mfrac><mi>σ</mi><mrow><mo>|</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>|</mo></mrow></mfrac></mrow></math></section><section class="formula-card"><h5>${l==='es'?'Cuantil agrupado · intervalo':'Grouped quantile · interval'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><msub><mi>N</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>&lt;</mo><mi>p</mi><mo>·</mo><mi>N</mi><mo>≤</mo><msub><mi>N</mi><mi>i</mi></msub></math><p>${l==='es'?'El cuantil se localiza en la clase [aᵢ, bᵢ). Para P40, p = 0,40; para Q₁, p = 0,25.':'Locate the quantile in class [aᵢ, bᵢ). For P40 use p = 0.40; for Q₁ use p = 0.25.'}</p></section><section class="formula-card"><h5>${l === 'es' ? 'Covarianza · pares de datos' : 'Covariance · paired observations'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>S</mi><mi>xy</mi></msub><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mrow><mrow><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>)</mo></mrow><mo>·</mo><mrow><mo>(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover><mi>y</mi><mo>¯</mo></mover><mo>)</mo></mrow></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Correlación lineal' : 'Linear correlation'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>r</mi><mo>=</mo><mfrac><msub><mi>S</mi><mi>xy</mi></msub><mrow><msub><mi>σ</mi><mi>x</mi></msub><mo>·</mo><msub><mi>σ</mi><mi>y</mi></msub></mrow></mfrac><mo> </mo><mo>−</mo><mn>1</mn><mo>≤</mo><mi>r</mi><mo>≤</mo><mn>1</mn></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Recta de regresión · estimación' : 'Regression line · estimate'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>y</mi><mo>^</mo></mover><mo>=</mo><mi>m</mi><mo>·</mo><mi>x</mi><mo>+</mo><mi>n</mi></mrow></math></section><p class="small">${l === 'es' ? 'Nᵢ₋₁ es la frecuencia acumulada anterior (0 antes de la primera clase). Se informa del intervalo del cuantil; no se estima su valor numérico. Las marcas de clase cᵢ se siguen usando para estimar la media, no los cuantiles. El CV se expresa aquí como razón; multiplica por 100 para porcentaje. La correlación requiere ambas desviaciones típicas distintas de cero.' : 'Nᵢ₋₁ is the previous cumulative count (0 before the first class). Report the quantile interval, without estimating a numerical value. Class midpoints are still used to estimate the mean. CV is a ratio; multiply by 100 for percent. Correlation requires nonzero standard deviations.'}</p>
         </div>
         <div>
           <h4 style="margin-top:0">${l === 'es' ? 'Calculadora científica' : 'Scientific Calculator'}</h4>
@@ -2965,54 +3107,8 @@ function openFormulaCalcModal() {
 }
 
 function openTeacherConfigModal() {
-  const l = L();
-  const cfg = state.teacherConfig;
-  openDialog(`
-    <div class="dlg-head">
-      <h3 style="margin:0">${escapeText(tr('configBtn'))}</h3>
-      <button type="button" class="btn-ghost" data-close-dlg="1">✕</button>
-    </div>
-    <div class="dlg-body">
-      <p class="muted" style="margin-top:0">${l === 'es'
-        ? 'Define convenciones estadísticas explícitas para el aula. La varianza utiliza siempre divisor N.'
-        : 'Set explicit statistical conventions for your class. Variance always uses population divisor N.'}</p>
-      <div style="display:grid;gap:12px">
-        <div>
-          <label><strong>${l === 'es' ? 'Cuantiles en datos discretos (Me, Q₁, Q₃)' : 'Discrete quantiles (Me, Q₁, Q₃)'}</strong></label>
-          <select id="cfgDisc" class="field-input" style="margin-top:4px">
-            <option value="rank_ceil" ${cfg.discreteQuantile === 'rank_ceil' ? 'selected' : ''}>${l === 'es' ? 'Primer xᵢ con Nᵢ ≥ p·N (criterio tabla acumulada)' : 'First xᵢ with Nᵢ ≥ p·N (cumulative table rule)'}</option>
-            <option value="rank_interp" ${cfg.discreteQuantile === 'rank_interp' ? 'selected' : ''}>${l === 'es' ? 'Posición (N+1)·p con interpolación' : '(N+1)·p rank interpolation'}</option>
-          </select>
-        </div>
-        <div>
-          <label><strong>${l === 'es' ? 'Percentiles y cuartiles agrupados' : 'Grouped percentiles & quartiles'}</strong></label>
-          <select id="cfgGrp" class="field-input" style="margin-top:4px">
-            <option value="class_and_interp" ${cfg.groupedQuantile === 'class_and_interp' ? 'selected' : ''}>${l === 'es' ? 'Localizar clase + interpolación lineal dentro del intervalo' : 'Locate class + linear interpolation'}</option>
-            <option value="class_and_ci" ${cfg.groupedQuantile === 'class_and_ci' ? 'selected' : ''}>${l === 'es' ? 'Localizar clase + estimar mediante marca cᵢ' : 'Locate class + class mark cᵢ estimate'}</option>
-          </select>
-        </div>
-        <div class="grid-2">
-          <div>
-            <label><strong>${l === 'es' ? 'Decimales mostrados' : 'Display decimals'}</strong></label>
-            <select id="cfgDec" class="field-input" style="margin-top:4px">
-              <option value="2" ${cfg.decimals === 2 ? 'selected' : ''}>2</option>
-              <option value="3" ${cfg.decimals === 3 ? 'selected' : ''}>3</option>
-            </select>
-          </div>
-          <div>
-            <label><strong>${l === 'es' ? 'Peso 2D en Prueba' : 'Exam 2D Weight'}</strong></label>
-            <select id="cfgW2" class="field-input" style="margin-top:4px">
-              <option value="50" ${cfg.exam2DWeight === 50 ? 'selected' : ''}>50% 1D / 50% 2D</option>
-              <option value="60" ${cfg.exam2DWeight === 60 ? 'selected' : ''}>40% 1D / 60% 2D</option>
-              <option value="70" ${cfg.exam2DWeight === 70 ? 'selected' : ''}>30% 1D / 70% 2D</option>
-            </select>
-          </div>
-        </div>
-        <div class="row">
-          <button type="button" class="btn-primary" id="saveTeacherCfg">${l === 'es' ? 'Guardar configuración' : 'Save settings'}</button>
-        </div>
-      </div>
-    </div>`);
+ const en=L()==='en';
+ openDialog(`<div class="dlg-head"><h3>⚙️ ${en?'Class conventions':'Configuración de la clase'}</h3><button type="button" class="btn-ghost" data-close-dlg="1">✕</button></div><div class="dlg-body"><p>${en?'These conventions are fixed in this HTML file and apply to new, saved and imported sessions.':'Estas convenciones están fijadas en este archivo y se aplican a partidas nuevas, guardadas e importadas.'}</p><ul><li>${en?'Discrete quantiles: cumulative frequency table.':'Cuantiles discretos: tabla de frecuencias acumuladas.'}</li><li>${en?'Grouped quantiles: identify the interval [a, b); no midpoint or interpolation required.':'Cuantiles agrupados: identificar el intervalo [a, b); sin marca de clase ni interpolación.'}</li><li>${en?'Display precision: three decimal places.':'Precisión de presentación: tres decimales.'}</li><li>${en?'Test weighting: 40% 1D / 60% 2D.':'Peso de la prueba: 40 % 1D / 60 % 2D.'}</li><li>${en?'Variance: divisor N.':'Varianza: divisor N.'}</li></ul></div>`);
 }
 
 function openPrintReportModal() {
@@ -3036,7 +3132,7 @@ function openPrintReportModal() {
         ${state.prueba.current?.user?.conclusion ? `<div style="padding-top:8px"><strong>${escapeText(tr('navPru'))}:</strong><p style="white-space:pre-wrap">${escapeText(state.prueba.current.user.conclusion)}</p></div>` : ''}
       </div>
       <div class="row" style="margin-top:12px">
-        <button type="button" class="btn-primary" onclick="window.print()">${l === 'es' ? 'Imprimir / Guardar como PDF' : 'Print / Save as PDF'}</button>
+        <button type="button" class="btn-primary" data-print-report="1">${l === 'es' ? 'Imprimir / Guardar como PDF' : 'Print / Save as PDF'}</button>
       </div>
     </div>`);
 }
@@ -3072,7 +3168,7 @@ function openCodeDialog(itemId, kind) {
     </div>
     <div class="dlg-body">
       <p style="margin-top:0"><strong>${escapeText(catLabel)}</strong> · ID: <span class="mono">${escapeText(PKM_SOURCE)}/${escapeText(itemId)}</span></p>
-      <div class="calc-screen" style="text-align:center;font-size:1.05rem;word-break:break-all" id="codeShow">${escapeText(code)}</div>
+      <div class="code-box"><div class="code-value" id="codeShow">${escapeText(code)}</div></div>
       <div class="row" style="margin-top:10px">
         <button type="button" class="btn-primary" id="copyPkmCode">${escapeText(tr('copyBtn'))}</button>
       </div>
@@ -3093,12 +3189,14 @@ function updateChrome() {
   $('formulaBtn').textContent = tr('formulaBtn');
   $('configBtn').textContent = tr('configBtn');
   $('pkmBtn').textContent = state.publicId ? tr('pkmBtnSet') : tr('pkmBtn');
-  $('langBtn').textContent = l === 'es' ? 'ES / EN' : 'EN / ES';
+  $('pkmBtn').classList.toggle('has-id', Boolean(state.publicId));
+  $('langEs').setAttribute('aria-pressed', String(l === 'es'));
+  $('langEn').setAttribute('aria-pressed', String(l === 'en'));
   $('footerNote').textContent = tr('footer');
   const cfg = state.teacherConfig;
   $('footerConfigSummary').textContent = l === 'es'
-    ? `Convención: σ² div. N · Cuantiles agr.: ${cfg.groupedQuantile === 'class_and_interp' ? 'interpolación' : 'marca cᵢ'} · Prueba: ${100 - cfg.exam2DWeight}% 1D / ${cfg.exam2DWeight}% 2D`
-    : `Convention: σ² div. N · Grouped quantiles: ${cfg.groupedQuantile === 'class_and_interp' ? 'interpolation' : 'class mark cᵢ'} · Exam: ${100 - cfg.exam2DWeight}% 1D / ${cfg.exam2DWeight}% 2D`;
+    ? `Convención: σ² div. N · Cuantiles agr.: intervalo [a, b) · Prueba: ${100 - cfg.exam2DWeight}% 1D / ${cfg.exam2DWeight}% 2D`
+    : `Convention: σ² div. N · Grouped quantiles: interval [a, b) · Exam: ${100 - cfg.exam2DWeight}% 1D / ${cfg.exam2DWeight}% 2D`;
 
   document.querySelectorAll('[data-nav]').forEach((btn) => {
     const active = btn.dataset.nav === state.activeNav;
@@ -3106,13 +3204,61 @@ function updateChrome() {
   });
 }
 
+function restoreGroupedModels(node) {
+  if (!node || typeof node !== 'object') return;
+  if (Array.isArray(node.rows) && node.rows.length &&
+      node.rows.every(r => r && Number.isFinite(r.lo) && Number.isFinite(r.hi) && Number.isFinite(r.ni))) {
+    const rebuilt = Stats.grouped(node.rows.map(r => ({lo:r.lo, hi:r.hi, closedRight:r.closedRight})), node.rows.map(r => r.ni));
+    Object.assign(node, rebuilt);
+    return;
+  }
+  if (Array.isArray(node.rows) && node.rows.length && node.rows.every(r => Number.isFinite(r.xi) && Number.isFinite(r.ni))) {
+    Object.assign(node, Stats.fromFreq(node.rows.map(r=>r.xi),node.rows.map(r=>r.ni))); return;
+  }
+  for (const value of Object.values(node)) {
+    if (value && typeof value === 'object') restoreGroupedModels(value);
+  }
+}
+
+let showingHome = true;
+const HOME_SECTIONS = [["expedientes", "🗂️", "Expedientes", "Cases", "Investiga datos, compara y redacta conclusiones.", "Investigate data, compare and draw conclusions."], ["taller", "🛠️", "Taller", "Practice", "Refuerza una habilidad con ejercicios y pistas.", "Strengthen a skill with practice and hints."], ["prueba", "📝", "Preparación de prueba", "Exam preparation", "Combina lo aprendido con problemas nuevos.", "Combine your skills on new problems."], ["evidencias", "🏅", "Mis evidencias", "My evidence", "Consulta tus competencias, constancia y trabajos.", "Review your skills, consistency and work."]];
+function renderHomeMenu() {
+ const en = L() === 'en';
+ const cards = HOME_SECTIONS.map(([id,icon,es,eng,desc,descEn]) => `<button type="button" class="home-choice" data-home-go="${id}"><span class="home-icon" aria-hidden="true">${icon}</span><strong>${en?eng:es}</strong><span class="home-desc">${en?descEn:desc}</span><span class="home-enter">${en?'Enter':'Entrar'} →</span></button>`).join('');
+ const last = HOME_SECTIONS.find(x=>x[0]===state.activeNav) || HOME_SECTIONS[0];
+ return `<section class="home-welcome">${mascot()}<div><h1>${en?'Choose your next step':'¿Qué quieres hacer hoy?'}</h1><p>${en?'Nova is here to help. Choose a space and work at your own pace.':'Nova te acompaña. Elige un espacio y avanza a tu ritmo.'}</p></div></section><section class="home-grid" aria-label="${en?'Main menu':'Menú principal'}">${cards}</section><div class="home-resume"><button type="button" data-home-go="${last[0]}">▶ ${en?'Continue':'Continuar'} · ${en?last[3]:last[2]}</button><p>${en?'Your answers and drafts are kept in this browser.':'Tus respuestas y borradores se conservan en este navegador.'}</p></div>`;
+}
+const homeButton = document.createElement('button');
+homeButton.type = 'button'; homeButton.id = 'homeMenuBtn';
+document.querySelector('.topbar-inner').appendChild(homeButton);
+homeButton.addEventListener('click', () => { showingHome = true; render(); window.scrollTo(0,0); });
+document.addEventListener('click', (event) => {
+ const btn = event.target.closest('[data-home-go], [data-nav]');
+ if (!btn) return;
+ showingHome = false;
+ if (btn.dataset.homeGo) {
+   state.activeNav = btn.dataset.homeGo; save(); render(); window.scrollTo(0,0);
+ }
+}, true);
+
 function render() {
+  state.teacherConfig = DEFAULT_TEACHER_CONFIG();
+  if (state.prueba.current) { state.prueba.current.w1 = 40; state.prueba.current.w2 = 60; }
+  restoreGroupedModels(state);
   updateChrome();
+  document.body.dataset.screen = showingHome ? 'home' : 'activity';
+  homeButton.textContent = L()==='en' ? '⌂ Main menu' : '⌂ Menú principal';
+  homeButton.setAttribute('aria-current', showingHome ? 'page' : 'false');
+  if (showingHome) { app.innerHTML = renderHomeMenu(); return; }
   if (state.activeNav === 'expedientes') app.innerHTML = renderExpedientes();
   else if (state.activeNav === 'taller') app.innerHTML = renderTaller();
   else if (state.activeNav === 'evidencias') app.innerHTML = renderEvidencias();
   else app.innerHTML = renderPrueba();
 }
+
+$('brandTitle').addEventListener('click', (e) => {
+ e.preventDefault(); showingHome = true; render(); window.scrollTo(0,0);
+});
 
 document.querySelectorAll('[data-nav]').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -3122,11 +3268,8 @@ document.querySelectorAll('[data-nav]').forEach((btn) => {
   });
 });
 
-$('langBtn').addEventListener('click', () => {
-  state.lang = L() === 'es' ? 'en' : 'es';
-  save();
-  render();
-});
+$('langEs').addEventListener('click', () => { state.lang = 'es'; save(); render(); });
+$('langEn').addEventListener('click', () => { state.lang = 'en'; save(); render(); });
 $('formulaBtn').addEventListener('click', openFormulaCalcModal);
 $('configBtn').addEventListener('click', openTeacherConfigModal);
 $('pkmBtn').addEventListener('click', () => openPkmDialog(''));
@@ -3139,16 +3282,16 @@ app.addEventListener('click', (e) => {
     state.activeExp = Number(t.dataset.openExp);
     save();
     render();
-    $('caseWorkspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('caseWorkspace')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     return;
   }
   if (t.dataset.expStage != null) {
     const m = COMPETENCIAS_META[state.activeExp];
     const rec = makeExpRecord(m.id);
     rec.stage = clamp(Number(t.dataset.expStage), 0, 5);
-    rec.stageDone[rec.stage] = true;
     save();
     render();
+    $('caseWorkspace')?.scrollIntoView({block:'start', behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
     return;
   }
   if (t.dataset.newExpVar) {
@@ -3185,11 +3328,11 @@ app.addEventListener('click', (e) => {
     if (parts[0] === 'exp') {
       const rec = makeExpRecord(parts[1]);
       const obj = parts[2] === 'T' ? rec.usedHelpTransfer : rec.usedHelpAnalysis;
-      obj[parts[3]] = !obj[parts[3]];
+      obj[parts[3]] = true;
       save();
       render();
     } else if (parts[0] === 'tal' && state.taller.current) {
-      state.taller.current.usedHelp[parts[1]] = !state.taller.current.usedHelp[parts[1]];
+      state.taller.current.usedHelp[parts[1]] = true;
       if (parts[1] === 'solution' && !state.taller.current.queuedErr) {
         state.taller.current.queuedErr = true;
         if (state.taller.errorQueue.length < 15) state.taller.errorQueue.push({ topic: state.taller.current.topic, diff: state.taller.current.diff });
@@ -3311,7 +3454,9 @@ app.addEventListener('input', (e) => {
   }
 });
 
-$('modal').addEventListener('click', (e) => {
+$('modal').addEventListener('click', (event) => {
+  const e = {target: event.target.closest('button') || event.target};
+  if (e.target.dataset.printReport) { window.print(); return; }
   if (e.target === $('modal') || e.target.dataset.closeDlg) { closeDialog(); return; }
   if (e.target.dataset.calcK) {
     const k = e.target.dataset.calcK;
@@ -3325,17 +3470,6 @@ $('modal').addEventListener('click', (e) => {
     }
     const disp = $('calcDisp');
     if (disp) disp.textContent = calcExpr || '0';
-    return;
-  }
-  if (e.target.id === 'saveTeacherCfg') {
-    state.teacherConfig.discreteQuantile = $('cfgDisc').value;
-    state.teacherConfig.groupedQuantile = $('cfgGrp').value;
-    state.teacherConfig.decimals = Number($('cfgDec').value) === 3 ? 3 : 2;
-    state.teacherConfig.exam2DWeight = Number($('cfgW2').value) || 60;
-    state.prueba.current = generateExamProblem();
-    save();
-    closeDialog();
-    render();
     return;
   }
   if (e.target.id === 'savePkmBtn') {

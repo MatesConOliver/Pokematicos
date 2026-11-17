@@ -3,83 +3,166 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Laboratorio de Probabilidad · Criterio B (4.º ESO / MYP 5)</title>
+<title>Level Up: Probabilidad · Criterio B (4.º ESO / MYP 5)</title>
 <style>
 :root{
-  --bg:#f5f7fb;
+  --bg:#fffaf5;
   --surface:#ffffff;
-  --surface-2:#f0f4fa;
-  --ink:#111c2d;
-  --ink-2:#44546b;
-  --muted:#63738a;
-  --line:#dbe3ee;
-  --cobalt:#1d4ed8;
-  --cobalt-dark:#1e3a8a;
-  --cobalt-soft:#e8effd;
-  --coral:#be123c;
-  --coral-soft:#ffeef2;
-  --teal:#0f766e;
-  --teal-soft:#e7f7f5;
-  --amber:#b45309;
-  --amber-soft:#fef6e4;
-  --radius:14px;
-  --radius-sm:10px;
-  --shadow:0 2px 10px rgba(17,28,45,.05);
+  --surface-2:#faf7ff;
+  --ink:#30234c;
+  --ink-2:#4a3d66;
+  --muted:#655a77;
+  --line:#d9c9ec;
+  --line-soft:#eee5f7;
+  --purple:#6741b5;
+  --purple-dark:#4a2c89;
+  --lav:#eee5ff;
+  --mint:#d9f7ec;
+  --peach:#ffe1d2;
+  --yellow:#fff0b5;
+  --cobalt:#6741b5;
+  --cobalt-dark:#4a2c89;
+  --cobalt-soft:#eee5ff;
+  --coral:#c83e3b;
+  --coral-soft:#ffe7df;
+  --teal:#08715e;
+  --teal-soft:#d9f7ec;
+  --amber:#9a5b00;
+  --amber-soft:#fff0d2;
+  --ok:#08715e;
+  --pkm:#08715e;
+  --pkm-soft:#eefaf5;
+  --radius:22px;
+  --radius-sm:14px;
+  --shadow:0 5px 25px #58407812;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Plus Jakarta Sans","DM Sans",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+html,body{
+  margin:0;padding:0;
+  background:radial-gradient(ellipse at top left,#f2e8ff,transparent 45%),radial-gradient(ellipse at top right,#d9f7ec,transparent 45%),var(--bg);
+  color:var(--ink);
+  font:16.5px/1.55 var(--sans);
+  -webkit-font-smoothing:antialiased;
+}
 body.no-anim *,body.no-anim *::before,body.no-anim *::after{transition:none!important;animation:none!important}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer;border:1px solid transparent;border-radius:var(--radius-sm);padding:9px 16px;min-height:40px;font-weight:600;transition:background-color .16s ease,border-color .16s ease,color .16s ease}
-button:disabled{opacity:.48;cursor:not-allowed}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--cobalt);outline-offset:2px}
-.mono,.num-cell{font-family:ui-monospace,"IBM Plex Mono",SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+button{
+  cursor:pointer;border:0;border-radius:14px;padding:10px 16px;min-height:42px;font-weight:750;
+  background:var(--purple);color:#fff;box-shadow:0 4px 0 var(--purple-dark);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
+  transition:filter .14s ease,transform .1s ease;
+}
+button:hover:not(:disabled){filter:brightness(1.07)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.48;cursor:not-allowed;box-shadow:none}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid #15806b;outline-offset:3px}
+.mono,.num-cell{font-family:var(--mono);font-variant-numeric:tabular-nums}
 h1,h2,h3,h4{line-height:1.25;text-wrap:balance}
 
-/* Top Bar Contract: 3 clean zones + secondary lab strip */
+/* Top Bar: monica/radicales family aesthetic */
 header.topbar{
-  background:var(--surface);border-bottom:1px solid var(--line);
-  padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  background:rgba(255,250,245,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
   position:sticky;top:0;z-index:20;
 }
-.brand-link{font-weight:800;font-size:1.18rem;letter-spacing:-.02em;color:var(--ink);white-space:nowrap;flex-shrink:0}
+.topbar-inner{
+  max-width:1200px;margin:0 auto;padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+}
+.brand-link{
+  font-weight:900;font-size:clamp(20px,2.8vw,25px);letter-spacing:-.03em;color:var(--ink);
+  white-space:nowrap;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;gap:8px;
+}
 .nav-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .nav-tabs button{
-  background:transparent;color:var(--ink-2);padding:8px 13px;border-radius:8px;white-space:nowrap;flex-shrink:0;
-  border-bottom:2px solid transparent;border-radius:8px 8px 0 0;
+  background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 0 #e2d8fa;
+  padding:8px 13px;min-height:40px;border-radius:12px;white-space:nowrap;flex-shrink:0;font-weight:700;
 }
-.nav-tabs button:hover{color:var(--ink);background:var(--surface-2)}
-.nav-tabs button[aria-current="page"]{color:var(--cobalt-dark);border-bottom-color:var(--cobalt);background:var(--cobalt-soft)}
+.nav-tabs button:hover:not(:disabled){background:var(--lav)}
+.nav-tabs button[aria-current="page"]{color:#fff;background:var(--purple);border-color:var(--purple);box-shadow:0 3px 0 var(--purple-dark)}
 .header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
 
-.btn-primary{background:var(--cobalt);color:#fff;border-color:var(--cobalt)}
-.btn-primary:hover{background:var(--cobalt-dark)}
-.btn-teal{background:var(--teal);color:#fff;border-color:var(--teal)}
-.btn-teal:hover{background:#0b5d57}
-.btn-coral{background:var(--coral);color:#fff;border-color:var(--coral)}
-.btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
-.btn-ghost:hover{background:var(--surface-2);border-color:#bfd0e4}
-.btn-ghost[aria-pressed="true"]{background:var(--cobalt-soft);border-color:var(--cobalt);color:var(--cobalt-dark)}
+.lang-toggle{display:inline-flex;background:#eee5ff;padding:4px;border-radius:14px;gap:4px;border:1px solid #d9c9ec}
+.lang-toggle button{
+  background:transparent;color:var(--ink);box-shadow:none;padding:6px 11px;min-height:34px;
+  border-radius:10px;font-size:13.5px;font-weight:700;white-space:nowrap;
+}
+.lang-toggle button[aria-pressed="true"]{background:var(--purple);color:#fff;box-shadow:0 2px 0 var(--purple-dark)}
+
+.btn-primary{background:var(--purple);color:#fff;box-shadow:0 4px 0 var(--purple-dark)}
+.btn-teal{background:var(--teal);color:#fff;box-shadow:0 4px 0 #054d40}
+.btn-coral{background:var(--coral);color:#fff;box-shadow:0 4px 0 #8d2422}
+.btn-ghost{background:#fff;color:var(--purple);border:1px solid #c9b8ee;box-shadow:0 3px 0 #e2d8fa}
+.btn-ghost:hover:not(:disabled){background:var(--surface-2)}
+.btn-ghost[aria-pressed="true"]{background:var(--purple);border-color:var(--purple);color:#fff;box-shadow:0 2px 0 var(--purple-dark)}
+button.pkm-trigger.has-id{background:var(--pkm-soft);border-color:var(--pkm);color:var(--pkm);box-shadow:0 3px 0 #bfe6d8}
 
 .toolbar-strip{
   max-width:1200px;margin:14px auto 0;padding:0 20px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
 }
-.meta-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.88rem;color:var(--muted)}
-.seg-group{display:inline-flex;background:var(--surface-2);padding:3px;border-radius:10px;border:1px solid var(--line);gap:3px}
-.seg-group button{min-height:34px;padding:5px 12px;font-size:.86rem;background:transparent;color:var(--ink-2);border-radius:7px}
-.seg-group button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.meta-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.seg-group{display:inline-flex;background:#eee5ff;padding:4px;border-radius:14px;border:1px solid #d9c9ec;gap:4px;flex-wrap:wrap}
+.seg-group button{
+  min-height:34px;padding:6px 12px;font-size:13.5px;background:transparent;color:var(--ink);
+  border-radius:10px;box-shadow:none;font-weight:700;
+}
+.seg-group button[aria-pressed="true"]{background:var(--purple);color:#fff;box-shadow:0 2px 0 var(--purple-dark)}
 
 main{max-width:1200px;margin:0 auto;padding:16px 20px 64px}
-.notice{max-width:1200px;margin:8px auto 0;padding:0 20px;font-size:.9rem;color:var(--coral);font-weight:600}
+.notice{max-width:1200px;margin:8px auto 0;padding:10px 16px;border-radius:14px;background:var(--amber-soft);border:1px solid #f0d08a;font-size:.9rem;color:#7a4400;font-weight:700}
 .notice:empty{display:none}
 
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(16px,2.5vw,26px);box-shadow:var(--shadow);margin-top:14px}
-.subpanel{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px;margin-top:12px}
-.divider{height:1px;background:var(--line);margin:18px 0;border:0}
+.panel{
+  background:var(--surface);border:1px solid var(--line-soft);border-radius:24px;
+  padding:clamp(18px,2.8vw,28px);box-shadow:var(--shadow);margin-top:14px;
+}
+.subpanel{background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:12px}
+.divider{height:1px;background:var(--line-soft);margin:18px 0;border:0}
 
-.two-zone{display:grid;grid-template-columns:1.35fr 1fr;gap:20px;align-items:start}
+/* Nova Hero Banner & Guidance Notes */
+.hero{
+  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  background:linear-gradient(120deg,#eee5ff,#fff0d9);
+  border:2px solid #fff;border-radius:28px;padding:24px;margin:0 0 18px;
+  box-shadow:0 8px 25px #58407815;
+}
+.mascot{flex:none;width:112px;height:112px}
+.hero-kicker{font-size:13px;font-weight:800;letter-spacing:.1em;color:var(--purple);text-transform:uppercase}
+.hero h1{margin:4px 0 8px;font-size:clamp(24px,3.2vw,31px);line-height:1.18;letter-spacing:-.02em}
+.hero p{margin:0 0 12px;color:var(--muted);max-width:64ch}
+.track{height:14px;background:#e4d9f1;border-radius:20px;overflow:hidden;margin:8px 0 14px}
+.track span{display:block;height:100%;background:linear-gradient(90deg,#8759df,#20a88b);transition:width .3s}
+.hero-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kpi{background:rgba(255,255,255,.78);border:1px solid #fff;border-radius:16px;padding:10px 14px}
+.kpi .k{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.kpi .v{display:block;font-size:21px;font-weight:900;color:var(--ink);font-family:var(--mono);margin-top:2px}
+.nova-note{
+  display:flex;align-items:center;gap:12px;background:#eef9f4;border:1px solid #bfe6d8;
+  border-radius:16px;padding:12px 16px;margin:12px 0;
+}
+.nova-note .mascot{width:46px;height:46px}
+.nova-note p{margin:0;font-size:14.5px}
+
+/* Pastel Interactive Selection Cards */
+.exp-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.inv-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.pastel-tab{
+  text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+  padding:14px 16px;border-radius:20px;border:2px solid #fff;color:var(--ink);
+  box-shadow:0 4px 16px #58407812;white-space:normal;min-height:auto;width:100%;
+}
+.pastel-tab:nth-child(4n+1){background:var(--lav)}
+.pastel-tab:nth-child(4n+2){background:var(--mint)}
+.pastel-tab:nth-child(4n+3){background:var(--peach)}
+.pastel-tab:nth-child(4n+4){background:var(--yellow)}
+.pastel-tab[aria-pressed="true"]{outline:3px solid var(--purple);outline-offset:2px;box-shadow:0 6px 20px #6741b529}
+.pastel-tab .pt-kicker{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--purple);text-transform:uppercase}
+.pastel-tab .pt-title{font-size:16px;font-weight:800;line-height:1.25}
+
+.two-zone{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start}
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -88,65 +171,78 @@ main{max-width:1200px;margin:0 auto;padding:16px 20px 64px}
 .row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
 .field-input,select.field-input,textarea.field-input{
-  width:100%;padding:9px 12px;min-height:40px;border:1px solid #c2cfdf;border-radius:8px;background:#fff;color:var(--ink)
+  width:100%;padding:10px 12px;min-height:42px;border:2px solid #cbbbe9;border-radius:12px;background:#fff;color:var(--ink)
 }
 textarea.field-input{min-height:84px;resize:vertical}
-.cell-input{width:100%;min-width:68px;padding:6px 8px;min-height:36px;border:1px solid #c2cfdf;border-radius:6px;text-align:center;background:#fff;font-variant-numeric:tabular-nums}
+.cell-input{
+  width:100%;min-width:68px;padding:6px 8px;min-height:36px;border:2px solid #cbbbe9;
+  border-radius:10px;text-align:center;background:#fff;font-family:var(--mono);font-variant-numeric:tabular-nums
+}
 .cell-input[readonly]{background:var(--surface-2);color:var(--ink-2)}
 
-.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:8px}
+.table-wrap{overflow-x:auto;border:1.5px solid var(--line);border-radius:14px;background:#fff;margin-top:10px}
 table{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
-th,td{padding:8px 10px;border-bottom:1px solid var(--line);border-right:1px solid #eef2f7;text-align:center}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line-soft);text-align:center}
 th:last-child,td:last-child{border-right:0}
 tr:last-child td,tr:last-child th{border-bottom:0}
-thead th{background:var(--surface-2);font-weight:700;color:var(--ink)}
+thead th,tbody th{background:#f7f1ff;font-weight:800;color:var(--ink)}
 
-.status-txt{font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:6px}
-.st-pending{color:var(--muted)}
-.st-guided{color:var(--amber)}
-.st-auto{color:var(--teal)}
-.st-cons{color:var(--cobalt-dark)}
+.status-txt{font-size:.86rem;font-weight:800;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:30px}
+.st-pending{background:#fff;color:var(--muted);border:1px solid var(--line)}
+.st-guided{background:var(--amber-soft);color:var(--amber);border:1px solid #f0d08a}
+.st-auto{background:var(--teal-soft);color:var(--teal);border:1px solid #a7dfcc}
+.st-cons{background:#fff6cf;color:#7a4f00;border:1px solid #edd072}
 
-.callout{padding:11px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);font-size:.93rem;margin-top:10px}
-.callout.ok{background:var(--teal-soft);border-color:#9bd8d1;color:#0b4f49}
-.callout.warn{background:var(--amber-soft);border-color:#f0ce8c;color:#78350f}
-.callout.err{background:var(--coral-soft);border-color:#f2b5c4;color:#881337}
-.callout.info{background:var(--cobalt-soft);border-color:#bdd0fb;color:#1e3a8a}
+.callout{padding:12px 15px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);font-size:.94rem;margin-top:10px}
+.callout.ok{background:var(--teal-soft);border-color:#9bd8c1;color:#054d40}
+.callout.warn{background:var(--amber-soft);border-color:#f0d08a;color:#7a4400}
+.callout.err{background:var(--coral-soft);border-color:#f5b7aa;color:#7a1c14}
+.callout.info{background:#f5efff;border-color:#cbbbe9;color:var(--ink)}
 
 .choice-opt{
-  display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);
-  border-radius:10px;background:#fff;cursor:pointer;text-align:left
+  display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:2px solid #d9c9ec;
+  border-radius:14px;background:#fff;cursor:pointer;text-align:left
 }
-.choice-opt:has(input:checked){border-color:var(--cobalt);background:var(--cobalt-soft)}
-.choice-opt input{width:18px;height:18px;margin-top:2px;accent-color:var(--cobalt);flex-shrink:0}
+.choice-opt:has(input:checked){border-color:var(--purple);background:var(--lav)}
+.choice-opt input{width:19px;height:19px;margin-top:2px;accent-color:var(--purple);flex-shrink:0}
 
-.svg-stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}
+.svg-stage{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;margin-top:8px}
 .svg-stage svg{display:block;max-width:100%;height:auto;margin:0 auto}
 
 .door-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
 .door-btn{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  padding:18px 10px;min-height:112px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)
+  padding:18px 10px;min-height:118px;border:2px solid #d9c9ec;border-radius:18px;background:#fff;color:var(--ink);
+  box-shadow:0 4px 0 #e2d8fa;white-space:normal;
 }
-.door-btn.chosen{border-color:var(--cobalt);background:var(--cobalt-soft)}
-.door-btn.opened{border-color:var(--amber);background:var(--amber-soft)}
-.door-btn.win{border-color:var(--teal);background:var(--teal-soft)}
+.door-btn.chosen{border-color:var(--purple);background:var(--lav);box-shadow:0 4px 0 #c9b8ee}
+.door-btn.opened{border-color:#d9a441;background:var(--yellow);box-shadow:0 4px 0 #e6cc7a}
+.door-btn.win{border-color:var(--teal);background:var(--mint);box-shadow:0 4px 0 #9bd8c1}
 
-.ev-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
-.ev-row:last-child{border-bottom:0}
+.ev-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:12px 14px;border:1px solid #e5daf5;border-radius:16px;background:#faf7ff;margin-bottom:10px;
+}
+.ev-row:last-child{margin-bottom:0}
 
-dialog{width:min(820px,calc(100% - 24px));max-height:90dvh;overflow:auto;border:1px solid var(--line);border-radius:16px;padding:0;background:#fff;color:var(--ink);box-shadow:0 20px 60px rgba(17,28,45,.25)}
-dialog::backdrop{background:rgba(17,28,45,.5)}
-.dlg-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
-.dlg-body{padding:18px 20px}
+.code-box{background:#f7f1ff;border:2px dashed #b49be6;border-radius:16px;padding:16px;text-align:center;margin:14px 0}
+.code-value{font-family:var(--mono);font-size:clamp(16px,3vw,21px);font-weight:800;letter-spacing:.06em;word-break:break-all;user-select:all}
 
-footer{max-width:1200px;margin:0 auto;padding:18px 20px 36px;border-top:1px solid var(--line);font-size:.86rem;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+dialog{width:min(840px,calc(100% - 24px));max-height:90dvh;overflow:auto;border:1px solid #d9c9ec;border-radius:24px;padding:0;background:var(--bg);color:var(--ink);box-shadow:0 15px 60px #30234c44}
+dialog::backdrop{background:#30234c88}
+.dlg-head{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:var(--bg);z-index:2}
+.dlg-body{padding:18px 22px}
+
+footer{max-width:1200px;margin:0 auto;padding:18px 20px 36px;border-top:1px solid var(--line-soft);font-size:.86rem;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
 @media(max-width:960px){
-  .two-zone,.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .two-zone,.grid-2,.grid-3,.grid-4,.exp-tiles,.inv-tiles{grid-template-columns:1fr}
+  .hero-kpis{grid-template-columns:1fr}
 }
 @media(max-width:650px){
-  header.topbar{padding:10px 14px;gap:10px}
+  .topbar-inner{padding:10px 14px;gap:10px}
+  .hero{padding:16px;gap:14px}
+  .mascot{width:80px;height:80px}
   button{min-height:44px}
 }
 @media print{
@@ -155,19 +251,53 @@ footer{max-width:1200px;margin:0 auto;padding:18px 20px 36px;border-top:1px soli
   main{max-width:none;padding:0}
   .panel{border:0;box-shadow:none;padding:0}
 }
+
+/* A calm entry point, shared by both Level Up apps. */
+header.topbar{position:static;background:transparent;backdrop-filter:none;border:0}
+.topbar-inner{max-width:1040px;padding:24px 20px 12px;gap:16px}
+.brand-link{font-size:clamp(25px,4vw,38px);white-space:normal;line-height:1.15;letter-spacing:-.04em}
+body{background:radial-gradient(ellipse at top left,#f2e8ff,transparent 48%),radial-gradient(ellipse at top right,#d9f7ec,transparent 48%),#fffaf5;background-attachment:fixed}
+body[data-screen="home"] .main-nav,body[data-screen="home"] .nav-tabs,body[data-screen="home"] .toolbar-strip{display:none}
+.home-welcome{display:flex;align-items:center;gap:22px;padding:26px;background:linear-gradient(120deg,#eee5ff,#fff0d9);border:2px solid white;border-radius:28px;margin:12px 0 22px;box-shadow:0 8px 25px #58407815}
+.home-welcome .mascot{width:106px;height:106px;flex:none}
+.home-welcome h1{font-size:clamp(25px,4vw,34px);margin:0 0 8px;line-height:1.2}
+.home-welcome p{margin:0;color:#655a77}
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.home-choice{display:flex;flex-direction:column;align-items:flex-start;white-space:normal;text-align:left;padding:24px;border-radius:24px;border:2px solid white;box-shadow:0 5px 18px #58407812;color:#30234c;gap:8px;min-width:0}
+.home-choice:nth-child(4n+1){background:#eee5ff}
+.home-choice:nth-child(4n+2){background:#d9f7ec}
+.home-choice:nth-child(4n+3){background:#ffe1d2}
+.home-choice:nth-child(4n+4){background:#fff0b5}
+.home-choice .home-icon{font-size:34px;line-height:1.3}
+.home-choice strong{font-size:21px}
+.home-choice .home-desc{font-size:15px;font-weight:400;line-height:1.55}
+.home-choice .home-enter{margin-top:10px;color:#6741b5;font-size:15px}
+.home-resume{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:22px}
+.home-resume p{font-size:14px;color:#655a77;margin:0}
+#homeMenuBtn{font-size:14px;padding:9px 14px;min-height:44px;background:white;color:#6741b5;border:1px solid #c9b8ee;box-shadow:0 3px 0 #e2d8fa}
+#app:focus{outline:none}
+@media(max-width:600px){.home-grid{grid-template-columns:1fr}.home-choice{padding:20px;gap:5px}.home-welcome{padding:18px;gap:12px;align-items:flex-start}.home-welcome .mascot{width:68px;height:68px}.home-welcome h1{font-size:25px}.home-choice .home-icon{font-size:28px}.topbar-inner{padding:20px 16px 8px}}
+@media print{.home-resume,#homeMenuBtn{display:none}}
+
 </style>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand-link" id="brandTitle">Laboratorio de Probabilidad</div>
-  <nav class="nav-tabs" aria-label="Espacios principales">
-    <button type="button" data-nav="explora" id="tabExplora" aria-current="page">Explora</button>
-    <button type="button" data-nav="investiga" id="tabInvestiga">Investiga</button>
-    <button type="button" data-nav="taller" id="tabTaller">Taller</button>
-    <button type="button" data-nav="evidencias" id="tabEvidencias">Mis evidencias</button>
-  </nav>
-  <div class="header-actions">
-    <button type="button" class="btn-ghost" id="pkmBtn">Pokemáticos</button>
+  <div class="topbar-inner">
+    <a href="#explora" class="brand-link" id="brandTitle">🎲 Laboratorio de Probabilidad</a>
+    <nav class="nav-tabs" aria-label="Espacios principales">
+      <button type="button" data-nav="explora" id="tabExplora" aria-current="page">🧪 Explora</button>
+      <button type="button" data-nav="investiga" id="tabInvestiga">🔬 Investiga</button>
+      <button type="button" data-nav="taller" id="tabTaller">🛠️ Taller</button>
+      <button type="button" data-nav="evidencias" id="tabEvidencias">🏅 Mis evidencias</button>
+    </nav>
+    <div class="header-actions">
+      <div class="lang-toggle" role="group" id="langGroup" aria-label="Idioma">
+        <button type="button" id="langEs" aria-pressed="true">🇪🇸 Español</button>
+        <button type="button" id="langEn" aria-pressed="false">🇬🇧 English</button>
+      </div>
+      <button type="button" class="btn-ghost pkm-trigger" id="pkmBtn">🎫 Pokemáticos</button>
+    </div>
   </div>
 </header>
 
@@ -175,15 +305,14 @@ footer{max-width:1200px;margin:0 auto;padding:18px 20px 36px;border-top:1px soli
   <div class="meta-line">
     <span id="courseMeta">4.º ESO / MYP 5 · Criterio B: Investigación de patrones</span>
     <span aria-hidden="true">·</span>
-    <span id="activeModeLabel">Modo individual</span>
+    <span id="activeModeLabel">👤 Modo individual</span>
   </div>
   <div class="row">
     <div class="seg-group" role="group" aria-label="Modo de trabajo">
-      <button type="button" id="modeSoloBtn" aria-pressed="true">Individual</button>
-      <button type="button" id="modePairBtn" aria-pressed="false">Pareja</button>
+      <button type="button" id="modeSoloBtn" aria-pressed="true">👤 Individual</button>
+      <button type="button" id="modePairBtn" aria-pressed="false">👥 Pareja</button>
     </div>
-    <button type="button" class="btn-ghost" id="animToggleBtn" aria-pressed="false" style="min-height:36px;padding:5px 11px;font-size:.86rem">Omitir animaciones</button>
-    <button type="button" class="btn-ghost" id="langBtn" style="min-height:36px;padding:5px 11px;font-size:.86rem">ES / EN</button>
+    <button type="button" class="btn-ghost" id="animToggleBtn" aria-pressed="false" style="min-height:36px;padding:5px 12px;font-size:13.5px">⏭️ Omitir animaciones</button>
   </div>
 </div>
 
@@ -307,22 +436,22 @@ function generateRewardCode(studentId, sourceId, activityId) {
 
 /* ================= RECOGNITION METADATA (STRICTLY SEPARATED) ================= */
 const HUELLAS_META = [
-  { id: 'huePre', max: 4, es: { name: 'Revisión de predicción', desc: 'Comparar tu predicción inicial con evidencia experimental o modelo y anotar una revisión.' }, en: { name: 'Prediction revision', desc: 'Compare an initial prediction with evidence and log a revision.' } },
-  { id: 'hueTab', max: 4, es: { name: 'Corrección de tabla o árbol', desc: 'Detectar y corregir una inconsistencia en frecuencias, denominadores o ramas.' }, en: { name: 'Table or tree fix', desc: 'Spot and fix an inconsistency in counts, denominators, or branches.' } },
-  { id: 'hueAyu', max: 4, es: { name: 'Uso útil de apoyo', desc: 'Consultar una pista conceptual y resolver después correctamente un caso nuevo.' }, en: { name: 'Applied hint', desc: 'Use a conceptual hint and solve a fresh case afterward.' } },
-  { id: 'hueCon', max: 4, es: { name: 'Revisión de conjetura fallida', desc: 'Comprobar que una primera regla no cumplía un caso y reformularla.' }, en: { name: 'Conjecture refinement', desc: 'Spot a failing rule on a test case and refine it.' } },
-  { id: 'hueRet', max: 3, es: { name: 'Retomar en otra sesión', desc: 'Continuar una investigación guardada en una fecha distinta.' }, en: { name: 'Return across sessions', desc: 'Resume a saved investigation on a later date.' } }
+  { id: 'huePre', icon: '🔮', max: 4, es: { name: 'Revisión de predicción', desc: 'Comparar tu predicción inicial con evidencia experimental o modelo y anotar una revisión.' }, en: { name: 'Prediction revision', desc: 'Compare an initial prediction with evidence and log a revision.' } },
+  { id: 'hueTab', icon: '🧩', max: 4, es: { name: 'Corrección de tabla o árbol', desc: 'Detectar y corregir una inconsistencia en frecuencias, denominadores o ramas.' }, en: { name: 'Table or tree fix', desc: 'Spot and fix an inconsistency in counts, denominators, or branches.' } },
+  { id: 'hueAyu', icon: '💡', max: 4, es: { name: 'Uso útil de apoyo', desc: 'Consultar una pista conceptual y resolver después correctamente un caso nuevo.' }, en: { name: 'Applied hint', desc: 'Use a conceptual hint and solve a fresh case afterward.' } },
+  { id: 'hueCon', icon: '🔄', max: 4, es: { name: 'Revisión de conjetura fallida', desc: 'Comprobar que una primera regla no cumplía un caso y reformularla.' }, en: { name: 'Conjecture refinement', desc: 'Spot a failing rule on a test case and refine it.' } },
+  { id: 'hueRet', icon: '📅', max: 3, es: { name: 'Retomar en otra sesión', desc: 'Continuar una investigación guardada en una fecha distinta.' }, en: { name: 'Return across sessions', desc: 'Resume a saved investigation on a later date.' } }
 ];
 
 const SELLOS_META = [
-  { id: 'selRep', es: { name: 'Represento una situación correctamente', desc: 'Construyo tablas 2×2, Venn proporcionales/esquemáticos o árboles consistentes.' }, en: { name: 'Represent situations accurately', desc: 'Build consistent 2×2 tables, Venn diagrams, or probability trees.' } },
-  { id: 'selInv', es: { name: 'Distingo condicionales inversas y causalidad', desc: 'Diferencio P(A|B) de P(B|A), manejo denominador cero y no confundo correlación con causa.' }, en: { name: 'Distinguish inverse conditionals', desc: 'Separate P(A|B) from P(B|A), zero denominators, and causality.' } },
-  { id: 'selOrg', es: { name: 'Organizo casos útiles', desc: 'Elijo y registro múltiples valores estructurados (incluidos bordes como N=2) sin mezclar series.' }, en: { name: 'Organize useful cases', desc: 'Select and record multiple structured cases (including edge N=2) with isolated series.' } },
-  { id: 'selPat', es: { name: 'Describo un patrón con precisión', desc: 'Identifico regularidades numéricas y tendencia límite sin confundir simulación con demostración.' }, en: { name: 'Describe patterns precisely', desc: 'Identify numerical patterns and limiting behavior without equating simulation to proof.' } },
-  { id: 'selReg', es: { name: 'Formulo una regla general', desc: 'Expreso P(N) como fórmula algebraica verificada en todo el dominio.' }, en: { name: 'Formulate a general rule', desc: 'Express P(N) as a verified algebraic formula across the domain.' } },
-  { id: 'selCmp', es: { name: 'Compruebo en un caso nuevo', desc: 'Verifico mi regla comparando su predicción con un caso N nuevo independiente del ajuste.' }, en: { name: 'Verify on an unseen case', desc: 'Test the rule against a brand-new N excluded from rule construction.' } },
-  { id: 'selJus', humanReview: true, es: { name: 'Justifico matemáticamente (requiere revisión humana)', desc: 'Explico por qué funciona la reducción del espacio muestral; queda pendiente de validación docente/pares.' }, en: { name: 'Justify mathematically (human review)', desc: 'Explain why sample-space reduction works; remains flagged for teacher/peer review.' } },
-  { id: 'selTrn', es: { name: 'Transfiero el método a otra situación', desc: 'Aplico la estrategia completa de forma autónoma en una investigación nueva.' }, en: { name: 'Transfer method to new setting', desc: 'Apply the full inquiry process autonomously on a fresh scenario.' } }
+  { id: 'selRep', icon: '🗺️', es: { name: 'Represento una situación correctamente', desc: 'Construyo tablas 2×2, Venn proporcionales/esquemáticos o árboles consistentes.' }, en: { name: 'Represent situations accurately', desc: 'Build consistent 2×2 tables, Venn diagrams, or probability trees.' } },
+  { id: 'selInv', icon: '⚖️', es: { name: 'Distingo condicionales inversas y causalidad', desc: 'Diferencio P(A|B) de P(B|A), manejo denominador cero y no confundo correlación con causa.' }, en: { name: 'Distinguish inverse conditionals', desc: 'Separate P(A|B) from P(B|A), zero denominators, and causality.' } },
+  { id: 'selOrg', icon: '📋', es: { name: 'Organizo casos útiles', desc: 'Elijo y registro múltiples valores estructurados (incluidos bordes como N=2) sin mezclar series.' }, en: { name: 'Organize useful cases', desc: 'Select and record multiple structured cases (including edge N=2) with isolated series.' } },
+  { id: 'selPat', icon: '🔍', es: { name: 'Describo un patrón con precisión', desc: 'Identifico regularidades numéricas y tendencia límite sin confundir simulación con demostración.' }, en: { name: 'Describe patterns precisely', desc: 'Identify numerical patterns and limiting behavior without equating simulation to proof.' } },
+  { id: 'selReg', icon: '📐', es: { name: 'Formulo una regla general', desc: 'Expreso P(N) como fórmula algebraica verificada en todo el dominio.' }, en: { name: 'Formulate a general rule', desc: 'Express P(N) as a verified algebraic formula across the domain.' } },
+  { id: 'selCmp', icon: '🧪', es: { name: 'Compruebo en un caso nuevo', desc: 'Verifico mi regla comparando su predicción con un caso N nuevo independiente del ajuste.' }, en: { name: 'Verify on an unseen case', desc: 'Test the rule against a brand-new N excluded from rule construction.' } },
+  { id: 'selJus', icon: '✍️', humanReview: true, es: { name: 'Justifico matemáticamente (requiere revisión humana)', desc: 'Explico por qué funciona la reducción del espacio muestral; queda pendiente de validación docente/pares.' }, en: { name: 'Justify mathematically (human review)', desc: 'Explain why sample-space reduction works; remains flagged for teacher/peer review.' } },
+  { id: 'selTrn', icon: '🚀', es: { name: 'Transfiero el método a otra situación', desc: 'Aplico la estrategia completa de forma autónoma en una investigación nueva.' }, en: { name: 'Transfer method to new setting', desc: 'Apply the full inquiry process autonomously on a fresh scenario.' } }
 ];
 
 function todayKey() {
@@ -348,7 +477,8 @@ function blankState(keepPrefs = false) {
     },
     explore: {},
     investigations: {},
-    taller: { topic: 'mix', current: null, errorQueue: [], solved: 0 }
+    taller: { topic: 'mix', current: null, errorQueue: [], solved: 0 },
+    teacherReview: null
   };
 }
 
@@ -381,6 +511,14 @@ function validateSave(raw, opts = {}) {
   if (raw.explore && typeof raw.explore === 'object') s.explore = raw.explore;
   if (raw.investigations && typeof raw.investigations === 'object') s.investigations = raw.investigations;
   if (raw.taller && typeof raw.taller === 'object') s.taller = raw.taller;
+  if (raw.teacherReview && typeof raw.teacherReview === 'object') {
+    s.teacherReview = {
+      date: typeof raw.teacherReview.date === 'string' ? raw.teacherReview.date.slice(0, 16) : todayKey(),
+      reviewer: typeof raw.teacherReview.reviewer === 'string' ? raw.teacherReview.reviewer.trim().slice(0, 60) : '',
+      note: typeof raw.teacherReview.note === 'string' ? raw.teacherReview.note.trim().slice(0, 400) : '',
+      method: raw.teacherReview.method === 'code' ? 'code' : 'review'
+    };
+  }
   return s;
 }
 
@@ -447,43 +585,49 @@ function selloStatusText(st, id = '') {
 /* ================= BILINGUAL UI DICTIONARY ================= */
 const UI = {
   es: {
-    brand: 'Laboratorio de Probabilidad',
-    navExp: 'Explora', navInv: 'Investiga', navTal: 'Taller', navEvi: 'Mis evidencias',
-    pkmBtn: 'Pokemáticos', pkmBtnSet: 'Pokemáticos ✓',
+    docTitle: 'Level Up: Probabilidad · Criterio B (4.º ESO / MYP 5)',
+    brand: '⭐ Level Up: Probabilidad',
+    navExp: '🧪 Explora', navInv: '🔬 Investiga', navTal: '🛠️ Taller', navEvi: '🏅 Mis evidencias',
+    pkmBtn: '🎫 Pokemáticos', pkmBtnSet: '🎫 Pokemáticos ✓',
+    mascotAlt: 'Nova, una estrella exploradora sonriente',
     courseMeta: '4.º ESO / MYP 5 · Criterio B: Investigación de patrones',
-    soloLbl: 'Modo individual', pairLbl: 'Modo pareja (2 integrantes)',
-    soloBtn: 'Individual', pairBtn: 'Pareja',
-    skipAnim: 'Omitir animaciones',
+    soloLbl: '👤 Modo individual', pairLbl: '👥 Modo pareja (2 integrantes)',
+    soloBtn: '👤 Individual', pairBtn: '👥 Pareja',
+    skipAnim: '⏭️ Omitir animaciones',
     footerL: 'Laboratorio de Probabilidad · Guardado local automático sin cuenta ni envío de datos.',
     footerR: 'Sin calificación automática MYP: las justificaciones quedan registradas para revisión docente.',
-    checkBtn: 'Comprobar',
+    checkBtn: '✓ Comprobar',
     states: { pending: 'Pendiente', guided: 'Practicado con ayuda', pending_human: 'Pendiente de revisión docente', autonomous: 'Demostrado autónomamente', consolidated: 'Consolidado por transferencia' },
-    pkmTitle: 'Pokemáticos · Public ID (opcional)',
+    pkmTitle: '🎫 Pokemáticos · Public ID (opcional)',
     pkmDesc: 'Pega tu Public ID para obtener códigos canjeables. Las Huellas de trabajo (constancia/revisión) y los Sellos de investigación (dominio) tienen categorías e identificadores separados.',
     pkmPlaceholder: 'Pega aquí tu Public ID', pkmSave: 'Guardar ID', pkmClear: 'Borrar ID',
-    pkmSaved: 'ID guardado. Los códigos están disponibles en Mis evidencias.', pkmCleared: 'ID eliminado.',
-    codeBtn: 'Código Pokemáticos', copyBtn: 'Copiar código', copiedMsg: 'Código copiado al portapapeles.', copyFail: 'Selecciona el código manualmente.', closeBtn: 'Cerrar'
+    pkmSaved: '✓ ID guardado. Los códigos están disponibles en Mis evidencias.', pkmCleared: 'ID eliminado.',
+    codeBtn: '🎫 Código Pokemáticos', copyBtn: '📋 Copiar código', copiedMsg: '✓ Código copiado al portapapeles.', copyFail: 'Selecciona el código manualmente.', closeBtn: 'Cerrar'
   },
   en: {
-    brand: 'Probability Lab',
-    navExp: 'Explore', navInv: 'Investigate', navTal: 'Workshop', navEvi: 'My Evidence',
-    pkmBtn: 'Pokemáticos', pkmBtnSet: 'Pokemáticos ✓',
+    docTitle: 'Level Up: Probability · Criterion B (Grade 10 / MYP 5)',
+    brand: '⭐ Level Up: Probability',
+    navExp: '🧪 Explore', navInv: '🔬 Investigate', navTal: '🛠️ Workshop', navEvi: '🏅 My Evidence',
+    pkmBtn: '🎫 Pokemáticos', pkmBtnSet: '🎫 Pokemáticos ✓',
+    mascotAlt: 'Nova, a smiling explorer star',
     courseMeta: 'Grade 10 / MYP 5 · Criterion B: Investigating Patterns',
-    soloLbl: 'Individual mode', pairLbl: 'Pair mode (2 partners)',
-    soloBtn: 'Solo', pairBtn: 'Pair',
-    skipAnim: 'Skip animations',
+    soloLbl: '👤 Individual mode', pairLbl: '👥 Pair mode (2 partners)',
+    soloBtn: '👤 Solo', pairBtn: '👥 Pair',
+    skipAnim: '⏭️ Skip animations',
     footerL: 'Probability Lab · Automatic local browser save, no sign-up or external tracking.',
     footerR: 'No automatic MYP 1–8 grade assigned: open justifications stay flagged for teacher review.',
-    checkBtn: 'Check',
+    checkBtn: '✓ Check',
     states: { pending: 'Pending', guided: 'Practiced with support', pending_human: 'Pending human review', autonomous: 'Demonstrated autonomously', consolidated: 'Consolidated by transfer' },
-    pkmTitle: 'Pokemáticos · Public ID (optional)',
+    pkmTitle: '🎫 Pokemáticos · Public ID (optional)',
     pkmDesc: 'Paste your Public ID to generate redeemable codes. Work Traces (consistency/review) and Research Seals (mastery) keep separate categories and IDs.',
     pkmPlaceholder: 'Paste your Public ID here', pkmSave: 'Save ID', pkmClear: 'Clear ID',
-    pkmSaved: 'ID saved. Codes are unlocked under My Evidence.', pkmCleared: 'ID cleared.',
-    codeBtn: 'Pokemáticos Code', copyBtn: 'Copy code', copiedMsg: 'Code copied to clipboard.', copyFail: 'Select and copy manually.', closeBtn: 'Close'
+    pkmSaved: '✓ ID saved. Codes are unlocked under My Evidence.', pkmCleared: 'ID cleared.',
+    codeBtn: '🎫 Pokemáticos Code', copyBtn: '📋 Copy code', copiedMsg: '✓ Code copied to clipboard.', copyFail: 'Select and copy manually.', closeBtn: 'Close'
   }
 };
 function tr(k) { return UI[L()][k]; }
+const mascot = () => `<svg class="mascot" viewBox="0 0 120 120" role="img" aria-label="${escapeText(tr('mascotAlt'))}"><path d="M60 9 75 39 109 44 84 69 90 104 60 88 30 104 36 69 11 44 45 39Z" fill="#ffd76d" stroke="#bd831a" stroke-width="3" stroke-linejoin="round"/><ellipse cx="47" cy="57" rx="4" ry="6" fill="#30234c"/><ellipse cx="73" cy="57" rx="4" ry="6" fill="#30234c"/><path d="M51 69 Q60 79 69 69" fill="none" stroke="#30234c" stroke-width="3" stroke-linecap="round"/><circle cx="39" cy="67" r="5" fill="#f5a3a4"/><circle cx="81" cy="67" r="5" fill="#f5a3a4"/><path d="M91 14v16m-8-8h16M17 82v12m-6-6h12" stroke="#8759df" stroke-width="3" stroke-linecap="round"/></svg>`;
+const novaNote = (text) => `<div class="nova-note">${mascot()}<p>${escapeText(text)}</p></div>`;
 
 /* ================= EXPLORA: STATE & EXPERIENCES (A, B, C, D) ================= */
 function getExpCond() {
@@ -602,11 +746,16 @@ function renderExplora() {
   const l = L();
   const tab = state.activeExplore;
   const tabs = [
-    ['cond', l === 'es' ? 'A. Condicionalidad vs Causalidad' : 'A. Conditionality vs Causality'],
-    ['monty', l === 'es' ? 'B. Paradoja de Monty Hall' : 'B. Monty Hall Paradox'],
-    ['diag', l === 'es' ? 'C. Pruebas Diagnósticas' : 'C. Diagnostic Tests'],
-    ['urn', l === 'es' ? 'D. Con y sin Reemplazamiento' : 'D. With vs Without Replacement']
+    ['cond', l === 'es' ? '🕵️ Condicionalidad vs Causalidad' : '🕵️ Conditionality vs Causality', l === 'es' ? 'A · Sesiones 1–2' : 'A · Sessions 1–2'],
+    ['monty', l === 'es' ? '🚪 Paradoja de Monty Hall' : '🚪 Monty Hall Paradox', l === 'es' ? 'B · Decisiones' : 'B · Strategy'],
+    ['diag', l === 'es' ? '🩺 Pruebas Diagnósticas' : '🩺 Diagnostic Tests', l === 'es' ? 'C · Falsos positivos' : 'C · False Positives'],
+    ['urn', l === 'es' ? '🏺 Con y sin Reemplazamiento' : '🏺 With vs Without Replacement', l === 'es' ? 'D · Árboles' : 'D · Branch Trees']
   ];
+
+  const sellosDone = Object.values(state.sellos).filter((v) => v === 'autonomous' || v === 'consolidated').length;
+  const huellasTotal = Object.values(state.huellas).reduce((a, b) => a + b, 0);
+  const huellasMax = HUELLAS_META.reduce((a, b) => a + b.max, 0);
+  const pct = Math.round((sellosDone / SELLOS_META.length) * 100);
 
   let body = '';
   if (tab === 'cond') body = renderExpCond(l);
@@ -615,17 +764,30 @@ function renderExplora() {
   else body = renderExpUrn(l);
 
   return `
-    <section class="panel" style="margin-top:0">
-      <div class="row-between">
-        <div>
-          <span class="meta-line">${l === 'es' ? 'Experimentos interactivos · Sesiones 1 a 3' : 'Interactive Lab · Prerequisite Sessions'}</span>
-          <h1 style="margin:4px 0 0;font-size:clamp(1.35rem,2.5vw,1.8rem)">${l === 'es' ? 'Explora representaciones y espacio muestral' : 'Explore Representations & Sample Spaces'}</h1>
-        </div>
-        <div class="seg-group" role="tablist" aria-label="Experimentos Explora">
-          ${tabs.map(([id, label]) => `<button type="button" role="tab" aria-pressed="${tab === id}" data-exp-tab="${id}">${escapeText(label)}</button>`).join('')}
+    <section class="hero">
+      ${mascot()}
+      <div style="flex:1;min-width:250px">
+        <div class="hero-kicker">✨ ${l === 'es' ? 'Tu compañera de laboratorio · Nova' : 'Your lab companion · Nova'}</div>
+        <h1>${l === 'es' ? 'Explora el azar y descubre patrones' : 'Explore Chance & Discover Patterns'}</h1>
+        <p>${l === 'es'
+          ? 'Primero predice, luego simula o representa con diagramas y tablas, y construye reglas algebraicas reales para el Criterio B.'
+          : 'Predict first, then simulate or represent with trees and 2×2 tables, and build algebraic rules for Criterion B.'}</p>
+        <div class="track" aria-label="${pct}%"><span style="width:${pct}%"></span></div>
+        <div class="hero-kpis">
+          <div class="kpi"><span class="k">🏅 ${l === 'es' ? 'Sellos demostrados' : 'Research seals'}</span><span class="v">${sellosDone} / ${SELLOS_META.length}</span></div>
+          <div class="kpi"><span class="k">🔍 ${l === 'es' ? 'Huellas de trabajo' : 'Work traces'}</span><span class="v">${huellasTotal} / ${huellasMax}</span></div>
+          <div class="kpi"><span class="k">🛠️ ${l === 'es' ? 'Retos de taller' : 'Workshop solved'}</span><span class="v">${state.taller.solved}</span></div>
         </div>
       </div>
     </section>
+
+    <div class="exp-tiles" role="tablist" aria-label="Experimentos Explora">
+      ${tabs.map(([id, label, kicker]) => `
+        <button type="button" class="pastel-tab" role="tab" aria-pressed="${tab === id}" data-exp-tab="${id}">
+          <span class="pt-kicker">${escapeText(kicker)}</span>
+          <span class="pt-title">${escapeText(label)}</span>
+        </button>`).join('')}
+    </div>
     ${body}
   `;
 }
@@ -813,16 +975,17 @@ function renderExpMonty(l) {
               const isEnd = g.phase === 'done';
               const isPrize = d === g.prize;
               const cls = isEnd && isPrize ? 'win' : isOpened ? 'opened' : isChosen ? 'chosen' : '';
+              const icon = isOpened ? '🐐' : isEnd ? (isPrize ? '🏆' : '🐐') : isChosen ? '👉' : '🚪';
               const lbl = isOpened ? (l === 'es' ? 'Cabra (abierta)' : 'Goat (opened)') : isEnd ? (isPrize ? (l === 'es' ? '¡Premio!' : 'Prize!') : (l === 'es' ? 'Cabra' : 'Goat')) : isChosen ? (l === 'es' ? 'Tu elección' : 'Your pick') : (l === 'es' ? `Puerta ${d + 1}` : `Door ${d + 1}`);
-              return `<button type="button" class="door-btn ${cls}" ${!m.predLocked || g.phase !== 'pick' ? 'disabled' : ''} data-monty-door="${d}"><strong>${l === 'es' ? 'Puerta' : 'Door'} ${d + 1}</strong><span style="font-size:.85rem">${escapeText(lbl)}</span></button>`;
+              return `<button type="button" class="door-btn ${cls}" ${!m.predLocked || g.phase !== 'pick' ? 'disabled' : ''} data-monty-door="${d}"><span style="font-size:1.7rem" aria-hidden="true">${icon}</span><strong>${l === 'es' ? 'Puerta' : 'Door'} ${d + 1}</strong><span style="font-size:.85rem">${escapeText(lbl)}</span></button>`;
             }).join('')}
           </div>
           ${g.phase === 'offer' ? `
             <div class="row">
-              <button type="button" class="btn-primary" data-monty-act="keep">${l === 'es' ? `Mantener puerta ${g.chosen + 1}` : `Keep door ${g.chosen + 1}`}</button>
-              <button type="button" class="btn-teal" data-monty-act="switch">${l === 'es' ? 'Cambiar de puerta' : 'Switch door'}</button>
+              <button type="button" class="btn-primary" data-monty-act="keep">🔒 ${l === 'es' ? `Mantener puerta ${g.chosen + 1}` : `Keep door ${g.chosen + 1}`}</button>
+              <button type="button" class="btn-teal" data-monty-act="switch">🔁 ${l === 'es' ? 'Cambiar de puerta' : 'Switch door'}</button>
             </div>` : g.phase === 'done' ? `
-            <div class="callout ${g.won ? 'ok' : 'warn'}">${g.won ? (l === 'es' ? '¡Ganaste el premio!' : 'You won the prize!') : (l === 'es' ? 'Salió cabra.' : 'Got a goat.')} <button type="button" class="btn-ghost" data-monty-reset="1" style="margin-left:8px">${l === 'es' ? 'Jugar otra vez' : 'Play again'}</button></div>` : ''}
+            <div class="callout ${g.won ? 'ok' : 'warn'}">${g.won ? (l === 'es' ? '🏆 ¡Ganaste el premio!' : '🏆 You won the prize!') : (l === 'es' ? '🐐 Salió cabra.' : '🐐 Got a goat.')} <button type="button" class="btn-ghost" data-monty-reset="1" style="margin-left:8px">🎲 ${l === 'es' ? 'Jugar otra vez' : 'Play again'}</button></div>` : ''}
         </div>
       </div>
 
@@ -1278,10 +1441,16 @@ function renderInvestiga() {
   const inv = getInvState(curMeta.id);
   const usedHelp = anyInvHelpUsed(inv);
 
-  const navBtns = INV_META.map((m) => `
-    <button type="button" aria-pressed="${m.id === curMeta.id}" data-inv-select="${m.id}">
-      ${escapeText(m.id === 'inv1' ? (l === 'es' ? '1. Preparación' : '1. Warm-Up') : m.id === 'inv2' ? (l === 'es' ? '2. Central: 2 colores' : '2. Core: 2 Colors') : (l === 'es' ? '3. Transferencia: 3 colores' : '3. Transfer: 3 Colors'))}
-    </button>`).join('');
+  const navBtns = INV_META.map((m) => {
+    const icon = m.id === 'inv1' ? '🧬' : m.id === 'inv2' ? '🎯' : '👑';
+    const kicker = m.id === 'inv1' ? (l === 'es' ? 'Preparación' : 'Warm-Up') : m.id === 'inv2' ? (l === 'es' ? 'Evaluación central' : 'Core Task') : (l === 'es' ? 'Transferencia' : 'Transfer');
+    const title = m.id === 'inv1' ? (l === 'es' ? '1. Colores distintos' : '1. Different Colors') : m.id === 'inv2' ? (l === 'es' ? '2. Mismo color (2 col.)' : '2. Same Color (2 col.)') : (l === 'es' ? '3. Mismo color (3 col.)' : '3. Same Color (3 col.)');
+    return `
+      <button type="button" class="pastel-tab" role="tab" aria-pressed="${m.id === curMeta.id}" data-inv-select="${m.id}">
+        <span class="pt-kicker">${icon} ${escapeText(kicker)}</span>
+        <span class="pt-title">${escapeText(title)}</span>
+      </button>`;
+  }).join('');
 
   // Progress descriptor (formative ONLY, never MYP 1-8 grades)
   const validCases = inv.cases.filter((c) => c.ok).length;
@@ -1290,27 +1459,25 @@ function renderInvestiga() {
   if (inv.ruleChecked?.ok && inv.verifyChecked?.ok) descriptor = l === 'es' ? 'Etapa actual: Regla formulada y comprobada (justificación pendiente de revisión docente)' : 'Current stage: Rule & unseen check verified (justification pending teacher review)';
 
   const curColors = curMeta.id === 'inv3'
-    ? (l === 'es' ? 'Rojas / Azules / Verdes' : 'Red / Blue / Green')
-    : (l === 'es' ? 'Rojas / Azules' : 'Red / Blue');
+    ? (l === 'es' ? '🔴 Rojas / 🔵 Azules / 🟢 Verdes' : '🔴 Red / 🔵 Blue / 🟢 Green')
+    : (l === 'es' ? '🔴 Rojas / 🔵 Azules' : '🔴 Red / 🔵 Blue');
 
   const wbN = Number(inv.workbenchN) || curMeta.minN;
   const wbSim = inv.simSeries[String(wbN)] || { n: 0, hits: 0, last: null };
 
   return `
+    <div class="inv-tiles" role="tablist" aria-label="Investigaciones">
+      ${navBtns}
+    </div>
     <section class="panel" style="margin-top:0">
       <div class="row-between">
         <div>
-          <span class="meta-line">${escapeText(curMeta[l].badge)} · ${escapeText(descriptor)}</span>
-          <h1 style="margin:4px 0 0;font-size:clamp(1.3rem,2.4vw,1.75rem)">${escapeText(curMeta[l].title)}</h1>
-        </div>
-        <div class="seg-group" role="tablist" aria-label="Investigaciones">
-          ${navBtns}
+          <span class="hero-kicker">${escapeText(curMeta[l].badge)}</span>
+          <h1 style="margin:4px 0 0;font-size:clamp(1.35rem,2.5vw,1.85rem)">🔬 ${escapeText(curMeta[l].title)}</h1>
         </div>
       </div>
       <p style="margin:10px 0 0">${escapeText(curMeta[l].prompt)}</p>
-      <div class="meta-line" style="margin-top:8px">
-        <span>${usedHelp ? (l === 'es' ? 'Ayudas usadas en este cuaderno (registradas): si usaste apoyo, consolida en la Investigación 3 sin pistas.' : 'Hints logged on this notebook: consolidate autonomy on Investigation 3 without hints.') : (l === 'es' ? 'Sin pistas solicitadas en esta investigación' : 'No hints requested on this investigation')}</span>
-      </div>
+      ${novaNote(`${descriptor} · ${usedHelp ? (l === 'es' ? 'Apoyos registrados en el cuaderno; consolida sin pistas en la Investigación 3.' : 'Hints logged; consolidate autonomy on Investigation 3 without hints.') : (l === 'es' ? 'Sin pistas solicitadas en esta investigación.' : 'No hints requested yet on this investigation.')}`)}
     </section>
 
     <div class="two-zone" style="margin-top:14px">
@@ -1543,7 +1710,7 @@ function checkInvCases(id) {
     if (hadBad) awardHuella('hueTab');
     advanceSello('selOrg', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
     if (inv.patternText.trim().length > 0) {
-      advanceSello('selPat', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
+      advanceSello('selPat', 'pending_human');
     }
   }
   save(); render();
@@ -1568,10 +1735,10 @@ function checkInvRule(id) {
   } else {
     if (inv.ruleHistory.some((h) => !h.ok)) awardHuella('hueCon');
     inv.ruleHistory.push({ expr, ok: true });
-    inv.ruleChecked = { ok: true, msg: l === 'es' ? 'Regla algebraica equivalente verificada para todos los casos del dominio. Ahora compruébala en un caso nuevo N fuera de tu tabla.' : 'Equivalent algebraic rule verified across domain cases. Now test it on an unseen N outside your table.' };
+    inv.ruleChecked = { ok: true, msg: l === 'es' ? 'La regla coincide con los casos de prueba automáticos. Esto no demuestra que sea válida para todo N. Ahora compruébala en un caso nuevo N fuera de tu tabla.' : 'The rule matches the automated test cases. This does not prove it for every N. Now test it on an unseen N outside your table.' };
     const help = anyInvHelpUsed(inv);
     advanceSello('selReg', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
-    if (inv.patternText.trim().length > 0) advanceSello('selPat', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
+    if (inv.patternText.trim().length > 0) advanceSello('selPat', 'pending_human');
   }
   save(); render();
 }
@@ -1791,26 +1958,27 @@ function renderTaller() {
     <section class="panel" style="margin-top:0">
       <div class="row-between">
         <div>
-          <span class="meta-line">${l === 'es' ? 'Práctica focalizada · Sin penalizaciones por ayuda' : 'Targeted Practice · No penalties for hints'}</span>
-          <h1 style="margin:4px 0 0;font-size:clamp(1.3rem,2.4vw,1.75rem)">${escapeText(tr('navTal'))}</h1>
+          <span class="hero-kicker">${l === 'es' ? 'Práctica focalizada · Sin penalizaciones por ayuda' : 'Targeted Practice · No penalties for hints'}</span>
+          <h1 style="margin:4px 0 0;font-size:clamp(1.35rem,2.5vw,1.8rem)">${escapeText(tr('navTal'))}</h1>
         </div>
-        <span class="meta-line">${l === 'es' ? 'Resueltos:' : 'Solved:'} <strong>${state.taller.solved}</strong></span>
+        <span class="status-txt st-auto">✅ ${l === 'es' ? 'Resueltos:' : 'Solved:'} ${state.taller.solved}</span>
       </div>
+      ${novaNote(l === 'es' ? 'Practica tablas 2×2, árboles y casos límite. Si consultas la solución, te propondré un caso equivalente para consolidarlo.' : 'Practice 2×2 tables, trees, and edge cases. Viewing a full solution queues an equivalent practice case.')}
       <div class="row" style="margin-top:12px">
         <select class="field-input" style="max-width:340px" data-tal-topic="1" aria-label="Tema del taller">
           ${TALLER_PROB_TOPICS.map((t) => `<option value="${t.id}" ${state.taller.topic === t.id ? 'selected' : ''}>${escapeText(t[l])}</option>`).join('')}
         </select>
-        <button type="button" class="btn-ghost" data-tal-next="0">${l === 'es' ? 'Ejercicio nuevo' : 'New exercise'}</button>
-        <button type="button" class="btn-teal" ${qLen ? '' : 'disabled'} data-tal-next="1">${l === 'es' ? `Revisar fallo (${qLen})` : `Review mistake (${qLen})`}</button>
+        <button type="button" class="btn-ghost" data-tal-next="0">🎲 ${l === 'es' ? 'Ejercicio nuevo' : 'New exercise'}</button>
+        <button type="button" class="btn-teal" ${qLen ? '' : 'disabled'} data-tal-next="1">🔁 ${l === 'es' ? `Revisar fallo (${qLen})` : `Review mistake (${qLen})`}</button>
       </div>
       <div class="subpanel">
         ${cur.isReview ? `<div class="callout info" style="margin-top:0;margin-bottom:10px">${l === 'es' ? 'Caso equivalente de revisión tras error o consulta de solución.' : 'Equivalent review case following an earlier mistake or solution view.'}</div>` : ''}
         ${body}
         <div class="row" style="margin-top:12px">
           <button type="button" class="btn-primary" data-check-taller="1">${escapeText(tr('checkBtn'))}</button>
-          <button type="button" class="btn-ghost" data-tal-help="example">${l === 'es' ? 'Ejemplo resuelto' : 'Worked example'}</button>
-          <button type="button" class="btn-ghost" data-tal-help="hint1">${l === 'es' ? 'Pista conceptual' : 'Conceptual hint'}</button>
-          <button type="button" class="btn-ghost" data-tal-help="solution">${l === 'es' ? 'Solución razonada' : 'Reasoned solution'}</button>
+          <button type="button" class="btn-ghost" data-tal-help="example">📘 ${l === 'es' ? 'Ejemplo resuelto' : 'Worked example'}</button>
+          <button type="button" class="btn-ghost" data-tal-help="hint1">💡 ${l === 'es' ? 'Pista conceptual' : 'Conceptual hint'}</button>
+          <button type="button" class="btn-ghost" data-tal-help="solution">🔎 ${l === 'es' ? 'Solución razonada' : 'Reasoned solution'}</button>
         </div>
         ${cur.checked ? `<div class="callout ${cur.ok ? 'ok' : 'err'}">${escapeText(cur.msg)}</div>` : ''}
         ${cur.usedHelp.example ? `<div class="callout info">${escapeText(helpTxt.example)}</div>` : ''}
@@ -1834,7 +2002,7 @@ function checkTallerProb() {
   cur.checked = true;
   cur.ok = ok;
   cur.msg = ok
-    ? (l === 'es' ? 'Correcto.' : 'Correct.')
+    ? (l === 'es' ? '✓ Correcto.' : '✓ Correct.')
     : (l === 'es' ? 'Revisa el procedimiento o consulta una pista.' : 'Review your steps or open a hint.');
   if (ok && !cur.counted) {
     cur.counted = true;
@@ -1856,16 +2024,18 @@ function renderEvidencias() {
   const sellosHtml = SELLOS_META.map((m) => {
     const st = state.sellos[m.id];
     const unlocked = st === 'autonomous' || st === 'consolidated';
+    const rev = m.humanReview && state.teacherReview;
     return `
       <div class="ev-row">
         <div>
-          <strong>${escapeText(m[l].name)}</strong><br>
+          <strong>${m.icon || '🏅'} ${escapeText(m[l].name)}</strong><br>
           <span class="meta-line">${escapeText(m[l].desc)}</span>
+          ${rev && st === 'consolidated' ? `<div class="meta-line" style="margin-top:4px;color:var(--ok)"><strong>${escapeText(rev.date)}${rev.reviewer ? ` · ${escapeText(rev.reviewer)}` : ''}:</strong> ${escapeText(rev.note || (l === 'es' ? 'Validado mediante código.' : 'Validated via code.'))}</div>` : ''}
         </div>
         <div class="row">
           ${selloStatusText(st, m.id)}
           ${hasId && unlocked && !m.humanReview ? `<button type="button" class="btn-teal" data-pkm-code="${m.id}:sello">${escapeText(tr('codeBtn'))}</button>` : ''}
-          ${m.humanReview && st !== 'consolidated' ? `<button type="button" class="btn-ghost" data-validate-jus="1">${l === 'es' ? 'Validar con código' : 'Validate with code'}</button>` : ''}
+          ${m.humanReview && st !== 'consolidated' ? `<button type="button" class="btn-ghost" data-validate-jus="1">✍️ ${l === 'es' ? (hasId ? 'Validar con código' : 'Registrar revisión docente') : (hasId ? 'Validate with code' : 'Log teacher review')}</button>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -1875,7 +2045,7 @@ function renderEvidencias() {
     return `
       <div class="ev-row">
         <div>
-          <strong>${escapeText(h[l].name)}</strong><br>
+          <strong>${h.icon || '🔍'} ${escapeText(h[l].name)}</strong><br>
           <span class="meta-line">${escapeText(h[l].desc)}</span>
         </div>
         <div class="row">
@@ -1889,14 +2059,14 @@ function renderEvidencias() {
     <section class="panel" style="margin-top:0">
       <div class="row-between">
         <div>
-          <span class="meta-line">${l === 'es' ? 'Evaluación formativa Criterio B · Sin nota automática 1–8' : 'Formative Criterion B Portfolio · No automatic 1–8 grade'}</span>
-          <h1 style="margin:4px 0 0;font-size:clamp(1.3rem,2.4vw,1.75rem)">${escapeText(tr('navEvi'))}</h1>
+          <span class="hero-kicker">${l === 'es' ? 'Evaluación formativa Criterio B · Sin nota automática 1–8' : 'Formative Criterion B Portfolio · No automatic 1–8 grade'}</span>
+          <h1 style="margin:4px 0 0;font-size:clamp(1.35rem,2.5vw,1.8rem)">${escapeText(tr('navEvi'))}</h1>
         </div>
         <div class="row">
-          <button type="button" class="btn-primary" id="btnPrintNotebook">${l === 'es' ? 'Cuaderno imprimible (PDF)' : 'Printable Notebook (PDF)'}</button>
-          <button type="button" class="btn-ghost" id="btnExportJson">${l === 'es' ? 'Exportar cuaderno (.json)' : 'Export notebook (.json)'}</button>
-          <button type="button" class="btn-ghost" id="btnImportJson">${l === 'es' ? 'Importar (.json)' : 'Import (.json)'}</button>
-          <button type="button" class="btn-coral" id="btnResetAll">${l === 'es' ? 'Reiniciar progreso' : 'Reset progress'}</button>
+          <button type="button" class="btn-primary" id="btnPrintNotebook">🖨️ ${l === 'es' ? 'Cuaderno imprimible (PDF)' : 'Printable Notebook (PDF)'}</button>
+          <button type="button" class="btn-ghost" id="btnExportJson">💾 ${l === 'es' ? 'Exportar cuaderno (.json)' : 'Export notebook (.json)'}</button>
+          <button type="button" class="btn-ghost" id="btnImportJson">📂 ${l === 'es' ? 'Importar (.json)' : 'Import (.json)'}</button>
+          <button type="button" class="btn-coral" id="btnResetAll">🗑️ ${l === 'es' ? 'Reiniciar progreso' : 'Reset progress'}</button>
         </div>
       </div>
       ${!hasId ? `<div class="callout info">${l === 'es' ? 'Si utilizas Pokemáticos, guarda tu Public ID arriba para desbloquear los códigos diferenciados de Huellas y Sellos.' : 'If your class uses Pokemáticos, save your Public ID above to unlock separate Trace and Seal codes.'}</div>` : ''}
@@ -1904,8 +2074,8 @@ function renderEvidencias() {
 
     <div class="grid-2" style="margin-top:14px">
       <section class="panel" style="margin-top:0">
-        <span class="meta-line">${l === 'es' ? 'Panel B · Dominio investigador' : 'Panel B · Research Mastery'}</span>
-        <h2 style="margin:4px 0 6px">${l === 'es' ? 'Sellos de investigación' : 'Research Seals'}</h2>
+        <span class="hero-kicker">${l === 'es' ? 'Panel B · Dominio investigador' : 'Panel B · Research Mastery'}</span>
+        <h2 style="margin:4px 0 6px">🏆 ${l === 'es' ? 'Sellos de investigación' : 'Research Seals'}</h2>
         <p class="meta-line" style="margin:0 0 10px">${l === 'es'
           ? 'La justificación matemática permanece «Pendiente de revisión docente» y nunca se otorga automáticamente por fórmulas ni ejemplos.'
           : 'Mathematical justification stays «Pending teacher review» and is never auto-awarded from formulas or examples.'}</p>
@@ -1913,8 +2083,8 @@ function renderEvidencias() {
       </section>
 
       <section class="panel" style="margin-top:0">
-        <span class="meta-line">${l === 'es' ? 'Panel A · Constancia y revisión observable' : 'Panel A · Observable Traces'}</span>
-        <h2 style="margin:4px 0 6px">${l === 'es' ? 'Huellas de trabajo' : 'Work Traces'}</h2>
+        <span class="hero-kicker">${l === 'es' ? 'Panel A · Constancia y revisión observable' : 'Panel A · Observable Traces'}</span>
+        <h2 style="margin:4px 0 6px">🧭 ${l === 'es' ? 'Huellas de trabajo' : 'Work Traces'}</h2>
         <p class="meta-line" style="margin:0 0 10px">${l === 'es'
           ? 'Registran hechos observables (corregir tablas, revisar predicciones o conjeturas). No premian clics ni tiempo conectado.'
           : 'Log observable revisions (fixing tables, revising predictions or conjectures). Never award clicks or idle time.'}</p>
@@ -1967,7 +2137,7 @@ function openCodeDialog(itemId, kind) {
     </div>
     <div class="dlg-body">
       <p style="margin-top:0"><strong>${escapeText(catLabel)}</strong> · <span class="mono">${escapeText(PKM_SOURCE)}/${escapeText(itemId)}</span></p>
-      <div class="subpanel mono" style="text-align:center;font-size:1.05rem;word-break:break-all" id="codeShow">${escapeText(code)}</div>
+      <div class="code-box"><div class="code-value" id="codeShow">${escapeText(code)}</div></div>
       <div class="row" style="margin-top:12px">
         <button type="button" class="btn-primary" id="copyPkmCode">${escapeText(tr('copyBtn'))}</button>
       </div>
@@ -1976,23 +2146,48 @@ function openCodeDialog(itemId, kind) {
 }
 
 function openValidateJusDialog(msg = '', isErr = false) {
-  if (!state.publicId) {
-    openPkmDialog(L() === 'es' ? 'Guarda primero tu Public ID para poder introducir el código de validación docente.' : 'Save your Public ID first so you can enter your teacher validation code.');
+  const l = L();
+  if (state.publicId) {
+    openDialog(`
+      <div class="dlg-head">
+        <h3 style="margin:0">${l === 'es' ? 'Validar justificación matemática' : 'Validate mathematical justification'}</h3>
+        <button type="button" class="btn-ghost" data-close-dlg="1">✕</button>
+      </div>
+      <div class="dlg-body">
+        <p style="margin-top:0">${l === 'es'
+          ? 'Cuando el docente revise tu justificación, introduce aquí el código de actividad Probab/selJus que te entregue (el mismo código sirve también para canjear en Pokemáticos).'
+          : 'Once your teacher reviews your justification, paste the Probab/selJus code they give you here (the same code also redeems in Pokemáticos).'}</p>
+        <input id="jusCodeInp" class="field-input mono" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">
+        <label style="display:block;margin-top:10px;font-weight:700;font-size:.86rem">${l === 'es' ? 'Comentario breve de revisión (opcional)' : 'Brief review feedback (optional)'}</label>
+        <input id="jusNoteOptInp" class="field-input" maxlength="400" placeholder="${l === 'es' ? 'Ej.: Buena explicación del denominador N−1.' : 'e.g., Clear explanation of why denominator drops to N−1.'}">
+        <div class="row" style="margin-top:12px">
+          <button type="button" class="btn-primary" id="applyJusCodeBtn">${l === 'es' ? 'Validar sello' : 'Validate seal'}</button>
+          <button type="button" class="btn-ghost" data-close-dlg="1">${escapeText(tr('closeBtn'))}</button>
+        </div>
+        ${msg ? `<div class="callout ${isErr ? 'err' : 'ok'}" style="margin-top:10px">${escapeText(msg)}</div>` : ''}
+      </div>`);
     return;
   }
-  const l = L();
+
   openDialog(`
     <div class="dlg-head">
-      <h3 style="margin:0">${l === 'es' ? 'Validar justificación matemática' : 'Validate mathematical justification'}</h3>
+      <h3 style="margin:0">${l === 'es' ? 'Registrar revisión docente (sin Pokemáticos)' : 'Log Teacher Review (No Pokemáticos)'}</h3>
       <button type="button" class="btn-ghost" data-close-dlg="1">✕</button>
     </div>
     <div class="dlg-body">
       <p style="margin-top:0">${l === 'es'
-        ? 'Cuando el docente revise tu justificación, introduce aquí el código de actividad Probab/selJus que te entregue (el mismo código sirve también para canjear en Pokemáticos).'
-        : 'Once your teacher reviews your justification, paste the Probab/selJus code they give you here (the same code also redeems in Pokemáticos).'}</p>
-      <input id="jusCodeInp" class="field-input mono" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">
+        ? 'Cuando tu docente haya revisado la justificación matemática en tu cuaderno o PDF, registra aquí la fecha, quién la revisó y su comentario breve para validar el sello.'
+        : 'Once your teacher has reviewed your mathematical justification in your notebook or PDF, record the reviewer, feedback note, and confirmation below to validate the seal.'}</p>
+      <label style="display:block;font-weight:700;font-size:.86rem">${l === 'es' ? 'Docente / iniciales (opcional)' : 'Teacher / initials (optional)'}</label>
+      <input id="jusReviewerInp" class="field-input" maxlength="60" placeholder="${l === 'es' ? 'Ej.: Prof. García' : 'e.g., Ms. García'}">
+      <label style="display:block;margin-top:10px;font-weight:700;font-size:.86rem">${l === 'es' ? 'Comentario de revisión docente *' : 'Teacher review feedback note *'}</label>
+      <textarea id="jusFeedbackInp" class="field-input" rows="3" maxlength="400" placeholder="${l === 'es' ? 'Ej.: Justificación aprobada en clase: deduce correctamente P(N) contando casos sin reemplazamiento.' : 'e.g., Approved in class: correctly justifies P(N) by counting pairs without replacement.'}"></textarea>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.9rem;cursor:pointer">
+        <input type="checkbox" id="jusConfirmChk">
+        <span>${l === 'es' ? 'Confirmo que un docente ha revisado y aprobado esta justificación.' : 'I confirm a teacher has reviewed and approved this justification.'}</span>
+      </label>
       <div class="row" style="margin-top:12px">
-        <button type="button" class="btn-primary" id="applyJusCodeBtn">${l === 'es' ? 'Validar sello' : 'Validate seal'}</button>
+        <button type="button" class="btn-primary" id="applyJusReviewBtn">${l === 'es' ? 'Validar justificación' : 'Validate justification'}</button>
         <button type="button" class="btn-ghost" data-close-dlg="1">${escapeText(tr('closeBtn'))}</button>
       </div>
       ${msg ? `<div class="callout ${isErr ? 'err' : 'ok'}" style="margin-top:10px">${escapeText(msg)}</div>` : ''}
@@ -2006,7 +2201,8 @@ function buildTeacherExportPayload() {
     auditSummary: {
       note: 'Aids used, original justifications, peer feedback, revised versions, and automated algebraic checks are kept separately. Open justifications require teacher review.',
       sellos: state.sellos,
-      huellas: state.huellas
+      huellas: state.huellas,
+      teacherReview: state.teacherReview
     }
   };
 }
@@ -2045,10 +2241,11 @@ function openPrintNotebookDialog() {
       <p class="meta-line" style="margin-top:0">${l === 'es' ? 'Usa «Imprimir / Guardar como PDF» para generar el documento oficial sin alterar tus borradores originales.' : 'Use "Print / Save as PDF" to generate a PDF while preserving original drafts and peer notes.'}</p>
       <div style="border:1px solid var(--line);border-radius:10px;padding:14px;background:#fff">
         <h3 style="margin-top:0">${escapeText(tr('brand'))} · Criterio B (${todayKey()})</h3>
+        ${state.sellos.selJus === 'consolidated' && state.teacherReview ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:.9rem"><strong>★ ${l === 'es' ? 'Validación docente' : 'Teacher review'}:</strong> ${escapeText(state.teacherReview.date)}${state.teacherReview.reviewer ? ` · ${escapeText(state.teacherReview.reviewer)}` : ''}${state.teacherReview.note ? ` — ${escapeText(state.teacherReview.note)}` : ''}</div>` : ''}
         ${blocks}
       </div>
       <div class="row" style="margin-top:12px">
-        <button type="button" class="btn-primary" onclick="window.print()">${l === 'es' ? 'Imprimir / Guardar como PDF' : 'Print / Save as PDF'}</button>
+        <button type="button" class="btn-primary" data-print-report="1">${l === 'es' ? 'Imprimir / Guardar como PDF' : 'Print / Save as PDF'}</button>
       </div>
     </div>`);
 }
@@ -2057,13 +2254,14 @@ function openPrintNotebookDialog() {
 function updateChrome() {
   const l = L();
   document.documentElement.lang = l;
-  document.body.classList.toggle('no-anim', Boolean(state.skipAnim));
+  document.title = tr('docTitle');
   $('brandTitle').textContent = tr('brand');
   $('tabExplora').textContent = tr('navExp');
   $('tabInvestiga').textContent = tr('navInv');
   $('tabTaller').textContent = tr('navTal');
   $('tabEvidencias').textContent = tr('navEvi');
   $('pkmBtn').textContent = state.publicId ? tr('pkmBtnSet') : tr('pkmBtn');
+  $('pkmBtn').classList.toggle('has-id', Boolean(state.publicId));
   $('courseMeta').textContent = tr('courseMeta');
   $('activeModeLabel').textContent = state.pairMode ? tr('pairLbl') : tr('soloLbl');
   $('modeSoloBtn').textContent = tr('soloBtn');
@@ -2072,7 +2270,8 @@ function updateChrome() {
   $('modePairBtn').setAttribute('aria-pressed', String(state.pairMode));
   $('animToggleBtn').textContent = tr('skipAnim');
   $('animToggleBtn').setAttribute('aria-pressed', String(state.skipAnim));
-  $('langBtn').textContent = l === 'es' ? 'ES / EN' : 'EN / ES';
+  $('langEs').setAttribute('aria-pressed', String(l === 'es'));
+  $('langEn').setAttribute('aria-pressed', String(l === 'en'));
   $('footerLeft').textContent = tr('footerL');
   $('footerRight').textContent = tr('footerR');
   document.querySelectorAll('[data-nav]').forEach((btn) => {
@@ -2080,21 +2279,51 @@ function updateChrome() {
   });
 }
 
+
+let showingHome = true;
+const HOME_SECTIONS = [["explora", "🔬", "Explora", "Explore", "Experimenta con el azar y contrasta tus predicciones.", "Experiment with chance and test predictions."], ["investiga", "📒", "Investiga", "Investigate", "Organiza casos, descubre patrones y justifica una regla.", "Organize cases, find patterns and justify a rule."], ["taller", "🛠️", "Taller", "Practice", "Practica probabilidades, árboles y tablas a tu ritmo.", "Practice probabilities, trees and tables at your pace."], ["evidencias", "🏅", "Mis evidencias", "My evidence", "Consulta tus huellas de trabajo, sellos y cuaderno.", "Review your work, achievements and notebook."]];
+function renderHomeMenu() {
+ const en = L() === 'en';
+ const cards = HOME_SECTIONS.map(([id,icon,es,eng,desc,descEn]) => `<button type="button" class="home-choice" data-home-go="${id}"><span class="home-icon" aria-hidden="true">${icon}</span><strong>${en?eng:es}</strong><span class="home-desc">${en?descEn:desc}</span><span class="home-enter">${en?'Enter':'Entrar'} →</span></button>`).join('');
+ const last = HOME_SECTIONS.find(x=>x[0]===state.activeNav) || HOME_SECTIONS[0];
+ return `<section class="home-welcome">${mascot()}<div><h1>${en?'Choose your next step':'¿Qué quieres hacer hoy?'}</h1><p>${en?'Nova is here to help. Choose a space and work at your own pace.':'Nova te acompaña. Elige un espacio y avanza a tu ritmo.'}</p></div></section><section class="home-grid" aria-label="${en?'Main menu':'Menú principal'}">${cards}</section><div class="home-resume"><button type="button" data-home-go="${last[0]}">▶ ${en?'Continue':'Continuar'} · ${en?last[3]:last[2]}</button><p>${en?'Your answers and drafts are kept in this browser.':'Tus respuestas y borradores se conservan en este navegador.'}</p></div>`;
+}
+const homeButton = document.createElement('button');
+homeButton.type = 'button'; homeButton.id = 'homeMenuBtn';
+document.querySelector('.topbar-inner').appendChild(homeButton);
+homeButton.addEventListener('click', () => { showingHome = true; render(); window.scrollTo(0,0); });
+document.addEventListener('click', (event) => {
+ const btn = event.target.closest('[data-home-go], [data-nav]');
+ if (!btn) return;
+ showingHome = false;
+ if (btn.dataset.homeGo) {
+   state.activeNav = btn.dataset.homeGo; save(); render(); window.scrollTo(0,0);
+ }
+}, true);
+
 function render() {
   updateChrome();
+  document.body.dataset.screen = showingHome ? 'home' : 'activity';
+  homeButton.textContent = L()==='en' ? '⌂ Main menu' : '⌂ Menú principal';
+  homeButton.setAttribute('aria-current', showingHome ? 'page' : 'false');
+  if (showingHome) { app.innerHTML = renderHomeMenu(); return; }
   if (state.activeNav === 'explora') app.innerHTML = renderExplora();
   else if (state.activeNav === 'investiga') app.innerHTML = renderInvestiga();
   else if (state.activeNav === 'taller') app.innerHTML = renderTaller();
   else app.innerHTML = renderEvidencias();
 }
 
+$('brandTitle').addEventListener('click', (e) => {
+ e.preventDefault(); showingHome = true; render(); window.scrollTo(0,0);
+});
 document.querySelectorAll('[data-nav]').forEach((btn) => {
   btn.addEventListener('click', () => { state.activeNav = btn.dataset.nav; save(); render(); });
 });
 $('modeSoloBtn').addEventListener('click', () => { state.pairMode = false; save(); render(); });
 $('modePairBtn').addEventListener('click', () => { state.pairMode = true; save(); render(); });
 $('animToggleBtn').addEventListener('click', () => { state.skipAnim = !state.skipAnim; save(); render(); });
-$('langBtn').addEventListener('click', () => { state.lang = L() === 'es' ? 'en' : 'es'; save(); render(); });
+$('langEs').addEventListener('click', () => { state.lang = 'es'; save(); render(); });
+$('langEn').addEventListener('click', () => { state.lang = 'en'; save(); render(); });
 $('pkmBtn').addEventListener('click', () => openPkmDialog(''));
 
 app.addEventListener('click', (e) => {
@@ -2166,7 +2395,7 @@ app.addEventListener('click', (e) => {
   }
   if (t.dataset.invHelp) {
     const inv = getInvState(state.activeInv);
-    inv.helpsUsed[t.dataset.invHelp] = !inv.helpsUsed[t.dataset.invHelp];
+    inv.helpsUsed[t.dataset.invHelp] = true;
     save(); render(); return;
   }
   if (t.dataset.invAddcase) {
@@ -2203,7 +2432,7 @@ app.addEventListener('click', (e) => {
   if (t.dataset.checkTaller) { checkTallerProb(); return; }
   if (t.dataset.talHelp && state.taller.current) {
     const hk = t.dataset.talHelp;
-    state.taller.current.usedHelp[hk] = !state.taller.current.usedHelp[hk];
+    state.taller.current.usedHelp[hk] = true;
     if (hk === 'solution' && !state.taller.current.queuedErr) {
       state.taller.current.queuedErr = true;
       if (state.taller.errorQueue.length < 15) state.taller.errorQueue.push(state.taller.current.topic);
@@ -2272,7 +2501,9 @@ app.addEventListener('input', (e) => {
   }
 });
 
-$('modal').addEventListener('click', (e) => {
+$('modal').addEventListener('click', (event) => {
+  const e = {target:event.target.closest('button') || event.target};
+  if (e.target.dataset.printReport) { window.print(); return; }
   if (e.target === $('modal') || e.target.dataset.closeDlg) { closeDialog(); return; }
   if (e.target.id === 'savePkmBtn') {
     state.publicId = ($('pkmIdInp').value || '').trim().slice(0, 128);
@@ -2293,6 +2524,7 @@ $('modal').addEventListener('click', (e) => {
   if (e.target.id === 'applyJusCodeBtn') {
     const l = L();
     const raw = ($('jusCodeInp')?.value || '').trim().toUpperCase().replace(/[-\s]/g, '');
+    const noteOpt = ($('jusNoteOptInp')?.value || '').trim().slice(0, 400);
     if (!raw) {
       openValidateJusDialog(l === 'es' ? 'Introduce el código proporcionado por tu docente.' : 'Enter the code provided by your teacher.', true);
       return;
@@ -2300,10 +2532,37 @@ $('modal').addEventListener('click', (e) => {
     const expected = generateRewardCode(state.publicId, PKM_SOURCE, 'selJus').toUpperCase().replace(/[-\s]/g, '');
     if (raw === expected) {
       state.sellos.selJus = 'consolidated';
+      state.teacherReview = {
+        date: todayKey(),
+        reviewer: '',
+        note: noteOpt,
+        method: 'code'
+      };
       save(); render(); closeDialog();
     } else {
       openValidateJusDialog(l === 'es' ? 'El código no coincide con tu Public ID o no corresponde a Probab/selJus.' : 'Code does not match your Public ID or Probab/selJus.', true);
     }
+    return;
+  }
+  if (e.target.id === 'applyJusReviewBtn') {
+    const l = L();
+    const reviewer = ($('jusReviewerInp')?.value || '').trim().slice(0, 60);
+    const note = ($('jusFeedbackInp')?.value || '').trim().slice(0, 400);
+    const confirmed = Boolean($('jusConfirmChk')?.checked);
+    if (!note || !confirmed) {
+      openValidateJusDialog(l === 'es'
+        ? 'Escribe el comentario de revisión del docente y marca la casilla de confirmación.'
+        : 'Enter the teacher review feedback note and check the confirmation box.', true);
+      return;
+    }
+    state.sellos.selJus = 'consolidated';
+    state.teacherReview = {
+      date: todayKey(),
+      reviewer,
+      note,
+      method: 'review'
+    };
+    save(); render(); closeDialog();
     return;
   }
   if (e.target.id === 'confirmDoReset') {
