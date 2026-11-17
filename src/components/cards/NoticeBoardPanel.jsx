@@ -79,6 +79,24 @@ function getItemMeta(item) {
             : "",
       };
     }
+    case "codeCardRedeemed": {
+      const hasPts = Number(item.pointsAwarded || 0) > 0;
+      const actName =
+        item.activityName && item.activityName !== item.cardTitle ? item.activityName : "";
+      const detailParts = [];
+      if (actName) detailParts.push(actName);
+      if (hasPts) detailParts.push(`+${item.pointsAwarded} pts`);
+
+      return {
+        icon: "🎟️",
+        accentBg: "#fdf2f8",
+        accentBorder: "#fbcfe8",
+        badgeText: "Code redeemed",
+        badgeColor: "#db2777",
+        title: `${item.studentName} redeemed ${item.cardTitle}`,
+        detail: detailParts.join(" · "),
+      };
+    }
     default:
       return {
         icon: "📢",

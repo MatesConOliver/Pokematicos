@@ -379,6 +379,132 @@ export function buildNoticeBoardData({
     });
   }
 
+  // 4b. Code redemptions that reward a card or card+points (exclude points-only codes)
+  for (const student of safeStudents) {
+    if (!student) continue;
+    const studentName = String(student.name || "Student").trim() || "Student";
+    const studentKey = student.id || studentName;
+    const ownedCards = Array.isArray(student.cards) ? student.cards : [];
+    const history = Array.isArray(student.rewardsHistory) ? student.rewardsHistory : [];
+
+    const cardByObtainedFrom = new Map();
+    for (const owned of ownedCards) {
+      if (owned?.obtainedFrom && String(owned.obtainedFrom).startsWith("activity_")) {
+        const key = String(owned.obtainedFrom);
+        if (!cardByObtainedFrom.has(key)) cardByObtainedFrom.set(key, owned);
+      }
+    }
+
+    const seenObtainedFrom = new Set();
+    const seenCardIdsWithoutSource = new Set();
+
+    for (let idx = 0; idx < history.length; idx++) {
+      const entry = history[idx];
+      if (!entry || typeof entry !== "object") continue;
+      if (entry.type === "individual" || entry.type === "group" || entry.type === "evolution") {
+        continue;
+      }
+
+      const obtainedFrom =
+        entry.obtainedFrom ||
+        ((entry.sourceId || entry.source) && entry.activityId
+          ? `activity_${entry.sourceId || entry.source}_${entry.activityId}`
+          : "");
+
+      const isCodeEntry = Boolean(
+        entry.isCodeRedemption ||
+          entry.type === "achievement" ||
+          entry.type === "achievement_card" ||
+          (entry.type === "card" && (obtainedFrom || entry.pointsAwarded !== undefined || !entry.cost)) ||
+          (obtainedFrom && String(obtainedFrom).startsWith("activity_"))
+      );
+      if (!isCodeEntry) continue;
+
+      const linkedOwnedCard = obtainedFrom ? cardByObtainedFrom.get(obtainedFrom) || null : null;
+      const resolvedCardId = entry.cardId || linkedOwnedCard?.cardId || null;
+      const cardMeta = resolvedCardId ? cardsById.get(resolvedCardId) || null : null;
+      const resolvedCardTitle = String(
+        entry.cardTitle || cardMeta?.title || linkedOwnedCard?.title || ""
+      ).trim();
+
+      const hasCardReward = Boolean(
+        resolvedCardId ||
+          resolvedCardTitle ||
+          entry.type === "achievement_card" ||
+          entry.type === "card"
+      );
+      if (!hasCardReward) continue;
+
+      const ts = parseNoticeTimestamp(
+        entry.redeemedAt ?? entry.date ?? linkedOwnedCard?.grantedAt ?? linkedOwnedCard?.obtainedAt
+      );
+      if (ts === null) continue;
+      const mParts = getMadridDateParts(ts);
+      if (!mParts) continue;
+
+      if (obtainedFrom) {
+        seenObtainedFrom.add(String(obtainedFrom));
+      } else if (resolvedCardId) {
+        seenCardIdsWithoutSource.add(resolvedCardId);
+      }
+
+      const rawPts = entry.pointsAwarded ?? linkedOwnedCard?.pointsGranted ?? 0;
+      const pointsAwarded = Number.isFinite(Number(rawPts)) ? Number(rawPts) : 0;
+      const activityName = String(entry.activityName || entry.name || entry.title || "").trim();
+      const imageURL = getCardDisplayImage(cardMeta || linkedOwnedCard, flagValue, false);
+
+      rawItems.push({
+        id: `codeCard:${studentKey}:${obtainedFrom || entry.id || `${ts}_${idx}`}`,
+        type: "codeCardRedeemed",
+        timestamp: ts,
+        madridDateKey: mParts.dateKey,
+        formattedDateTime: mParts.displayDateTime,
+        hasExactTime: true,
+        studentName,
+        cardTitle: resolvedCardTitle || "Card",
+        activityName,
+        pointsAwarded,
+        imageURL,
+      });
+    }
+
+    for (let idx = 0; idx < ownedCards.length; idx++) {
+      const owned = ownedCards[idx];
+      if (!owned || typeof owned !== "object") continue;
+      const obtainedFrom = owned.obtainedFrom ? String(owned.obtainedFrom) : "";
+      if (!obtainedFrom.startsWith("activity_")) continue;
+      if (seenObtainedFrom.has(obtainedFrom)) continue;
+      if (owned.cardId && seenCardIdsWithoutSource.has(owned.cardId)) continue;
+
+      const ts = parseNoticeTimestamp(owned.grantedAt ?? owned.obtainedAt);
+      if (ts === null) continue;
+      const mParts = getMadridDateParts(ts);
+      if (!mParts) continue;
+
+      seenObtainedFrom.add(obtainedFrom);
+      const cardMeta = owned.cardId ? cardsById.get(owned.cardId) || null : null;
+      const cardTitle = String(cardMeta?.title || owned.title || "Card").trim() || "Card";
+      const pointsAwarded = Number.isFinite(Number(owned.pointsGranted))
+        ? Number(owned.pointsGranted)
+        : 0;
+      const imageURL = getCardDisplayImage(cardMeta || owned, flagValue, false);
+
+      rawItems.push({
+        id: `codeCard:${studentKey}:${obtainedFrom}:${owned.id || idx}`,
+        type: "codeCardRedeemed",
+        timestamp: ts,
+        madridDateKey: mParts.dateKey,
+        formattedDateTime: mParts.displayDateTime,
+        hasExactTime: true,
+        studentName,
+        cardTitle,
+        activityName: "",
+        pointsAwarded,
+        imageURL,
+      });
+    }
+  }
+
   // 5. Admin news messages (pinned appear at top; unpinned follow normal 20-item Today/Older logic)
   const pinnedItems = [];
   for (const msg of safeNewsMessages) {

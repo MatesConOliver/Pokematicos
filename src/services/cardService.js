@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -55,14 +56,17 @@ export async function updateCard({
       unlockedFile,
     } = updates || {};
 
-    let lockedImageURL = prev.lockedImageURL || "";
+    const nextCategory = category || prev.category || "points";
+    const isExtra = nextCategory === "extra";
+
+    let lockedImageURL = isExtra ? "" : prev.lockedImageURL || "";
     let unlockedImageURL = prev.imageURL || "";
-    let lockedImageURL_B = prev.lockedImageURL_B || "";
+    let lockedImageURL_B = isExtra ? "" : prev.lockedImageURL_B || "";
     let unlockedImageURL_B = prev.imageURL_B || "";
 
     const baseKey = uid(`cardedit_${cardId}`);
 
-    if (lockedFile) {
+    if (!isExtra && lockedFile) {
       const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
       const refLocked = storageRef(storage, `classes/${classId}/cards/${keyLocked}`);
       const up = await uploadBytes(refLocked, lockedFile);
@@ -76,7 +80,7 @@ export async function updateCard({
       unlockedImageURL = await getDownloadURL(up.ref);
     }
 
-    if (updates.lockedFile_B) {
+    if (!isExtra && updates.lockedFile_B) {
       const keyLockedB = `${baseKey}_lockedB_${updates.lockedFile_B.name.replace(/\s+/g, "_")}`;
       const refLockedB = storageRef(storage, `classes/${classId}/cards/${keyLockedB}`);
       const upB = await uploadBytes(refLockedB, updates.lockedFile_B);
@@ -90,10 +94,14 @@ export async function updateCard({
       unlockedImageURL_B = await getDownloadURL(upB.ref);
     }
 
-    if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
-    if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+    if (isExtra) {
+      if (!unlockedImageURL && prev.lockedImageURL) unlockedImageURL = prev.lockedImageURL;
+      if (!unlockedImageURL_B && prev.lockedImageURL_B) unlockedImageURL_B = prev.lockedImageURL_B;
+    } else {
+      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
+      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+    }
 
-    const nextCategory = category || prev.category || "points";
     const cleanIds =
       nextCategory === "points"
         ? Array.from(
@@ -115,14 +123,14 @@ export async function updateCard({
     const updatePayload = {
       title: (title || "").trim(),
       description: description || "",
-      points: nextCategory === "extra" ? 0 : Number(points) || 0,
+      points: isExtra ? 0 : Number(points) || 0,
       category: nextCategory,
       linkedStreakIds: cleanIds,
       multiplierBonus: nextMultiplierBonus,
       imageURL: unlockedImageURL,
-      lockedImageURL,
       imageURL_B: unlockedImageURL_B,
-      lockedImageURL_B,
+      lockedImageURL: isExtra ? deleteField() : lockedImageURL,
+      lockedImageURL_B: isExtra ? deleteField() : lockedImageURL_B,
       updatedAt: Date.now(),
     };
 
@@ -165,13 +173,15 @@ export async function createCard({
   }
 
   try {
+    const nextCategory = category || "points";
+    const isExtra = nextCategory === "extra";
     const baseKey = uid("card");
     let lockedImageURL = "";
     let unlockedImageURL = "";
     let lockedImageURL_B = "";
     let unlockedImageURL_B = "";
 
-    if (lockedFile) {
+    if (!isExtra && lockedFile) {
       const keyLocked = `${baseKey}_locked_${lockedFile.name.replace(/\s+/g, "_")}`;
       const refLocked = storageRef(storage, `classes/${classId}/cards/${keyLocked}`);
       const snapLocked = await uploadBytes(refLocked, lockedFile);
@@ -185,7 +195,7 @@ export async function createCard({
       unlockedImageURL = await getDownloadURL(snapUnlocked.ref);
     }
 
-    if (lockedFile_B) {
+    if (!isExtra && lockedFile_B) {
       const keyLockedB = `${baseKey}_lockedB_${lockedFile_B.name.replace(/\s+/g, "_")}`;
       const refLockedB = storageRef(storage, `classes/${classId}/cards/${keyLockedB}`);
       const snapLockedB = await uploadBytes(refLockedB, lockedFile_B);
@@ -199,10 +209,11 @@ export async function createCard({
       unlockedImageURL_B = await getDownloadURL(snapUnlockedB.ref);
     }
 
-    if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
-    if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+    if (!isExtra) {
+      if (!unlockedImageURL && lockedImageURL) unlockedImageURL = lockedImageURL;
+      if (!lockedImageURL && unlockedImageURL) lockedImageURL = unlockedImageURL;
+    }
 
-    const nextCategory = category || "points";
     const cleanLinked = Array.isArray(linkedStreakIds) ? linkedStreakIds.filter(Boolean) : [];
     const safeMultiplierBonus =
       nextCategory === "experience" && Number.isFinite(Number(multiplierBonus))
@@ -212,14 +223,18 @@ export async function createCard({
     const payload = {
       title: title.trim(),
       description: description || "",
-      points: nextCategory === "extra" ? 0 : Number(points) || 0,
+      points: isExtra ? 0 : Number(points) || 0,
       category: nextCategory,
       linkedStreakIds: nextCategory === "points" ? cleanLinked : [],
       multiplierBonus: safeMultiplierBonus,
       imageURL: unlockedImageURL,
-      lockedImageURL,
       imageURL_B: unlockedImageURL_B,
-      lockedImageURL_B,
+      ...(isExtra
+        ? {}
+        : {
+            lockedImageURL,
+            lockedImageURL_B,
+          }),
       evolution: evolution || null,
       createdAt: Date.now(),
     };

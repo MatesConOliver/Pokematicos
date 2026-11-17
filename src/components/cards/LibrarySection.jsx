@@ -58,9 +58,11 @@ export default function LibrarySection({
       onPreviewCard={(card, flagValue = "A") => {
         const isEvo = isEvolutionCard(card);
         const unlocked = isEvo ? isCardUnlockedForStudent(activeStudent, card) : false;
+        const isLockedPreview =
+          (card.category || "points") === "extra" ? false : isEvo ? !unlocked : true;
         onPreviewCard({
           ...card,
-          imageURL: getCardDisplayImage(card, flagValue, isEvo ? !unlocked : true),
+          imageURL: getCardDisplayImage(card, flagValue, isLockedPreview),
           isLibraryCard: true,
         });
       }}

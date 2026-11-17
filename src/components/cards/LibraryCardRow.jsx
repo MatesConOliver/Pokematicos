@@ -30,8 +30,8 @@ export default function LibraryCardRow({
       : null;
 
   const isUnlockedByStudent = Boolean(eligibility?.isAlreadyUnlocked);
-  // For normal cards, library shows locked preview. For evolution cards, show unlocked once student unlocks it.
-  const isImgLocked = isEvo ? !isUnlockedByStudent : true;
+  // Extra cards have no locked image. For normal cards, library shows locked preview; for evolution cards, show unlocked once student unlocks it.
+  const isImgLocked = (c.category || "points") === "extra" ? false : isEvo ? !isUnlockedByStudent : true;
   const showURL = getCardDisplayImage(c, flagValue, isImgLocked);
 
   return (

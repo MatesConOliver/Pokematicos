@@ -36,6 +36,10 @@ export default function CardCreateForm({
     setCategory(defaultCategory);
     if (defaultCategory === "extra") {
       setPoints(0);
+      setLockedFile(null);
+      setLockedFileB(null);
+      if (lockedInputRef?.current) lockedInputRef.current.value = "";
+      if (lockedInputBRef?.current) lockedInputBRef.current.value = "";
     } else {
       setPoints((prev) => (Number(prev) === 0 ? 1 : prev));
     }
@@ -47,7 +51,7 @@ export default function CardCreateForm({
       setStreakPick("");
       setStreakLookup("");
     }
-  }, [defaultCategory]);
+  }, [defaultCategory, lockedInputRef, lockedInputBRef]);
 
   async function handleCreate() {
     if (!title.trim()) {
@@ -68,17 +72,18 @@ export default function CardCreateForm({
     } : null;
 
     const parsedMultBonus = parseFloat(multiplierBonus);
+    const isExtra = category === "extra";
     const result = await onCreate({
       title,
       description,
-      points: category === "extra" ? 0 : points,
+      points: isExtra ? 0 : points,
       category,
       multiplierBonus:
         category === "experience" && Number.isFinite(parsedMultBonus) ? parsedMultBonus : 0,
       linkedStreakIds: category === "points" ? linkedStreakIds : [],
-      lockedFile,
+      lockedFile: isExtra ? null : lockedFile,
       unlockedFile,
-      lockedFile_B,
+      lockedFile_B: isExtra ? null : lockedFile_B,
       unlockedFile_B,
       evolution,
     });
@@ -146,6 +151,10 @@ export default function CardCreateForm({
             setCategory(next);
             if (next === "extra") {
               setPoints(0);
+              setLockedFile(null);
+              setLockedFileB(null);
+              if (lockedInputRef?.current) lockedInputRef.current.value = "";
+              if (lockedInputBRef?.current) lockedInputBRef.current.value = "";
             } else if (Number(points) === 0) {
               setPoints(1);
             }
@@ -394,21 +403,25 @@ export default function CardCreateForm({
 
       {flagConfig && (
         <div style={{ fontWeight: 800, marginTop: 12 }}>
-          Option A ({flagConfig.optionA}) images
+          Option A ({flagConfig.optionA}) {category === "extra" ? "image" : "images"}
         </div>
       )}
-      <div style={{ marginTop: 10, fontSize: 13 }}>
-        <div style={{ marginBottom: 4 }}>Locked card (grey with lock)</div>
-        <input
-          ref={lockedInputRef}
-          type="file"
-          accept="image/*"
-          onChange={(e) => setLockedFile(e.target.files?.[0] || null)}
-        />
-      </div>
+      {category !== "extra" && (
+        <div style={{ marginTop: 10, fontSize: 13 }}>
+          <div style={{ marginBottom: 4 }}>Locked card (grey with lock)</div>
+          <input
+            ref={lockedInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setLockedFile(e.target.files?.[0] || null)}
+          />
+        </div>
+      )}
 
       <div style={{ marginTop: 10, fontSize: 13 }}>
-        <div style={{ marginBottom: 4 }}>Unlocked card (original/full colour)</div>
+        <div style={{ marginBottom: 4 }}>
+          {category === "extra" ? "Card image" : "Unlocked card (original/full colour)"}
+        </div>
         <input
           ref={unlockedInputRef}
           type="file"
@@ -420,19 +433,23 @@ export default function CardCreateForm({
       {flagConfig && (
         <div style={{ borderTop: "1px solid #eee", marginTop: 12, paddingTop: 10 }}>
           <div style={{ fontWeight: 800, marginBottom: 8 }}>
-            Option B ({flagConfig.optionB}) images (optional)
+            Option B ({flagConfig.optionB}) {category === "extra" ? "image" : "images"} (optional)
           </div>
-          <div style={{ marginTop: 8, fontSize: 13 }}>
-            <div style={{ marginBottom: 4 }}>Locked card</div>
-            <input
-              ref={lockedInputBRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => setLockedFileB(e.target.files?.[0] || null)}
-            />
-          </div>
+          {category !== "extra" && (
+            <div style={{ marginTop: 8, fontSize: 13 }}>
+              <div style={{ marginBottom: 4 }}>Locked card</div>
+              <input
+                ref={lockedInputBRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setLockedFileB(e.target.files?.[0] || null)}
+              />
+            </div>
+          )}
           <div style={{ marginTop: 10, fontSize: 13 }}>
-            <div style={{ marginBottom: 4 }}>Unlocked card</div>
+            <div style={{ marginBottom: 4 }}>
+              {category === "extra" ? "Card image" : "Unlocked card"}
+            </div>
             <input
               ref={unlockedInputBRef}
               type="file"

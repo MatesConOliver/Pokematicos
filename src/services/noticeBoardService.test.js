@@ -299,4 +299,150 @@ describe("noticeBoardService", () => {
     });
     expect(res.unpinnedItems.some((i) => i.messageId === "m_unpinned_pushed_out")).toBe(false);
   });
+
+  test("shows code redemptions that reward a card or card+points and hides points-only code redemptions", () => {
+    const now = Date.parse("2026-11-13T18:00:00.000Z");
+    const cards = [
+      {
+        id: "card_drag",
+        title: "Charizard",
+        category: "points",
+        points: 5,
+        imageURL: "https://img/charizard.png",
+        imageURL_B: "https://img/charizard_b.png",
+        createdAt: Date.parse("2026-11-01T09:00:00.000Z"),
+      },
+      {
+        id: "card_pika",
+        title: "Pikachu",
+        category: "points",
+        points: 2,
+        imageURL: "https://img/pika.png",
+        createdAt: Date.parse("2026-11-01T09:00:00.000Z"),
+      },
+    ];
+
+    const students = [
+      {
+        id: "s1",
+        name: "Ana",
+        cards: [
+          {
+            id: "owned_1",
+            cardId: "card_drag",
+            title: "Charizard",
+            obtainedFrom: "activity_Radica_m1sion",
+            grantedAt: "2026-11-13T15:00:00.000Z",
+            pointsGranted: 10,
+          },
+          {
+            id: "owned_2",
+            cardId: "card_pika",
+            title: "Pikachu",
+            obtainedFrom: "activity_Radica_m2sion",
+            grantedAt: "2026-11-13T14:00:00.000Z",
+            pointsGranted: 0,
+          },
+        ],
+        rewardsHistory: [
+          {
+            id: "h_both",
+            type: "achievement_card",
+            isCodeRedemption: true,
+            sourceId: "Radica",
+            activityId: "m1sion",
+            activityName: "Mission 1",
+            cardId: "card_drag",
+            cardTitle: "Charizard",
+            pointsAwarded: 10,
+            date: "2026-11-13T15:00:00.000Z",
+            redeemedAt: Date.parse("2026-11-13T15:00:00.000Z"),
+          },
+          {
+            id: "h_card_only",
+            type: "card",
+            isCodeRedemption: true,
+            sourceId: "Radica",
+            activityId: "m2sion",
+            activityName: "Mission 2",
+            cardId: "card_pika",
+            cardTitle: "Pikachu",
+            pointsAwarded: 0,
+            date: "2026-11-13T14:00:00.000Z",
+            redeemedAt: Date.parse("2026-11-13T14:00:00.000Z"),
+          },
+          {
+            id: "h_points_only",
+            type: "achievement",
+            isCodeRedemption: true,
+            sourceId: "Radica",
+            activityId: "m3sion",
+            activityName: "Mission 3 Points Only",
+            pointsAwarded: 15,
+            date: "2026-11-13T16:00:00.000Z",
+            redeemedAt: Date.parse("2026-11-13T16:00:00.000Z"),
+          },
+        ],
+      },
+      {
+        id: "s2",
+        name: "Luis",
+        cards: [
+          {
+            id: "owned_legacy",
+            cardId: "card_pika",
+            title: "Pikachu",
+            obtainedFrom: "activity_Radica_m4sion",
+            grantedAt: "2026-11-13T13:00:00.000Z",
+            pointsGranted: 5,
+          },
+        ],
+        rewardsHistory: [],
+      },
+    ];
+
+    const res = buildNoticeBoardData({
+      students,
+      cards,
+      streakConfigs: [],
+      flagValue: "B",
+      now,
+    });
+
+    const codeEvents = res.items.filter((i) => i.type === "codeCardRedeemed");
+    expect(codeEvents).toHaveLength(3);
+
+    expect(codeEvents[0]).toMatchObject({
+      type: "codeCardRedeemed",
+      studentName: "Ana",
+      cardTitle: "Charizard",
+      activityName: "Mission 1",
+      pointsAwarded: 10,
+      imageURL: "https://img/charizard_b.png",
+      formattedDateTime: "13/11/2026 16:00",
+    });
+
+    expect(codeEvents[1]).toMatchObject({
+      type: "codeCardRedeemed",
+      studentName: "Ana",
+      cardTitle: "Pikachu",
+      activityName: "Mission 2",
+      pointsAwarded: 0,
+      imageURL: "https://img/pika.png",
+      formattedDateTime: "13/11/2026 15:00",
+    });
+
+    expect(codeEvents[2]).toMatchObject({
+      type: "codeCardRedeemed",
+      studentName: "Luis",
+      cardTitle: "Pikachu",
+      pointsAwarded: 5,
+      imageURL: "https://img/pika.png",
+      formattedDateTime: "13/11/2026 14:00",
+    });
+
+    expect(
+      res.items.some((i) => i.activityName === "Mission 3 Points Only")
+    ).toBe(false);
+  });
 });

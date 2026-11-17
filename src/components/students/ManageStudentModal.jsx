@@ -681,10 +681,12 @@ export default function ManageStudentModal({
                     </div>
                     {group.cards.map((c) => {
                       const unlocked = isCardUnlockedForStudent(student, c);
-                      const imgUrl =
-                        getCardDisplayImage(c, student.flagValue || "A", true) ||
-                        c.lockedImageURL ||
-                        c.imageURL;
+                      const isExtra = (c.category || "points") === "extra";
+                      const imgUrl = isExtra
+                        ? getCardDisplayImage(c, student.flagValue || "A", false) || c.imageURL
+                        : getCardDisplayImage(c, student.flagValue || "A", true) ||
+                          c.lockedImageURL ||
+                          c.imageURL;
 
                       return (
                         <div

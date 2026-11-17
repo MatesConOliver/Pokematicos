@@ -25,6 +25,19 @@ describe("getCardDisplayImage", () => {
     ).toBe("unlocked-a");
   });
 
+  it("always uses unlocked artwork for extra cards even when isLocked is true", () => {
+    const extraCard = {
+      category: "extra",
+      imageURL: "unlocked-a",
+      lockedImageURL: "locked-a",
+      imageURL_B: "unlocked-b",
+      lockedImageURL_B: "locked-b",
+    };
+
+    expect(getCardDisplayImage(extraCard, "A", true)).toBe("unlocked-a");
+    expect(getCardDisplayImage(extraCard, "B", true)).toBe("unlocked-b");
+  });
+
   it("returns an empty URL when the card is missing", () => {
     expect(getCardDisplayImage(null, "B", false)).toBe("");
   });

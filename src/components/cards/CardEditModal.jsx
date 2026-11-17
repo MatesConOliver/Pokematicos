@@ -93,6 +93,8 @@ export default function CardEditModal({
                 setCategory(next);
                 if (next === "extra") {
                   setPoints(0);
+                  setLockedFile(null);
+                  setLockedFileB(null);
                 }
                 if (next !== "experience") {
                   setMultiplierBonus(0);
@@ -211,13 +213,19 @@ export default function CardEditModal({
 
           {flagConfig && (
             <div style={{ fontWeight: 800, marginTop: 4 }}>
-              Option A ({flagConfig.optionA}) images
+              Option A ({flagConfig.optionA}) {category === "extra" ? "image" : "images"}
             </div>
           )}
-          <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
-          <input type="file" onChange={(e) => setLockedFile(e.target.files?.[0] || null)} />
+          {category !== "extra" && (
+            <>
+              <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
+              <input type="file" onChange={(e) => setLockedFile(e.target.files?.[0] || null)} />
+            </>
+          )}
 
-          <div className="muted" style={{ marginTop: 2 }}>Replace UNLOCKED image (optional)</div>
+          <div className="muted" style={{ marginTop: 2 }}>
+            {category === "extra" ? "Replace card image (optional)" : "Replace UNLOCKED image (optional)"}
+          </div>
           <input type="file" onChange={(e) => setUnlockedFile(e.target.files?.[0] || null)} />
 
           {/* Evolution configuration */}
@@ -344,11 +352,17 @@ export default function CardEditModal({
           {flagConfig && (
             <div style={{ borderTop: "1px solid #eee", paddingTop: 10 }}>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>
-                Option B ({flagConfig.optionB}) images (optional)
+                Option B ({flagConfig.optionB}) {category === "extra" ? "image" : "images"} (optional)
               </div>
-              <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
-              <input type="file" accept="image/*" onChange={(e) => setLockedFileB(e.target.files?.[0] || null)} />
-              <div className="muted" style={{ marginTop: 8 }}>Replace UNLOCKED image (optional)</div>
+              {category !== "extra" && (
+                <>
+                  <div className="muted" style={{ marginTop: 2 }}>Replace LOCKED image (optional)</div>
+                  <input type="file" accept="image/*" onChange={(e) => setLockedFileB(e.target.files?.[0] || null)} />
+                </>
+              )}
+              <div className="muted" style={{ marginTop: 8 }}>
+                {category === "extra" ? "Replace card image (optional)" : "Replace UNLOCKED image (optional)"}
+              </div>
               <input type="file" accept="image/*" onChange={(e) => setUnlockedFileB(e.target.files?.[0] || null)} />
             </div>
           )}
@@ -370,17 +384,18 @@ export default function CardEditModal({
                 } : null;
 
                 const parsedMultBonus = parseFloat(multiplierBonus);
+                const isExtra = category === "extra";
                 onSave({
                   title,
                   description,
-                  points: category === "extra" ? 0 : points,
+                  points: isExtra ? 0 : points,
                   category,
                   multiplierBonus:
                     category === "experience" && Number.isFinite(parsedMultBonus) ? parsedMultBonus : 0,
                   linkedStreakIds: category === "points" ? linkedStreakIds : [],
-                  lockedFile,
+                  lockedFile: isExtra ? null : lockedFile,
                   unlockedFile,
-                  lockedFile_B,
+                  lockedFile_B: isExtra ? null : lockedFile_B,
                   unlockedFile_B,
                   evolution,
                 });
