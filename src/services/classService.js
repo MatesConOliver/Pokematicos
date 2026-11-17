@@ -97,6 +97,24 @@ export async function saveClassNewsMessages(db, classId, newsMessages, alertFn =
   }
 }
 
+export async function saveClassStudyPosts(db, classId, studyPosts, alertFn = null) {
+  if (!classId) {
+    if (alertFn) alertFn("Select a class first.");
+    return false;
+  }
+  try {
+    const clean = (Array.isArray(studyPosts) ? studyPosts : []).slice(0, 100);
+    await updateDoc(doc(db, `classes/${classId}`), {
+      studyPosts: clean,
+    });
+    return true;
+  } catch (err) {
+    console.error("saveClassStudyPosts error:", err);
+    if (alertFn) alertFn("Could not save study post.");
+    return false;
+  }
+}
+
 /**
  * Delete a class
  * @param {Object} db - Firestore database instance

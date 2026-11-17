@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import CardCreateForm from "./CardCreateForm";
 import LibraryCardRow from "./LibraryCardRow";
 import NoticeBoardPanel from "./NoticeBoardPanel";
+import StudyPanel from "./StudyPanel";
 import { isEvolutionCard } from "../../services/cardEvolutionService";
 
 export default function CardLibrary({
@@ -11,6 +12,7 @@ export default function CardLibrary({
   rewards,
   streakConfigs,
   newsMessages = [],
+  studyPosts = [],
   loadingCards,
   loadingRewards,
   lockedInputRef,
@@ -34,6 +36,7 @@ export default function CardLibrary({
   onDropCatalyst,
   onEvolve,
   onSaveNewsMessages,
+  onSaveStudyPosts,
   confirmFn,
 }) {
   const [libraryTab, setLibraryTab] = useState("points");
@@ -118,22 +121,44 @@ export default function CardLibrary({
             ))}
           </div>
         )}
+        {mode === "admin" && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setShowCreateCard((prev) => !prev)}
+            aria-expanded={showCreateCard}
+            style={{
+              marginLeft: "auto",
+              background: showCreateCard ? "#dbeafe" : "#ffffff",
+              border: showCreateCard ? "1px solid #3b82f6" : "1px dashed #93c5fd",
+              color: showCreateCard ? "#1d4ed8" : "#2563eb",
+              fontWeight: 700,
+              fontSize: 13,
+              padding: "4px 10px",
+              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.08)",
+            }}
+          >
+            {showCreateCard ? "✕ Create" : "+ Create"}
+          </button>
+        )}
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
           gap: 6,
           margin: "8px 0 12px",
           flexShrink: 0,
         }}
       >
-        {["points", "rewards", "experience", "extra", "notices"].map((tab) => {
+        {["points", "rewards", "experience", "extra", "study", "notices"].map((tab) => {
           const isActive = libraryTab === tab;
           const label =
             tab === "notices"
               ? "News"
+              : tab === "study"
+              ? "Study"
               : tab.charAt(0).toUpperCase() + tab.slice(1);
           return (
             <button
@@ -154,24 +179,6 @@ export default function CardLibrary({
             </button>
           );
         })}
-        {mode === "admin" && (
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setShowCreateCard((prev) => !prev)}
-            aria-expanded={showCreateCard}
-            style={{
-              width: "100%",
-              background: showCreateCard ? "#dbeafe" : "#ffffff",
-              border: showCreateCard ? "1px solid #3b82f6" : "1px dashed #93c5fd",
-              color: showCreateCard ? "#1d4ed8" : "#2563eb",
-              fontWeight: 700,
-              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.08)",
-            }}
-          >
-            {showCreateCard ? "✕ Create" : "+ Create"}
-          </button>
-        )}
       </div>
 
       {mode === "admin" && (libraryTab === "rewards" || (hasEvolutionCards && !defaultCatalystCardId)) && (
@@ -264,7 +271,15 @@ export default function CardLibrary({
       )}
 
       <div style={{ flex: "1 1 0", overflowY: "auto", minHeight: 0, paddingRight: 4, paddingBottom: 16, overscrollBehavior: "contain" }}>
-        {libraryTab === "notices" ? (
+        {libraryTab === "study" ? (
+          <StudyPanel
+            mode={mode}
+            studyPosts={studyPosts}
+            onSaveStudyPosts={onSaveStudyPosts}
+            confirmFn={confirmFn}
+            onValidationError={onValidationError}
+          />
+        ) : libraryTab === "notices" ? (
           <NoticeBoardPanel
             mode={mode}
             students={students}

@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/sync-study-pages.js",
     "dev": "PORT=3000 HOST=0.0.0.0 react-scripts start",
     "start": "PORT=3000 HOST=0.0.0.0 react-scripts start",
+    "prebuild": "node scripts/sync-study-pages.js",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "lint": "eslint src",

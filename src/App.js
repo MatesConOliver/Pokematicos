@@ -73,6 +73,7 @@ import {
   endClassActivity,
   setDefaultCatalystForClass,
   saveClassNewsMessages,
+  saveClassStudyPosts,
 } from "./services/classService";
 import useBackgroundManager from "./hooks/useBackgroundManager";
 import useClassData from "./hooks/useClassData";
@@ -1640,6 +1641,7 @@ export default function App() {
               students={students}
               rewards={rewards}
               newsMessages={activeClass?.newsMessages || []}
+              studyPosts={activeClass?.studyPosts || []}
               loadingCards={loadingCards}
               loadingRewards={loadingRewards}
               streakConfigs={activeClass?.streakConfigs || []}
@@ -1665,6 +1667,9 @@ export default function App() {
               }
               onSaveNewsMessages={(nextMessages) =>
                 saveClassNewsMessages(db, activeClassId, nextMessages, notify)
+              }
+              onSaveStudyPosts={(nextPosts) =>
+                saveClassStudyPosts(db, activeClassId, nextPosts, notify)
               }
               confirmFn={askConfirmation}
               onDropCatalyst={handleDropCatalyst}
