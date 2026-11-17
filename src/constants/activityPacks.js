@@ -2,21 +2,23 @@
  * Predefined Pokemáticos Activity Packs
  *
  * Ready-to-upload batches for 4º ESO / MYP 5 external learning apps.
- * Point scales are calibrated to ~48–50 total points per app (matching Notación Científica),
- * with incremental points for process/mastery and 15 pts for the final milestone.
+ * Follows the exact Pokemáticos English naming and point scale:
+ * - Consistency / Work Trace achievements: 1 pt each (with expressive emoji)
+ * - Sequential Cases / Seals: 1, 2, 3, ... pts ascending by number
+ * - Final capstone milestone: 10 pts (with expressive emoji)
  */
 
 export const PREDEFINED_ACTIVITY_PACKS = {
   estadi: {
     id: "estadi",
-    label: "Estadística 4.º ESO (Estadi · 12 actividades · 48 pts)",
+    label: "Statistics 4º ESO (Estadi · 12 activities · 36 pts)",
     sourceId: "Estadi",
     activities: [
       {
         sourceId: "Estadi",
         activityId: "cstRev",
-        name: "Constancia · Revisión tras error",
-        description: "Revisar un error y resolver correctamente un caso equivalente nuevo.",
+        name: "Statistics: 🔁 Error Review",
+        description: "Review a mistake and solve a fresh equivalent case correctly.",
         pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
@@ -25,9 +27,9 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "cstPst",
-        name: "Constancia · Uso reflexivo de pistas",
-        description: "Consultar una pista y aplicarla en un siguiente intento correcto.",
-        pointsAwarded: 2,
+        name: "Statistics: 💡 Thoughtful Hint Use",
+        description: "Use a hint and apply it in a subsequent correct attempt.",
+        pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
         isActive: true,
@@ -35,9 +37,9 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "cstRet",
-        name: "Constancia · Retomar en otra sesión",
-        description: "Volver a trabajar una competencia o expediente en una fecha distinta.",
-        pointsAwarded: 2,
+        name: "Statistics: 📅 Return Across Sessions",
+        description: "Resume a competence or case file on a later date.",
+        pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
         isActive: true,
@@ -45,9 +47,9 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "cstInf",
-        name: "Constancia · Informe y rúbrica revisados",
-        description: "Completar un informe breve y verificar su rúbrica de autoevaluación.",
-        pointsAwarded: 3,
+        name: "Statistics: 📝 Report & Rubric Review",
+        description: "Complete a short report and verify its self-assessment rubric.",
+        pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
         isActive: true,
@@ -55,9 +57,9 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "cstCoh",
-        name: "Constancia · Corrección por evidencia",
-        description: "Ajustar una conclusión inicial al detectar datos o gráficos incompatibles.",
-        pointsAwarded: 4,
+        name: "Statistics: 🔍 Evidence-Led Revision",
+        description: "Revise an initial claim after detecting incompatible data or graphs.",
+        pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
         isActive: true,
@@ -65,8 +67,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "expMue",
-        name: "Expediente 1 · Selecciono muestras razonables",
-        description: "Detecto sesgos muestrales, propongo mejoras y clasifico variables.",
+        name: "Statistics Case 1: Sound Samples",
+        description: "Spot sampling bias, propose improvements, and classify variables.",
         pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
@@ -75,8 +77,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "expTab",
-        name: "Expediente 2 · Construyo tablas coherentes",
-        description: "Organizo datos aislados (xi, ni, Ni, fi, Fi) y calculo centralización.",
+        name: "Statistics Case 2: Coherent Tables",
+        description: "Organize ungrouped data (xi, ni, Ni, fi, Fi) and compute central tendency.",
         pointsAwarded: 2,
         rewardType: "points",
         cardId: "",
@@ -85,8 +87,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "expAgr",
-        name: "Expediente 3 · Interpreto posición y agrupación",
-        description: "Completo tablas por intervalos, marcas de clase ci, percentiles y RIC.",
+        name: "Statistics Case 3: Position & Grouping",
+        description: "Complete grouped tables, class marks ci, percentiles, and IQR.",
         pointsAwarded: 3,
         rewardType: "points",
         cardId: "",
@@ -95,8 +97,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "expDis",
-        name: "Expediente 4 · Comparo dispersión relativa",
-        description: "Calculo R, varianza (divisor N), desviación típica y CV entre variables.",
+        name: "Statistics Case 4: Relative Dispersion",
+        description: "Compute R, variance (N), std. deviation, and CV across variables.",
         pointsAwarded: 4,
         rewardType: "points",
         cardId: "",
@@ -105,8 +107,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "expAud",
-        name: "Expediente 5 · Detecto incoherencias bidimensionales",
-        description: "Distinguo dependencia estadística y audito gráficos, Sxy y r.",
+        name: "Statistics Case 5: Bivariate Audit",
+        description: "Distinguish statistical dependence and audit plots, Sxy, and r.",
         pointsAwarded: 5,
         rewardType: "points",
         cardId: "",
@@ -115,8 +117,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "expReg",
-        name: "Expediente 6 · Estimo con modelos y concluyo con datos",
-        description: "Aplico y = mx + n, distingo interpolación/extrapolación y argumento.",
+        name: "Statistics Case 6: Models & Conclusions",
+        description: "Apply y = mx + n, distinguish interpolation/extrapolation, and justify.",
         pointsAwarded: 6,
         rewardType: "points",
         cardId: "",
@@ -125,9 +127,9 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Estadi",
         activityId: "pruFin",
-        name: "Hito Final · Preparación de prueba global",
-        description: "Superar la prueba global de Estadística (≥ 6/10) con conclusión y rúbrica revisadas.",
-        pointsAwarded: 15,
+        name: "Statistics: 🏆 Global Exam Prep",
+        description: "Pass the simulated Statistics exam (≥ 6/10) with verified conclusion and rubric.",
+        pointsAwarded: 10,
         rewardType: "points",
         cardId: "",
         isActive: true,
@@ -136,14 +138,14 @@ export const PREDEFINED_ACTIVITY_PACKS = {
   },
   probab: {
     id: "probab",
-    label: "Probabilidad Criterio B (Probab · 13 actividades · 50 pts)",
+    label: "Probability Criterion B (Probab · 13 activities · 43 pts)",
     sourceId: "Probab",
     activities: [
       {
         sourceId: "Probab",
         activityId: "huePre",
-        name: "Huella · Revisión de predicción",
-        description: "Comparar tu predicción inicial con evidencia experimental o modelo y anotar una revisión.",
+        name: "Probability: 🧭 Prediction Revision",
+        description: "Compare an initial prediction with evidence and log a revision.",
         pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
@@ -152,8 +154,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "hueTab",
-        name: "Huella · Corrección de tabla o árbol",
-        description: "Detectar y corregir una inconsistencia en frecuencias, denominadores o ramas.",
+        name: "Probability: 🛠️ Table or Tree Fix",
+        description: "Spot and fix an inconsistency in counts, denominators, or branches.",
         pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
@@ -162,8 +164,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "hueAyu",
-        name: "Huella · Uso útil de apoyo",
-        description: "Consultar una pista conceptual y resolver después correctamente un caso nuevo.",
+        name: "Probability: 💡 Applied Hint",
+        description: "Use a conceptual hint and solve a fresh case afterward.",
         pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
@@ -172,9 +174,9 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "hueCon",
-        name: "Huella · Revisión de conjetura fallida",
-        description: "Comprobar que una primera regla no cumplía un caso y reformularla.",
-        pointsAwarded: 2,
+        name: "Probability: 🔄 Conjecture Refinement",
+        description: "Spot a failing rule on a test case and refine it.",
+        pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
         isActive: true,
@@ -182,9 +184,9 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "hueRet",
-        name: "Huella · Retomar en otra sesión",
-        description: "Continuar una investigación guardada en una fecha distinta.",
-        pointsAwarded: 2,
+        name: "Probability: 📅 Return Across Sessions",
+        description: "Resume a saved investigation on a later date.",
+        pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
         isActive: true,
@@ -192,8 +194,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "selRep",
-        name: "Sello 1 · Represento una situación correctamente",
-        description: "Construyo tablas 2×2, diagramas de Venn o árboles consistentes.",
+        name: "Probability Seal 1: Accurate Representation",
+        description: "Build consistent 2×2 tables, Venn diagrams, or probability trees.",
         pointsAwarded: 1,
         rewardType: "points",
         cardId: "",
@@ -202,8 +204,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "selInv",
-        name: "Sello 2 · Distingo condicionales inversas y causalidad",
-        description: "Diferencio P(A|B) de P(B|A), denominador cero y correlación vs. causalidad.",
+        name: "Probability Seal 2: Inverse Conditionals",
+        description: "Separate P(A|B) from P(B|A), zero denominators, and causality.",
         pointsAwarded: 2,
         rewardType: "points",
         cardId: "",
@@ -212,8 +214,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "selOrg",
-        name: "Sello 3 · Organizo casos útiles",
-        description: "Registro múltiples casos estructurados (incluido borde N=2) sin mezclar series.",
+        name: "Probability Seal 3: Useful Case Organization",
+        description: "Select and record multiple structured cases (including edge N=2) with isolated series.",
         pointsAwarded: 3,
         rewardType: "points",
         cardId: "",
@@ -222,8 +224,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "selPat",
-        name: "Sello 4 · Describo un patrón con precisión",
-        description: "Identifico regularidades numéricas y tendencia límite sin confundir simulación con prueba.",
+        name: "Probability Seal 4: Pattern Description",
+        description: "Identify numerical patterns and limiting behavior without equating simulation to proof.",
         pointsAwarded: 4,
         rewardType: "points",
         cardId: "",
@@ -232,8 +234,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "selReg",
-        name: "Sello 5 · Formulo una regla general",
-        description: "Expreso P(N) como fórmula algebraica verificada en todo el dominio.",
+        name: "Probability Seal 5: General Rule",
+        description: "Express P(N) as a verified algebraic formula across the domain.",
         pointsAwarded: 5,
         rewardType: "points",
         cardId: "",
@@ -242,8 +244,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "selCmp",
-        name: "Sello 6 · Compruebo en un caso nuevo",
-        description: "Verifico mi regla comparando su predicción con un caso N nuevo independiente.",
+        name: "Probability Seal 6: Unseen Case Check",
+        description: "Test the rule against a brand-new N excluded from rule construction.",
         pointsAwarded: 6,
         rewardType: "points",
         cardId: "",
@@ -252,8 +254,8 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "selTrn",
-        name: "Sello 7 · Transfiero el método a otra situación",
-        description: "Aplico la estrategia completa de forma autónoma en una investigación nueva.",
+        name: "Probability Seal 7: Method Transfer",
+        description: "Apply the full inquiry process autonomously on a fresh scenario.",
         pointsAwarded: 7,
         rewardType: "points",
         cardId: "",
@@ -262,9 +264,9 @@ export const PREDEFINED_ACTIVITY_PACKS = {
       {
         sourceId: "Probab",
         activityId: "selJus",
-        name: "Sello Maestro · Justifico matemáticamente (validación docente)",
-        description: "Explico por qué funciona la reducción del espacio muestral; código entregado por el docente tras revisión.",
-        pointsAwarded: 15,
+        name: "Probability: 👑 Mathematical Justification",
+        description: "Explain why sample-space reduction works; teacher-issued code after justification review.",
+        pointsAwarded: 10,
         rewardType: "points",
         cardId: "",
         isActive: true,

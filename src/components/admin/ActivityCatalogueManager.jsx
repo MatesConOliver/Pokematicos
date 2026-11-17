@@ -729,7 +729,7 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                   fontWeight: 700,
                 }}
               >
-                Estadística (12 · 48 pts)
+                Statistics (12 · 36 pts)
               </button>
               <button
                 type="button"
@@ -745,7 +745,7 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                   fontWeight: 700,
                 }}
               >
-                Probabilidad (13 · 50 pts)
+                Probability (13 · 43 pts)
               </button>
               <button
                 type="button"
@@ -761,7 +761,7 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                   fontWeight: 700,
                 }}
               >
-                Both Packs (25)
+                Both Packs (25 · 79 pts)
               </button>
               <button
                 type="button"

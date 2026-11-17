@@ -2,12 +2,12 @@ import { PREDEFINED_ACTIVITY_PACKS } from "./activityPacks.js";
 import { generateRewardCode, decodeRewardCode } from "../utils/rewardCodeUtils.js";
 
 describe("PREDEFINED_ACTIVITY_PACKS", () => {
-  test("Estadística pack has 12 activities totaling 48 points and valid IDs", () => {
+  test("Statistics pack has 12 activities totaling 36 points and valid IDs", () => {
     const estadi = PREDEFINED_ACTIVITY_PACKS.estadi;
     expect(estadi.activities).toHaveLength(12);
 
     const totalPoints = estadi.activities.reduce((sum, a) => sum + a.pointsAwarded, 0);
-    expect(totalPoints).toBe(48);
+    expect(totalPoints).toBe(36);
 
     const seen = new Set();
     for (const act of estadi.activities) {
@@ -25,16 +25,16 @@ describe("PREDEFINED_ACTIVITY_PACKS", () => {
     }
   });
 
-  test("Probabilidad pack has 13 activities totaling 50 points including selJus", () => {
+  test("Probability pack has 13 activities totaling 43 points including selJus", () => {
     const probab = PREDEFINED_ACTIVITY_PACKS.probab;
     expect(probab.activities).toHaveLength(13);
 
     const totalPoints = probab.activities.reduce((sum, a) => sum + a.pointsAwarded, 0);
-    expect(totalPoints).toBe(50);
+    expect(totalPoints).toBe(43);
 
     const selJus = probab.activities.find((a) => a.activityId === "selJus");
     expect(selJus).toBeDefined();
-    expect(selJus.pointsAwarded).toBe(15);
+    expect(selJus.pointsAwarded).toBe(10);
 
     const seen = new Set();
     for (const act of probab.activities) {
