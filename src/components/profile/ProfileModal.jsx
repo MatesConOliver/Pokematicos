@@ -143,7 +143,14 @@ export default function ProfileModal({
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{displayName}</h3>
-              <span className="pill" style={{ background: "rgba(224, 242, 254, 0.85)", color: "#0369a1", fontWeight: 700 }}>
+              <span
+                className="pill"
+                style={{
+                  background: currentPoints < 0 ? "rgba(254, 226, 226, 0.9)" : "rgba(224, 242, 254, 0.85)",
+                  color: currentPoints < 0 ? "#b91c1c" : "#0369a1",
+                  fontWeight: 700,
+                }}
+              >
                 ⭐ {currentPoints} pts
               </span>
               <span className="pill" style={{ background: "rgba(254, 243, 199, 0.85)", color: "#92400e", fontWeight: 700 }}>
@@ -751,13 +758,13 @@ export default function ProfileModal({
                 </div>
                 <div
                   style={{
-                    background: "#ecfdf5",
-                    color: "#065f46",
+                    background: currentPoints < 0 ? "#fef2f2" : "#ecfdf5",
+                    color: currentPoints < 0 ? "#b91c1c" : "#065f46",
                     padding: "4px 12px",
                     borderRadius: 999,
                     fontWeight: 700,
                     fontSize: 13,
-                    border: "1px solid #a7f3d0",
+                    border: currentPoints < 0 ? "1px solid #fecaca" : "1px solid #a7f3d0",
                   }}
                 >
                   Balance: {currentPoints} pts
@@ -772,7 +779,8 @@ export default function ProfileModal({
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
                   {rewards.map((r) => {
                     const cost = Number(r.cost || 0);
-                    const canAfford = currentPoints >= cost;
+                    const projectedBalance = round2(currentPoints - cost);
+                    const goesNegative = projectedBalance < 0;
                     const linkedCard = r.cardId ? cardsMap.get(r.cardId) : null;
                     const evoUnlocked = !linkedCard || isCardUnlockedForStudent(student, linkedCard);
                     const cardImg = getCardDisplayImage(linkedCard, displayFlagValue, !evoUnlocked);
@@ -847,8 +855,8 @@ export default function ProfileModal({
                               <span
                                 className="pill"
                                 style={{
-                                  background: canAfford ? "#fee2e2" : "#f3f4f6",
-                                  color: canAfford ? "#991b1b" : "#6b7280",
+                                  background: goesNegative ? "#fef2f2" : "#fee2e2",
+                                  color: goesNegative ? "#b91c1c" : "#991b1b",
                                   fontWeight: 800,
                                   fontSize: 12,
                                 }}
@@ -890,33 +898,28 @@ export default function ProfileModal({
                             >
                               🔒 Evolution locked
                             </button>
-                          ) : canAfford ? (
-                            <button
-                              type="button"
-                              className="btn primary"
-                              style={{ width: "100%", padding: "8px 12px", fontSize: 13, fontWeight: 700 }}
-                              onClick={() => onRedeemReward && onRedeemReward(r.id)}
-                            >
-                              Redeem for {cost} pts
-                            </button>
                           ) : (
                             <button
                               type="button"
-                              className="btn"
-                              disabled
+                              className={goesNegative ? "btn" : "btn primary"}
                               style={{
                                 width: "100%",
                                 padding: "8px 12px",
-                                fontSize: 12,
-                                fontWeight: 600,
-                                background: "#fef2f2",
-                                color: "#b91c1c",
-                                borderColor: "#fecaca",
-                                cursor: "not-allowed",
-                                opacity: 0.9,
+                                fontSize: 13,
+                                fontWeight: 700,
+                                ...(goesNegative
+                                  ? {
+                                      background: "#fef2f2",
+                                      color: "#b91c1c",
+                                      borderColor: "#fecaca",
+                                    }
+                                  : {}),
                               }}
+                              onClick={() => onRedeemReward && onRedeemReward(r.id)}
                             >
-                              Need {round2(cost - currentPoints)} more pts
+                              {goesNegative
+                                ? `Redeem for ${cost} pts (→ ${projectedBalance} pts)`
+                                : `Redeem for ${cost} pts`}
                             </button>
                           )}
                         </div>

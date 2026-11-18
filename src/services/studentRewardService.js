@@ -88,10 +88,6 @@ export async function redeemIndividual({
   const s = students.find((x) => x.id === studentId);
   if (!s) return;
 
-  if ((s.currentPoints || 0) < cost) {
-    return alertFn ? alertFn("Not enough points!") : undefined;
-  }
-
   if (r.cardId) {
     const linkedCard = cards.find((c) => c.id === r.cardId);
     if (linkedCard && !isCardUnlockedForStudent(s, linkedCard)) {
@@ -101,7 +97,12 @@ export async function redeemIndividual({
     }
   }
 
-  if (confirmFn && !(await confirmFn(`Redeem "${r.title}" for ${cost} points?`))) return;
+  const nextPoints = round2(Number(s.currentPoints || 0) - cost);
+  const confirmMsg =
+    nextPoints < 0
+      ? `Redeem "${r.title}" for ${cost} points? Balance will become ${nextPoints} pts.`
+      : `Redeem "${r.title}" for ${cost} points?`;
+  if (confirmFn && !(await confirmFn(confirmMsg))) return;
 
   try {
     const studentRef = doc(db, `classes/${classId}/students/${studentId}`);
@@ -144,8 +145,6 @@ export async function redeemIndividual({
         streakId: "xp_unlock",
       });
     });
-
-    const nextPoints = round2(Math.max(0, Number(s.currentPoints || 0) - cost));
 
     await updateDoc(studentRef, {
       currentPoints: nextPoints,
@@ -201,7 +200,20 @@ export async function redeemGroup({
     }
   }
 
-  if (confirmFn && !(await confirmFn(`Redeem "${r.title}" for group?`))) return;
+  const negativeAfter = participants
+    .map(([sid, share]) => {
+      const st = students.find((s) => s.id === sid);
+      if (!st) return null;
+      const after = round2(Number(st.currentPoints || 0) - Number(share || 0));
+      return after < 0 ? `${st.name} (${after} pts)` : null;
+    })
+    .filter(Boolean);
+  const groupConfirmMsg =
+    negativeAfter.length > 0
+      ? `Redeem "${r.title}" for group? Negative balance after redeem: ${negativeAfter.join(", ")}.`
+      : `Redeem "${r.title}" for group?`;
+
+  if (confirmFn && !(await confirmFn(groupConfirmMsg))) return;
 
   try {
     const batch = writeBatch(db);
@@ -262,7 +274,7 @@ export async function redeemGroup({
       });
 
       const nextHistory = [...(st.rewardsHistory || []), historyEntry];
-      const nextPoints = round2(Math.max(0, Number(st.currentPoints || 0) - costNum));
+      const nextPoints = round2(Number(st.currentPoints || 0) - costNum);
 
       batch.update(studentRef, {
         currentPoints: nextPoints,
