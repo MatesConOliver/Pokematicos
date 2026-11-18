@@ -275,6 +275,9 @@ body[data-screen="home"] .main-nav,body[data-screen="home"] .nav-tabs,body[data-
 .home-focus{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px}
 .home-focus-label{width:100%;font-size:11px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;color:#6741b5}
 .focus-chip{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#fffaf0;border:1px solid #fff;color:#463760;font-size:12px;font-weight:750;line-height:1.2}
+.math-inline{font-family:"STIX Two Math","Cambria Math","Times New Roman",serif;font-size:1.12em;vertical-align:-.15em;color:var(--ink)}
+.math-display{display:block;width:max-content;max-width:100%;margin:8px auto;font-family:"STIX Two Math","Cambria Math","Times New Roman",serif;font-size:1.18rem;color:var(--ink)}
+.formula-card{overflow-x:auto;margin:10px 0;padding:10px 14px;border:1px solid #d8caef;border-radius:14px;background:#fbf8ff;text-align:center}
 .home-choice .home-enter{margin-top:10px;color:#6741b5;font-size:15px}
 .home-resume{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:22px}
 .home-resume p{font-size:14px;color:#655a77;margin:0}
@@ -365,6 +368,15 @@ function fmt(n, d = 3) {
   if (!Number.isFinite(n)) return '—';
   return roundTo(n, d).toLocaleString(L() === 'en' ? 'en-US' : 'es-ES', { useGrouping: false, maximumFractionDigits: d });
 }
+function mathProb(eventName, givenName = '', display = false) {
+  const given = givenName ? `<mo stretchy="false">|</mo><mtext>${escapeText(givenName)}</mtext>` : '';
+  return `<math xmlns="http://www.w3.org/1998/Math/MathML" class="${display ? 'math-display' : 'math-inline'}" aria-label="P(${escapeText(eventName)}${givenName ? ' dado ' + escapeText(givenName) : ''})"><mrow><mi mathvariant="normal">P</mi><mo>(</mo><mtext>${escapeText(eventName)}</mtext>${given}<mo>)</mo></mrow></math>`;
+}
+function mathFrac(num, den, display = false) {
+  return `<math xmlns="http://www.w3.org/1998/Math/MathML" class="${display ? 'math-display' : 'math-inline'}"><mfrac><mrow>${num}</mrow><mrow>${den}</mrow></mfrac></math>`;
+}
+function mathSymbol(name) { return `<mi>${escapeText(name)}</mi>`; }
+function mathNumber(value) { return `<mn>${escapeText(value)}</mn>`; }
 
 /* Accepts equivalent fractions "a/b", comma/dot decimals, percentages "40%", or simple arithmetic like "(6/36)/(11/36)" */
 function parseProb(raw) {
@@ -942,11 +954,11 @@ function renderExpCond(l) {
             </table>
           </div>
           <div class="grid-2" style="margin-top:10px">
-            <div><label><strong>P(Acusado | Dice verdad)</strong></label><input class="field-input" value="${escapeText(c.q.pAcGivenTruth)}" data-expcond-q="pAcGivenTruth" placeholder="e.g. 1/6"></div>
-            <div><label><strong>P(Dice verdad | Acusado)</strong></label><input class="field-input" value="${escapeText(c.q.pTruthGivenAc)}" data-expcond-q="pTruthGivenAc" placeholder="e.g. 5/11"></div>
+            <div><label><strong>${mathProb(l === 'es' ? 'Acusado' : 'Accused', l === 'es' ? 'Dice verdad' : 'Truthful')}</strong></label><input class="field-input" value="${escapeText(c.q.pAcGivenTruth)}" data-expcond-q="pAcGivenTruth" placeholder="1/6"></div>
+            <div><label><strong>${mathProb(l === 'es' ? 'Dice verdad' : 'Truthful', l === 'es' ? 'Acusado' : 'Accused')}</strong></label><input class="field-input" value="${escapeText(c.q.pTruthGivenAc)}" data-expcond-q="pTruthGivenAc" placeholder="5/11"></div>
           </div>
           <div style="margin-top:8px">
-            <label><strong>${l === 'es' ? '¿Y P(Acusado | Miente y No acusado)? (suceso condicionante vacío)' : 'What about P(Accused | Lie & Unaccused)?'}</strong></label>
+            <label><strong>${l === 'es' ? '¿Y ' : 'What about '}${mathProb(l === 'es' ? 'Acusado' : 'Accused', l === 'es' ? 'Miente ∩ No acusado' : 'Lies ∩ Unaccused')}? ${l === 'es' ? '(suceso condicionante vacío)' : '(empty conditioning event)'}</strong></label>
             <select class="field-input" data-expcond-q="pImpossible" style="margin-top:4px">
               <option value="">—</option>
               <option value="undef" ${c.q.pImpossible === 'undef' ? 'selected' : ''}>${l === 'es' ? 'No definida (denominador = 0)' : 'Undefined (zero denominator)'}</option>
@@ -1052,11 +1064,11 @@ function renderExpMonty(l) {
         <div class="subpanel">
           <strong>${l === 'es' ? '4. Preguntas condicionadas (modelo explícito)' : '4. Conditioned Strategy Questions'}</strong>
           <div style="margin-top:8px">
-            <label><strong>P(${l === 'es' ? 'Ganar | Cambiar (3 puertas)' : 'Win | Switch (3 doors)'})</strong></label>
+            <label><strong>${mathProb(l === 'es' ? 'Ganar' : 'Win', l === 'es' ? 'Cambiar · 3 puertas' : 'Switch · 3 doors')}</strong></label>
             <input class="field-input" value="${escapeText(m.q.pWinSwitch)}" data-expmonty-q="pWinSwitch" placeholder="2/3">
           </div>
           <div style="margin-top:8px">
-            <label><strong>${l === 'es' ? 'Si el jugador elige Mantener o Cambiar al azar con probabilidad 1/2 cada una, calcula P(Cambió | Ganó el coche):' : 'If a player picks Keep or Switch at random with p=1/2 each, compute P(Switched | Won prize):'}</strong></label>
+            <label><strong>${l === 'es' ? 'Si elige Mantener o Cambiar al azar con probabilidad ' : 'If Keep or Switch is selected at random with probability '}${mathFrac(mathNumber('1'), mathNumber('2'))}${l === 'es' ? ' cada una, calcula ' : ' each, compute '}${mathProb(l === 'es' ? 'Cambió' : 'Switched', l === 'es' ? 'Ganó el coche' : 'Won prize')}:</strong></label>
             <input class="field-input" value="${escapeText(m.q.pSwitchGivenCar)}" data-expmonty-q="pSwitchGivenCar" placeholder="2/3">
           </div>
           <div style="margin-top:8px">
@@ -1122,7 +1134,7 @@ function renderExpDiag(l) {
           </div>
           <div class="grid-2" style="margin-top:10px">
             <div>
-              <label><strong>${l === 'es' ? 'Calcula P(Condición|+) y compárala con la sensibilidad P(+|Condición):' : 'Compute P(Condition|+) and compare it with sensitivity P(+|Condition):'}</strong></label>
+              <label><strong>${l === 'es' ? 'Calcula ' : 'Compute '}${mathProb(l === 'es' ? 'Condición' : 'Condition', 'Test +')}${l === 'es' ? ' y compárala con la sensibilidad ' : ' and compare it with sensitivity '}${mathProb('Test +', l === 'es' ? 'Condición' : 'Condition')}:</strong></label>
               <input class="field-input" value="${escapeText(d.pCondGivenPos)}" data-diag-q="pCondGivenPos" placeholder="${l === 'es' ? 'P(Condición|+)' : 'P(Condition|+)'}">
               <select class="field-input" data-diag-q="comparison" style="margin-top:6px">
                 <option value="">— ${l === 'es' ? 'Compara ambas' : 'Compare them'} —</option>
@@ -1231,8 +1243,8 @@ function renderExpUrn(l) {
         <div class="subpanel">
           <strong>${l === 'es' ? 'Calcula el modelo exacto para comparar con la simulación:' : 'Compute the exact model to compare with simulation:'}</strong>
           <div class="grid-2" style="margin-top:8px">
-            <div><label><strong>P(${l === 'es' ? 'mismo color' : 'same color'})</strong></label><input class="field-input" value="${escapeText(u.q.pSame)}" data-urn-q="pSame" placeholder="a/b"></div>
-            <div><label><strong>P(${l === 'es' ? 'colores distintos' : 'different colors'})</strong></label><input class="field-input" value="${escapeText(u.q.pDiff)}" data-urn-q="pDiff" placeholder="a/b"></div>
+            <div><label><strong>${mathProb(l === 'es' ? 'mismo color' : 'same colour')}</strong></label><input class="field-input" value="${escapeText(u.q.pSame)}" data-urn-q="pSame" placeholder="a/b"></div>
+            <div><label><strong>${mathProb(l === 'es' ? 'colores distintos' : 'different colours')}</strong></label><input class="field-input" value="${escapeText(u.q.pDiff)}" data-urn-q="pDiff" placeholder="a/b"></div>
           </div>
           <div class="row" style="margin-top:10px"><button type="button" class="btn-primary" data-check-urn="1">${escapeText(tr('checkBtn'))}</button></div>
           ${u.checkedQ ? `<div class="callout ${u.checkedQ.ok ? 'ok' : 'err'}">${escapeText(u.checkedQ.msg)}</div>` : ''}
@@ -1935,6 +1947,14 @@ function getTallerProbHelp(kind) {
   return (bank[kind] || bank.cond2x2)[l];
 }
 
+function getTallerProbFormula(kind) {
+  if (kind === 'cond2x2') return `${mathProb('A', 'B')} = ${mathFrac(mathSymbol('a'), '<mi>a</mi><mo>+</mo><mi>c</mi>')} &nbsp;·&nbsp; ${mathProb('B', 'A')} = ${mathFrac(mathSymbol('a'), '<mi>a</mi><mo>+</mo><mi>b</mi>')}`;
+  if (kind === 'tree') return `${mathProb('RR')} = ${mathFrac(mathNumber('3'), mathNumber('5'))} · ${mathFrac(mathNumber('2'), mathNumber('4'))} &nbsp;&nbsp;│&nbsp;&nbsp; ${mathProb('AA')} = ${mathFrac(mathNumber('2'), mathNumber('5'))} · ${mathFrac(mathNumber('1'), mathNumber('4'))}`;
+  if (kind === 'diag') return `${mathProb(L() === 'es' ? 'Condición' : 'Condition', 'Test +')} = ${mathFrac('<mtext>VP</mtext>', '<mtext>VP</mtext><mo>+</mo><mtext>FP</mtext>')}`;
+  if (kind === 'alg') return `<math xmlns="http://www.w3.org/1998/Math/MathML" class="math-display"><mrow><mi>P</mi><mo>(</mo><mi>A</mi><mo>∪</mo><mi>B</mi><mo>)</mo><mo>=</mo><mi>P</mi><mo>(</mo><mi>A</mi><mo>)</mo><mo>+</mo><mi>P</mi><mo>(</mo><mi>B</mi><mo>)</mo><mo>−</mo><mi>P</mi><mo>(</mo><mi>A</mi><mo>∩</mo><mi>B</mi><mo>)</mo></mrow></math>`;
+  return `${mathProb(L() === 'es' ? 'mismo color' : 'same colour')} = ${mathFrac('<mfrac><mi>N</mi><mn>2</mn></mfrac><mo>−</mo><mn>1</mn>', '<mi>N</mi><mo>−</mo><mn>1</mn>')}`;
+}
+
 function renderTaller() {
   const l = L();
   if (!state.taller.current) state.taller.current = generateTallerProb(state.taller.topic, false);
@@ -1947,6 +1967,11 @@ function renderTaller() {
   if (cur.kind === 'cond2x2') {
     body = `
       <p>${l === 'es' ? 'Dada la tabla 2×2 de frecuencias, calcula ambas probabilidades condicionadas inversas:' : 'Given the 2×2 count table, compute both inverse conditional probabilities:'}</p>
+      <div class="formula-card">
+        ${mathProb('A', 'B')} = ${mathFrac(mathSymbol('a'), '<mi>a</mi><mo>+</mo><mi>c</mi>')}
+        &nbsp;&nbsp;·&nbsp;&nbsp;
+        ${mathProb('B', 'A')} = ${mathFrac(mathSymbol('a'), '<mi>a</mi><mo>+</mo><mi>b</mi>')}
+      </div>
       <div class="table-wrap" style="max-width:360px">
         <table>
           <thead><tr><th></th><th>B</th><th>Bᶜ</th></tr></thead>
@@ -1957,8 +1982,8 @@ function renderTaller() {
         </table>
       </div>
       <div class="grid-2" style="margin-top:10px;max-width:460px">
-        <div><label><strong>P(A | B)</strong></label><input class="field-input" value="${escapeText(u.pAgB)}" data-tal-f="pAgB" placeholder="a/b"></div>
-        <div><label><strong>P(B | A)</strong></label><input class="field-input" value="${escapeText(u.pBgA)}" data-tal-f="pBgA" placeholder="a/b"></div>
+        <div><label><strong>${mathProb('A', 'B')}</strong></label><input class="field-input" value="${escapeText(u.pAgB)}" data-tal-f="pAgB" placeholder="a/b"></div>
+        <div><label><strong>${mathProb('B', 'A')}</strong></label><input class="field-input" value="${escapeText(u.pBgA)}" data-tal-f="pBgA" placeholder="a/b"></div>
       </div>`;
   } else if (cur.kind === 'tree') {
     body = `
@@ -1966,16 +1991,17 @@ function renderTaller() {
         ? `Urna con <strong>${cur.r} rojas y ${cur.b} azules</strong>. Extraemos 2 fichas <strong>${cur.withRep ? 'CON reemplazamiento' : 'SIN reemplazamiento'}</strong>:`
         : `Urn with <strong>${cur.r} red and ${cur.b} blue</strong> tokens. Draw 2 <strong>${cur.withRep ? 'WITH replacement' : 'WITHOUT replacement'}</strong>:`}</p>
       <div class="grid-2" style="max-width:460px">
-        <div><label><strong>P(${l === 'es' ? 'mismo color' : 'same color'})</strong></label><input class="field-input" value="${escapeText(u.same)}" data-tal-f="same"></div>
-        <div><label><strong>P(${l === 'es' ? 'colores distintos' : 'different colors'})</strong></label><input class="field-input" value="${escapeText(u.diff)}" data-tal-f="diff"></div>
+        <div><label><strong>${mathProb(l === 'es' ? 'mismo color' : 'same colour')}</strong></label><input class="field-input" value="${escapeText(u.same)}" data-tal-f="same"></div>
+        <div><label><strong>${mathProb(l === 'es' ? 'colores distintos' : 'different colours')}</strong></label><input class="field-input" value="${escapeText(u.diff)}" data-tal-f="diff"></div>
       </div>`;
   } else if (cur.kind === 'diag') {
     body = `
       <p>${l === 'es'
-        ? `Población N = ${cur.N}: ${cur.prev}% tiene la condición; sensibilidad = ${cur.sens}% y especificidad = ${cur.spec}%. Calcula P(Condición | Test +):`
-        : `Population N = ${cur.N}: ${cur.prev}% have the condition; sensitivity = ${cur.sens}% and specificity = ${cur.spec}%. Compute P(Condition | Test +):`}</p>
+        ? `Población N = ${cur.N}: ${cur.prev}% tiene la condición; sensibilidad = ${cur.sens}% y especificidad = ${cur.spec}%. Calcula:`
+        : `Population N = ${cur.N}: ${cur.prev}% have the condition; sensitivity = ${cur.sens}% and specificity = ${cur.spec}%. Compute:`}</p>
+      <div class="formula-card">${mathProb(l === 'es' ? 'Condición' : 'Condition', 'Test +')} = ${mathFrac('<mtext>VP</mtext>', '<mtext>VP</mtext><mo>+</mo><mtext>FP</mtext>')}</div>
       <div style="max-width:260px">
-        <label><strong>P(${l === 'es' ? 'Condición | +' : 'Cond. | +'})</strong></label>
+        <label><strong>${mathProb(l === 'es' ? 'Condición' : 'Condition', 'Test +')}</strong></label>
         <input class="field-input" value="${escapeText(u.ppv)}" data-tal-f="ppv" placeholder="TP/(TP+FP)">
       </div>`;
   } else if (cur.kind === 'alg') {
@@ -1983,9 +2009,10 @@ function renderTaller() {
       <p>${l === 'es'
         ? `Si P(A) = 0,4, P(B) = 0,5 y P(A∩B) = 0,2, y C es un suceso imposible (P(C) = 0):`
         : `Given P(A) = 0.4, P(B) = 0.5, P(A∩B) = 0.2, and impossible event C (P(C) = 0):`}</p>
+      <div class="formula-card"><math xmlns="http://www.w3.org/1998/Math/MathML" class="math-display"><mrow><mi>P</mi><mo>(</mo><mi>A</mi><mo>∪</mo><mi>B</mi><mo>)</mo><mo>=</mo><mi>P</mi><mo>(</mo><mi>A</mi><mo>)</mo><mo>+</mo><mi>P</mi><mo>(</mo><mi>B</mi><mo>)</mo><mo>−</mo><mi>P</mi><mo>(</mo><mi>A</mi><mo>∩</mo><mi>B</mi><mo>)</mo></mrow></math></div>
       <div class="grid-2" style="max-width:520px">
-        <div><label><strong>P(A ∪ B)</strong></label><input class="field-input" value="${escapeText(u.union)}" data-tal-f="union"></div>
-        <div><label><strong>P(A | C)</strong></label>
+        <div><label><strong>${mathProb('A ∪ B')}</strong></label><input class="field-input" value="${escapeText(u.union)}" data-tal-f="union"></div>
+        <div><label><strong>${mathProb('A', 'C')}</strong></label>
           <select class="field-input" data-tal-f="zeroDen">
             <option value="">—</option>
             <option value="undef" ${u.zeroDen === 'undef' ? 'selected' : ''}>${l === 'es' ? 'No definida (denominador 0)' : 'Undefined (zero denominator)'}</option>
@@ -1999,7 +2026,7 @@ function renderTaller() {
         ? `Bolsa equilibrada con N = ${cur.N} fichas (mitad rojas, mitad azules) sin reemplazamiento. Calcula P(mismo color) y distingue independencia de incompatibilidad:`
         : `Balanced bag with N = ${cur.N} tokens (half red, half blue) without replacement. Compute P(same color) and distinguish independence from mutual exclusivity:`}</p>
       <div class="grid-2" style="max-width:560px">
-        <div><label><strong>P(${l === 'es' ? `mismo color, N=${cur.N}` : `same color, N=${cur.N}`})</strong></label><input class="field-input" value="${escapeText(u.ans)}" data-tal-f="ans"></div>
+        <div><label><strong>${mathProb(l === 'es' ? `mismo color; N = ${cur.N}` : `same colour; N = ${cur.N}`)}</strong></label><input class="field-input" value="${escapeText(u.ans)}" data-tal-f="ans"></div>
         <div><label><strong>${l === 'es' ? 'Relación entre independencia e incompatibilidad:' : 'Independence vs mutual exclusivity:'}</strong></label>
           <select class="field-input" data-tal-f="indVsIncomp">
             <option value="">—</option>
@@ -2040,6 +2067,7 @@ function renderTaller() {
         ${cur.usedHelp.example ? `<div class="callout info">${escapeText(helpTxt.example)}</div>` : ''}
         ${cur.usedHelp.hint1 ? `<div class="callout info">${escapeText(helpTxt.hint1)}</div>` : ''}
         ${cur.usedHelp.solution ? `<div class="callout warn">${escapeText(helpTxt.solution)}</div>` : ''}
+        ${(cur.usedHelp.example || cur.usedHelp.solution) ? `<div class="formula-card">${getTallerProbFormula(cur.kind)}</div>` : ''}
       </div>
     </section>`;
 }

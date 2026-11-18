@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
-import { todayISODate } from "../../utils/dateUtils";
+import { todayISODate, getHistoryTimestamp, formatHistoryDateTime } from "../../utils/dateUtils";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { formatPoints } from "../../utils/helpers";
 import { reconcileAndEnrichStudentHistory } from "../../services/rewardCodeService.js";
@@ -186,11 +186,7 @@ export default function StudentHistoryModal({
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[...historyList]
-                .sort((a, b) => {
-                  const timeA = a.redeemedAt || (a.date ? new Date(a.date).getTime() : 0);
-                  const timeB = b.redeemedAt || (b.date ? new Date(b.date).getTime() : 0);
-                  return timeB - timeA;
-                })
+                .sort((a, b) => getHistoryTimestamp(b) - getHistoryTimestamp(a))
                 .map((h, idx) => {
                   const isEvolution = h.type === "evolution";
                   const isGroup = h.type === "group" || h.mode === "group";
@@ -281,7 +277,7 @@ export default function StudentHistoryModal({
                               }}
                             >
                               {isEvolution ? (
-                                <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                                <span>{formatHistoryDateTime(h)}</span>
                               ) : isCode ? (
                                 <>
                                   <span
@@ -296,7 +292,7 @@ export default function StudentHistoryModal({
                                     Source: {h.source || h.sourceId || "Code"}
                                   </span>
                                   <span>•</span>
-                                  <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                                  <span>{formatHistoryDateTime(h)}</span>
                                   {resolvedCardId && (
                                     <span style={{ color: "#0284c7", fontWeight: 600 }}>
                                       • 🃏 Card: {linkedCard?.title || h.cardTitle || resolvedCardId}
@@ -305,7 +301,7 @@ export default function StudentHistoryModal({
                                 </>
                               ) : (
                                 <>
-                                  <span>{h.date ? new Date(h.date).toLocaleDateString() : "Unknown date"}</span>
+                                  <span>{formatHistoryDateTime(h)}</span>
                                   {isGroup && (
                                     <span
                                       style={{
