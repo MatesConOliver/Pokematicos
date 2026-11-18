@@ -161,6 +161,7 @@ main{max-width:1200px;margin:0 auto;padding:16px 20px 64px}
 .pastel-tab[aria-pressed="true"]{outline:3px solid var(--purple);outline-offset:2px;box-shadow:0 6px 20px #6741b529}
 .pastel-tab .pt-kicker{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--purple);text-transform:uppercase}
 .pastel-tab .pt-title{font-size:16px;font-weight:800;line-height:1.25}
+.pastel-tab .pt-desc{font-size:12.5px;font-weight:650;line-height:1.35;color:#51436c;margin-top:3px}
 
 .two-zone{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start}
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -271,6 +272,9 @@ body[data-screen="home"] .main-nav,body[data-screen="home"] .nav-tabs,body[data-
 .home-choice .home-icon{font-size:34px;line-height:1.3}
 .home-choice strong{font-size:21px}
 .home-choice .home-desc{font-size:15px;font-weight:400;line-height:1.55}
+.home-focus{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px}
+.home-focus-label{width:100%;font-size:11px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;color:#6741b5}
+.focus-chip{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#fffaf0;border:1px solid #fff;color:#463760;font-size:12px;font-weight:750;line-height:1.2}
 .home-choice .home-enter{margin-top:10px;color:#6741b5;font-size:15px}
 .home-resume{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:22px}
 .home-resume p{font-size:14px;color:#655a77;margin:0}
@@ -286,8 +290,8 @@ body[data-screen="home"] .main-nav,body[data-screen="home"] .nav-tabs,body[data-
   <div class="topbar-inner">
     <a href="#explora" class="brand-link" id="brandTitle">🎲 Laboratorio de Probabilidad</a>
     <nav class="nav-tabs" aria-label="Espacios principales">
-      <button type="button" data-nav="explora" id="tabExplora" aria-current="page">🧪 Explora</button>
-      <button type="button" data-nav="investiga" id="tabInvestiga">🔬 Investiga</button>
+      <button type="button" data-nav="explora" id="tabExplora" aria-current="page">🔬 Explora</button>
+      <button type="button" data-nav="investiga" id="tabInvestiga">📒 Investiga</button>
       <button type="button" data-nav="taller" id="tabTaller">🛠️ Taller</button>
       <button type="button" data-nav="evidencias" id="tabEvidencias">🏅 Mis evidencias</button>
     </nav>
@@ -587,7 +591,7 @@ const UI = {
   es: {
     docTitle: 'Level Up: Probabilidad · Criterio B (4.º ESO / MYP 5)',
     brand: '⭐ Level Up: Probabilidad',
-    navExp: '🧪 Explora', navInv: '🔬 Investiga', navTal: '🛠️ Taller', navEvi: '🏅 Mis evidencias',
+    navExp: '🔬 Explora', navInv: '📒 Investiga', navTal: '🛠️ Taller', navEvi: '🏅 Mis evidencias',
     pkmBtn: '🎫 Pokemáticos', pkmBtnSet: '🎫 Pokemáticos ✓',
     mascotAlt: 'Nova, una estrella exploradora sonriente',
     courseMeta: '4.º ESO / MYP 5 · Criterio B: Investigación de patrones',
@@ -607,7 +611,7 @@ const UI = {
   en: {
     docTitle: 'Level Up: Probability · Criterion B (Grade 10 / MYP 5)',
     brand: '⭐ Level Up: Probability',
-    navExp: '🧪 Explore', navInv: '🔬 Investigate', navTal: '🛠️ Workshop', navEvi: '🏅 My Evidence',
+    navExp: '🔬 Explore', navInv: '📒 Investigate', navTal: '🛠️ Workshop', navEvi: '🏅 My Evidence',
     pkmBtn: '🎫 Pokemáticos', pkmBtnSet: '🎫 Pokemáticos ✓',
     mascotAlt: 'Nova, a smiling explorer star',
     courseMeta: 'Grade 10 / MYP 5 · Criterion B: Investigating Patterns',
@@ -670,20 +674,43 @@ function getExpMonty() {
     state.explore.monty = {
       predA: '', predB: '', predLocked: false, predRevised: false,
       game: { prize: ri(0, 2), chosen: -1, opened: -1, phase: 'pick', finalChoice: -1, won: null },
-      keepSeries: { n: 0, wins: 0 },
-      switchSeries: { n: 0, wins: 0 },
+      seriesByDoors: {
+        '3': { keep: { n: 0, wins: 0 }, switch: { n: 0, wins: 0 } },
+        '100': { keep: { n: 0, wins: 0 }, switch: { n: 0, wins: 0 } }
+      },
       doorsMode: 3,
       q: { pWinSwitch: '', pSwitchGivenCar: '', needDist: '' },
       checkedQ: null
     };
   }
-  return state.explore.monty;
+  const m = state.explore.monty;
+  if (!m.seriesByDoors) {
+    m.seriesByDoors = {
+      '3': {
+        keep: m.keepSeries || { n: 0, wins: 0 },
+        switch: m.switchSeries || { n: 0, wins: 0 }
+      },
+      '100': { keep: { n: 0, wins: 0 }, switch: { n: 0, wins: 0 } }
+    };
+    delete m.keepSeries;
+    delete m.switchSeries;
+  }
+  for (const doors of ['3', '100']) {
+    if (!m.seriesByDoors[doors]) m.seriesByDoors[doors] = { keep: { n: 0, wins: 0 }, switch: { n: 0, wins: 0 } };
+  }
+  return m;
+}
+function montySeries(m, doors = m.doorsMode) {
+  const key = String(doors);
+  if (!m.seriesByDoors[key]) m.seriesByDoors[key] = { keep: { n: 0, wins: 0 }, switch: { n: 0, wins: 0 } };
+  return m.seriesByDoors[key];
 }
 function runMontyBatch(strategy, times) {
   const m = getExpMonty();
   if (!m.predLocked) return;
-  const target = strategy === 'switch' ? m.switchSeries : m.keepSeries;
   const doors = m.doorsMode;
+  const series = montySeries(m, doors);
+  const target = strategy === 'switch' ? series.switch : series.keep;
   for (let i = 0; i < times; i++) {
     const prize = ri(0, doors - 1);
     const chosen = ri(0, doors - 1);
@@ -699,7 +726,7 @@ function getExpDiag() {
     state.explore.diag = {
       prevPct: 1, sensPct: 95, specPct: 95, popN: 1000,
       table: { tp: '', fn: '', fp: '', tn: '' },
-      pCondGivenPos: '', predInit: '',
+      pCondGivenPos: '', comparison: '', predInit: '',
       checked: null
     };
   }
@@ -746,10 +773,10 @@ function renderExplora() {
   const l = L();
   const tab = state.activeExplore;
   const tabs = [
-    ['cond', l === 'es' ? '🕵️ Condicionalidad vs Causalidad' : '🕵️ Conditionality vs Causality', l === 'es' ? 'A · Sesiones 1–2' : 'A · Sessions 1–2'],
-    ['monty', l === 'es' ? '🚪 Paradoja de Monty Hall' : '🚪 Monty Hall Paradox', l === 'es' ? 'B · Decisiones' : 'B · Strategy'],
-    ['diag', l === 'es' ? '🩺 Pruebas Diagnósticas' : '🩺 Diagnostic Tests', l === 'es' ? 'C · Falsos positivos' : 'C · False Positives'],
-    ['urn', l === 'es' ? '🏺 Con y sin Reemplazamiento' : '🏺 With vs Without Replacement', l === 'es' ? 'D · Árboles' : 'D · Branch Trees']
+    ['cond', l === 'es' ? '🕵️ Condicionalidad vs Causalidad' : '🕵️ Conditionality vs Causality', l === 'es' ? 'A · Sesiones 1–2' : 'A · Sessions 1–2', l === 'es' ? 'Tablas 2×2 · P(A|B) y P(B|A) · denominador cero' : '2×2 tables · P(A|B) vs P(B|A) · zero denominator'],
+    ['monty', l === 'es' ? '🚪 Paradoja de Monty Hall' : '🚪 Monty Hall Paradox', l === 'es' ? 'B · Decisiones' : 'B · Strategy', l === 'es' ? 'Probabilidad condicionada · estrategias de decisión' : 'Conditional probability · decision strategies'],
+    ['diag', l === 'es' ? '🩺 Tests con fallos' : '🩺 Imperfect Tests', l === 'es' ? 'C · Falsos positivos y negativos' : 'C · False Positives & Negatives', l === 'es' ? 'Personas con/sin condición · aciertos y fallos del test' : 'People with/without a condition · correct and incorrect test results'],
+    ['urn', l === 'es' ? '🏺 Con y sin Reemplazamiento' : '🏺 With vs Without Replacement', l === 'es' ? 'D · Árboles' : 'D · Branch Trees', l === 'es' ? 'Árboles · sucesos compuestos · dependencia e independencia' : 'Trees · compound events · dependence and independence']
   ];
 
   const sellosDone = Object.values(state.sellos).filter((v) => v === 'autonomous' || v === 'consolidated').length;
@@ -782,10 +809,11 @@ function renderExplora() {
     </section>
 
     <div class="exp-tiles" role="tablist" aria-label="Experimentos Explora">
-      ${tabs.map(([id, label, kicker]) => `
+      ${tabs.map(([id, label, kicker, desc]) => `
         <button type="button" class="pastel-tab" role="tab" aria-pressed="${tab === id}" data-exp-tab="${id}">
           <span class="pt-kicker">${escapeText(kicker)}</span>
           <span class="pt-title">${escapeText(label)}</span>
+          <span class="pt-desc">📚 ${escapeText(desc)}</span>
         </button>`).join('')}
     </div>
     ${body}
@@ -866,17 +894,20 @@ function renderExpCond(l) {
           </div>
           ${c.repView === 'venn' ? `
             <div class="svg-stage">
-              <svg viewBox="0 0 360 180" width="100%" role="img" aria-label="Diagrama de Venn esquemático">
+              <svg viewBox="0 0 360 180" width="100%" role="img" aria-label="Diagrama de conjuntos esquemático">
                 <rect x="6" y="6" width="348" height="168" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
                 <text x="16" y="24" font-size="11" fill="#44546b">Ω = ${c.Npop} (${l === 'es' ? 'esquemático, no a escala' : 'schematic, not to scale'})</text>
-                <circle cx="135" cy="96" r="56" fill="#be123c" fill-opacity="0.14" stroke="#be123c" stroke-width="2"/>
-                <circle cx="220" cy="96" r="56" fill="#1d4ed8" fill-opacity="0.14" stroke="#1d4ed8" stroke-width="2"/>
-                <text x="102" y="88" font-size="11.5" font-weight="700" fill="#881337" text-anchor="middle">${l === 'es' ? 'Miente' : 'Lies'}</text>
-                <text x="102" y="105" font-size="11" fill="#881337" text-anchor="middle">(${fmt(expLie, 0)})</text>
-                <text x="178" y="92" font-size="10.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">${l === 'es' ? 'Acusado' : 'Accused'}</text>
-                <text x="178" y="107" font-size="10.5" fill="#1e3a8a" text-anchor="middle">&amp; Verdad (${fmt(expTA, 0)})</text>
-                <text x="242" y="88" font-size="11.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">${l === 'es' ? 'No acusado' : 'Unaccused'}</text>
-                <text x="242" y="105" font-size="11" fill="#1e3a8a" text-anchor="middle">(${fmt(expTS, 0)})</text>
+                <rect x="25" y="38" width="205" height="116" rx="24" fill="#1d4ed8" fill-opacity="0.09" stroke="#1d4ed8" stroke-width="2"/>
+                <text x="38" y="57" font-size="11.5" font-weight="700" fill="#1e3a8a">${l === 'es' ? 'Acusado' : 'Accused'} (${fmt(expLie + expTA, 0)})</text>
+                <rect x="43" y="72" width="76" height="60" rx="15" fill="#be123c" fill-opacity="0.15" stroke="#be123c" stroke-width="1.8"/>
+                <text x="81" y="97" font-size="11" font-weight="700" fill="#881337" text-anchor="middle">${l === 'es' ? 'Miente' : 'Lies'}</text>
+                <text x="81" y="115" font-size="11" fill="#881337" text-anchor="middle">${fmt(expLie, 0)}</text>
+                <rect x="135" y="72" width="76" height="60" rx="15" fill="#b45309" fill-opacity="0.13" stroke="#b45309" stroke-width="1.8"/>
+                <text x="173" y="94" font-size="10.5" font-weight="700" fill="#92400e" text-anchor="middle">${l === 'es' ? 'Dice verdad' : 'Truthful'}</text>
+                <text x="173" y="112" font-size="10.5" fill="#92400e" text-anchor="middle">${fmt(expTA, 0)}</text>
+                <rect x="250" y="72" width="82" height="60" rx="15" fill="#0f766e" fill-opacity="0.12" stroke="#0f766e" stroke-width="1.8"/>
+                <text x="291" y="94" font-size="10.5" font-weight="700" fill="#0f766e" text-anchor="middle">${l === 'es' ? 'No acusado' : 'Unaccused'}</text>
+                <text x="291" y="112" font-size="10.5" fill="#0f766e" text-anchor="middle">${fmt(expTS, 0)}</text>
               </svg>
             </div>
           ` : `
@@ -886,7 +917,7 @@ function renderExpCond(l) {
                 <line x1="30" y1="95" x2="145" y2="138" stroke="#1d4ed8" stroke-width="2"/>
                 <text x="72" y="56" font-size="11" fill="#881337">1/6</text>
                 <text x="72" y="132" font-size="11" fill="#1e3a8a">5/6</text>
-                <text x="150" y="46" font-size="11.5" font-weight="700" fill="#881337">${l === 'es' ? 'Miente → Acusado (6/' + c.Npop + ')' : 'Lies → Accused (6/' + c.Npop + ')'}</text>
+                <text x="150" y="46" font-size="11.5" font-weight="700" fill="#881337">${l === 'es' ? `Miente → Acusado (${fmt(expLie, 0)}/${c.Npop})` : `Lies → Accused (${fmt(expLie, 0)}/${c.Npop})`}</text>
                 <text x="150" y="142" font-size="11.5" font-weight="700" fill="#1e3a8a">${l === 'es' ? 'Dice verdad' : 'Tells truth'}</text>
                 <line x1="220" y1="138" x2="315" y2="105" stroke="#b45309" stroke-width="1.8"/>
                 <line x1="220" y1="138" x2="315" y2="168" stroke="#0f766e" stroke-width="1.8"/>
@@ -941,8 +972,9 @@ function renderExpCond(l) {
 function renderExpMonty(l) {
   const m = getExpMonty();
   const g = m.game;
-  const kRate = m.keepSeries.n ? m.keepSeries.wins / m.keepSeries.n : NaN;
-  const sRate = m.switchSeries.n ? m.switchSeries.wins / m.switchSeries.n : NaN;
+  const activeSeries = montySeries(m);
+  const kRate = activeSeries.keep.n ? activeSeries.keep.wins / activeSeries.keep.n : NaN;
+  const sRate = activeSeries.switch.n ? activeSeries.switch.wins / activeSeries.switch.n : NaN;
 
   return `
     <div class="panel two-zone">
@@ -992,7 +1024,7 @@ function renderExpMonty(l) {
       <div>
         <div class="subpanel" style="margin-top:0">
           <div class="row-between">
-            <strong>${l === 'es' ? '3. Simulación separada por estrategia' : '3. Strategy-Separated Batch Simulation'}</strong>
+            <strong>${l === 'es' ? `3. Simulación separada · ${m.doorsMode} puertas` : `3. Isolated Simulation · ${m.doorsMode} doors`}</strong>
             <div class="seg-group">
               <button type="button" aria-pressed="${m.doorsMode === 3}" data-monty-doors="3">3 ${l === 'es' ? 'puertas' : 'doors'}</button>
               <button type="button" aria-pressed="${m.doorsMode === 100}" data-monty-doors="100">100 ${l === 'es' ? 'puertas' : 'doors'}</button>
@@ -1010,8 +1042,8 @@ function renderExpMonty(l) {
             <table>
               <thead><tr><th>${l === 'es' ? 'Estrategia' : 'Strategy'}</th><th>n</th><th>${l === 'es' ? 'Aciertos' : 'Wins'}</th><th>${l === 'es' ? 'Frec. relativa' : 'Rel. freq.'}</th></tr></thead>
               <tbody>
-                <tr><td>${l === 'es' ? 'Mantener' : 'Keep'}</td><td>${m.keepSeries.n}</td><td>${m.keepSeries.wins}</td><td>${fmt(kRate, 3)}</td></tr>
-                <tr><td>${l === 'es' ? 'Cambiar' : 'Switch'}</td><td>${m.switchSeries.n}</td><td>${m.switchSeries.wins}</td><td>${fmt(sRate, 3)}</td></tr>
+                <tr><td>${l === 'es' ? 'Mantener' : 'Keep'}</td><td>${activeSeries.keep.n}</td><td>${activeSeries.keep.wins}</td><td>${fmt(kRate, 3)}</td></tr>
+                <tr><td>${l === 'es' ? 'Cambiar' : 'Switch'}</td><td>${activeSeries.switch.n}</td><td>${activeSeries.switch.wins}</td><td>${fmt(sRate, 3)}</td></tr>
               </tbody>
             </table>
           </div>
@@ -1059,12 +1091,12 @@ function renderExpDiag(l) {
       <div>
         <h2 style="margin-top:0">${l === 'es' ? 'C. Pruebas Diagnósticas y Falsos Positivos' : 'C. Diagnostic Tests & False Positives'}</h2>
         <p>${l === 'es'
-          ? 'Trabaja con frecuencias naturales especificando Prevalencia, Sensibilidad (P(+|Enfermo)) y Especificidad (P(−|Sano)) por separado, sin expresiones ambiguas.'
-          : 'Use natural frequencies with explicit Prevalence, Sensitivity P(+|Cond.), and Specificity P(−|Healthy), avoiding ambiguous phrasing.'}</p>
+          ? 'Trabaja con frecuencias naturales: porcentaje de personas con la condición, sensibilidad (P(+|Condición)) y especificidad (P(−|Sin condición)), evitando expresiones ambiguas.'
+          : 'Use natural frequencies: percentage of people with the condition, sensitivity P(+|Condition), and specificity P(−|No condition), avoiding ambiguous phrasing.'}</p>
 
         <div class="subpanel">
           <div class="grid-3">
-            <div><label><strong>${l === 'es' ? 'Prevalencia:' : 'Prevalence:'} ${d.prevPct}%</strong></label><input type="range" min="1" max="20" step="1" value="${d.prevPct}" data-diag-cfg="prevPct" style="width:100%"></div>
+            <div><label><strong>${l === 'es' ? 'Personas con la condición:' : 'People with the condition:'} ${d.prevPct}%</strong></label><input type="range" min="1" max="20" step="1" value="${d.prevPct}" data-diag-cfg="prevPct" style="width:100%"></div>
             <div><label><strong>${l === 'es' ? 'Sensibilidad:' : 'Sensitivity:'} ${d.sensPct}%</strong></label><input type="range" min="80" max="99" step="1" value="${d.sensPct}" data-diag-cfg="sensPct" style="width:100%"></div>
             <div><label><strong>${l === 'es' ? 'Especificidad:' : 'Specificity:'} ${d.specPct}%</strong></label><input type="range" min="80" max="99" step="1" value="${d.specPct}" data-diag-cfg="specPct" style="width:100%"></div>
           </div>
@@ -1089,8 +1121,17 @@ function renderExpDiag(l) {
             </table>
           </div>
           <div class="grid-2" style="margin-top:10px">
-            <div><label><strong>${l === 'es' ? '¿Qué es mayor: P(+|Condición) o P(Condición|+)?' : 'Which is larger: P(+|Cond) or P(Cond|+)?'}</strong></label><input class="field-input" value="${escapeText(d.pCondGivenPos)}" data-diag-q="pCondGivenPos" placeholder="${l === 'es' ? 'Calcula P(Condición|+)' : 'Compute P(Cond|+)'}"></div>
-            <div><label><strong>${l === 'es' ? 'Si sube la prevalencia, P(Condición|+):' : 'As prevalence rises, P(Cond|+):'}</strong></label>
+            <div>
+              <label><strong>${l === 'es' ? 'Calcula P(Condición|+) y compárala con la sensibilidad P(+|Condición):' : 'Compute P(Condition|+) and compare it with sensitivity P(+|Condition):'}</strong></label>
+              <input class="field-input" value="${escapeText(d.pCondGivenPos)}" data-diag-q="pCondGivenPos" placeholder="${l === 'es' ? 'P(Condición|+)' : 'P(Condition|+)'}">
+              <select class="field-input" data-diag-q="comparison" style="margin-top:6px">
+                <option value="">— ${l === 'es' ? 'Compara ambas' : 'Compare them'} —</option>
+                <option value="ppv" ${d.comparison === 'ppv' ? 'selected' : ''}>P(${l === 'es' ? 'Condición|+' : 'Condition|+'}) &gt; P(+|${l === 'es' ? 'Condición' : 'Condition'})</option>
+                <option value="sens" ${d.comparison === 'sens' ? 'selected' : ''}>P(+|${l === 'es' ? 'Condición' : 'Condition'}) &gt; P(${l === 'es' ? 'Condición|+' : 'Condition|+'})</option>
+                <option value="equal" ${d.comparison === 'equal' ? 'selected' : ''}>${l === 'es' ? 'Son iguales' : 'They are equal'}</option>
+              </select>
+            </div>
+            <div><label><strong>${l === 'es' ? 'Si aumenta el porcentaje de personas con la condición, P(Condición|+):' : 'As the percentage of people with the condition rises, P(Cond|+):'}</strong></label>
               <select class="field-input" data-diag-q="predInit">
                 <option value="">—</option>
                 <option value="up" ${d.predInit === 'up' ? 'selected' : ''}>${l === 'es' ? 'Aumenta (menor proporción de falsos positivos)' : 'Increases (smaller false-positive share)'}</option>
@@ -1221,7 +1262,9 @@ function checkExpCond() {
     ok,
     msg: ok
       ? (l === 'es' ? 'Tabla 2×2 y condicionales inversas verificadas. Observa que P(Acusado|Verdad)=1/6 ≠ P(Verdad|Acusado)=5/11.' : '2×2 table and inverse conditionals verified. Notice P(Accused|Truth)=1/6 ≠ P(Truth|Accused)=5/11.')
-      : (l === 'es' ? 'Revisa la tabla de N estudiantes, P(Acusado|Verdad)=5/30=1/6, P(Verdad|Acusado)=5/11 y el caso de denominador cero.' : 'Check the 2×2 table, P(Accused|Truth)=1/6, P(Truth|Accused)=5/11, and zero denominator.')
+      : (l === 'es'
+        ? `Revisa la tabla de ${c.Npop} estudiantes: P(Acusado|Verdad)=${fmt(expTA, 0)}/${fmt(expTA + expTS, 0)}=1/6, P(Verdad|Acusado)=${fmt(expTA, 0)}/${fmt(expLie + expTA, 0)}=5/11 y el caso de denominador cero.`
+        : `Check the ${c.Npop}-student table: P(Accused|Truth)=${fmt(expTA, 0)}/${fmt(expTA + expTS, 0)}=1/6, P(Truth|Accused)=${fmt(expTA, 0)}/${fmt(expLie + expTA, 0)}=5/11, and the zero-denominator case.`)
   };
   if (tabOk) advanceSello('selRep', 'autonomous');
   if (qOk) advanceSello('selInv', 'autonomous');
@@ -1238,7 +1281,7 @@ function checkExpMonty() {
     ok,
     msg: ok
       ? (l === 'es' ? 'Correcto: cambiar gana 2/3; con elección previa 50/50, P(Cambió|Ganó)=2/3; y sin conocer la distribución de estrategias no hay respuesta única.' : 'Correct: switching wins 2/3; under 50/50 prior choice, P(Switched|Won)=2/3; without prior weights there is no unique answer.')
-      : (l === 'es' ? 'Revisa 2/3 al cambiar, Bayes con p=1/2 para P(Cambió|Coche) y la necesidad de conocer cómo se elige la estrategia.' : 'Check 2/3 win rate when switching, Bayes with p=1/2, and why prior strategy choice matters.')
+      : (l === 'es' ? 'Revisa 2/3 al cambiar, calcula P(Cambió|Ganó) restringiendo los casos a las partidas ganadas y comprueba por qué importa saber cómo se elige la estrategia.' : 'Check the 2/3 win rate when switching, calculate P(Switched|Won) by restricting attention to winning games, and note why the strategy-selection probabilities matter.')
   };
   if (ok) advanceSello('selInv', 'autonomous');
   save(); render();
@@ -1253,15 +1296,17 @@ function checkExpDiag() {
   const tp = (sick * d.sensPct) / 100, fn = sick - tp;
   const tn = (healthy * d.specPct) / 100, fp = healthy - tn;
   const ppv = (tp + fp) > 0 ? tp / (tp + fp) : NaN;
+  const sensitivity = d.sensPct / 100;
+  const expectedComparison = Math.abs(ppv - sensitivity) < 0.0005 ? 'equal' : (ppv > sensitivity ? 'ppv' : 'sens');
   const ok = closeProb(d.table.tp, tp, 0.15) && closeProb(d.table.fn, fn, 0.15) &&
     closeProb(d.table.fp, fp, 0.15) && closeProb(d.table.tn, tn, 0.15) &&
-    closeProb(d.pCondGivenPos, ppv, 0.02) && d.predInit === 'up';
+    closeProb(d.pCondGivenPos, ppv, 0.02) && d.comparison === expectedComparison && d.predInit === 'up';
   if (d.checked && !d.checked.ok && ok) awardHuella('hueTab');
   d.checked = {
     ok,
     msg: ok
-      ? (l === 'es' ? `Exacto: P(Condición|+) = ${fmt(ppv, 3)} frente a Sensibilidad = ${fmt(d.sensPct / 100, 2)}. Al aumentar la prevalencia se reduce el peso relativo de los falsos positivos.` : `Verified: P(Condition|+) = ${fmt(ppv, 3)} vs Sensitivity = ${fmt(d.sensPct / 100, 2)}. Higher prevalence increases PPV.`)
-      : (l === 'es' ? 'Revisa los 4 recuentos naturales en la tabla, calcula TP/(TP+FP) y comprueba cómo cambia al subir la prevalencia.' : 'Check the 4 natural counts, compute TP/(TP+FP), and verify how higher prevalence affects PPV.')
+      ? (l === 'es' ? `Exacto: P(Condición|+) = ${fmt(ppv, 3)} y Sensibilidad = ${fmt(sensitivity, 3)}; la comparación corresponde a estos datos concretos. Al aumentar el porcentaje de personas con la condición disminuye el peso relativo de los falsos positivos.` : `Verified: P(Condition|+) = ${fmt(ppv, 3)} and Sensitivity = ${fmt(sensitivity, 3)}; their ordering is specific to these data. A higher percentage with the condition reduces the relative weight of false positives.`)
+      : (l === 'es' ? 'Revisa los 4 recuentos, calcula TP/(TP+FP), compara ese resultado con la sensibilidad y prueba qué ocurre al aumentar el porcentaje de personas con la condición.' : 'Check the 4 counts, compute TP/(TP+FP), compare it with sensitivity, and test what happens when the percentage with the condition rises.')
   };
   if (ok) { advanceSello('selRep', 'autonomous'); advanceSello('selInv', 'autonomous'); }
   save(); render();
@@ -1445,10 +1490,16 @@ function renderInvestiga() {
     const icon = m.id === 'inv1' ? '🧬' : m.id === 'inv2' ? '🎯' : '👑';
     const kicker = m.id === 'inv1' ? (l === 'es' ? 'Preparación' : 'Warm-Up') : m.id === 'inv2' ? (l === 'es' ? 'Evaluación central' : 'Core Task') : (l === 'es' ? 'Transferencia' : 'Transfer');
     const title = m.id === 'inv1' ? (l === 'es' ? '1. Colores distintos' : '1. Different Colors') : m.id === 'inv2' ? (l === 'es' ? '2. Mismo color (2 col.)' : '2. Same Color (2 col.)') : (l === 'es' ? '3. Mismo color (3 col.)' : '3. Same Color (3 col.)');
+    const focus = m.id === 'inv1'
+      ? (l === 'es' ? 'Casos con N · árbol · fórmula de colores distintos' : 'Cases by N · tree · different-colour formula')
+      : m.id === 'inv2'
+        ? (l === 'es' ? 'Patrón · regla general · justificación con 2 colores' : 'Pattern · general rule · two-colour justification')
+        : (l === 'es' ? 'Transferencia a 3 colores · caso nuevo · justificación' : 'Transfer to 3 colours · unseen case · justification');
     return `
       <button type="button" class="pastel-tab" role="tab" aria-pressed="${m.id === curMeta.id}" data-inv-select="${m.id}">
         <span class="pt-kicker">${icon} ${escapeText(kicker)}</span>
         <span class="pt-title">${escapeText(title)}</span>
+        <span class="pt-desc">📚 ${escapeText(focus)}</span>
       </button>`;
   }).join('');
 
@@ -1473,7 +1524,7 @@ function renderInvestiga() {
       <div class="row-between">
         <div>
           <span class="hero-kicker">${escapeText(curMeta[l].badge)}</span>
-          <h1 style="margin:4px 0 0;font-size:clamp(1.35rem,2.5vw,1.85rem)">🔬 ${escapeText(curMeta[l].title)}</h1>
+          <h1 style="margin:4px 0 0;font-size:clamp(1.35rem,2.5vw,1.85rem)">📒 ${escapeText(curMeta[l].title)}</h1>
         </div>
       </div>
       <p style="margin:10px 0 0">${escapeText(curMeta[l].prompt)}</p>
@@ -1731,11 +1782,11 @@ function checkInvRule(id) {
   });
   if (!ok) {
     inv.ruleHistory.push({ expr, ok: false });
-    inv.ruleChecked = { ok: false, msg: l === 'es' ? 'La fórmula propuesta no coincide en todos los casos (prueba N = 2 ó 3 y otros N mayores).' : 'The proposed rule fails on some valid N (check edge cases like N = 2 or 3 and larger N).' };
+    inv.ruleChecked = { ok: false, expr, msg: l === 'es' ? 'La fórmula propuesta no coincide en todos los casos (prueba N = 2 ó 3 y otros N mayores).' : 'The proposed rule fails on some valid N (check edge cases like N = 2 or 3 and larger N).' };
   } else {
     if (inv.ruleHistory.some((h) => !h.ok)) awardHuella('hueCon');
     inv.ruleHistory.push({ expr, ok: true });
-    inv.ruleChecked = { ok: true, msg: l === 'es' ? 'La regla coincide con los casos de prueba automáticos. Esto no demuestra que sea válida para todo N. Ahora compruébala en un caso nuevo N fuera de tu tabla.' : 'The rule matches the automated test cases. This does not prove it for every N. Now test it on an unseen N outside your table.' };
+    inv.ruleChecked = { ok: true, expr, msg: l === 'es' ? 'La regla coincide con los casos de prueba automáticos. Esto no demuestra que sea válida para todo N. Ahora compruébala en un caso nuevo N fuera de tu tabla.' : 'The rule matches the automated test cases. This does not prove it for every N. Now test it on an unseen N outside your table.' };
     const help = anyInvHelpUsed(inv);
     advanceSello('selReg', help ? 'guided' : (id === 'inv3' ? 'consolidated' : 'autonomous'));
     if (inv.patternText.trim().length > 0) advanceSello('selPat', 'pending_human');
@@ -1757,14 +1808,19 @@ function checkInvVerify(id) {
     save(); render(); return;
   }
   const exact = meta.exactP(vN);
-  const byRule = closeProb(inv.verifyByRule, exact, 0.006);
+  const currentExpr = (inv.ruleExpr || '').trim();
+  const evaluatedRule = evalRuleN(currentExpr, vN);
+  const ruleIsCurrent = Boolean(inv.ruleChecked?.ok && inv.ruleChecked.expr === currentExpr);
+  const byRule = ruleIsCurrent && Number.isFinite(evaluatedRule) && Math.abs(evaluatedRule - exact) < 1e-6 && closeProb(inv.verifyByRule, evaluatedRule, 0.006);
   const byCalc = closeProb(inv.verifyByCalc, exact, 0.006);
   const ok = byRule && byCalc;
   inv.verifyChecked = {
     ok,
     msg: ok
       ? (l === 'es' ? `Comprobación verificada en N = ${vN}: tu regla y tu cálculo coinciden. Recuerda: comprobar un caso apoya la regla, pero justificar requiere explicar por qué vale para todo N.` : `Unseen case N = ${vN} verified: rule and direct calculation agree. Remember: checking a case is not yet a general justification.`)
-      : (l === 'es' ? 'Comprueba ambos cálculos para tu nuevo N (por regla y por árbol/conteo).' : 'Check both values for your new N (via rule and via tree/counting).')
+      : (l === 'es'
+        ? (ruleIsCurrent ? 'Comprueba ambos cálculos para tu nuevo N (por regla y por árbol/conteo).' : 'Primero vuelve a comprobar la fórmula actual; después evalúala en el nuevo N y contrástala con un cálculo independiente.')
+        : (ruleIsCurrent ? 'Check both values for your new N (via rule and via tree/counting).' : 'First re-check the current formula; then evaluate it at the new N and compare it with an independent calculation.'))
   };
   if (ok) {
     const help = anyInvHelpUsed(inv);
@@ -1864,8 +1920,8 @@ function getTallerProbHelp(kind) {
       en: { example: 'Example: 3R, 2B without replacement → P(RR) = (3/5)(2/4), P(BB) = (2/5)(1/4).', hint1: 'Multiply probabilities along a path and add disjoint outcomes.', solution: 'Without replacement lowers total denominator by 1 and matching color count by 1.' }
     },
     diag: {
-      es: { example: 'Ejemplo: de 1000 con 5% prevalencia (50 enfermos), TP = Sens·50 y FP = (1−Espec)·950.', hint1: 'P(Condición|+) = Verdaderos Positivos / (Verdaderos Positivos + Falsos Positivos).', solution: 'Divide TP entre (TP + FP).' },
-      en: { example: 'Example: out of 1000 at 5% prevalence (50 cases), TP = Sens·50 and FP = (1−Spec)·950.', hint1: 'P(Condition|+) = TP / (TP + FP).', solution: 'Divide TP by total positives (TP + FP).' }
+      es: { example: 'Ejemplo: de 1000 personas, un 5% tiene la condición (50 personas): VP = Sens·50 y FP = (1−Espec)·950.', hint1: 'P(Condición|+) = Verdaderos Positivos / (Verdaderos Positivos + Falsos Positivos).', solution: 'Divide VP entre (VP + FP).' },
+      en: { example: 'Example: out of 1000 people, 5% have the condition (50 people): TP = Sens·50 and FP = (1−Spec)·950.', hint1: 'P(Condition|+) = TP / (TP + FP).', solution: 'Divide TP by total positives (TP + FP).' }
     },
     alg: {
       es: { example: 'Ejemplo: P(A∪B) = P(A)+P(B)−P(A∩B). Si el condicionante tiene probabilidad 0, P(X|∅) no está definida.', hint1: 'No restes dos veces P(A∩B) y nunca dividas por cero.', solution: 'P(A∪B) = 0,4 + 0,5 − 0,2 = 0,7; con suceso condicionante imposible es no definida.' },
@@ -1916,8 +1972,8 @@ function renderTaller() {
   } else if (cur.kind === 'diag') {
     body = `
       <p>${l === 'es'
-        ? `Población N = ${cur.N}, prevalencia = ${cur.prev}%, sensibilidad = ${cur.sens}%, especificidad = ${cur.spec}%. Calcula P(Condición | Test +):`
-        : `Population N = ${cur.N}, prevalence = ${cur.prev}%, sensitivity = ${cur.sens}%, specificity = ${cur.spec}%. Compute P(Condition | Test +):`}</p>
+        ? `Población N = ${cur.N}: ${cur.prev}% tiene la condición; sensibilidad = ${cur.sens}% y especificidad = ${cur.spec}%. Calcula P(Condición | Test +):`
+        : `Population N = ${cur.N}: ${cur.prev}% have the condition; sensitivity = ${cur.sens}% and specificity = ${cur.spec}%. Compute P(Condition | Test +):`}</p>
       <div style="max-width:260px">
         <label><strong>P(${l === 'es' ? 'Condición | +' : 'Cond. | +'})</strong></label>
         <input class="field-input" value="${escapeText(u.ppv)}" data-tal-f="ppv" placeholder="TP/(TP+FP)">
@@ -2281,10 +2337,15 @@ function updateChrome() {
 
 
 let showingHome = true;
-const HOME_SECTIONS = [["explora", "🔬", "Explora", "Explore", "Experimenta con el azar y contrasta tus predicciones.", "Experiment with chance and test predictions."], ["investiga", "📒", "Investiga", "Investigate", "Organiza casos, descubre patrones y justifica una regla.", "Organize cases, find patterns and justify a rule."], ["taller", "🛠️", "Taller", "Practice", "Practica probabilidades, árboles y tablas a tu ritmo.", "Practice probabilities, trees and tables at your pace."], ["evidencias", "🏅", "Mis evidencias", "My evidence", "Consulta tus huellas de trabajo, sellos y cuaderno.", "Review your work, achievements and notebook."]];
+const HOME_SECTIONS = [
+ ["explora", "🔬", "Explora", "Explore", "Experimenta con el azar y contrasta tus predicciones.", "Experiment with chance and test predictions.", ["Probabilidad condicionada", "Monty Hall", "Tests con fallos", "Dependencia y reemplazamiento"], ["Conditional probability", "Monty Hall", "Imperfect tests", "Dependence & replacement"]],
+ ["investiga", "📒", "Investiga", "Investigate", "Organiza casos, descubre patrones y justifica una regla.", "Organize cases, find patterns and justify a rule.", ["Patrones con N", "Reglas algebraicas", "2 y 3 colores", "Justificación"], ["Patterns in N", "Algebraic rules", "2 and 3 colours", "Justification"]],
+ ["taller", "🛠️", "Taller", "Practice", "Elige una herramienta concreta y practícala a tu ritmo.", "Choose one specific tool and practise it at your own pace.", ["Tablas 2×2", "Árboles", "Tests con fallos", "Álgebra de sucesos", "Independencia e incompatibilidad"], ["2×2 tables", "Trees", "Imperfect tests", "Event algebra", "Independence & mutual exclusivity"]],
+ ["evidencias", "🏅", "Mis evidencias", "My evidence", "Consulta tus huellas, sellos y cuaderno; aquí no aparece contenido nuevo.", "Review work traces, seals and notebook; no new content is introduced here.", ["Progreso", "Cuaderno", "Logros"], ["Progress", "Notebook", "Achievements"]]
+];
 function renderHomeMenu() {
  const en = L() === 'en';
- const cards = HOME_SECTIONS.map(([id,icon,es,eng,desc,descEn]) => `<button type="button" class="home-choice" data-home-go="${id}"><span class="home-icon" aria-hidden="true">${icon}</span><strong>${en?eng:es}</strong><span class="home-desc">${en?descEn:desc}</span><span class="home-enter">${en?'Enter':'Entrar'} →</span></button>`).join('');
+ const cards = HOME_SECTIONS.map(([id,icon,es,eng,desc,descEn,tagsEs,tagsEn]) => `<button type="button" class="home-choice" data-home-go="${id}"><span class="home-icon" aria-hidden="true">${icon}</span><strong>${en?eng:es}</strong><span class="home-desc">${en?descEn:desc}</span><span class="home-focus"><span class="home-focus-label">${en?'You will review':'Vas a repasar'}</span>${(en?tagsEn:tagsEs).map(x=>`<span class="focus-chip">${escapeText(x)}</span>`).join('')}</span><span class="home-enter">${en?'Enter':'Entrar'} →</span></button>`).join('');
  const last = HOME_SECTIONS.find(x=>x[0]===state.activeNav) || HOME_SECTIONS[0];
  return `<section class="home-welcome">${mascot()}<div><h1>${en?'Choose your next step':'¿Qué quieres hacer hoy?'}</h1><p>${en?'Nova is here to help. Choose a space and work at your own pace.':'Nova te acompaña. Elige un espacio y avanza a tu ritmo.'}</p></div></section><section class="home-grid" aria-label="${en?'Main menu':'Menú principal'}">${cards}</section><div class="home-resume"><button type="button" data-home-go="${last[0]}">▶ ${en?'Continue':'Continuar'} · ${en?last[3]:last[2]}</button><p>${en?'Your answers and drafts are kept in this browser.':'Tus respuestas y borradores se conservan en este navegador.'}</p></div>`;
 }
@@ -2331,7 +2392,13 @@ app.addEventListener('click', (e) => {
   if (!t) return;
 
   if (t.dataset.expTab) { state.activeExplore = t.dataset.expTab; save(); render(); return; }
-  if (t.dataset.condPop) { getExpCond().Npop = Number(t.dataset.condPop); save(); render(); return; }
+  if (t.dataset.condPop) {
+    const c = getExpCond();
+    c.Npop = Number(t.dataset.condPop);
+    c.table = { lieAcc: '', truthAcc: '', truthSafe: '' };
+    c.checkedQ = null;
+    save(); render(); return;
+  }
   if (t.dataset.condRep) { getExpCond().repView = t.dataset.condRep; save(); render(); return; }
   if (t.dataset.lockCond) {
     const c = getExpCond();
@@ -2363,7 +2430,8 @@ app.addEventListener('click', (e) => {
     g.finalChoice = final;
     g.won = final === g.prize;
     g.phase = 'done';
-    const tgt = t.dataset.montyAct === 'switch' ? m.switchSeries : m.keepSeries;
+    const manualSeries = montySeries(m, 3);
+    const tgt = t.dataset.montyAct === 'switch' ? manualSeries.switch : manualSeries.keep;
     tgt.n += 1; if (g.won) tgt.wins += 1;
     save(); render(); return;
   }
@@ -2377,10 +2445,21 @@ app.addEventListener('click', (e) => {
   }
   if (t.dataset.checkMonty) { checkExpMonty(); return; }
 
-  if (t.dataset.diagPop) { getExpDiag().popN = Number(t.dataset.diagPop); save(); render(); return; }
+  if (t.dataset.diagPop) {
+    const d = getExpDiag();
+    d.popN = Number(t.dataset.diagPop);
+    d.table = { tp: '', fn: '', fp: '', tn: '' };
+    d.pCondGivenPos = ''; d.comparison = ''; d.checked = null;
+    save(); render(); return;
+  }
   if (t.dataset.checkDiag) { checkExpDiag(); return; }
 
-  if (t.dataset.urnRep != null) { getExpUrn().withRep = t.dataset.urnRep === '1'; save(); render(); return; }
+  if (t.dataset.urnRep != null) {
+    const u = getExpUrn();
+    u.withRep = t.dataset.urnRep === '1';
+    u.q = { pSame: '', pDiff: '' }; u.checkedQ = null;
+    save(); render(); return;
+  }
   if (t.dataset.lockUrn) { const u = getExpUrn(); if (u.predA.trim()) { u.predLocked = true; save(); render(); } return; }
   if (t.dataset.urnSim) { runUrnSim(Number(t.dataset.urnSim)); return; }
   if (t.dataset.checkUrn) { checkExpUrn(); return; }
@@ -2481,15 +2560,41 @@ app.addEventListener('input', (e) => {
   else if (el.dataset.expcondQ) { getExpCond().q[el.dataset.expcondQ] = el.value; save(); }
   else if (el.dataset.expmonty) { getExpMonty()[el.dataset.expmonty] = el.value; save(); }
   else if (el.dataset.expmontyQ) { getExpMonty().q[el.dataset.expmontyQ] = el.value; save(); }
-  else if (el.dataset.diagCfg) { getExpDiag()[el.dataset.diagCfg] = Number(el.value); save(); render(); }
+  else if (el.dataset.diagCfg) {
+    const d = getExpDiag();
+    d[el.dataset.diagCfg] = Number(el.value);
+    d.table = { tp: '', fn: '', fp: '', tn: '' };
+    d.pCondGivenPos = ''; d.comparison = ''; d.checked = null;
+    save(); render();
+  }
   else if (el.dataset.diagTab) { getExpDiag().table[el.dataset.diagTab] = el.value; save(); }
   else if (el.dataset.diagQ) { getExpDiag()[el.dataset.diagQ] = el.value; save(); }
-  else if (el.dataset.urnCfg) { getExpUrn()[el.dataset.urnCfg] = Number(el.value); save(); render(); }
+  else if (el.dataset.urnCfg) {
+    const u = getExpUrn();
+    u[el.dataset.urnCfg] = Number(el.value);
+    u.q = { pSame: '', pDiff: '' }; u.checkedQ = null;
+    save(); render();
+  }
   else if (el.dataset.urnPred) { getExpUrn().predA = el.value; save(); }
   else if (el.dataset.urnQ) { getExpUrn().q[el.dataset.urnQ] = el.value; save(); }
-  else if (el.dataset.invWbn) { getInvState(el.dataset.invWbn).workbenchN = Number(el.value); save(); render(); }
+  else if (el.dataset.invWbn) {
+    const inv = getInvState(el.dataset.invWbn);
+    inv.workbenchN = Number(el.value);
+    inv.treeDraft = { p1Num: '', p1Den: '', p2SameNum: '', p2SameDen: '', treeOk: false };
+    save(); render();
+  }
   else if (el.dataset.invTree) { getInvState(state.activeInv).treeDraft[el.dataset.invTree] = el.value; save(); }
-  else if (el.dataset.invField) { getInvState(state.activeInv)[el.dataset.invField] = el.value; save(); }
+  else if (el.dataset.invField) {
+    const inv = getInvState(state.activeInv);
+    inv[el.dataset.invField] = el.value;
+    if (el.dataset.invField === 'ruleExpr') {
+      inv.ruleChecked = null;
+      inv.verifyChecked = null;
+    } else if (['verifyN', 'verifyByRule', 'verifyByCalc'].includes(el.dataset.invField)) {
+      inv.verifyChecked = null;
+    }
+    save();
+  }
   else if (el.dataset.invCasep != null) { getInvState(state.activeInv).cases[Number(el.dataset.invCasep)].userP = el.value; save(); }
   else if (el.dataset.invPeerToggle) { getInvState(state.activeInv).peerReview.enabled = el.checked; save(); render(); }
   else if (el.dataset.invPeer) { getInvState(state.activeInv).peerReview[el.dataset.invPeer] = el.value; save(); }

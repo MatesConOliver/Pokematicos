@@ -327,6 +327,10 @@ body[data-screen="home"] .main-nav,body[data-screen="home"] .nav-tabs,body[data-
 .home-choice .home-icon{font-size:34px;line-height:1.3}
 .home-choice strong{font-size:21px}
 .home-choice .home-desc{font-size:15px;font-weight:400;line-height:1.55}
+.home-focus{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px}
+.home-focus-label{width:100%;font-size:11px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;color:#6741b5}
+.focus-chip{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#fffaf0;border:1px solid #fff;color:#463760;font-size:12px;font-weight:750;line-height:1.2}
+.case-focus{margin-top:7px;font-size:12.5px;color:#6741b5;font-weight:750;line-height:1.4}
 .home-choice .home-enter{margin-top:10px;color:#6741b5;font-size:15px}
 .home-resume{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:22px}
 .home-resume p{font-size:14px;color:#655a77;margin:0}
@@ -1164,13 +1168,31 @@ function renderHelpBar(helpObj, usedObj, prefix) {
 }
 
 /* ================= EXPEDIENTES (6 DATA CASE GENERATORS) ================= */
+const EXP_SCENARIO_COUNTS = { expMue: 3, expTab: 3, expAgr: 3, expDis: 2, expAud: 2, expReg: 2 };
+function nextScenarioIndex(id, current) {
+  return (Number(current || 0) + 1) % EXP_SCENARIO_COUNTS[id];
+}
+function repairExpContext(rec, id) {
+  if (!rec || !rec.guided || !rec.transfer) return rec;
+  // Variables always belong to the selected scenario; remove legacy detached lists.
+  if (id === 'expMue') delete rec.transfer.transferVars;
+  // An untouched transfer must use a genuinely different setting from guided practice.
+  if (!rec.completedTransfer && rec.transfer.v === rec.guided.v) {
+    rec.transfer = generateExpInstance(id, true, nextScenarioIndex(id, rec.guided.v));
+    rec.usedHelpTransfer = { example: false, hint1: false, hint2: false, solution: false };
+  }
+  return rec;
+}
 function makeExpRecord(id) {
   const existing = state.expedientes[id];
-  if (existing && existing.guided && existing.transfer) return existing;
+  if (existing && existing.guided && existing.transfer) {
+    return repairExpContext(existing, id);
+  }
+  const guided = generateExpInstance(id, false);
   const rec = {
     stage: 0,
-    guided: generateExpInstance(id, false),
-    transfer: generateExpInstance(id, true),
+    guided,
+    transfer: generateExpInstance(id, true, nextScenarioIndex(id, guided.v)),
     usedHelpAnalysis: { example: false, hint1: false, hint2: false, solution: false },
     usedHelpTransfer: { example: false, hint1: false, hint2: false, solution: false },
     stageDone: [true, false, false, false, false, false],
@@ -1196,21 +1218,22 @@ function regenerateExpVariant(id, transferOnly = false) {
     rec.completedGuided = false;
     rec.hadErrorAnalysis = false;
   }
-  rec.transfer = generateExpInstance(id, true);
+  rec.transfer = generateExpInstance(id, true, nextScenarioIndex(id, rec.guided.v));
   rec.usedHelpTransfer = { example: false, hint1: false, hint2: false, solution: false };
   rec.completedTransfer = false;
   save();
   return rec;
 }
 
-function generateExpInstance(id, isTransfer) {
-  const v = isTransfer ? 1 : ri(0, 2);
+function generateExpInstance(id, isTransfer, forcedVariant = null) {
+  const maxIndex = EXP_SCENARIO_COUNTS[id] - 1;
+  const v = Number.isInteger(forcedVariant) ? clamp(forcedVariant, 0, maxIndex) : ri(0, maxIndex);
   if (id === 'expMue') {
     const scenarios = [
       {
         es: {
           tag: 'Control de calidad · Fábrica',
-          title: '¿Duran realmente igual todos los lotes de tubos?',
+          title: '¿Representan esos 10 tubos toda la producción diaria?',
           question: 'Una planta envasa 4 800 tubos al día en 3 turnos y revisa solo los últimos 10 tubos del turno de tarde para estimar defectos diarios.',
           proposal: 'Revisar los últimos 10 tubos producidos justo antes del cierre.',
           vars: [
@@ -1229,7 +1252,7 @@ function generateExpInstance(id, isTransfer) {
         },
         en: {
           tag: 'Quality Control · Manufacturing',
-          title: 'Are all production batches really equally reliable?',
+          title: 'Do those 10 tubes represent the full day’s production?',
           question: 'A factory fills 4,800 tubes per day across 3 shifts and inspects only the last 10 tubes of the afternoon shift to estimate daily defects.',
           proposal: 'Inspect only the last 10 tubes produced right before closing.',
           vars: [
@@ -1289,7 +1312,7 @@ function generateExpInstance(id, isTransfer) {
       },
       {
         es: {
-          tag: 'Consumo eléctrico · Instituto',
+          tag: 'Consumo eléctrico · Distrito',
           title: '¿Qué consumo energético tienen los hogares del distrito?',
           question: 'Un equipo recoge datos solo de viviendas voluntarias que ya instalaron placas solares y responden un formulario en redes.',
           proposal: 'Recoger respuestas voluntarias de hogares con placas solares.',
@@ -1308,7 +1331,7 @@ function generateExpInstance(id, isTransfer) {
           }
         },
         en: {
-          tag: 'Energy Use · District Audit',
+          tag: 'Energy Use · District',
           title: 'What is the true household electricity usage in the district?',
           question: 'A team collects data only from volunteer households that already installed solar panels and answered an online poll.',
           proposal: 'Collect volunteer responses only from solar-equipped homes.',
@@ -1329,13 +1352,7 @@ function generateExpInstance(id, isTransfer) {
       }
     ];
     const sc = scenarios[v % scenarios.length];
-    const transferVars = isTransfer ? [
-      { label_es: 'Género musical favorito', label_en: 'Favorite music genre', ans: 'qualitative' },
-      { label_es: 'Tiempo de descarga (s)', label_en: 'Download time (s)', ans: 'continuous' },
-      { label_es: 'N.º de comidas al día', label_en: 'Meals per day', ans: 'discrete' },
-      { label_es: 'Producción anual de hierro (t)', label_en: 'Annual iron production (t)', ans: 'continuous' }
-    ] : null;
-    return { id, v, isTransfer, sc, transferVars, user: { init: '', bias: '', fix: '', vars: ['', '', '', ''], contrast: '' }, checked: {} };
+    return { id, v, isTransfer, sc, user: { init: '', bias: '', fix: '', vars: ['', '', '', ''], contrast: '' }, checked: {} };
   }
 
   if (id === 'expTab') {
@@ -1666,6 +1683,15 @@ function generateTallerItem(topicReq = state.taller.topic, diff = state.taller.d
 
   if (topic === 'audit2d') {
     const neg = diff !== 'basic' && Math.random() < 0.45;
+    const context = neg
+      ? {
+          es: { xLabel: 'Pantalla diaria (h)', yLabel: 'Sueño nocturno (h)' },
+          en: { xLabel: 'Daily screen time (h)', yLabel: 'Nightly sleep (h)' }
+        }
+      : {
+          es: { xLabel: 'Ejercicio semanal (h)', yLabel: 'Puntuación física (0-15)' },
+          en: { xLabel: 'Weekly exercise (h)', yLabel: 'Fitness score (0-15)' }
+        };
     const slope = neg ? -1.1 : 1.15;
     const intercept = neg ? 12 : 1.5;
     let bi = Stats.generateBivariateSample({ N: 18, xMin: 1, xMax: 9, slope, intercept, noise: diff === 'challenge' ? 1.8 : 0.9, yMin: 0, yMax: 15 });
@@ -1675,7 +1701,7 @@ function generateTallerItem(topicReq = state.taller.topic, diff = state.taller.d
     const auditMode = pick(['sign_mismatch', 'out_of_bounds', 'valid']);
     const claimedR = auditMode === 'sign_mismatch' ? -roundTo(bi.r, 2) : auditMode === 'out_of_bounds' ? (bi.r >= 0 ? 1.19 : -1.25) : roundTo(bi.r, 2);
     return {
-      topic, diff, isReview, kind: 'audit2d', bi, auditMode, claimedR,
+      topic, diff, isReview, kind: 'audit2d', bi, auditMode, claimedR, context,
       user: { verdict: '', dir: '' }, checked: false, ok: false,
       usedHelp: { example: false, hint1: false, hint2: false, solution: false }, counted: false
     };
@@ -1685,8 +1711,12 @@ function generateTallerItem(topicReq = state.taller.topic, diff = state.taller.d
   let bi = Stats.generateBivariateSample({ N: 18, xMin: 2, xMax: 10, slope: 1.25, intercept: 2.0, noise: 0.9, yMin: 1, yMax: 18 });
   while (bi.r < 0.75) bi = Stats.generateBivariateSample({ N: 18, xMin: 2, xMax: 10, slope: 1.25, intercept: 2.0, noise: 0.6, yMin: 1, yMax: 18 });
   const mS = roundTo(bi.m, 2), nS = roundTo(bi.n, 2), xQ = ri(4, 8), xExt = 24;
+  const context = {
+    es: { xLabel: 'Ensayos realizados', yLabel: 'Puntuación técnica (0-18)' },
+    en: { xLabel: 'Practice sessions', yLabel: 'Technique score (0-18)' }
+  };
   return {
-    topic: 'reg2d', diff, isReview, kind: 'reg2d', bi, mS, nS, xQ, xExt, yAns: mS * xQ + nS,
+    topic: 'reg2d', diff, isReview, kind: 'reg2d', bi, mS, nS, xQ, xExt, yAns: mS * xQ + nS, context,
     user: { yEst: '', interpOk: '' }, checked: false, ok: false,
     usedHelp: { example: false, hint1: false, hint2: false, solution: false }, counted: false
   };
@@ -1759,6 +1789,14 @@ function renderExpedientes() {
   const doneComp = Object.values(state.competencias).filter((v) => v === 'autonomous' || v === 'consolidated').length;
   const sumConst = Object.values(state.constancia).reduce((a, b) => a + b, 0);
   const maxConst = CONSTANCIA_META.reduce((a, b) => a + b.max, 0);
+  const expFocus = {
+    expMue: { es: 'Sesgo muestral · selección representativa · tipos de variables', en: 'Sampling bias · representative selection · variable types' },
+    expTab: { es: 'Tablas xi–ni–Ni–fi–Fi · media · mediana · moda', en: 'xi–ni–Ni–fi–Fi tables · mean · median · mode' },
+    expAgr: { es: 'Intervalos [a,b) · marcas de clase · percentiles · RIC', en: '[a,b) intervals · class marks · percentiles · IQR' },
+    expDis: { es: 'Rango · varianza · desviación típica · coeficiente de variación', en: 'Range · variance · standard deviation · coefficient of variation' },
+    expAud: { es: 'Tablas 2D · nube de puntos · covarianza · correlación', en: '2D tables · scatter plots · covariance · correlation' },
+    expReg: { es: 'Recta de regresión · estimación · interpolación y extrapolación', en: 'Regression line · estimation · interpolation and extrapolation' }
+  };
 
   const cardsHtml = COMPETENCIAS_META.map((m, idx) => {
     const rec = makeExpRecord(m.id);
@@ -1775,6 +1813,7 @@ function renderExpedientes() {
         </div>
         <h3>${escapeText(m[l].name)}</h3>
         <p>${escapeText(m[l].desc)}</p>
+        <div class="case-focus">📚 ${escapeText(expFocus[m.id][l])}</div>
         <div style="margin-top:auto;padding-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
           <span class="badge b-pend">${escapeText(tr('stages')[rec.stage] || tr('stages')[0])}</span>
           <button type="button" class="${isSel ? 'btn-accent' : 'btn-ghost'}" data-open-exp="${idx}">
@@ -1854,7 +1893,7 @@ function renderCaseWorkspace(meta, rec) {
         'Anota tu intuición inicial; contrastarla después te ayudará a detectar sesgos.',
         'Completa los cálculos paso a paso y usa las pistas si te atascas sin miedo.',
         'Compara tu hipótesis inicial con los datos reales que acabas de calcular.',
-        'Redacta tu informe apoyándote en valores concretos y revisa la rúbrica.',
+        'Explica tus decisiones según la consigna de este expediente y revisa su rúbrica.',
         'Resuelve este caso nuevo sin pistas para demostrar dominio autónomo.'
       ]
     : [
@@ -1971,15 +2010,15 @@ function renderExpStage1(meta, rec, inst, sc) {
       : ['Yes, because σ is equal', 'Not necessarily: it depends on their means and units (use CV)', 'Only if the range is negative'];
   } else if (meta.id === 'expAud') {
     prompt = l === 'es'
-      ? 'En variables humanas o experimentales reales (horas de estudio vs nota), ¿esperas una relación funcional exacta o estadística?'
-      : 'In real human or experimental data (study hours vs score), do you expect exact functional or statistical dependence?';
+      ? `Al estudiar ${sc.xLabel} y ${sc.yLabel}, ¿esperas una relación funcional exacta o estadística?`
+      : `When studying ${sc.xLabel} and ${sc.yLabel}, do you expect exact functional or statistical dependence?`;
     opts = l === 'es'
       ? ['Funcional exacta (misma x implica idéntica y siempre)', 'Estadística (tendencia con dispersión alrededor)', 'Sin relación posible si hay decimales']
       : ['Exact functional (same x always yields identical y)', 'Statistical (overall trend with scatter around it)', 'No relationship when decimals appear'];
   } else {
     prompt = l === 'es'
-      ? 'Si un modelo lineal tiene r = 0,88 sobre x ∈ [1, 10], ¿garantiza el valor exacto para un caso en x = 25?'
-      : 'If a linear model has r = 0.88 on x ∈ [1, 10], does it guarantee an exact value at x = 25?';
+      ? `El modelo que relaciona ${sc.xLabel} con ${sc.yLabel} tiene r = ${fmt(inst.bi.r, 3)} en ${sc.xLabel} ∈ [${inst.sc.xMin}, ${inst.sc.xMax}]. ¿Garantiza un valor exacto cuando ${sc.xLabel} = ${inst.sc.xExt}?`
+      : `The model relating ${sc.xLabel} to ${sc.yLabel} has r = ${fmt(inst.bi.r, 3)} for ${sc.xLabel} ∈ [${inst.sc.xMin}, ${inst.sc.xMax}]. Does it guarantee an exact value when ${sc.xLabel} = ${inst.sc.xExt}?`;
     opts = l === 'es'
       ? ['Sí, una recta con r alto es infalible a cualquier x', 'No: estima valores medios dentro del rango; fuera es extrapolación arriesgada', 'Sí, siempre que y sea positivo']
       : ['Yes, high r makes predictions exact anywhere', 'No: it estimates averages inside the domain; outside is risky extrapolation', 'Yes, whenever y is positive'];
@@ -2010,9 +2049,7 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
   const chk = inst.checked || {};
 
   if (id === 'expMue') {
-    const vars = isTransfer && inst.transferVars
-      ? inst.transferVars.map((x) => ({ label: l === 'es' ? x.label_es : x.label_en, ans: x.ans }))
-      : sc.vars;
+    const vars = sc.vars;
     const typeOpts = [
       ['', l === 'es' ? '— Elegir tipo —' : '— Select type —'],
       ['qualitative', l === 'es' ? 'Cualitativa' : 'Qualitative'],
@@ -2280,6 +2317,7 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
 function renderExpContrast(id, rec, inst) {
   const l = L();
   const u = inst.user;
+  const sc = inst.sc[l] || inst.sc;
   if (id === 'expMue') {
     const cOpts = inst.sc[l].contrastOpts;
     return `
@@ -2344,7 +2382,7 @@ function renderExpContrast(id, rec, inst) {
     return `
       <div class="subcard">
         <h4>${l === 'es' ? 'Contraste: correlación frente a causalidad' : 'Contrast: Correlation vs Causation'}</h4>
-        <p>${l === 'es' ? 'El borrador concluye: "Como r = +0,86 es alto, subir X causa automáticamente subir Y sin ninguna otra variable". ¿Es válida esa afirmación?' : 'The draft concludes: "Since r = +0.86 is strong, increasing X automatically causes Y with no confounding factors." Is this valid?'}</p>
+        <p>${l === 'es' ? `El borrador concluye: "Como la correlación es alta, aumentar ${sc.xLabel} causa automáticamente un aumento de ${sc.yLabel}". ¿Es válida esa afirmación?` : `The draft concludes: "Because correlation is strong, increasing ${sc.xLabel} automatically causes an increase in ${sc.yLabel}." Is this valid?`}</p>
         <div style="display:grid;gap:8px;margin-top:8px">
           <label class="choice-opt"><input type="radio" name="expContr" value="no_cause" ${u.contrast === 'no_cause' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No: una correlación lineal fuerte mide asociación estadística, no demuestra causalidad por sí sola' : 'No: strong linear correlation measures statistical association, never proving causation by itself'}</span></label>
           <label class="choice-opt"><input type="radio" name="expContr" value="yes_cause" ${u.contrast === 'yes_cause' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Sí: r > 0,80 demuestra causa-efecto directa' : 'Yes: r > 0.80 proves direct cause and effect'}</span></label>
@@ -2358,7 +2396,7 @@ function renderExpContrast(id, rec, inst) {
   return `
     <div class="subcard">
       <h4>${l === 'es' ? 'Contraste: estimación frente a garantía' : 'Contrast: Estimate vs Guarantee'}</h4>
-      <p>${l === 'es' ? `Si el modelo predice ŷ = ${fmt(inst.yPred, 3)} para x = ${inst.sc.xPred}, ¿significa que todo individuo con x = ${inst.sc.xPred} obtendrá exactamente ${fmt(inst.yPred, 3)}?` : `If the model predicts ŷ = ${fmt(inst.yPred, 3)} at x = ${inst.sc.xPred}, does every individual with x = ${inst.sc.xPred} get exactly ${fmt(inst.yPred, 3)}?`}</p>
+      <p>${l === 'es' ? `Si el modelo predice ${sc.yLabel} = ${fmt(inst.yPred, 3)} cuando ${sc.xLabel} = ${inst.sc.xPred}, ¿significa que todos los casos con ese valor de ${sc.xLabel} tendrán exactamente ese resultado?` : `If the model predicts ${sc.yLabel} = ${fmt(inst.yPred, 3)} when ${sc.xLabel} = ${inst.sc.xPred}, does every case with that ${sc.xLabel} value have exactly that outcome?`}</p>
       <div style="display:grid;gap:8px;margin-top:8px">
         <label class="choice-opt"><input type="radio" name="expContr" value="est" ${u.contrast === 'est' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No: es un valor medio esperado según la tendencia; los casos reales presentan dispersión alrededor de la recta' : 'No: it is an expected trend estimate; real individual outcomes scatter around the line'}</span></label>
         <label class="choice-opt"><input type="radio" name="expContr" value="guar" ${u.contrast === 'guar' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Sí, por eso la recta sustituye cualquier medición real' : 'Yes, so the line guarantees every single outcome'}</span></label>
@@ -2368,25 +2406,166 @@ function renderExpContrast(id, rec, inst) {
     </div>`;
 }
 
-function renderExpReport(id, rec, inst) {
-  const l = L();
-  const rubricItems = l === 'es'
-    ? [
-        'Cito al menos dos evidencias numéricas o gráficas concretas del análisis realizado.',
-        'Explico el significado contextual (unidades, sesgo o limitaciones del modelo) sin confundir correlación con causalidad ni estimación con garantía.',
-        'Reviso que mi conclusión sea coherente con las tablas y gráficos del caso.'
+const REPORT_TASKS = {
+  "expMue": {
+    "es": [
+      "Muestra y variables: explica tus decisiones",
+      "Explica qué detalle de la selección puede sesgar la muestra, a quién deja fuera o sobrerrepresenta y cómo cambiarías la selección. Justifica la clasificación de las cuatro variables del caso. No necesitas gráficos ni cálculos para este informe.",
+      "La muestra puede estar sesgada porque… Para mejorarla… Clasifico las variables como… porque…",
+      [
+        "Identifico el problema de selección usando un detalle del enunciado y explico a quién afecta.",
+        "Propongo una selección más representativa y explico por qué aumentar el tamaño de la misma muestra no basta.",
+        "Justifico el tipo de cada una de las cuatro variables: categorías, recuentos enteros o medidas."
       ]
-    : [
-        'I cite at least two concrete numerical or graphical pieces of evidence from my analysis.',
-        'I interpret context (units, bias, or model limits) without confusing correlation with causation or estimates with guarantees.',
-        'I checked that my conclusion matches the tables and charts in this case.'
-      ];
+    ],
+    "en": [
+      "Sample and variables: explain your decisions",
+      "Explain which selection detail may bias the sample, who is excluded or overrepresented, and how you would improve selection. Justify the classification of all four variables. No charts or calculations are needed for this report.",
+      "The sample may be biased because… To improve it… I classify the variables as… because…",
+      [
+        "I identify the selection problem using a detail from the scenario and explain who it affects.",
+        "I propose more representative selection and explain why simply enlarging the same sample is insufficient.",
+        "I justify the type of each of the four variables: categories, whole counts or measurements."
+      ]
+    ]
+  },
+  "expTab": {
+    "es": [
+      "Datos aislados: interpreta el centro de la distribución",
+      "Explica qué indican la media, la mediana y la moda sobre la variable estudiada. Usa tus resultados y la comparación del paso Contraste, con y sin el valor extremo, para justificar qué medida describe mejor un valor habitual.",
+      "En este estudio, la media… La mediana… La moda… Al retirar el valor extremo… Por eso elegiría…",
+      [
+        "Cito mis valores de media, mediana y moda con su significado y las unidades del caso.",
+        "Comparo los resultados con y sin el valor extremo a partir del paso Contraste.",
+        "Justifico qué medida representa mejor un valor habitual, apoyándome en esa comparación."
+      ]
+    ],
+    "en": [
+      "Discrete data: interpret the center",
+      "Explain what the mean, median and mode say about the studied variable. Use your results and the Contrast comparison, with and without the outlier, to justify a measure for a typical value.",
+      "In this study, the mean… The median… The mode… Removing the outlier… I would choose…",
+      [
+        "I cite my mean, median and mode with their contextual meaning and units.",
+        "I compare the results with and without the outlier from the Contrast step.",
+        "I justify a measure for a typical value using that comparison."
+      ]
+    ]
+  },
+  "expAgr": {
+    "es": [
+      "Datos agrupados: interpreta la media y los intervalos",
+      "Explica la media estimada y localiza P40, Q₁ y Q₃ en sus intervalos [a, b), usando tu tabla acumulada. Explica por qué las marcas de clase sirven para estimar la media y por qué aquí no conoces el valor exacto de cada cuantil ni un RIC numérico exacto.",
+      "La media estimada es… P40 se localiza en… porque su posición es… Q₁ y Q₃ se localizan en… Con estos datos no puedo conocer exactamente…",
+      [
+        "Cito la media estimada y explico su significado en el contexto y sus unidades.",
+        "Indico los intervalos de P40, Q₁ y Q₃ y justifico su localización mediante las posiciones p·N y las frecuencias acumuladas.",
+        "Distingo la media estimada de un valor exacto y explico que los intervalos de los cuartiles no determinan un RIC numérico exacto."
+      ]
+    ],
+    "en": [
+      "Grouped data: interpret the mean and intervals",
+      "Explain the estimated mean and locate P40, Q₁ and Q₃ in their [a, b) intervals using cumulative counts. Explain why midpoints estimate the mean and why exact quantile values and a numerical IQR are unknown here.",
+      "The estimated mean is… P40 lies in… because its rank is… Q₁ and Q₃ lie in… These data do not give exactly…",
+      [
+        "I state the estimated mean with contextual meaning and units.",
+        "I give the P40, Q₁ and Q₃ intervals and justify them using p·N ranks and cumulative counts.",
+        "I distinguish an estimated mean from an exact value and explain why quartile intervals do not determine an exact numerical IQR."
+      ]
+    ]
+  },
+  "expDis": {
+    "es": [
+      "Dispersión: justifica la comparación",
+      "Decide cuál de las dos variables presenta mayor dispersión relativa. Cita los dos coeficientes de variación y explica por qué son más adecuados que comparar solo las desviaciones típicas con medias o unidades diferentes. Añade qué problema aparece si la media es cero, como viste en Contraste.",
+      "Los coeficientes de variación son… La variable… presenta mayor dispersión relativa porque… Comparar solo las desviaciones típicas… Si la media es cero…",
+      [
+        "Cito los CV de ambas variables, identificándolas y usando la misma forma de expresión (razón o porcentaje).",
+        "Justifico cuál tiene mayor dispersión relativa y por qué no basta comparar solo desviaciones típicas entre estas variables.",
+        "Explico por qué el CV no está definido cuando la media es cero."
+      ]
+    ],
+    "en": [
+      "Spread: justify the comparison",
+      "Decide which variable has greater relative spread. Cite both coefficients of variation and explain why comparing standard deviations alone is unsuitable across different means or units. Add what happens at a zero mean, as studied in Contrast.",
+      "The coefficients of variation are… The variable… has greater relative spread because… Comparing standard deviations alone… At a zero mean…",
+      [
+        "I cite both CV values, identify their variables and use the same ratio or percentage format.",
+        "I justify which variable has greater relative spread and why standard deviations alone are insufficient here.",
+        "I explain why CV is undefined when the mean is zero."
+      ]
+    ]
+  },
+  "expAud": {
+    "es": [
+      "Auditoría: corrige el informe bidimensional",
+      "Explica qué dependencia se observa entre las variables y por qué no es funcional. Identifica el error del coeficiente r declarado usando la nube de puntos, la covarianza o el intervalo permitido de r, según el caso. Termina aclarando qué puede y qué no puede concluirse sobre causalidad.",
+      "La relación observada es… No es funcional porque… El r declarado no es posible porque… Estos datos permiten afirmar… pero no demuestran…",
+      [
+        "Describo la dirección de la relación y justifico que es estadística, no funcional, con la dispersión de los puntos.",
+        "Señalo la incoherencia concreta del r declarado y la justifico con el gráfico, el signo de la covarianza o los límites de r, según corresponda.",
+        "Redacto una conclusión sobre asociación sin afirmar que la correlación demuestra causalidad."
+      ]
+    ],
+    "en": [
+      "Audit: correct the bivariate report",
+      "Describe the dependence between the variables and why it is not functional. Identify the error in the claimed r using the scatter plot, covariance or allowed range of r as applicable. Explain what can and cannot be concluded about causation.",
+      "The observed relationship is… It is not functional because… The claimed r is impossible because… The data support… but do not prove…",
+      [
+        "I describe direction and use point scatter to justify statistical rather than functional dependence.",
+        "I identify the specific inconsistency in the claimed r using the plot, covariance sign or bounds as applicable.",
+        "I conclude about association without claiming that correlation proves causation."
+      ]
+    ]
+  },
+  "expReg": {
+    "es": [
+      "Regresión: comunica una predicción prudente",
+      "Explica si el modelo lineal resulta útil a partir de la nube de puntos y r. Muestra la sustitución en la recta para el valor de x solicitado e interpreta tu predicción con las unidades del caso. Valora también el valor lejano propuesto: compáralo con el rango observado y explica el riesgo de extrapolar y por qué una predicción no garantiza un resultado individual.",
+      "El modelo resulta… porque… Para x = … sustituyo… y estimo… El valor lejano… queda… del rango observado. Esta predicción no garantiza…",
+      [
+        "Valoro la utilidad del modelo con la nube de puntos y r, distinguiendo tendencia de coincidencia exacta.",
+        "Muestro la sustitución en la recta y expreso la predicción con el significado y las unidades del caso.",
+        "Comparo el valor lejano con el rango observado y explico los límites de la extrapolación y de las predicciones individuales."
+      ]
+    ],
+    "en": [
+      "Regression: communicate a careful prediction",
+      "Assess the linear model using the scatter plot and r. Show substitution for the requested x and interpret the prediction with contextual units. Compare the proposed distant x with the observed range and explain extrapolation risk and why predictions do not guarantee individual outcomes.",
+      "The model is… because… At x = … I substitute… and estimate… The distant value… is… the observed range. This prediction does not guarantee…",
+      [
+        "I assess the model using the scatter plot and r, distinguishing a trend from exact agreement.",
+        "I show substitution and interpret the prediction with contextual meaning and units.",
+        "I compare the distant x with the observed range and explain extrapolation and individual-prediction limits."
+      ]
+    ]
+  }
+};
+function ensureReportReview(rec) {
+ if (rec.reportRubricVersion !== 2) {
+   rec.reportEffortAwarded = Boolean(rec.reportEffortAwarded || rec.selfAssessed);
+   rec.rubricChecks = [false, false, false];
+   rec.selfAssessed = false;
+   rec.stageDone[4] = false;
+   rec.reportRubricVersion = 2;
+ }
+}
+function renderExpReport(id, rec, inst) {
+  ensureReportReview(rec);
+  const l = L();
+  const task = REPORT_TASKS[id][l];
+  const rubricItems = task[3];
+  const sc = inst.sc[l] || inst.sc;
   return `
     <div class="subcard">
-      <h4>${l === 'es' ? 'Informe breve basado en evidencias' : 'Short Evidence-Based Report'}</h4>
-      <div class="note info" style="margin:6px 0 12px">${escapeText(tr('openTextNote'))}</div>
+      <h4>${escapeText(task[0])}</h4>
+      <p><strong>${escapeText(sc.title)}</strong></p>
+      <p>${escapeText(task[1])}</p>
+      ${id==='expMue'?`<div class="note info"><strong>${l==='es'?'Situación del caso:':'Case scenario:'}</strong> ${escapeText(sc.question)}</div>`:''}
+      <p class="small">${l==='es'?'Utiliza solo el enunciado y lo trabajado en este expediente. No necesitas buscar fuentes en internet. Puedes volver a Análisis y Contraste para consultar tus respuestas.':'Use only this case and your work in it. No internet research is needed. Return to Analysis and Contrast to consult your answers.'}</p>
+      <div class="row"><button type="button" class="btn-ghost" data-exp-stage="2">${l==='es'?'↩ Consultar mi análisis':'↩ Review my analysis'}</button><button type="button" class="btn-ghost" data-exp-stage="3">${l==='es'?'↩ Consultar el contraste':'↩ Review the contrast'}</button></div>
+      <p class="small">${l==='es'?'Después de escribir, revisa las tres comprobaciones. Son una autoevaluación: guardar el texto no valida automáticamente su corrección matemática.':'After writing, review the three checks. This is self-assessment: saving text does not automatically validate its mathematical correctness.'}</p>
       <label for="expReportText"><strong>${l === 'es' ? 'Tu conclusión justificada' : 'Your justified conclusion'}</strong></label>
-      <textarea id="expReportText" class="field-input" rows="4" placeholder="${l === 'es' ? 'Redacta aquí tu conclusión apoyada en los parámetros y gráficos...' : 'Write your data-supported conclusion here...'}" data-exp-report="${id}" style="margin-top:6px">${escapeText(rec.reportText)}</textarea>
+      <textarea id="expReportText" class="field-input" rows="4" placeholder="${escapeText(task[2])}" data-exp-report="${id}" style="margin-top:6px">${escapeText(rec.reportText)}</textarea>
       <div class="rubric" style="margin-top:12px">
         <strong>${escapeText(tr('rubricTitle'))}</strong>
         ${rubricItems.map((txt, i) => `
@@ -2413,7 +2592,7 @@ function checkExpAnalysis(id, isTransfer) {
   let badMsg = '';
 
   if (id === 'expMue') {
-    const vars = isTransfer && inst.transferVars ? inst.transferVars : inst.sc[l].vars;
+    const vars = inst.sc[l].vars;
     const varsOk = vars.every((vr, i) => u.vars[i] === vr.ans);
     ok = u.bias === 'selection' && u.fix === 'stratified' && varsOk;
     if (!ok) badMsg = l === 'es' ? 'Revisa el sesgo de selección, la mejora estratificada y la clasificación de las 4 variables.' : 'Check selection bias, stratified improvement, and all 4 variable types.';
@@ -2526,6 +2705,7 @@ function checkExpInit(id) {
 function saveExpReport(id) {
   const rec = makeExpRecord(id);
   const l = L();
+  ensureReportReview(rec);
   const txt = (rec.reportText || '').trim();
   const allRubric = rec.rubricChecks.every(Boolean);
   if (!txt || !allRubric) {
@@ -2543,7 +2723,7 @@ function saveExpReport(id) {
     }
     return;
   }
-  if (!rec.selfAssessed) awardConstancia('cstInf');
+  if (!rec.reportEffortAwarded) { awardConstancia('cstInf'); rec.reportEffortAwarded = true; }
   rec.selfAssessed = true;
   rec.stageDone[4] = true;
   save();
@@ -2627,9 +2807,10 @@ function renderTaller() {
         <span>${l === 'es' ? 'El CV no es válido/interpretable porque x̄ = 0' : 'CV is invalid/uninterpretable because x̄ = 0'}</span>
       </label>`;
   } else if (cur.kind === 'audit2d') {
+    const ctx = (cur.context && cur.context[l]) || { xLabel: 'X', yLabel: 'Y' };
     bodyHtml = `
       <div class="grid-2">
-        <div>${renderScatterSVG(cur.bi, { showLine: false, xLabel: 'X', yLabel: 'Y' })}</div>
+        <div>${renderScatterSVG(cur.bi, { showLine: false, xLabel: ctx.xLabel, yLabel: ctx.yLabel })}</div>
         <div>
           <div class="note warn" style="margin-top:0">
             <strong>${l === 'es' ? 'Datos declarados:' : 'Reported metrics:'}</strong><br>
@@ -2655,19 +2836,20 @@ function renderTaller() {
         </div>
       </div>`;
   } else {
+    const ctx = (cur.context && cur.context[l]) || { xLabel: 'X', yLabel: 'Y' };
     bodyHtml = `
       <div class="grid-2">
-        <div>${renderScatterSVG(cur.bi, { showLine: true, xLabel: 'X', yLabel: 'Y' })}</div>
+        <div>${renderScatterSVG(cur.bi, { showLine: true, xLabel: ctx.xLabel, yLabel: ctx.yLabel })}</div>
         <div>
           <div class="note ok" style="margin-top:0">
             <strong>y = ${fmt(cur.mS, 3)}·x + ${fmt(cur.nS, 3)}</strong> · r = ${fmt(cur.bi.r, 3)} · x ∈ [2, 10]
           </div>
           <div style="margin-top:10px">
-            <label><strong>${l === 'es' ? `Estima ŷ en x = ${cur.xQ}` : `Estimate ŷ at x = ${cur.xQ}`}</strong></label>
+            <label><strong>${l === 'es' ? `Estima ${ctx.yLabel} cuando ${ctx.xLabel} = ${cur.xQ}` : `Estimate ${ctx.yLabel} when ${ctx.xLabel} = ${cur.xQ}`}</strong></label>
             <input class="field-input" value="${escapeText(u.yEst)}" data-taller-field="yEst">
           </div>
           <div style="margin-top:10px">
-            <label><strong>${l === 'es' ? `¿Es fiable predecir en x = ${cur.xExt}?` : `Is predicting at x = ${cur.xExt} reliable?`}</strong></label>
+            <label><strong>${l === 'es' ? `¿Es fiable predecir cuando ${ctx.xLabel} = ${cur.xExt}?` : `Is prediction reliable when ${ctx.xLabel} = ${cur.xExt}?`}</strong></label>
             <select class="field-input" data-taller-field="interpOk">
               <option value="">—</option>
               <option value="no_extrap" ${u.interpOk === 'no_extrap' ? 'selected' : ''}>${l === 'es' ? 'No, es extrapolación muy lejos del rango observado' : 'No, risky extrapolation outside observed domain'}</option>
@@ -3116,7 +3298,8 @@ function openPrintReportModal() {
   const reports = COMPETENCIAS_META.map((m) => {
     const rec = state.expedientes[m.id];
     const txt = rec && rec.reportText ? rec.reportText : (l === 'es' ? '(Sin redactar aún)' : '(Not written yet)');
-    return `<div style="border-bottom:1px solid #dbe4ef;padding:8px 0"><strong>${escapeText(m[l].name)}</strong> · ${escapeText(tr('states')[state.competencias[m.id]])}<p style="margin:4px 0 0;white-space:pre-wrap">${escapeText(txt)}</p></div>`;
+    const task = REPORT_TASKS[m.id][l];
+    return `<div style="border-bottom:1px solid #dbe4ef;padding:8px 0"><strong>${escapeText(m[l].name)}</strong> · ${escapeText(tr('states')[state.competencias[m.id]])}<p>${escapeText(task[1])}</p><p style="margin:4px 0 0;white-space:pre-wrap">${escapeText(txt)}</p><ul>${task[3].map((item,i)=>`<li>${rec?.reportRubricVersion===2 && rec.rubricChecks[i]?'☑':'☐'} ${escapeText(item)}</li>`).join('')}</ul></div>`;
   }).join('');
   openDialog(`
     <div class="dlg-head">
@@ -3221,10 +3404,15 @@ function restoreGroupedModels(node) {
 }
 
 let showingHome = true;
-const HOME_SECTIONS = [["expedientes", "🗂️", "Expedientes", "Cases", "Investiga datos, compara y redacta conclusiones.", "Investigate data, compare and draw conclusions."], ["taller", "🛠️", "Taller", "Practice", "Refuerza una habilidad con ejercicios y pistas.", "Strengthen a skill with practice and hints."], ["prueba", "📝", "Preparación de prueba", "Exam preparation", "Combina lo aprendido con problemas nuevos.", "Combine your skills on new problems."], ["evidencias", "🏅", "Mis evidencias", "My evidence", "Consulta tus competencias, constancia y trabajos.", "Review your skills, consistency and work."]];
+const HOME_SECTIONS = [
+ ["expedientes", "🗂️", "Expedientes", "Cases", "Investiga datos, compara y redacta conclusiones.", "Investigate data, compare and draw conclusions.", ["Muestreo y variables", "Tablas y cuantiles", "Dispersión y CV", "Correlación y regresión"], ["Sampling & variables", "Tables & quantiles", "Spread & CV", "Correlation & regression"]],
+ ["taller", "🛠️", "Taller", "Practice", "Elige una habilidad concreta y practícala con ejercicios y pistas.", "Choose one specific skill and practise it with exercises and hints.", ["Variables", "Tablas 1D", "Datos agrupados", "Varianza y CV", "Estadística 2D"], ["Variables", "1D tables", "Grouped data", "Variance & CV", "Bivariate statistics"]],
+ ["prueba", "📝", "Preparación de prueba", "Exam preparation", "Combina lo aprendido con problemas nuevos en el formato de evaluación.", "Combine your skills on new problems in assessment format.", ["40% estadística 1D", "60% estadística 2D", "Interpretación y conclusión"], ["40% univariate", "60% bivariate", "Interpretation & conclusion"]],
+ ["evidencias", "🏅", "Mis evidencias", "My evidence", "Consulta tus competencias, constancia y trabajos; aquí no aparece contenido nuevo.", "Review your skills, consistency and work; no new content is introduced here.", ["Progreso", "Informes", "Logros"], ["Progress", "Reports", "Achievements"]]
+];
 function renderHomeMenu() {
  const en = L() === 'en';
- const cards = HOME_SECTIONS.map(([id,icon,es,eng,desc,descEn]) => `<button type="button" class="home-choice" data-home-go="${id}"><span class="home-icon" aria-hidden="true">${icon}</span><strong>${en?eng:es}</strong><span class="home-desc">${en?descEn:desc}</span><span class="home-enter">${en?'Enter':'Entrar'} →</span></button>`).join('');
+ const cards = HOME_SECTIONS.map(([id,icon,es,eng,desc,descEn,tagsEs,tagsEn]) => `<button type="button" class="home-choice" data-home-go="${id}"><span class="home-icon" aria-hidden="true">${icon}</span><strong>${en?eng:es}</strong><span class="home-desc">${en?descEn:desc}</span><span class="home-focus"><span class="home-focus-label">${en?'You will review':'Vas a repasar'}</span>${(en?tagsEn:tagsEs).map(x=>`<span class="focus-chip">${escapeText(x)}</span>`).join('')}</span><span class="home-enter">${en?'Enter':'Entrar'} →</span></button>`).join('');
  const last = HOME_SECTIONS.find(x=>x[0]===state.activeNav) || HOME_SECTIONS[0];
  return `<section class="home-welcome">${mascot()}<div><h1>${en?'Choose your next step':'¿Qué quieres hacer hoy?'}</h1><p>${en?'Nova is here to help. Choose a space and work at your own pace.':'Nova te acompaña. Elige un espacio y avanza a tu ritmo.'}</p></div></section><section class="home-grid" aria-label="${en?'Main menu':'Menú principal'}">${cards}</section><div class="home-resume"><button type="button" data-home-go="${last[0]}">▶ ${en?'Continue':'Continuar'} · ${en?last[3]:last[2]}</button><p>${en?'Your answers and drafts are kept in this browser.':'Tus respuestas y borradores se conservan en este navegador.'}</p></div>`;
 }
