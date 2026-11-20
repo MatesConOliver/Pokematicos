@@ -1,6 +1,12 @@
-import { getVisibleLibraryTabs } from "./CardLibrary";
+import { DEFAULT_LIBRARY_TAB, getVisibleLibraryTabs } from "./CardLibrary";
 
 describe("CardLibrary visible tabs", () => {
+  test("defaults to notices (News) tab for all modes", () => {
+    expect(DEFAULT_LIBRARY_TAB).toBe("notices");
+    expect(getVisibleLibraryTabs("admin")).toContain(DEFAULT_LIBRARY_TAB);
+    expect(getVisibleLibraryTabs("guest")).toContain(DEFAULT_LIBRARY_TAB);
+  });
+
   test("includes extra tab for admin between experience and study", () => {
     expect(getVisibleLibraryTabs("admin")).toEqual([
       "points",

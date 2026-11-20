@@ -5,6 +5,8 @@ import NoticeBoardPanel from "./NoticeBoardPanel";
 import StudyPanel from "./StudyPanel";
 import { isEvolutionCard } from "../../services/cardEvolutionService";
 
+export const DEFAULT_LIBRARY_TAB = "notices";
+
 export function getVisibleLibraryTabs(mode) {
   return mode === "admin"
     ? ["points", "rewards", "experience", "extra", "study", "notices"]
@@ -45,15 +47,15 @@ export default function CardLibrary({
   onSaveStudyPosts,
   confirmFn,
 }) {
-  const [libraryTab, setLibraryTab] = useState("points");
+  const [libraryTab, setLibraryTab] = useState(DEFAULT_LIBRARY_TAB);
   const [showCreateCard, setShowCreateCard] = useState(false);
   const effectivePreviewFlag = flagConfig ? viewFlag : "A";
   const visibleTabs = useMemo(() => getVisibleLibraryTabs(mode), [mode]);
-  const activeTab = visibleTabs.includes(libraryTab) ? libraryTab : "points";
+  const activeTab = visibleTabs.includes(libraryTab) ? libraryTab : DEFAULT_LIBRARY_TAB;
 
   useEffect(() => {
     if (!visibleTabs.includes(libraryTab)) {
-      setLibraryTab("points");
+      setLibraryTab(DEFAULT_LIBRARY_TAB);
     }
   }, [visibleTabs, libraryTab]);
 

@@ -1636,6 +1636,7 @@ export default function App() {
             />
 
             <LibrarySection
+              key={activeClassId}
               mode={mode}
               cards={cards}
               students={students}
