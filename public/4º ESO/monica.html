@@ -5,7 +5,7 @@
 </style></head><body><main><header><div><div class="tag" id="hdrTag">Matemáticas · 4.º ESO</div><h1 class="brand" id="hdrBrand">Level Up: Potencias de 10</h1></div><div class="header-controls"><div class="lang-toggle" role="group" id="langGroup" aria-label="Idioma"><button type="button" id="langEs" aria-pressed="true">🇪🇸 Español</button><button type="button" id="langEn" aria-pressed="false">🇬🇧 English</button></div><button type="button" class="secondary pkm-trigger" id="pkmBtn">🎫 Pokemáticos</button><button class="secondary" id="home">⌂ Mapa de misiones</button></div></header><div id="saveNotice" class="notice" role="status"></div><div id="app"></div><footer id="footerNote">Práctica autónoma · Sin límite de tiempo · Sin registro ni envío de datos. Tu partida se guarda en este navegador.</footer></main><input id="upload" type="file" accept="application/json,.json" hidden><script>
 'use strict';
 const $=id=>document.getElementById(id), app=$('app'), KEY='levelup-potencias-v1', PKM_SOURCE='Mónica';
-const clean=x=>Number(Number(x).toPrecision(14)), L=()=>state?.lang==='en'?'en':'es', fmt=x=>clean(x).toLocaleString(L()==='en'?'en-US':'es-ES',{useGrouping:false,maximumFractionDigits:40}), p=(a,n)=>`<span class="coefficient">${fmt(a)}</span> · 10<sup class="exponent">${n}</sup>`, eq=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&(a===b||Math.abs(a-b)<=Math.abs(b)*1e-10), val=(a,n)=>clean(a*10**n), norm=x=>{if(x===0)return [0,0];let n=Math.floor(Math.log10(Math.abs(x))),a=clean(x/10**n);if(Math.abs(a)>=10){a/=10;n++}return [clean(a),n]}, sci=x=>p(...norm(x)), frac=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`, ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), pick=a=>a[ri(0,a.length-1)];
+const clean=x=>Number(Number(x).toPrecision(14)), roundSig=(x,d=4)=>x===0?0:clean(Number(x).toPrecision(d)), L=()=>state?.lang==='en'?'en':'es', fmt=x=>clean(x).toLocaleString(L()==='en'?'en-US':'es-ES',{useGrouping:false,maximumFractionDigits:40}), p=(a,n)=>`<span class="coefficient">${fmt(a)}</span> · 10<sup class="exponent">${n}</sup>`, eq=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&(a===b||Math.abs(a-b)<=Math.abs(b)*1e-10), val=(a,n)=>clean(a*10**n), norm=x=>{if(x===0)return [0,0];let n=Math.floor(Math.log10(Math.abs(x))),a=clean(x/10**n);if(Math.abs(a)>=10){a/=10;n++}return [clean(a),n]}, sci=x=>p(...norm(x)), frac=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`, ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), pick=a=>a[ri(0,a.length-1)];
 
 const UI={
  es:{
@@ -460,8 +460,8 @@ function normalize(a,n){
 function combo(type,a=5.1,b=7.2){
  const en=L()==='en';
  if(type===0){let r=clean(a+b/10),z=val(r*r,8);return scientific(`${en?'Solve:':'Resuelve:'}<div class="formula">(${p(a,4)} + ${p(b,3)})<sup>2</sup></div>`,z,en?'Solve the addition inside parentheses first.':'Primero resuelve la suma del paréntesis.',en?'Match to exponent 4; then square the coefficient and multiply the exponent by 2.':'Iguala al exponente 4; después eleva al cuadrado el coeficiente y multiplica el exponente por 2.',`(${p(r,4)})² = ${sci(z)}`,{source:{kind:'combo',args:[type,a,b]}})}
- if(type===1){let x=clean((a+b/10)/1.05*10**-2);return scientific(`${en?'Solve (round the coefficient to 4 significant figures if needed):':'Resuelve (redondea el coeficiente a 4 cifras significativas si es necesario):'}<div class="formula">${frac(p(a,-6)+' + '+p(b,-7),p(1.2,-4)+' − '+p(1.5,-5))}</div>`,x,en?'Solve numerator and denominator separately first.':'Resuelve primero numerador y denominador por separado.',en?'Match numerator to −6 and denominator to −4. Then divide coefficients and subtract exponents.':'Iguala arriba a −6 y abajo a −4. Después divide los coeficientes y resta exponentes.',`${frac(p(clean(a+b/10),-6),p(1.05,-4))} = ${sci(x)}`,{rounded:true,source:{kind:'combo',args:[type,a,b]}})}
- let x=val(a/1.6*b/1.2,2);return scientific(`${en?'Solve (round the coefficient to 4 significant figures if needed):':'Resuelve (redondea el coeficiente a 4 cifras significativas si es necesario):'}<div class="formula">${frac(p(a,7),p(1.6,4))} · ${frac(p(b,-6),p(1.2,-5))}</div>`,x,en?'Compute both quotients first, then multiply.':'Resuelve los dos cocientes y luego multiplica.',en?'The quotient exponents are 3 and −1. Add them when multiplying.':'Los exponentes de los cocientes son 3 y −1. Súmalos al multiplicar.',`${p(a/1.6,3)} · ${p(b/1.2,-1)} = ${sci(x)}`,{rounded:true,source:{kind:'combo',args:[type,a,b]}});
+ if(type===1){let x=clean((a+b/10)/1.05*10**-2),xr=roundSig(x,4);return scientific(`${en?'Solve (round the coefficient to 4 significant figures if needed):':'Resuelve (redondea el coeficiente a 4 cifras significativas si es necesario):'}<div class="formula">${frac(p(a,-6)+' + '+p(b,-7),p(1.2,-4)+' − '+p(1.5,-5))}</div>`,xr,en?'Solve numerator and denominator separately first.':'Resuelve primero numerador y denominador por separado.',en?'Match numerator to −6 and denominator to −4. Then divide coefficients, subtract exponents, and round the final coefficient to 4 significant figures.':'Iguala arriba a −6 y abajo a −4. Después divide los coeficientes, resta exponentes y redondea el coeficiente final a 4 cifras significativas.',`${frac(p(clean(a+b/10),-6),p(1.05,-4))} = ${sci(x)} ≈ ${sci(xr)}`,{rounded:true,source:{kind:'combo',args:[type,a,b]}})}
+ let x=val(a/1.6*b/1.2,2),xr=roundSig(x,4);return scientific(`${en?'Solve (round the coefficient to 4 significant figures if needed):':'Resuelve (redondea el coeficiente a 4 cifras significativas si es necesario):'}<div class="formula">${frac(p(a,7),p(1.6,4))} · ${frac(p(b,-6),p(1.2,-5))}</div>`,xr,en?'Compute both quotients first, then multiply.':'Resuelve los dos cocientes y luego multiplica.',en?'The quotient exponents are 3 and −1. Add them when multiplying, then round the final coefficient to 4 significant figures.':'Los exponentes de los cocientes son 3 y −1. Súmalos al multiplicar y redondea el coeficiente final a 4 cifras significativas.',`${p(a/1.6,3)} · ${p(b/1.2,-1)} = ${sci(x)} ≈ ${sci(xr)}`,{rounded:true,source:{kind:'combo',args:[type,a,b]}});
 }
 
 /* Trimmed Práctica Guiada queues: max 10-11 exercises per mission, reduced duplicate multi-step clicking */
@@ -576,6 +576,11 @@ function relocalizeSessions(){
  }
 }
 
+// Rebuild stored questions from their source data so corrected rounding rules
+// also apply to progress created with an earlier copy of the app.
+relocalizeSessions();
+save();
+
 function finalQuestion(kind){const a=ri(11,89)/10,b=ri(11,89)/10,n=ri(-5,6),m=ri(-5,6);let q;if(kind===0)q=Math.random()<.5?decimal(a,n):normalize(val(a,n),null);else if(kind===1)q=convert(a,n,n+pick([-3,-1,1,3]));else if(kind===2||kind===3)q=op(a,Math.max(n,m)+1,b,Math.min(n,m),kind===2?'+':'−');else if(kind===4)q=op(a,n,b,m,'×');else if(kind===5){let [x,y]=pick([[6,2],[4,8],[7.5,2.5],[2.4,8]]);q=op(x,n,y,m,'÷')}else q=combo(ri(0,2),a,b);q.category=['conversion','transformation','addition','subtraction','multiplication','division','combined'][kind];return q}
 function random(i,j,g=false){if(i===6)return finalQuestion(j%7);if(i===5&&j%2===1){const a=j%4===3?6:ri(11,89)/10,b=j%4===3?2:ri(11,89)/10;return op(a,-ri(1,4),b,ri(1,3),j%4===3?'÷':'×',g)}return legacyRandom(i,j,g)}
 function challengeQueue(){if(level!==6)return Array.from({length:5},(_,j)=>random(level,j));let kinds=[0,1,2,3,4,5,6];for(let k=kinds.length-1;k>0;k--){let j=ri(0,k);[kinds[k],kinds[j]]=[kinds[j],kinds[k]]}return kinds.slice(0,5).map(finalQuestion)}
@@ -655,10 +660,9 @@ function check(q){
  const s=session();if(s.resolved)return;
  const a=q.type==='choice'?[parse(app.querySelector('[name=choice]:checked')?.value||'')]:q.labels.map((_,i)=>parse($('a'+i).value));
  if(a.some(x=>!Number.isFinite(x))||q.scientific&&!Number.isInteger(a[1])){$('feedback').textContent=q.type==='choice'?tr('pickOptionMsg'):tr('invalidNumberMsg');return}
- const rounded=q.rounded?norm(val(Number(q.expected[0].toPrecision(4)),q.expected[1])):null;
  const matches=expected=>a.every((x,i)=>q.scientific&&i===1?x===expected[i]:eq(x,expected[i]));
  const normalized=!q.scientific||(a[0]===0?a[1]===0:Math.abs(a[0])>=1&&Math.abs(a[0])<10);
- const correct=q.methodChoice||normalized&&(matches(q.expected)||rounded&&matches(rounded));
+ const correct=q.methodChoice||normalized&&matches(q.expected);
  if(correct){
   s.resolved=true;s.lastCorrect=true;
   const solution=q.methodChoice?chooseMethod(currentItem(),a[0]):q.solution;

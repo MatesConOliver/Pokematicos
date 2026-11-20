@@ -6,6 +6,7 @@
 .formula sup{font-size:.64em}.example{font-family:"STIX Two Math","Cambria Math",system-ui,sans-serif;line-height:1.85}
 .frac{display:inline-flex;flex-direction:column;justify-content:center;vertical-align:-.55em;text-align:center;margin:0 .28em;line-height:1.15;min-width:1.15em}.frac>span:first-child{border-bottom:1.7px solid currentColor;padding:.06em .25em .12em}.frac>span:last-child{padding:.12em .25em .04em}.supfrac{display:inline-flex;flex-direction:column;font-size:.58em;vertical-align:.72em;line-height:1;margin-left:.08em;text-align:center}.supfrac>span:first-child{border-bottom:1.2px solid currentColor;padding:0 .12em .05em}.supfrac>span:last-child{padding:.05em .12em 0}
 .rad{display:inline-flex;align-items:flex-start;vertical-align:-.18em;margin:0 .1em;font-family:"STIX Two Math","Cambria Math","Times New Roman",serif}.rad-idx{font-size:.55em;font-weight:600;margin:0 -.18em 0 0;transform:translateY(.05em);line-height:1;color:var(--ink)}.rad-sign{font-size:1.42em;line-height:.95;transform:translateY(.08em)}.rad-body{border-top:1.7px solid currentColor;padding:.05em .22em 0 .12em;display:inline-block;line-height:1.15;min-height:1.15em}
+.math-radical{display:inline-block;font-family:"STIX Two Math","Cambria Math","DejaVu Math TeX Gyre","Times New Roman",serif;font-size:1.08em;vertical-align:-.16em;margin:0 .08em;color:inherit}.math-radical mroot,.math-radical msqrt{font-family:inherit}.math-radical mroot> :last-child{color:#08715e}
 .math-tpl{font-family:"STIX Two Math","Cambria Math","Times New Roman",serif;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:22px 12px;background:#f8f3ff;border:1px solid #e2d7f2;border-radius:18px;margin:14px 0}.math-sym{font-size:29px;font-weight:500;padding-top:18px}.math-frac{display:inline-flex;flex-direction:column;align-items:stretch;gap:7px}.math-bar{height:2px}.math-top{align-items:flex-end;gap:7px}.pow-base{font-size:38px;font-weight:500;padding-bottom:7px}.pow-exp{transform:translateY(-17px)}.pow-exp .math-bar{height:1.5px}
 .answer-root{display:inline-flex;align-items:flex-start;vertical-align:middle}.answer-root-index{transform:scale(.72) translate(.25em,-.25em);transform-origin:right top;margin-right:-7px}.answer-root-sign{font-size:42px;line-height:1;transform:translateY(16px)}.answer-radicand{display:flex;align-items:flex-end;gap:5px;border-top:2px solid var(--ink);padding:5px 5px 0 7px;min-height:62px}.answer-radicand .fixed-base{font-size:30px;padding-bottom:9px}.answer-radicand .exp-field{transform:translateY(-12px)}
 @media(max-width:650px){.formula{font-size:21px;padding:13px 8px}.example{overflow-x:auto}.answer-root-sign{font-size:36px}.answer-radicand{min-height:56px}}
@@ -21,6 +22,51 @@ const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), pick=a=>a[ri(0,a.length-1)]
 const rad=(inner,n=2,coef=null)=>`${coef===null?'':coef+' '}<span class="rad">${n===2?'':`<sup class="rad-idx">${n}</sup>`}<span class="rad-sign">√</span><span class="rad-body">${inner}</span></span>`;
 const frac=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
 const powf=(base,num,den=null)=>den===null?`${base}<sup class="exponent">${num}</sup>`:`${base}<span class="supfrac"><span>${num}</span><span>${den}</span></span>`;
+
+// Native MathML gives radicals the same continuous vinculum used by LaTeX.
+// The original span markup remains as a safe intermediate representation.
+function mathEl(name,text){const el=document.createElementNS('http://www.w3.org/1998/Math/MathML',name);if(text!==undefined)el.textContent=text;return el}
+function mathTokens(text){
+ const out=[];
+ for(const token of String(text).match(/\s+|\d+(?:[.,]\d+)?|[A-Za-zÁ-ÿ]+|./gu)||[]){
+  if(/^\s+$/u.test(token)){out.push(mathEl('mspace'));continue}
+  out.push(mathEl(/^\d/u.test(token)?'mn':/^[A-Za-zÁ-ÿ]+$/u.test(token)?'mi':'mo',token));
+ }
+ return out;
+}
+function mathChildren(node){
+ const out=[];
+ for(const child of node.childNodes){
+  if(child.nodeType===Node.TEXT_NODE){out.push(...mathTokens(child.textContent));continue}
+  if(child.nodeType!==Node.ELEMENT_NODE)continue;
+  if(child.matches('.rad')){out.push(mathRadical(child));continue}
+  if(child.tagName==='SUP'){
+   const base=out.pop()||mathEl('mrow'),sup=mathEl('msup');sup.append(base,mathRow(child));out.push(sup);continue
+  }
+  if(child.matches('.supfrac')){
+   const parts=child.children,exp=mathEl('mfrac');exp.append(mathRow(parts[0]),mathRow(parts[1]));
+   const base=out.pop()||mathEl('mrow'),sup=mathEl('msup');sup.append(base,exp);out.push(sup);continue
+  }
+  if(child.matches('.frac')){
+   const parts=child.children,f=mathEl('mfrac');f.append(mathRow(parts[0]),mathRow(parts[1]));out.push(f);continue
+  }
+  out.push(mathRow(child));
+ }
+ return out;
+}
+function mathRow(node){const row=mathEl('mrow');row.append(...mathChildren(node));return row}
+function mathRadical(source){
+ const body=source.querySelector(':scope > .rad-body'),idx=source.querySelector(':scope > .rad-idx');
+ const root=mathEl(idx?'mroot':'msqrt');root.append(mathRow(body));if(idx)root.append(mathRow(idx));return root;
+}
+function typesetRadicals(root=document){
+ const radicals=[...(root.querySelectorAll?.('.rad')||[])].filter(el=>!el.parentElement.closest('.rad'));
+ for(const source of radicals){
+  const math=mathEl('math');math.classList.add('math-radical');math.setAttribute('aria-label',source.textContent.trim());math.append(mathRadical(source));source.replaceWith(math);
+ }
+}
+const radicalObserver=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===Node.ELEMENT_NODE)typesetRadicals(node)});
+radicalObserver.observe(document.body,{childList:true,subtree:true});
 
 const UI={
  es:{
