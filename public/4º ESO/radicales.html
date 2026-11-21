@@ -211,7 +211,7 @@ const levelsData={
   ['Extraer e introducir factores','Sacar potencias fuera y meter factores dentro','🧲',2],
   ['Operaciones con radicales','Semejantes, suma, resta, producto y cociente','⚡',2],
   ['Racionalizar un término','Raíces cuadradas y de índice superior en el denominador','🧹',3],
-  ['Conjugados y retos reales','Binomios conjugados y problema de la plaza','🏆',3]
+  ['Desafío final de radicales','Medidas exactas, laboratorio de errores y duelo de expresiones','🏆',3]
  ],
  en:[
   ['Roots & Signs','Index, radicand, real sign rules & roots vs equations','🌱',1],
@@ -221,7 +221,7 @@ const levelsData={
   ['Extract & Insert Factors','Pulling perfect powers out and moving coefficients in','🧲',2],
   ['Radical Operations','Like-radical add/subtract, same & mixed-index × / ÷','⚡',2],
   ['Monomial Rationalization','Clearing square roots and higher-index roots','🧹',3],
-  ['Conjugates & Real World','Conjugate binomials and the square plaza diagonal','🏆',3]
+  ['Final Radical Challenge','Exact measures, error lab and expression duels','🏆',3]
  ]
 };
 const getLevels=()=>levelsData[L()];
@@ -230,7 +230,7 @@ const LOGROS_META=[
  {id:'racha1',icon:'🔥',es:{name:'Chispa Radical',desc:'Consigue 10 pasos correctos seguidos (con pistas permitidas).'},en:{name:'Radical Spark',desc:'Reach 10 consecutive correct steps (hints allowed).'}},
  {id:'firme2',icon:'💎',es:{name:'Raíz Inquebrantable',desc:'Consigue 20 pasos correctos seguidos sin usar pistas.'},en:{name:'Unbreakable Root',desc:'Reach 20 consecutive correct steps without hints.'}},
  {id:'sinpi3',icon:'🧭',es:{name:'Explorador Autónomo',desc:'Supera cualquier desafío (4/5 o 5/5) sin usar pistas (con errores permitidos).'},en:{name:'Solo Explorer',desc:'Pass any challenge (4/5 or 5/5) without using hints (mistakes allowed).'}},
- {id:'racex4',icon:'⚖️',es:{name:'Denominador Limpio',desc:'Completa el desafío de la Misión 7 u 8 (Racionalización) sin errores (pistas permitidas).'},en:{name:'Clean Denominator',desc:'Complete Mission 7 or 8 Challenge (Rationalization) with zero mistakes (hints allowed).'}},
+ {id:'racex4',icon:'⚖️',es:{name:'Denominador Limpio',desc:'Completa el desafío de la Misión 7 (Racionalización) sin errores (pistas permitidas).'},en:{name:'Clean Denominator',desc:'Complete Mission 7 Challenge (Rationalization) with zero mistakes (hints allowed).'}},
  {id:'estre5',icon:'🌟',es:{name:'Tri-Estrella Radical',desc:'Consigue 3 estrellas (5/5 perfecto) en al menos 3 misiones distintas.'},en:{name:'Triple-Star Radical',desc:'Earn 3 stars (perfect 5/5) on at least 3 different missions.'}},
  {id:'leyend',icon:'👑',es:{name:'Gran Maestro de Radicales',desc:'Desbloquea los otros 5 logros y supera las 8 misiones.'},en:{name:'Grand Master of Radicals',desc:'Unlock all 5 other achievements and complete all 8 missions.'}}
 ];
@@ -342,7 +342,7 @@ $('upload').onchange=async e=>{
   if(!e.target.files.length)return;
   const imported=JSON.parse(await e.target.files[0].text());
   let s=validateSave(imported,{preserveId:state.publicId,preserveLang:state.lang});
-  if(confirm(tr('confirmImport'))){state=s;relocalizeSessions();save();home()}
+  if(confirm(tr('confirmImport'))){state=s;relocalizeSessions();migrateMission8();save();home()}
  }catch(err){alert(tr('invalidSave'))}
  finally{$('upload').value=''}
 };
@@ -361,7 +361,7 @@ function validateSave(data,opts={}){
  const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x),integer=(x,max=1000000000)=>Number.isSafeInteger(x)&&x>=0&&x<=max,requireValid=x=>{if(!x)throw Error('Invalid save')};
  const text=x=>requireValid(typeof x==='string'&&x.length<20000);
  const html=x=>{text(x);const t=document.createElement('template');t.innerHTML=x;for(const el of t.content.querySelectorAll('*')){requireValid(['DIV','SPAN','SUP','STRONG','BR','P','EM'].includes(el.tagName));for(const attr of el.attributes)requireValid(attr.name==='class'&&/^(formula|frac|supfrac|coefficient|exponent|rad|rad-idx|rad-sign|rad-body)$/.test(attr.value))}};
- const sourceKinds=new Set(['rootSign','eqVsRoot','radToPow','powToRad','exactRoot','nestedRoot','powRadical','divSameIdx','errTrap','equivRed','commonScale','compareRad','extractFac','insertFac','combineRad','mulSameIdx','mulDiffIdx','ratCase1','ratCase2','ratMissingStep','conjSign','ratConjBinom','ratConjConstFirst','ratConjTwoRoots','plazaProblem']);
+ const sourceKinds=new Set(['rootSign','eqVsRoot','radToPow','powToRad','exactRoot','nestedRoot','powRadical','divSameIdx','errTrap','equivRed','commonScale','compareRad','extractFac','insertFac','combineRad','mulSameIdx','mulDiffIdx','ratCase1','ratCase2','ratMissingStep','conjSign','ratConjBinom','ratConjConstFirst','ratConjTwoRoots','plazaProblem','measureProblem','errorLab','expressionDuel']);
  const source=x=>{if(x===undefined)return;requireValid(object(x)&&typeof x.kind==='string'&&sourceKinds.has(x.kind)&&Array.isArray(x.args)&&x.args.length<=8);x.args.forEach(v=>{if(v===null||typeof v==='boolean'||(typeof v==='number'&&Number.isFinite(v)))return;if(typeof v==='string'&&v.length<200){html(v);return}if(Array.isArray(v)&&v.length<=6&&v.every(p=>Array.isArray(p)&&p.length===2&&p.every(n=>typeof n==='number'&&Number.isInteger(n))))return;throw Error('Invalid save')})};
  const question=q=>{requireValid(object(q)&&Array.isArray(q.expected)&&Array.isArray(q.labels)&&q.expected.length>0&&q.expected.length<=4&&q.labels.length===q.expected.length&&q.expected.every(Number.isFinite));q.labels.forEach(x=>requireValid(typeof x==='string'&&x.length>0&&x.length<=60));['prompt','h1','h2','solution'].forEach(k=>html(q[k]));source(q.source);requireValid(typeof q.type==='string'&&['choice','scalar','power','radical','radpow','ratfrac','binom'].includes(q.type));if(q.type==='choice'){requireValid(Array.isArray(q.choices)&&q.choices.length>=2&&q.choices.length<=5&&integer(q.expected[0],q.choices.length-1));q.choices.forEach(html)}};
  const item=q=>{requireValid(object(q));if(q.steps){requireValid(Array.isArray(q.steps)&&q.steps.length>0&&q.steps.length<=6);q.steps.forEach(question)}else question(q);if(q.context!==undefined)html(q.context);source(q.source)};
@@ -404,7 +404,7 @@ function getTheory(i){
   `<p>To simplify a radical, factor the radicand into prime powers and <strong>divide each exponent by the index n</strong>: the <em>quotient comes outside</em> and the <em>remainder stays inside</em>.</p><div class="example">• ${rad(72)} = ${rad('36 · 2')} = ${rad(2,2,6)}<br>• ${rad(54,3)} = ${rad('27 · 2',3)} = ${rad(2,3,3)}</div><div class="tip"><strong>Inserting a factor inside:</strong> raise it to index n: k·${rad('a','n')} = ${rad('k<sup>n</sup> · a','n')}.<br>Watch out for negatives on even roots: <strong>−2${rad(3)} = −${rad(12)}</strong> (the minus stays outside!).</div><div id="sim5"></div>`,
   `<p><strong>Adding &amp; Subtracting:</strong> Only <em>like radicals</em> (same index and same radicand) can be combined. Simplify by extracting factors first!</p><div class="example">${rad(12)} + ${rad(27)} = 2${rad(3)} + 3${rad(3)} = 5${rad(3)}<br>${rad(50)} − ${rad(8)} + ${rad(18)} = 5${rad(2)} − 2${rad(2)} + 3${rad(2)} = 6${rad(2)}</div><p><strong>Multiplying &amp; Dividing:</strong> If indices match, operate coefficients outside and radicands inside. If indices differ, reduce to a common index (LCM) first.</p><div class="example">2${rad(3)} · 3${rad(6)} = 6${rad(18)} = 18${rad(2)}<br>${rad(2)} · ${rad(4,3)} = ${rad(8,6)} · ${rad(16,6)} = ${rad(128,6)} = 2${rad(2,6)}</div>`,
   `<p><strong>Rationalizing</strong> means eliminating radicals from the denominator by multiplying top and bottom by the same expression (= 1).</p><div class="example"><strong>Case 1 · Square root:</strong> ${frac(5,rad(3))} · ${frac(rad(3),rad(3))} = ${frac('5'+rad(3),3)}.<br>If there is a common factor, simplify first: ${frac(6,'2'+rad(5))} = ${frac(3,rad(5))} = ${frac('3'+rad(5),5)}.</div><div class="example"><strong>Case 2 · Higher index (${rad('a<sup>m</sup>','n')}):</strong> Complete up to exponent <em>n</em> by multiplying by ${rad('a<sup>n−m</sup>','n')}!<br>${frac(2,rad(5,3))} · ${frac(rad('5<sup>2</sup>',3),rad('5<sup>2</sup>',3))} = ${frac('2'+rad(25,3),5)} &nbsp;|&nbsp; ${frac(3,rad('2<sup>3</sup>',5))} · ${frac(rad('2<sup>2</sup>',5),rad('2<sup>2</sup>',5))} = ${frac('3'+rad(4,5),2)}</div>`,
-  `<p><strong>Case 3 · Binomial with square roots:</strong> Multiply numerator and denominator by the <strong>conjugate</strong> (flip the middle sign) to trigger a difference of squares: <strong>(a + b)(a − b) = a<sup>2</sup> − b<sup>2</sup></strong>.</p><div class="example">${frac(3,rad(5)+' + 2')} · ${frac(rad(5)+' − 2',rad(5)+' − 2')} = ${frac('3('+rad(5)+' − 2)','5 − 4')} = 3${rad(5)} − 6<br>${frac(1,rad(7)+' − '+rad(2))} · ${frac(rad(7)+' + '+rad(2),rad(7)+' + '+rad(2))} = ${frac(rad(7)+' + '+rad(2),'7 − 2')} = ${frac(rad(7)+' + '+rad(2),5)}</div><div class="tip"><strong>Real-world geometry:</strong> A square plaza has area 98 m<sup>2</sup>. Side = ${rad(98)} = 7${rad(2)} m. Diagonal = ${rad('98 + 98')} = ${rad(196)} = 14 m exact!</div>`
+  `<p>This final mission mixes three ways of using everything you already know about radicals.</p><div class="example"><strong>📐 Exact measures</strong><br>Use Pythagoras in simple figures and keep the answer exact: simplify the radical instead of changing it to a decimal. Example: a square of side 5 has diagonal ${rad('5<sup>2</sup> + 5<sup>2</sup>')} = ${rad(50)} = 5${rad(2)}.</div><div class="example"><strong>🔎 Error lab</strong><br>Check every step, not only the final number. Remember: roots do not distribute over sums, ${rad('x<sup>2</sup>')} = |x|, and only like radicals can be added.</div><div class="example"><strong>⚔️ Expression duel</strong><br>Compare without decimals. For non-negative square-root expressions, you may simplify them or compare their squares: 3${rad(2)} and 2${rad(5)} give 18 and 20 when squared, so 2${rad(5)} is larger.</div><div class="tip"><strong>Nova's route:</strong> identify the task → choose a property → simplify fully → check that the exact result fits the context.</div>`
  ][i];
  return [
   `<p>Calcular una raíz de <strong>índice n</strong> es buscar el número que, elevado a n, da el <strong>radicando a</strong>: ${rad('a','n')} = b ⇔ b<sup>n</sup> = a.</p><div class="example"><strong>Reglas de signo</strong><br>• <strong>Índice par</strong> (${rad('16',4)} = 2): solo existe raíz real si a ≥ 0 y el radical toma el valor positivo (o cero). Si a &lt; 0 (${rad('−9')}), no existe raíz real.<br>• <strong>Índice impar</strong> (${rad('−8',3)} = −2): siempre existe y conserva el signo de a.</div><div class="tip"><strong>¿Una raíz o dos soluciones?</strong><br>${rad('25')} = <strong>5</strong> (solo el valor positivo), mientras que la ecuación x<sup>2</sup> = 25 tiene dos soluciones: <strong>x = ±5</strong>. Además, ${rad('(−7)<sup>2</sup>')} = |−7| = 7.</div><div id="sim1"></div>`,
@@ -414,7 +414,7 @@ function getTheory(i){
   `<p>Para extraer factores, descompón el radicando en factores primos y <strong>divide cada exponente entre el índice n</strong>: el <em>cociente sale fuera</em> y el <em>resto queda dentro</em>.</p><div class="example">• ${rad(72)} = ${rad('36 · 2')} = ${rad(2,2,6)}<br>• ${rad(54,3)} = ${rad('27 · 2',3)} = ${rad(2,3,3)}</div><div class="tip"><strong>Introducir factores dentro:</strong> elévalo al índice n: k·${rad('a','n')} = ${rad('k<sup>n</sup> · a','n')}.<br>Ojo en índices pares: <strong>−2${rad(3)} = −${rad(12)}</strong> (el signo menos se queda fuera).</div><div id="sim5"></div>`,
   `<p><strong>Suma y resta:</strong> Solo se combinan <em>radicales semejantes</em> (mismo índice y mismo radicando). Simplifica primero extrayendo factores.</p><div class="example">${rad(12)} + ${rad(27)} = 2${rad(3)} + 3${rad(3)} = 5${rad(3)}<br>${rad(50)} − ${rad(8)} + ${rad(18)} = 5${rad(2)} − 2${rad(2)} + 3${rad(2)} = 6${rad(2)}</div><p><strong>Multiplicación y división:</strong> Si tienen el mismo índice, opera los coeficientes por fuera y los radicandos por dentro. Si difieren, reduce a índice común (m.c.m.).</p><div class="example">2${rad(3)} · 3${rad(6)} = 6${rad(18)} = 18${rad(2)}<br>${rad(2)} · ${rad(4,3)} = ${rad(8,6)} · ${rad(16,6)} = ${rad(128,6)} = 2${rad(2,6)}</div>`,
   `<p><strong>Racionalizar</strong> es quitar los radicales del denominador multiplicando numerador y denominador por la misma expresión (= 1).</p><div class="example"><strong>Caso 1 · Raíz cuadrada:</strong> ${frac(5,rad(3))} · ${frac(rad(3),rad(3))} = ${frac('5'+rad(3),3)}.<br>Si puedes, simplifica antes: ${frac(6,'2'+rad(5))} = ${frac(3,rad(5))} = ${frac('3'+rad(5),5)}.</div><div class="example"><strong>Caso 2 · Índice superior (${rad('a<sup>m</sup>','n')}):</strong> Completa los factores hasta llegar al exponente <em>n</em> multiplicando por ${rad('a<sup>n−m</sup>','n')}:<br>${frac(2,rad(5,3))} · ${frac(rad('5<sup>2</sup>',3),rad('5<sup>2</sup>',3))} = ${frac('2'+rad(25,3),5)} &nbsp;|&nbsp; ${frac(3,rad('2<sup>3</sup>',5))} · ${frac(rad('2<sup>2</sup>',5),rad('2<sup>2</sup>',5))} = ${frac('3'+rad(4,5),2)}</div>`,
-  `<p><strong>Caso 3 · Binomio con raíces cuadradas:</strong> Multiplica arriba y abajo por el <strong>conjugado</strong> (cambia el signo del segundo término) para usar la diferencia de cuadrados: <strong>(a + b)(a − b) = a<sup>2</sup> − b<sup>2</sup></strong>.</p><div class="example">${frac(3,rad(5)+' + 2')} · ${frac(rad(5)+' − 2',rad(5)+' − 2')} = ${frac('3('+rad(5)+' − 2)','5 − 4')} = 3${rad(5)} − 6<br>${frac(1,rad(7)+' − '+rad(2))} · ${frac(rad(7)+' + '+rad(2),rad(7)+' + '+rad(2))} = ${frac(rad(7)+' + '+rad(2),'7 − 2')} = ${frac(rad(7)+' + '+rad(2),5)}</div><div class="tip"><strong>Situación real:</strong> Una plaza cuadrada tiene 98 m<sup>2</sup> de área. Lado = ${rad(98)} = 7${rad(2)} m. Diagonal = ${rad('98 + 98')} = ${rad(196)} = 14 m exactos.</div>`
+  `<p>Esta misión final combina tres formas de utilizar todo lo que ya sabes sobre radicales.</p><div class="example"><strong>📐 Medidas exactas</strong><br>Usa Pitágoras en figuras sencillas y conserva el resultado exacto: simplifica el radical en lugar de pasarlo a decimal. Ejemplo: un cuadrado de lado 5 tiene diagonal ${rad('5<sup>2</sup> + 5<sup>2</sup>')} = ${rad(50)} = 5${rad(2)}.</div><div class="example"><strong>🔎 Laboratorio de errores</strong><br>Comprueba cada paso, no solo el resultado final. Recuerda: la raíz no se reparte en una suma, ${rad('x<sup>2</sup>')} = |x| y solo se suman radicales semejantes.</div><div class="example"><strong>⚔️ Duelo de expresiones</strong><br>Compara sin usar decimales. En expresiones no negativas con raíces cuadradas, puedes simplificarlas o comparar sus cuadrados: 3${rad(2)} y 2${rad(5)} dan 18 y 20 al cuadrado, así que 2${rad(5)} es mayor.</div><div class="tip"><strong>Ruta de Nova:</strong> identifica la tarea → elige una propiedad → simplifica al máximo → comprueba que el resultado exacto encaja en el contexto.</div>`
  ][i];
 }
 
@@ -676,6 +676,72 @@ function plazaProblem(k,part){
  return qScalar(`${en?`A square plaza has area <strong>${area} m²</strong> (side ${rad(2,2,k)} m). Find the exact diagonal length in meters using Pythagoras:`:`Una plaza cuadrada tiene <strong>${area} m²</strong> de área (lado ${rad(2,2,k)} m). Halla la longitud exacta de su diagonal en metros por Pitágoras:`}<div class="formula">d = ${rad(`${area} + ${area}`)}</div>`,diag,en?'Add the two squares of the sides, then take the square root.':'Suma los cuadrados de los dos lados y extrae la raíz cuadrada.',en?`${area} + ${area} = ${2*area} = ${diag}².`:`${area} + ${area} = ${2*area} = ${diag}².`,`d = ${rad(2*area)} = ${diag} m`,{kind:'plazaProblem',args:[k,part]});
 }
 
+// Mission 8 · integrated final challenge
+function simplifySquareRoot(n){
+ for(let k=Math.floor(Math.sqrt(n));k>=2;k--)if(n%(k*k)===0)return [k,n/(k*k)];
+ return [1,n];
+}
+function measureProblem(kind,a,b=0,c=0){
+ const en=L()==='en';let inside,prompt,work;
+ if(kind==='square'){
+  inside=2*a*a;
+  prompt=en?`A square tile has side <strong>${a} cm</strong>. Find its exact diagonal in simplified radical form.`:`Una baldosa cuadrada tiene <strong>${a} cm</strong> de lado. Halla su diagonal exacta en forma radical simplificada.`;
+  work=`d² = ${a}² + ${a}² = ${inside}`;
+ }else if(kind==='rectangle'){
+  inside=a*a+b*b;
+  prompt=en?`A rectangle measures <strong>${a} cm × ${b} cm</strong>. Find its exact diagonal in simplified radical form.`:`Un rectángulo mide <strong>${a} cm × ${b} cm</strong>. Halla su diagonal exacta en forma radical simplificada.`;
+  work=`d² = ${a}² + ${b}² = ${inside}`;
+ }else if(kind==='isosceles'){
+  const half=b/2;inside=a*a-half*half;
+  prompt=en?`An isosceles triangle has equal sides of <strong>${a} cm</strong> and base <strong>${b} cm</strong>. Find its exact height.`:`Un triángulo isósceles tiene lados iguales de <strong>${a} cm</strong> y base de <strong>${b} cm</strong>. Halla su altura exacta.`;
+  work=`h² = ${a}² − ${half}² = ${inside}`;
+ }else if(kind==='equilateral'){
+  const half=a/2;inside=a*a-half*half;
+  prompt=en?`An equilateral triangle has side <strong>${a} cm</strong>. Find its exact height.`:`Un triángulo equilátero tiene <strong>${a} cm</strong> de lado. Halla su altura exacta.`;
+  work=`h² = ${a}² − ${half}² = ${inside}`;
+ }else{
+  inside=a*a+b*b+c*c;
+  prompt=en?`A right rectangular prism measures <strong>${a} cm × ${b} cm × ${c} cm</strong>. Find its exact space diagonal.`:`Un paralelepípedo rectangular de ángulos rectos mide <strong>${a} cm × ${b} cm × ${c} cm</strong>. Halla su diagonal espacial exacta.`;
+  work=`d² = ${a}² + ${b}² + ${c}² = ${inside}`;
+ }
+ const [coef,radicand]=simplifySquareRoot(inside),symbol=kind==='isosceles'||kind==='equilateral'?'h':'d';
+ return qExtract(`<div class="tag">📐 ${en?'Exact measures':'Medidas exactas'}</div><p>${prompt}</p><div class="formula">${symbol} = ${rad(inside)}</div>`,2,coef,radicand,en?'Draw the right triangle hidden in the figure and apply Pythagoras.':'Dibuja el triángulo rectángulo que aparece en la figura y aplica Pitágoras.',en?`${work}. Now extract the largest square factor from ${inside}.`:`${work}. Ahora extrae de ${inside} el mayor factor cuadrado posible.`,`${work} ⇒ ${symbol} = ${rad(inside)} = ${rad(radicand,2,coef)} cm`,{kind:'measureProblem',args:[kind,a,b,c]});
+}
+function errorLab(caseId){
+ const en=L()==='en';let claim,choices,correct,explain;
+ if(caseId===0){
+  claim=`${rad('9 + 16')} = ${rad(9)} + ${rad(16)} = 7`;
+  choices=en?['Incorrect: the left side is 5 and the right side is 7','Correct: both sides equal 7','Incorrect: the left side is 25']:['Incorrecto: el lado izquierdo vale 5 y el derecho, 7','Correcto: ambos lados valen 7','Incorrecto: el lado izquierdo vale 25'];
+  correct=0;explain=en?'A root cannot be distributed over a sum.':'Una raíz no se puede repartir en una suma.';
+ }else if(caseId===1){
+  claim=`${rad('(−6)<sup>2</sup>')} = −6`;
+  choices=en?['Correct because the number inside was negative','Incorrect: it equals 6 because √(x²) = |x|','Incorrect: it has no real value']:['Correcto porque el número interior era negativo','Incorrecto: vale 6 porque √(x²) = |x|','Incorrecto: no tiene valor real'];
+  correct=1;explain=en?'The principal square root is never negative.':'La raíz cuadrada principal nunca es negativa.';
+ }else if(caseId===2){
+  claim=`2${rad(3)} + 5${rad(2)} = 7${rad(5)}`;
+  choices=en?['Correct: add coefficients and radicands','Incorrect: unlike radicals cannot be combined','Incorrect: the result is 7√6']:['Correcto: se suman coeficientes y radicandos','Incorrecto: no se pueden sumar radicales no semejantes','Incorrecto: el resultado es 7√6'];
+  correct=1;explain=en?'The two terms have different radicands and are already simplified.':'Los dos términos tienen radicandos distintos y ya están simplificados.';
+ }else if(caseId===3){
+  claim=`${rad(rad(16),3)} = ${rad(16,5)}`;
+  choices=en?['Correct: add indices 3 + 2','Incorrect: multiply indices, so it is the sixth root of 16','Incorrect: the result is the square root of 16']:['Correcto: se suman los índices 3 + 2','Incorrecto: los índices se multiplican; es la raíz sexta de 16','Incorrecto: el resultado es la raíz cuadrada de 16'];
+  correct=1;explain=en?'For a root of a root, indices multiply: 3·2 = 6.':'En una raíz de raíz, los índices se multiplican: 3·2 = 6.';
+ }else{
+  claim=`${rad(72)} = 3${rad(8)}`;
+  choices=en?['Wrong value: the two expressions are not equivalent','Equivalent, but not fully simplified; it should end as 6√2','Fully correct and fully simplified']:['Valor incorrecto: las dos expresiones no son equivalentes','Es equivalente, pero no está simplificado al máximo; debe terminar en 6√2','Es correcto y está simplificado al máximo'];
+  correct=1;explain=en?'Since √8 = 2√2, one more square factor can be extracted.':'Como √8 = 2√2, todavía se puede extraer otro factor cuadrado.';
+ }
+ const shift=caseId%choices.length,rotated=choices.map((_,i)=>choices[(i+shift)%choices.length]),answer=rotated.indexOf(choices[correct]);
+ return qChoice(`<div class="tag">🔎 ${en?'Error lab':'Laboratorio de errores'}</div><p>${en?'A student wrote this. Evaluate the reasoning:':'Un estudiante ha escrito esto. Evalúa su razonamiento:'}</p><div class="formula">${claim}</div>`,rotated,answer,en?'Check the property used in the first equality.':'Comprueba la propiedad utilizada en la primera igualdad.',explain,`${explain} ${rotated[answer]}`,{kind:'errorLab',args:[caseId]});
+}
+function sqrtTerm(coef,inside){return coef===1?rad(inside):rad(inside,2,coef)}
+function expressionDuel(c1,r1,c2,r2){
+ const en=L()==='en',left=sqrtTerm(c1,r1),right=sqrtTerm(c2,r2),leftSq=c1*c1*r1,rightSq=c2*c2*r2;
+ const relation=leftSq===rightSq?'=':leftSq>rightSq?'>':'<';
+ const baseChoices=[`${left} &gt; ${right}`,`${left} &lt; ${right}`,`${left} = ${right}`],correct=relation==='>'?0:relation==='<'?1:2;
+ const shift=(c1+r1+c2+r2)%3,choices=baseChoices.map((_,i)=>baseChoices[(i+shift)%3]),answer=choices.indexOf(baseChoices[correct]);
+ return qChoice(`<div class="tag">⚔️ ${en?'Expression duel':'Duelo de expresiones'}</div><p>${en?'Choose the correct comparison without using decimals:':'Elige la comparación correcta sin usar decimales:'}</p><div class="formula">${left} &nbsp;?&nbsp; ${right}</div>`,choices,answer,en?'Both expressions are non-negative: simplify them or compare their squares.':'Las dos expresiones son no negativas: simplifícalas o compara sus cuadrados.',en?`Their squares are ${leftSq} and ${rightSq}.`:`Sus cuadrados son ${leftSq} y ${rightSq}.`,`${leftSq} ${relation} ${rightSq} ⇒ ${left} ${relation} ${right}`,{kind:'expressionDuel',args:[c1,r1,c2,r2]});
+}
+
 /* Concise Práctica Guiada queues (7-8 exercises per mission) */
 const fixed=[
  // M1: 8 exercises
@@ -692,8 +758,8 @@ const fixed=[
  ()=>[combineRad(5,[[3,1],[2,1]]),combineRad(3,[[1,4],[1,9]]),combineRad(2,[[1,25],[-1,4],[1,9]]),combineRad(3,[[2,4],[-1,9],[1,25]]),mulSameIdx(2,3,3,6),divSameIdx(3,3,3),mulDiffIdx(2,2,4,3)],
  // M7: 7 exercises
  ()=>[ratCase1(5,1,3),ratCase1(7,1,2),ratCase1(6,2,5),ratCase1(8,2,3),ratMissingStep(3,2,2),ratCase2(2,3,5,1),ratCase2(3,5,2,3)],
- // M8: 7 exercises
- ()=>[conjSign(rad(5),'2','+'),conjSign('3',rad(5),'−'),ratConjBinom(3,5,2,'+'),ratConjConstFirst(4,3,5,'−'),ratConjBinom(2,3,1,'+'),ratConjTwoRoots(1,7,2,'−'),plazaProblem(7,1)]
+ // M8: 8 integrated exercises · exact measures, error lab and expression duels
+ ()=>[measureProblem('square',6),measureProblem('isosceles',7,6),measureProblem('prism',2,4,5),errorLab(0),errorLab(4),expressionDuel(3,2,2,5),expressionDuel(1,72,6,2),expressionDuel(2,12,3,5)]
 ];
 
 function random(lvl,j){
@@ -747,12 +813,12 @@ function random(lvl,j){
   if(j===3)return ratCase2(pick([2,3,4]),3,pick([5,7]),1);
   return ratCase2(pick([3,5,7]),5,pick([2,3]),pick([2,3]));
  }
- // Mission 8
- if(j===0)return conjSign(rad(pick([3,5,7])),String(ri(1,4)),pick(['+','−']));
- if(j===1)return ratConjBinom(pick([2,3,4]),5,2,'+');
- if(j===2)return ratConjConstFirst(4,3,5,'−');
- if(j===3)return ratConjTwoRoots(1,pick([7,11]),pick([2,3]),'−');
- return plazaProblem(pick([5,7,9]),pick([0,1]));
+ // Mission 8 · every challenge includes all three strands
+ if(j===0)return pick([measureProblem('square',5),measureProblem('equilateral',8),measureProblem('rectangle',4,7)]);
+ if(j===1)return errorLab(ri(0,4));
+ if(j===2)return pick([expressionDuel(3,2,2,5),expressionDuel(2,12,3,5),expressionDuel(1,72,6,2)]);
+ if(j===3)return pick([measureProblem('isosceles',7,6),measureProblem('prism',2,4,5),measureProblem('rectangle',5,6)]);
+ return pick([expressionDuel(5,3,4,5),expressionDuel(1,48,4,3),expressionDuel(2,18,3,8)]);
 }
 
 function challengeQueue(){
@@ -760,7 +826,7 @@ function challengeQueue(){
 }
 function relocalizeItem(item){
  const src=item?.source;if(!src)return item;
- const map={rootSign,eqVsRoot,radToPow,powToRad,exactRoot,nestedRoot,powRadical,divSameIdx,errTrap,equivRed,commonScale,compareRad,extractFac,insertFac,combineRad,mulSameIdx,mulDiffIdx,ratCase1,ratCase2,ratMissingStep,conjSign,ratConjBinom,ratConjConstFirst,ratConjTwoRoots,plazaProblem};
+ const map={rootSign,eqVsRoot,radToPow,powToRad,exactRoot,nestedRoot,powRadical,divSameIdx,errTrap,equivRed,commonScale,compareRad,extractFac,insertFac,combineRad,mulSameIdx,mulDiffIdx,ratCase1,ratCase2,ratMissingStep,conjSign,ratConjBinom,ratConjConstFirst,ratConjTwoRoots,plazaProblem,measureProblem,errorLab,expressionDuel};
  if(!map[src.kind])return item;
  const fresh=map[src.kind](...src.args);
  if(item.consolidation)fresh.consolidation=true;
@@ -777,6 +843,16 @@ function relocalizeSessions(){
    else if(s.attempts>0)s.feedback=tr('notYet')+(s.attempts===1?active.h1:active.h2);
   }
  }
+}
+function migrateMission8(){
+ const legacy=new Set(['conjSign','ratConjBinom','ratConjConstFirst','ratConjTwoRoots','plazaProblem']);
+ const session8=state.sessions?.[7];
+ if(!session8)return false;
+ const items=[...(session8.queue||[]),session8.consolidation].filter(Boolean);
+ if(!items.some(item=>legacy.has(item.source?.kind)))return false;
+ delete state.sessions[7];
+ delete state.practiceDone[7];
+ return true;
 }
 function equivalent(item){
  const src=item?.source;if(!src)return {...JSON.parse(JSON.stringify(item)),consolidation:true};
@@ -935,7 +1011,7 @@ function finish(){
    state.done[level]=Math.max(state.done[level]||0,stars);
    if(!s.usedHint)state.logros.sinpi3=true;
   }
-  if(!s.hadMistake&&(level===6||level===7))state.logros.racex4=true;
+  if(!s.hadMistake&&level===6)state.logros.racex4=true;
   s.phase='complete';syncLogros();save();renderLevel();
  }else{
   state.practiceDone[level]=true;save();
@@ -944,5 +1020,6 @@ function finish(){
  }
 }
 
+if(migrateMission8())save();
 home();
 </script></body></html>

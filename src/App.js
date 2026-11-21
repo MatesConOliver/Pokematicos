@@ -19,6 +19,7 @@ import ManageStudentModal from "./components/students/ManageStudentModal";
 import BulkStreakModal from "./components/classes/BulkStreakModal";
 import EyeToggleButton from "./components/common/EyeToggleButton";
 import RequestsPanel from "./components/requests/RequestsPanel";
+import StudentReportModal from "./components/admin/StudentReportModal";
 import LoginScreen from "./components/auth/LoginScreen";
 import ClassesPanel from "./components/classes/ClassesPanel";
 import StudentsPanel from "./components/students/StudentsPanel";
@@ -191,6 +192,7 @@ export default function App() {
     } catch {}
   }, []);
   const [showRequestsPanel, setShowRequestsPanel] = useState(false);
+  const [showReportPanel, setShowReportPanel] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [showBulkStreaks, setShowBulkStreaks] = useState(false);
   const [evolutionModalData, setEvolutionModalData] = useState(null);
@@ -1505,9 +1507,14 @@ export default function App() {
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto", flexWrap: "wrap" }}>
           {mode === "admin" && (
-            <button className="btn-glass" onClick={() => setShowRequestsPanel(true)}>
-              Requests{pendingCount > 0 ? ` (${pendingCount})` : ""}
-            </button>
+            <>
+              <button className="btn-glass" onClick={() => setShowReportPanel(true)}>
+                Report
+              </button>
+              <button className="btn-glass" onClick={() => setShowRequestsPanel(true)}>
+                Requests{pendingCount > 0 ? ` (${pendingCount})` : ""}
+              </button>
+            </>
           )}
           {authUser ? (
             <button className="btn-glass" onClick={logout}>
@@ -1888,6 +1895,18 @@ export default function App() {
               alertFn: notify,
             })
           }
+        />
+      )}
+
+      {/* Student activity report modal (admin only, global across classes) */}
+      {mode === "admin" && showReportPanel && (
+        <StudentReportModal
+          db={db}
+          classesList={classesList}
+          activeClassId={activeClassId}
+          activeStudents={students}
+          activeCards={cards}
+          onClose={() => setShowReportPanel(false)}
         />
       )}
 

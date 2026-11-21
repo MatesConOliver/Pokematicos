@@ -101,4 +101,4 @@ function formatHistoryDateTime(entry) {
   return `${dateStr} ${hh}:${mm}`;
 }
 
-export { todayISODate, addDaysISO, getHistoryTimestamp, formatHistoryDateTime };
+export { todayISODate, addDaysISO, parseTimestampWithPrecision, getHistoryTimestamp, formatHistoryDateTime };
