@@ -1,4 +1,5 @@
 import { getCardDisplayImage } from "../utils/cardImageUtils";
+import { WEEKDAY_SHORT, MONTH_SHORT } from "../utils/dateUtils";
 
 export const MADRID_TIMEZONE = "Europe/Madrid";
 export const MAX_NOTICE_BOARD_ITEMS = 20;
@@ -70,11 +71,20 @@ export function getMadridDateParts(input = Date.now()) {
   const hour = map.hour || "00";
   const minute = map.minute || "00";
 
+  const yNum = Number(year);
+  const mNum = Number(month);
+  const dNum = Number(day);
+  const utcDate = new Date(Date.UTC(yNum, mNum - 1, dNum));
+  const weekday = WEEKDAY_SHORT[utcDate.getUTCDay()] || "";
+  const monthName = MONTH_SHORT[mNum - 1] || "";
+  const displayDate = `${weekday}, ${monthName} ${dNum}`;
+
   return {
+    year: yNum,
     dateKey: `${year}-${month}-${day}`,
-    displayDate: `${day}/${month}/${year}`,
+    displayDate,
     displayTime: `${hour}:${minute}`,
-    displayDateTime: `${day}/${month}/${year} ${hour}:${minute}`,
+    displayDateTime: `${displayDate} · ${hour}:${minute}`,
   };
 }
 
@@ -82,8 +92,11 @@ function formatLegacyDateOnly(isoDate) {
   if (typeof isoDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
     return isoDate || "";
   }
-  const [y, m, d] = isoDate.split("-");
-  return `${d}/${m}/${y}`;
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const utcDate = new Date(Date.UTC(y, m - 1, d));
+  const weekday = WEEKDAY_SHORT[utcDate.getUTCDay()] || "";
+  const monthName = MONTH_SHORT[m - 1] || "";
+  return `${weekday}, ${monthName} ${d}`;
 }
 
 export function buildNoticeBoardData({
@@ -197,10 +210,15 @@ export function buildNoticeBoardData({
     const hasExactTime = grp.latestTimedMs !== null;
     const mParts = getMadridDateParts(finalTs);
 
+    const itemYear =
+      mParts?.year ||
+      (/^\d{4}/.test(grp.dateKey) ? Number(grp.dateKey.slice(0, 4)) : null);
+
     rawItems.push({
       id: `streakMax:${groupKey}`,
       type: "streakMax",
       timestamp: finalTs,
+      year: itemYear,
       madridDateKey: grp.dateKey,
       formattedDateTime: hasExactTime && mParts
         ? mParts.displayDateTime
@@ -246,6 +264,7 @@ export function buildNoticeBoardData({
           type: "rewardRedeemed",
           redeemKind: "individual",
           timestamp: ts,
+          year: mParts.year,
           madridDateKey: mParts.dateKey,
           formattedDateTime: mParts.displayDateTime,
           hasExactTime: true,
@@ -266,6 +285,7 @@ export function buildNoticeBoardData({
           groupRedeems.set(groupKey, {
             groupKey,
             timestamp: ts,
+            year: mParts.year,
             madridDateKey: mParts.dateKey,
             formattedDateTime: mParts.displayDateTime,
             rewardTitle,
@@ -294,6 +314,7 @@ export function buildNoticeBoardData({
       type: "rewardRedeemed",
       redeemKind: "group",
       timestamp: grp.timestamp,
+      year: grp.year,
       madridDateKey: grp.madridDateKey,
       formattedDateTime: grp.formattedDateTime,
       hasExactTime: true,
@@ -340,6 +361,7 @@ export function buildNoticeBoardData({
         id: `xp:${dedupeKey}`,
         type: "experienceCard",
         timestamp: ts,
+        year: mParts.year,
         madridDateKey: mParts.dateKey,
         formattedDateTime: mParts.displayDateTime,
         hasExactTime: true,
@@ -369,6 +391,7 @@ export function buildNoticeBoardData({
       id: `newCard:${card.id || `${cat}_${ts}_${cardTitle}`}`,
       type: "newCard",
       timestamp: ts,
+      year: mParts.year,
       madridDateKey: mParts.dateKey,
       formattedDateTime: mParts.displayDateTime,
       hasExactTime: true,
@@ -457,6 +480,7 @@ export function buildNoticeBoardData({
         id: `codeCard:${studentKey}:${obtainedFrom || entry.id || `${ts}_${idx}`}`,
         type: "codeCardRedeemed",
         timestamp: ts,
+        year: mParts.year,
         madridDateKey: mParts.dateKey,
         formattedDateTime: mParts.displayDateTime,
         hasExactTime: true,
@@ -493,6 +517,7 @@ export function buildNoticeBoardData({
         id: `codeCard:${studentKey}:${obtainedFrom}:${owned.id || idx}`,
         type: "codeCardRedeemed",
         timestamp: ts,
+        year: mParts.year,
         madridDateKey: mParts.dateKey,
         formattedDateTime: mParts.displayDateTime,
         hasExactTime: true,
@@ -523,6 +548,7 @@ export function buildNoticeBoardData({
       messageId: msg.id || "",
       type: "adminMessage",
       timestamp: ts,
+      year: mParts.year,
       madridDateKey: mParts.dateKey,
       formattedDateTime: mParts.displayDateTime,
       hasExactTime: true,
@@ -561,5 +587,6 @@ export function buildNoticeBoardData({
     todayItems,
     olderItems,
     todayMadridKey,
+    currentYear: todayParts ? todayParts.year : new Date().getFullYear(),
   };
 }

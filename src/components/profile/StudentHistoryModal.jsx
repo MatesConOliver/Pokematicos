@@ -1,9 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
-import { todayISODate, getHistoryTimestamp, formatHistoryDateTime } from "../../utils/dateUtils";
+import {
+  todayISODate,
+  getHistoryTimestamp,
+  getHistoryEntryYear,
+  formatHistoryDateTime,
+} from "../../utils/dateUtils";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { formatPoints } from "../../utils/helpers";
 import { reconcileAndEnrichStudentHistory } from "../../services/rewardCodeService.js";
+import YearDivider from "../common/YearDivider";
 
 export default function StudentHistoryModal({
   student,
@@ -185,9 +191,31 @@ export default function StudentHistoryModal({
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[...historyList]
-                .sort((a, b) => getHistoryTimestamp(b) - getHistoryTimestamp(a))
-                .map((h, idx) => {
+              {(() => {
+                const currentYear = new Date().getFullYear();
+                const sortedHistory = [...historyList].sort(
+                  (a, b) => getHistoryTimestamp(b) - getHistoryTimestamp(a)
+                );
+                let lastKnownYear = null;
+
+                return sortedHistory.map((h, idx) => {
+                  const itemYear = getHistoryEntryYear(h);
+                  let showDivider = false;
+                  let dividerPrevYear = null;
+
+                  if (itemYear) {
+                    if (lastKnownYear === null) {
+                      if (itemYear !== currentYear) {
+                        showDivider = true;
+                        dividerPrevYear = null;
+                      }
+                    } else if (itemYear !== lastKnownYear) {
+                      showDivider = true;
+                      dividerPrevYear = lastKnownYear;
+                    }
+                    lastKnownYear = itemYear;
+                  }
+
                   const isEvolution = h.type === "evolution";
                   const isGroup = h.type === "group" || h.mode === "group";
                   const isCode =
@@ -228,20 +256,25 @@ export default function StudentHistoryModal({
                       linkedCard.displayImageURL
                     : null;
 
+                  const rowKey = h.id || `${resolvedCardId || "hist"}-${h.date || idx}`;
+
                   return (
-                    <div
-                      key={h.id || `${resolvedCardId || "hist"}-${h.date || idx}`}
-                      style={{
-                        background: "#ffffff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 12,
-                        padding: "12px 14px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 6,
-                      }}
-                    >
+                    <React.Fragment key={rowKey}>
+                      {showDivider && (
+                        <YearDivider prevYear={dividerPrevYear} nextYear={itemYear} />
+                      )}
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 12,
+                          padding: "12px 14px",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                        }}
+                      >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                           {cardImg && (
@@ -396,9 +429,11 @@ export default function StudentHistoryModal({
                             .join(", ")}
                         </div>
                       )}
-                    </div>
+                      </div>
+                    </React.Fragment>
                   );
-                })}
+                });
+              })()}
             </div>
           )}
         </div>

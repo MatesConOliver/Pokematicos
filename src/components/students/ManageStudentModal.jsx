@@ -4,6 +4,7 @@ import { pickEditableFloatWindow } from "../../services/streakService";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { round2, formatPoints } from "../../utils/helpers";
 import { isCardUnlockedForStudent } from "../../services/cardEvolutionService";
+import { formatWeekdayMonthDay } from "../../utils/dateUtils";
 
 function todayISODate() {
   const d = new Date();
@@ -316,7 +317,7 @@ export default function ManageStudentModal({
                                 fontWeight: 600,
                               }}
                             >
-                              Last: {date}
+                              Last: {formatWeekdayMonthDay(date) || date}
                             </div>
                           )}
                         </div>
@@ -390,7 +391,7 @@ export default function ManageStudentModal({
 
                             {editableWindow && (
                               <div className="muted" style={{ fontSize: 11, marginTop: 4, textAlign: "right" }}>
-                                Floating bonus: +{editableWindow.multiplierBonus || 0} (until {editableWindow.end})
+                                Floating bonus: +{editableWindow.multiplierBonus || 0} (until {formatWeekdayMonthDay(editableWindow.end) || editableWindow.end})
                                 {onEditFloatWindow && (
                                   <div>
                                     <button

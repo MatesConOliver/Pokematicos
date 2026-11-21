@@ -1,5 +1,9 @@
 import { getCardDisplayImage } from "../utils/cardImageUtils";
-import { getHistoryTimestamp, parseTimestampWithPrecision } from "../utils/dateUtils";
+import {
+  formatWeekdayMonthDay,
+  getHistoryTimestamp,
+  parseTimestampWithPrecision,
+} from "../utils/dateUtils";
 
 export const REPORT_PERIODS = [
   { id: "week", label: "Last week" },
@@ -9,14 +13,8 @@ export const REPORT_PERIODS = [
 ];
 
 export function formatDDMM(input) {
-  const parsed = typeof input === "number"
-    ? { ms: input }
-    : parseTimestampWithPrecision(input);
-  if (!parsed) return "--/--";
-  const d = new Date(parsed.ms);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}`;
+  const formatted = formatWeekdayMonthDay(input);
+  return formatted || "--";
 }
 
 export function formatDDMMYYYY(input) {
@@ -75,6 +73,10 @@ export function resolveReportPeriodRange({
       endMs: todayEnd.getTime(),
       startLabel: formatDDMMYYYY(start.getTime()),
       endLabel: formatDDMMYYYY(todayEnd.getTime()),
+      startDisplay: formatWeekdayMonthDay(start.getTime()),
+      endDisplay: formatWeekdayMonthDay(todayEnd.getTime()),
+      startYear: start.getFullYear(),
+      endYear: todayEnd.getFullYear(),
     };
   }
 
@@ -87,6 +89,10 @@ export function resolveReportPeriodRange({
       endMs: todayEnd.getTime(),
       startLabel: formatDDMMYYYY(start.getTime()),
       endLabel: formatDDMMYYYY(todayEnd.getTime()),
+      startDisplay: formatWeekdayMonthDay(start.getTime()),
+      endDisplay: formatWeekdayMonthDay(todayEnd.getTime()),
+      startYear: start.getFullYear(),
+      endYear: todayEnd.getFullYear(),
     };
   }
 
@@ -103,6 +109,10 @@ export function resolveReportPeriodRange({
       endMs: todayEnd.getTime(),
       startLabel: formatDDMMYYYY(start.getTime()),
       endLabel: formatDDMMYYYY(todayEnd.getTime()),
+      startDisplay: formatWeekdayMonthDay(start.getTime()),
+      endDisplay: formatWeekdayMonthDay(todayEnd.getTime()),
+      startYear: start.getFullYear(),
+      endYear: todayEnd.getFullYear(),
     };
   }
 
@@ -139,6 +149,10 @@ export function resolveReportPeriodRange({
       endMs: endDay.getTime(),
       startLabel: formatDDMMYYYY(startDt.getTime()),
       endLabel: formatDDMMYYYY(endDay.getTime()),
+      startDisplay: formatWeekdayMonthDay(startDt.getTime()),
+      endDisplay: formatWeekdayMonthDay(endDay.getTime()),
+      startYear: startDt.getFullYear(),
+      endYear: endDay.getFullYear(),
     };
   }
 
@@ -248,7 +262,8 @@ export function buildStudentActivityReport({
       pointsGranted: Number(owned.pointsGranted || 0),
       sourceLabel: getCardSourceLabel(owned),
       timestamp: parsed.ms,
-      dayLabel: formatDDMM(parsed.ms),
+      year: new Date(parsed.ms).getFullYear(),
+      dayLabel: formatWeekdayMonthDay(parsed.ms),
     });
   });
 
@@ -309,7 +324,8 @@ export function buildStudentActivityReport({
         imageURL: cardImg,
         expectedObtainedFrom,
         timestamp: ts,
-        dayLabel: formatDDMM(ts),
+        year: new Date(ts).getFullYear(),
+        dayLabel: formatWeekdayMonthDay(ts),
       });
     }
   );
@@ -342,7 +358,8 @@ export function buildStudentActivityReport({
       imageURL: cardImg,
       expectedObtainedFrom: compKey ? `activity_${compKey}` : "",
       timestamp: parsed.ms,
-      dayLabel: formatDDMM(parsed.ms),
+      year: new Date(parsed.ms).getFullYear(),
+      dayLabel: formatWeekdayMonthDay(parsed.ms),
     });
   });
 
@@ -391,6 +408,7 @@ export function buildStudentActivityReport({
       cardTitle: resolvedCardTitle,
       imageURL: resolvedImage,
       timestamp: code.timestamp,
+      year: code.year,
       dayLabel: code.dayLabel,
     });
   });
@@ -406,6 +424,7 @@ export function buildStudentActivityReport({
       pointsGranted: card.pointsGranted,
       sourceLabel: card.sourceLabel,
       timestamp: card.timestamp,
+      year: card.year,
       dayLabel: card.dayLabel,
     });
   });

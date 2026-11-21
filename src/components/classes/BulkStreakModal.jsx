@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { todayISODate } from "../../utils/dateUtils";
+import { todayISODate, formatWeekdayMonthDay } from "../../utils/dateUtils";
 
 export default function BulkStreakModal({
   className,
@@ -76,7 +76,7 @@ export default function BulkStreakModal({
                       )}{" "}
                       {streak.lastUpdated && (
                         <span style={{ color: isToday ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
-                          {streak.lastUpdated}
+                          {formatWeekdayMonthDay(streak.lastUpdated) || streak.lastUpdated}
                         </span>
                       )}
                     </span>

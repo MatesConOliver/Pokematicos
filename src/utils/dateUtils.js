@@ -65,6 +65,86 @@ function parseTimestampWithPrecision(value) {
   return null;
 }
 
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function formatWeekdayMonthDayFromDate(d) {
+  if (!(d instanceof Date) || !Number.isFinite(d.getTime())) return "";
+  const weekday = WEEKDAY_SHORT[d.getDay()];
+  const month = MONTH_SHORT[d.getMonth()];
+  const day = d.getDate();
+  return `${weekday}, ${month} ${day}`;
+}
+
+function formatWeekdayMonthDay(input) {
+  if (input instanceof Date) {
+    return formatWeekdayMonthDayFromDate(input);
+  }
+  const parsed = parseTimestampWithPrecision(input);
+  if (!parsed) return "";
+  return formatWeekdayMonthDayFromDate(new Date(parsed.ms));
+}
+
+function formatWeekdayMonthDayTime(input) {
+  const d =
+    input instanceof Date
+      ? input
+      : (() => {
+          const parsed = parseTimestampWithPrecision(input);
+          return parsed ? new Date(parsed.ms) : null;
+        })();
+  if (!d || !Number.isFinite(d.getTime())) return "";
+  const dateStr = formatWeekdayMonthDayFromDate(d);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${dateStr} · ${hh}:${mm}`;
+}
+
+function getYearFromInput(input) {
+  if (input instanceof Date) {
+    return Number.isFinite(input.getTime()) ? input.getFullYear() : null;
+  }
+  const parsed = parseTimestampWithPrecision(input);
+  if (!parsed) return null;
+  return new Date(parsed.ms).getFullYear();
+}
+
+function resolveChosenHistoryTimestamp(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const dateParsed = parseTimestampWithPrecision(entry.date);
+  const redeemedParsed = parseTimestampWithPrecision(entry.redeemedAt);
+  const grantedParsed = parseTimestampWithPrecision(entry.grantedAt);
+
+  return (
+    (dateParsed?.hasTime ? dateParsed : null) ||
+    (redeemedParsed?.hasTime ? redeemedParsed : null) ||
+    (grantedParsed?.hasTime ? grantedParsed : null) ||
+    dateParsed ||
+    redeemedParsed ||
+    grantedParsed ||
+    null
+  );
+}
+
+function getHistoryEntryYear(entry) {
+  const chosen = resolveChosenHistoryTimestamp(entry);
+  if (!chosen) return null;
+  return new Date(chosen.ms).getFullYear();
+}
+
 function getHistoryTimestamp(entry) {
   if (!entry || typeof entry !== "object") return 0;
   const redeemed = parseTimestampWithPrecision(entry.redeemedAt);
@@ -77,28 +157,25 @@ function getHistoryTimestamp(entry) {
 }
 
 function formatHistoryDateTime(entry) {
-  if (!entry || typeof entry !== "object") return "Unknown date";
-  const dateParsed = parseTimestampWithPrecision(entry.date);
-  const redeemedParsed = parseTimestampWithPrecision(entry.redeemedAt);
-  const grantedParsed = parseTimestampWithPrecision(entry.grantedAt);
-
-  const chosen =
-    (dateParsed?.hasTime ? dateParsed : null) ||
-    (redeemedParsed?.hasTime ? redeemedParsed : null) ||
-    (grantedParsed?.hasTime ? grantedParsed : null) ||
-    dateParsed ||
-    redeemedParsed ||
-    grantedParsed;
-
+  const chosen = resolveChosenHistoryTimestamp(entry);
   if (!chosen) return "Unknown date";
 
   const d = new Date(chosen.ms);
-  const dateStr = d.toLocaleDateString();
-  if (!chosen.hasTime) return dateStr;
-
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${dateStr} ${hh}:${mm}`;
+  if (!chosen.hasTime) return formatWeekdayMonthDayFromDate(d);
+  return formatWeekdayMonthDayTime(d);
 }
 
-export { todayISODate, addDaysISO, parseTimestampWithPrecision, getHistoryTimestamp, formatHistoryDateTime };
+export {
+  WEEKDAY_SHORT,
+  MONTH_SHORT,
+  todayISODate,
+  addDaysISO,
+  parseTimestampWithPrecision,
+  formatWeekdayMonthDay,
+  formatWeekdayMonthDayTime,
+  getYearFromInput,
+  getHistoryEntryYear,
+  getHistoryTimestamp,
+  formatHistoryDateTime,
+};
+

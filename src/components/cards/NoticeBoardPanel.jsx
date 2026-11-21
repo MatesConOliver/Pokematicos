@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { buildNoticeBoardData } from "../../services/noticeBoardService";
 import { uid } from "../../utils/helpers";
+import YearDivider from "../common/YearDivider";
 
 function getItemMeta(item) {
   switch (item.type) {
@@ -522,6 +523,8 @@ function NoticeCard({ item }) {
 function NoticeGroup({
   heading,
   items,
+  initialPrevYear = null,
+  currentYear = null,
   isAdmin,
   onSaveEdit,
   onTogglePin,
@@ -529,6 +532,8 @@ function NoticeGroup({
   onValidationError,
 }) {
   if (!items || items.length === 0) return null;
+
+  let lastKnownYear = initialPrevYear || null;
 
   return (
     <section style={{ display: "grid", gap: 8 }}>
@@ -551,21 +556,44 @@ function NoticeGroup({
           {heading}
         </span>
       </div>
-      {items.map((item) =>
-        item.type === "adminMessage" ? (
-          <AdminMessageCard
-            key={item.id}
-            item={item}
-            isAdmin={isAdmin}
-            onSaveEdit={onSaveEdit}
-            onTogglePin={onTogglePin}
-            onDelete={onDelete}
-            onValidationError={onValidationError}
-          />
-        ) : (
-          <NoticeCard key={item.id} item={item} />
-        )
-      )}
+      {items.map((item) => {
+        const itemYear = item.year || null;
+        let showDivider = false;
+        let dividerPrevYear = null;
+
+        if (itemYear) {
+          if (lastKnownYear === null) {
+            if (currentYear && itemYear !== currentYear) {
+              showDivider = true;
+              dividerPrevYear = null;
+            }
+          } else if (itemYear !== lastKnownYear) {
+            showDivider = true;
+            dividerPrevYear = lastKnownYear;
+          }
+          lastKnownYear = itemYear;
+        }
+
+        return (
+          <React.Fragment key={item.id}>
+            {showDivider && (
+              <YearDivider prevYear={dividerPrevYear} nextYear={itemYear} />
+            )}
+            {item.type === "adminMessage" ? (
+              <AdminMessageCard
+                item={item}
+                isAdmin={isAdmin}
+                onSaveEdit={onSaveEdit}
+                onTogglePin={onTogglePin}
+                onDelete={onDelete}
+                onValidationError={onValidationError}
+              />
+            ) : (
+              <NoticeCard item={item} />
+            )}
+          </React.Fragment>
+        );
+      })}
     </section>
   );
 }
@@ -589,7 +617,7 @@ export default function NoticeBoardPanel({
   const [pinned, setPinned] = useState(false);
   const [posting, setPosting] = useState(false);
 
-  const { pinnedItems, items, todayItems, olderItems } = useMemo(
+  const { pinnedItems, items, todayItems, olderItems, currentYear } = useMemo(
     () =>
       buildNoticeBoardData({
         students,
@@ -807,6 +835,8 @@ export default function NoticeBoardPanel({
           <NoticeGroup
             heading="📌 Pinned"
             items={pinnedItems}
+            initialPrevYear={null}
+            currentYear={currentYear}
             isAdmin={isAdmin}
             onSaveEdit={handleSaveEdit}
             onTogglePin={handleTogglePin}
@@ -816,6 +846,8 @@ export default function NoticeBoardPanel({
           <NoticeGroup
             heading="Today"
             items={todayItems}
+            initialPrevYear={currentYear}
+            currentYear={currentYear}
             isAdmin={isAdmin}
             onSaveEdit={handleSaveEdit}
             onTogglePin={handleTogglePin}
@@ -825,6 +857,12 @@ export default function NoticeBoardPanel({
           <NoticeGroup
             heading="Older"
             items={olderItems}
+            initialPrevYear={
+              todayItems.length > 0
+                ? todayItems[todayItems.length - 1]?.year || currentYear
+                : null
+            }
+            currentYear={currentYear}
             isAdmin={isAdmin}
             onSaveEdit={handleSaveEdit}
             onTogglePin={handleTogglePin}

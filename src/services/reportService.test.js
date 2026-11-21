@@ -26,16 +26,22 @@ describe("reportService", () => {
     expect(week.valid).toBe(true);
     expect(week.startLabel).toBe("14/11/2026");
     expect(week.endLabel).toBe("20/11/2026");
+    expect(week.startDisplay).toBe("Sat, Nov 14");
+    expect(week.endDisplay).toBe("Fri, Nov 20");
 
     const twoWeeks = resolveReportPeriodRange({ period: "twoWeeks", now });
     expect(twoWeeks.valid).toBe(true);
     expect(twoWeeks.startLabel).toBe("07/11/2026");
     expect(twoWeeks.endLabel).toBe("20/11/2026");
+    expect(twoWeeks.startDisplay).toBe("Sat, Nov 7");
+    expect(twoWeeks.endDisplay).toBe("Fri, Nov 20");
 
     const month = resolveReportPeriodRange({ period: "month", now });
     expect(month.valid).toBe(true);
     expect(month.startLabel).toBe("20/10/2026");
     expect(month.endLabel).toBe("20/11/2026");
+    expect(month.startDisplay).toBe("Tue, Oct 20");
+    expect(month.endDisplay).toBe("Fri, Nov 20");
 
     const manual = resolveReportPeriodRange({
       period: "manual",
@@ -46,6 +52,8 @@ describe("reportService", () => {
     expect(manual.valid).toBe(true);
     expect(manual.startLabel).toBe("01/11/2026");
     expect(manual.endLabel).toBe("15/11/2026");
+    expect(manual.startDisplay).toBe("Sun, Nov 1");
+    expect(manual.endDisplay).toBe("Sun, Nov 15");
 
     const invalidOrder = resolveReportPeriodRange({
       period: "manual",
@@ -149,13 +157,14 @@ describe("reportService", () => {
     // Timeline: 2 code events (1 combined with Trophy Card) + 2 standalone cards = 4 items, newest first
     expect(report.timeline).toHaveLength(4);
     expect(report.timeline.map((item) => [item.kind, item.title, item.dayLabel])).toEqual([
-      ["code", "Mission 2", "20/11"],
-      ["card", "Pikachu", "19/11"],
-      ["code", "Mission 1", "18/11"],
-      ["card", "Pikachu", "15/11"],
+      ["code", "Mission 2", "Fri, Nov 20"],
+      ["card", "Pikachu", "Thu, Nov 19"],
+      ["code", "Mission 1", "Wed, Nov 18"],
+      ["card", "Pikachu", "Sun, Nov 15"],
     ]);
     expect(report.timeline[2].hasCard).toBe(true);
     expect(report.timeline[2].cardTitle).toBe("Trophy Card");
+    expect(report.timeline.every((item) => item.year === 2026)).toBe(true);
 
     // Card filter: default ("all") returns full timeline
     expect(filterReportTimelineByCard(report.timeline, "all")).toHaveLength(4);
@@ -170,8 +179,32 @@ describe("reportService", () => {
     expect(trophyFiltered[0].title).toBe("Mission 1");
   });
 
-  test("formatDDMM formats day and month only", () => {
+  test("formatDDMM formats Weekday, Mon D with unpadded day and manual cross-year timeline tracks item years", () => {
     const d = new Date(2026, 0, 7, 12, 0).getTime();
-    expect(formatDDMM(d)).toBe("07/01");
+    expect(formatDDMM(d)).toBe("Wed, Jan 7");
+
+    const student = {
+      id: "stu_2",
+      name: "Leo",
+      cards: [
+        { id: "c_2025", cardId: "c_pikachu", title: "Pikachu", grantedAt: new Date(2025, 11, 20, 10, 0).toISOString() },
+        { id: "c_2026", cardId: "c_pikachu", title: "Pikachu", grantedAt: new Date(2026, 0, 5, 10, 0).toISOString() },
+      ],
+      rewardsHistory: [],
+    };
+    const crossYearReport = buildStudentActivityReport({
+      student,
+      cards: [{ id: "c_pikachu", title: "Pikachu", category: "points", points: 2 }],
+      period: "manual",
+      manualStart: "01/12/2025",
+      manualEnd: "10/01/2026",
+      now,
+    });
+    expect(crossYearReport.range.startYear).toBe(2025);
+    expect(crossYearReport.range.endYear).toBe(2026);
+    expect(crossYearReport.timeline.map((i) => [i.year, i.dayLabel])).toEqual([
+      [2026, "Mon, Jan 5"],
+      [2025, "Sat, Dec 20"],
+    ]);
   });
 });

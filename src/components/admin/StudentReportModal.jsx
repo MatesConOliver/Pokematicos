@@ -6,6 +6,7 @@ import {
   filterReportTimelineByCard,
   formatDDMMYYYY,
 } from "../../services/reportService";
+import YearDivider from "../common/YearDivider";
 
 export default function StudentReportModal({
   db,
@@ -374,7 +375,12 @@ export default function StudentReportModal({
                     {selectedStudent.name}
                   </div>
                   <div className="muted" style={{ fontSize: 12 }}>
-                    {selectedClassObj?.name || ""} • {report.range.startLabel} – {report.range.endLabel}
+                    {selectedClassObj?.name || ""} •{" "}
+                    {report.range.startYear &&
+                    report.range.endYear &&
+                    report.range.startYear !== report.range.endYear
+                      ? `${report.range.startDisplay}, ${report.range.startYear} – ${report.range.endDisplay}, ${report.range.endYear}`
+                      : `${report.range.startDisplay} – ${report.range.endDisplay}`}
                     {loadingAchievements ? " • Syncing codes..." : ""}
                   </div>
                 </div>
@@ -568,20 +574,45 @@ export default function StudentReportModal({
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {filteredTimeline.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          background: "#ffffff",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 10,
-                          padding: "10px 12px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 10,
-                        }}
-                      >
+                    {(() => {
+                      const currentYear = new Date().getFullYear();
+                      let lastKnownYear = null;
+
+                      return filteredTimeline.map((item) => {
+                        const itemYear = item.year || null;
+                        let showDivider = false;
+                        let dividerPrevYear = null;
+
+                        if (itemYear) {
+                          if (lastKnownYear === null) {
+                            if (itemYear !== currentYear) {
+                              showDivider = true;
+                              dividerPrevYear = null;
+                            }
+                          } else if (itemYear !== lastKnownYear) {
+                            showDivider = true;
+                            dividerPrevYear = lastKnownYear;
+                          }
+                          lastKnownYear = itemYear;
+                        }
+
+                        return (
+                          <React.Fragment key={item.id}>
+                            {showDivider && (
+                              <YearDivider prevYear={dividerPrevYear} nextYear={itemYear} />
+                            )}
+                            <div
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 10,
+                                padding: "10px 12px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 10,
+                              }}
+                            >
                         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                           <span
                             className="pill"
@@ -678,8 +709,11 @@ export default function StudentReportModal({
                             </span>
                           )
                         )}
-                      </div>
-                    ))}
+                            </div>
+                          </React.Fragment>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>

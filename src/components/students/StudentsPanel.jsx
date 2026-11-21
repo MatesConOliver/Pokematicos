@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import EmojiParty from "../common/EmojiParty";
-import { todayISODate } from "../../utils/dateUtils";
+import { todayISODate, formatWeekdayMonthDay } from "../../utils/dateUtils";
 import { isTodayInFloatWindows, computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { ActivityCatalogueManager } from "../admin/ActivityCatalogueManager";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
@@ -277,7 +277,7 @@ export default function StudentsPanel({
                                   {emojiLine}
                                   {date && (
                                     <span style={{ marginLeft: 2, color: isToday ? "#16a34a" : "#dc2626", fontWeight: 700, fontSize: 11 }}>
-                                      {date}
+                                      {formatWeekdayMonthDay(date) || date}
                                     </span>
                                   )}
                                 </div>

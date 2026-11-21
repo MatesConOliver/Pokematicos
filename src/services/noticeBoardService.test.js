@@ -9,10 +9,11 @@ describe("noticeBoardService", () => {
     // November 13, 2026 23:30 UTC is already November 14, 2026 00:30 in Madrid (UTC+1)
     const parts = getMadridDateParts("2026-11-13T23:30:00.000Z");
     expect(parts).toEqual({
+      year: 2026,
       dateKey: "2026-11-14",
-      displayDate: "14/11/2026",
+      displayDate: "Sat, Nov 14",
       displayTime: "00:30",
-      displayDateTime: "14/11/2026 00:30",
+      displayDateTime: "Sat, Nov 14 · 00:30",
     });
   });
 
@@ -61,15 +62,17 @@ describe("noticeBoardService", () => {
     expect(res.todayItems[0]).toMatchObject({
       type: "streakMax",
       emoji: "🔥",
+      year: 2026,
       studentNames: ["Ana", "Luis"],
-      formattedDateTime: "13/11/2026 15:20", // 14:20 UTC -> 15:20 Madrid (UTC+1)
+      formattedDateTime: "Fri, Nov 13 · 15:20", // 14:20 UTC -> 15:20 Madrid (UTC+1)
     });
 
     expect(res.olderItems).toHaveLength(1);
     expect(res.olderItems[0]).toMatchObject({
       type: "streakMax",
+      year: 2026,
       studentNames: ["Marta"],
-      formattedDateTime: "12/11/2026 16:00",
+      formattedDateTime: "Thu, Nov 12 · 16:00",
     });
   });
 
@@ -138,7 +141,7 @@ describe("noticeBoardService", () => {
       redeemKind: "individual",
       studentName: "Ana",
       rewardTitle: "Homework Pass",
-      formattedDateTime: "13/11/2026 17:05",
+      formattedDateTime: "Fri, Nov 13 · 17:05",
     });
 
     const grpItem = res.todayItems[1];
@@ -147,7 +150,7 @@ describe("noticeBoardService", () => {
       redeemKind: "group",
       rewardTitle: "Class Party",
       contributorCount: 3, // Ana(5), Luis(3), Sofia(2); Carlos(0) excluded
-      formattedDateTime: "13/11/2026 13:00",
+      formattedDateTime: "Fri, Nov 13 · 13:00",
     });
   });
 
@@ -194,7 +197,7 @@ describe("noticeBoardService", () => {
       cardTitle: "Scholar II",
       xp: 100,
       imageURL: "https://img/c3_b.png",
-      formattedDateTime: "13/11/2026 15:00",
+      formattedDateTime: "Fri, Nov 13 · 15:00",
     });
     expect(res.items[2]).toMatchObject({
       type: "newCard",
@@ -419,7 +422,7 @@ describe("noticeBoardService", () => {
       activityName: "Mission 1",
       pointsAwarded: 10,
       imageURL: "https://img/charizard_b.png",
-      formattedDateTime: "13/11/2026 16:00",
+      formattedDateTime: "Fri, Nov 13 · 16:00",
     });
 
     expect(codeEvents[1]).toMatchObject({
@@ -429,7 +432,7 @@ describe("noticeBoardService", () => {
       activityName: "Mission 2",
       pointsAwarded: 0,
       imageURL: "https://img/pika.png",
-      formattedDateTime: "13/11/2026 15:00",
+      formattedDateTime: "Fri, Nov 13 · 15:00",
     });
 
     expect(codeEvents[2]).toMatchObject({
@@ -438,11 +441,41 @@ describe("noticeBoardService", () => {
       cardTitle: "Pikachu",
       pointsAwarded: 5,
       imageURL: "https://img/pika.png",
-      formattedDateTime: "13/11/2026 14:00",
+      formattedDateTime: "Fri, Nov 13 · 14:00",
     });
 
     expect(
       res.items.some((i) => i.activityName === "Mission 3 Points Only")
     ).toBe(false);
+  });
+
+  test("formats legacy date-only streak achievements as unpadded Weekday, Mon D and exposes year metadata", () => {
+    const now = Date.parse("2026-02-10T12:00:00.000Z");
+    const students = [
+      {
+        id: "s1",
+        name: "Ana",
+        streaks: {
+          st_1: {
+            value: 5,
+            maxAchievedOn: "2025-12-05",
+          },
+        },
+      },
+    ];
+
+    const res = buildNoticeBoardData({
+      students,
+      cards: [],
+      streakConfigs: [{ id: "st_1", emoji: "🔥", max: 5 }],
+      now,
+    });
+
+    expect(res.currentYear).toBe(2026);
+    expect(res.olderItems[0]).toMatchObject({
+      year: 2025,
+      formattedDateTime: "Fri, Dec 5",
+      hasExactTime: false,
+    });
   });
 });
