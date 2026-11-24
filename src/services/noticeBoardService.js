@@ -99,6 +99,11 @@ function formatLegacyDateOnly(isoDate) {
   return `${weekday}, ${monthName} ${d}`;
 }
 
+function resolveStudentFlag(student, flagEnabled = true) {
+  if (!flagEnabled) return "A";
+  return student?.flagValue === "B" ? "B" : "A";
+}
+
 export function buildNoticeBoardData({
   students = [],
   cards = [],
@@ -106,6 +111,7 @@ export function buildNoticeBoardData({
   streakConfigs = [],
   newsMessages = [],
   flagValue = "A",
+  flagEnabled = true,
   now = Date.now(),
   maxItems = MAX_NOTICE_BOARD_ITEMS,
 } = {}) {
@@ -114,6 +120,7 @@ export function buildNoticeBoardData({
   const safeRewards = Array.isArray(rewards) ? rewards : [];
   const safeStreakConfigs = Array.isArray(streakConfigs) ? streakConfigs : [];
   const safeNewsMessages = Array.isArray(newsMessages) ? newsMessages : [];
+  const defaultPreviewFlag = flagEnabled && flagValue === "B" ? "B" : "A";
 
   const todayParts = getMadridDateParts(now);
   const todayMadridKey = todayParts ? todayParts.dateKey : "";
@@ -236,6 +243,7 @@ export function buildNoticeBoardData({
   for (const student of safeStudents) {
     if (!student) continue;
     const studentName = String(student.name || "Student").trim() || "Student";
+    const studentFlag = resolveStudentFlag(student, flagEnabled);
     const history = Array.isArray(student.rewardsHistory) ? student.rewardsHistory : [];
 
     for (let idx = 0; idx < history.length; idx++) {
@@ -254,11 +262,11 @@ export function buildNoticeBoardData({
         (entry.rewardId && (cardsById.get(entry.rewardId) || rewardCardByRewardId.get(entry.rewardId))) ||
         rewardCardByTitle.get(rewardTitle.toLowerCase()) ||
         null;
-      const rewardImageURL = linkedRewardCard
-        ? getCardDisplayImage(linkedRewardCard, flagValue, false)
-        : "";
 
       if (entry.type === "individual") {
+        const rewardImageURL = linkedRewardCard
+          ? getCardDisplayImage(linkedRewardCard, studentFlag, false)
+          : "";
         rawItems.push({
           id: `reward:ind:${student.id || studentName}:${entry.id || `${ts}_${idx}`}`,
           type: "rewardRedeemed",
@@ -274,6 +282,9 @@ export function buildNoticeBoardData({
           imageURL: rewardImageURL,
         });
       } else {
+        const rewardImageURL = linkedRewardCard
+          ? getCardDisplayImage(linkedRewardCard, defaultPreviewFlag, false)
+          : "";
         const groupKey = `${entry.date || ts}__${entry.rewardId || ""}__${rewardTitle}`;
         if (!groupRedeems.has(groupKey)) {
           const contributors = Array.isArray(entry.contributors) ? entry.contributors : [];
@@ -329,6 +340,7 @@ export function buildNoticeBoardData({
   for (const student of safeStudents) {
     if (!student) continue;
     const studentName = String(student.name || "Student").trim() || "Student";
+    const studentFlag = resolveStudentFlag(student, flagEnabled);
     const ownedCards = Array.isArray(student.cards) ? student.cards : [];
 
     for (let idx = 0; idx < ownedCards.length; idx++) {
@@ -355,7 +367,7 @@ export function buildNoticeBoardData({
       const cardTitle = String(cardMeta?.title || owned.title || "Experience Card").trim() || "Experience Card";
       const rawXp = cardMeta?.points ?? owned.autoFrom?.xpRequired;
       const xp = rawXp !== undefined && rawXp !== null && Number.isFinite(Number(rawXp)) ? Number(rawXp) : null;
-      const imageURL = getCardDisplayImage(cardMeta || owned, flagValue, false);
+      const imageURL = getCardDisplayImage(cardMeta || owned, studentFlag, false);
 
       rawItems.push({
         id: `xp:${dedupeKey}`,
@@ -385,7 +397,7 @@ export function buildNoticeBoardData({
     if (!mParts) continue;
 
     const cardTitle = String(card.title || "Untitled card").trim() || "Untitled card";
-    const imageURL = getCardDisplayImage(card, flagValue, true);
+    const imageURL = getCardDisplayImage(card, defaultPreviewFlag, true);
 
     rawItems.push({
       id: `newCard:${card.id || `${cat}_${ts}_${cardTitle}`}`,
@@ -407,6 +419,7 @@ export function buildNoticeBoardData({
     if (!student) continue;
     const studentName = String(student.name || "Student").trim() || "Student";
     const studentKey = student.id || studentName;
+    const studentFlag = resolveStudentFlag(student, flagEnabled);
     const ownedCards = Array.isArray(student.cards) ? student.cards : [];
     const history = Array.isArray(student.rewardsHistory) ? student.rewardsHistory : [];
 
@@ -474,7 +487,7 @@ export function buildNoticeBoardData({
       const rawPts = entry.pointsAwarded ?? linkedOwnedCard?.pointsGranted ?? 0;
       const pointsAwarded = Number.isFinite(Number(rawPts)) ? Number(rawPts) : 0;
       const activityName = String(entry.activityName || entry.name || entry.title || "").trim();
-      const imageURL = getCardDisplayImage(cardMeta || linkedOwnedCard, flagValue, false);
+      const imageURL = getCardDisplayImage(cardMeta || linkedOwnedCard, studentFlag, false);
 
       rawItems.push({
         id: `codeCard:${studentKey}:${obtainedFrom || entry.id || `${ts}_${idx}`}`,
@@ -511,7 +524,7 @@ export function buildNoticeBoardData({
       const pointsAwarded = Number.isFinite(Number(owned.pointsGranted))
         ? Number(owned.pointsGranted)
         : 0;
-      const imageURL = getCardDisplayImage(cardMeta || owned, flagValue, false);
+      const imageURL = getCardDisplayImage(cardMeta || owned, studentFlag, false);
 
       rawItems.push({
         id: `codeCard:${studentKey}:${obtainedFrom}:${owned.id || idx}`,

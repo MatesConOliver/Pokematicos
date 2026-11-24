@@ -166,6 +166,7 @@ describe("noticeBoardService", () => {
       {
         id: "s1",
         name: "Elena",
+        flagValue: "B",
         cards: [
           {
             id: "o1",
@@ -329,6 +330,7 @@ describe("noticeBoardService", () => {
       {
         id: "s1",
         name: "Ana",
+        flagValue: "B",
         cards: [
           {
             id: "owned_1",
@@ -477,5 +479,150 @@ describe("noticeBoardService", () => {
       formattedDateTime: "Fri, Dec 5",
       hasExactTime: false,
     });
+  });
+
+  test("uses each student's own flagValue for code redemptions, individual rewards, and experience cards", () => {
+    const now = Date.parse("2026-11-13T18:00:00.000Z");
+    const cards = [
+      {
+        id: "card_drag",
+        title: "Charizard",
+        category: "points",
+        points: 5,
+        imageURL: "https://img/charizard_a.png",
+        imageURL_B: "https://img/charizard_b.png",
+        createdAt: Date.parse("2026-11-01T09:00:00.000Z"),
+      },
+      {
+        id: "card_rew",
+        title: "Golden Pass",
+        category: "rewards",
+        points: 10,
+        imageURL: "https://img/pass_a.png",
+        imageURL_B: "https://img/pass_b.png",
+        lockedImageURL: "https://img/pass_locked_a.png",
+        lockedImageURL_B: "https://img/pass_locked_b.png",
+        createdAt: Date.parse("2026-11-13T08:00:00.000Z"),
+      },
+      {
+        id: "card_xp",
+        title: "Master Scholar",
+        category: "experience",
+        points: 100,
+        imageURL: "https://img/xp_a.png",
+        imageURL_B: "https://img/xp_b.png",
+        createdAt: Date.parse("2026-11-01T09:00:00.000Z"),
+      },
+    ];
+
+    const students = [
+      {
+        id: "s_b",
+        name: "Elena",
+        flagValue: "B",
+        cards: [
+          {
+            id: "o_code_b",
+            cardId: "card_drag",
+            title: "Charizard",
+            obtainedFrom: "activity_Act_m1",
+            grantedAt: "2026-11-13T15:00:00.000Z",
+          },
+          {
+            id: "o_xp_b",
+            cardId: "card_xp",
+            title: "Master Scholar",
+            grantedAt: "2026-11-13T14:00:00.000Z",
+          },
+        ],
+        rewardsHistory: [
+          {
+            id: "h_rew_b",
+            type: "individual",
+            cardId: "card_rew",
+            title: "Golden Pass",
+            cost: 10,
+            date: "2026-11-13T16:00:00.000Z",
+          },
+          {
+            id: "h_code_b",
+            type: "achievement_card",
+            isCodeRedemption: true,
+            sourceId: "Act",
+            activityId: "m1",
+            activityName: "Mission B",
+            cardId: "card_drag",
+            cardTitle: "Charizard",
+            date: "2026-11-13T15:00:00.000Z",
+          },
+        ],
+      },
+      {
+        id: "s_a",
+        name: "Marco",
+        flagValue: "A",
+        cards: [
+          {
+            id: "o_code_a",
+            cardId: "card_drag",
+            title: "Charizard",
+            obtainedFrom: "activity_Act_m2",
+            grantedAt: "2026-11-13T13:00:00.000Z",
+          },
+        ],
+        rewardsHistory: [
+          {
+            id: "h_rew_a",
+            type: "individual",
+            cardId: "card_rew",
+            title: "Golden Pass",
+            cost: 10,
+            date: "2026-11-13T13:30:00.000Z",
+          },
+        ],
+      },
+    ];
+
+    // Even when library toggle is "A", student B's reward/code/xp notices show B art
+    const resViewA = buildNoticeBoardData({
+      students,
+      cards,
+      streakConfigs: [],
+      flagValue: "A",
+      flagEnabled: true,
+      now,
+    });
+
+    expect(resViewA.items.find((i) => i.type === "rewardRedeemed" && i.studentName === "Elena").imageURL).toBe("https://img/pass_b.png");
+    expect(resViewA.items.find((i) => i.type === "codeCardRedeemed" && i.studentName === "Elena").imageURL).toBe("https://img/charizard_b.png");
+    expect(resViewA.items.find((i) => i.type === "experienceCard" && i.studentName === "Elena").imageURL).toBe("https://img/xp_b.png");
+    expect(resViewA.items.find((i) => i.type === "rewardRedeemed" && i.studentName === "Marco").imageURL).toBe("https://img/pass_a.png");
+    expect(resViewA.items.find((i) => i.type === "codeCardRedeemed" && i.studentName === "Marco").imageURL).toBe("https://img/charizard_a.png");
+    expect(resViewA.items.find((i) => i.type === "newCard" && i.cardTitle === "Golden Pass").imageURL).toBe("https://img/pass_locked_a.png");
+
+    // Even when library toggle is "B", student A's notices keep A art while newCard previews B
+    const resViewB = buildNoticeBoardData({
+      students,
+      cards,
+      streakConfigs: [],
+      flagValue: "B",
+      flagEnabled: true,
+      now,
+    });
+    expect(resViewB.items.find((i) => i.type === "rewardRedeemed" && i.studentName === "Marco").imageURL).toBe("https://img/pass_a.png");
+    expect(resViewB.items.find((i) => i.type === "codeCardRedeemed" && i.studentName === "Marco").imageURL).toBe("https://img/charizard_a.png");
+    expect(resViewB.items.find((i) => i.type === "newCard" && i.cardTitle === "Golden Pass").imageURL).toBe("https://img/pass_locked_b.png");
+
+    // When flags are disabled for the class, always show option A art
+    const resDisabled = buildNoticeBoardData({
+      students,
+      cards,
+      streakConfigs: [],
+      flagValue: "B",
+      flagEnabled: false,
+      now,
+    });
+    expect(resDisabled.items.find((i) => i.type === "rewardRedeemed" && i.studentName === "Elena").imageURL).toBe("https://img/pass_a.png");
+    expect(resDisabled.items.find((i) => i.type === "codeCardRedeemed" && i.studentName === "Elena").imageURL).toBe("https://img/charizard_a.png");
   });
 });

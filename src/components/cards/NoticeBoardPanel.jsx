@@ -606,6 +606,7 @@ export default function NoticeBoardPanel({
   streakConfigs = [],
   newsMessages = [],
   flagValue = "A",
+  flagEnabled = true,
   onSaveNewsMessages,
   confirmFn,
   onValidationError,
@@ -626,8 +627,9 @@ export default function NoticeBoardPanel({
         streakConfigs,
         newsMessages,
         flagValue,
+        flagEnabled,
       }),
-    [students, cards, rewards, streakConfigs, newsMessages, flagValue]
+    [students, cards, rewards, streakConfigs, newsMessages, flagValue, flagEnabled]
   );
 
   const handleCreateMessage = async (e) => {

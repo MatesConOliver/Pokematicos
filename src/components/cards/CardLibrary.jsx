@@ -309,6 +309,7 @@ export default function CardLibrary({
             streakConfigs={streakConfigs}
             newsMessages={newsMessages}
             flagValue={effectivePreviewFlag}
+            flagEnabled={Boolean(flagConfig)}
             onSaveNewsMessages={onSaveNewsMessages}
             confirmFn={confirmFn}
             onValidationError={onValidationError}
