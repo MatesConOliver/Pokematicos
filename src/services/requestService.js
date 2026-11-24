@@ -13,13 +13,39 @@ import { isCardUnlockedForStudent } from "./cardEvolutionService";
 
 export const MAX_PENDING_REQUESTS_PER_STUDENT = 3;
 
+export function getStreakRewardCardIdSet(streakConfigs = []) {
+  const ids = new Set();
+  for (const cfg of Array.isArray(streakConfigs) ? streakConfigs : []) {
+    if (!cfg || !Array.isArray(cfg.rewardCardIds)) continue;
+    for (const id of cfg.rewardCardIds) {
+      if (id) ids.add(id);
+    }
+  }
+  return ids;
+}
+
+export function getRequestableCards(cards = [], streakConfigs = []) {
+  const streakRewardCardIds = getStreakRewardCardIdSet(streakConfigs);
+  return (Array.isArray(cards) ? cards : []).filter(
+    (c) =>
+      c &&
+      (c.category || "points") === "points" &&
+      !streakRewardCardIds.has(c.id)
+  );
+}
+
 export async function createRequest(
   db,
   classId,
-  { studentId, studentName, className, type, amount, cardId, cardTitle, note },
+  { studentId, studentName, className, type, amount, cardId, cardTitle, note, streakConfigs },
   alertFn = null
 ) {
   try {
+    if (cardId && getStreakRewardCardIdSet(streakConfigs).has(cardId)) {
+      if (alertFn) alertFn("Cards given as a streak reward cannot be requested.");
+      return false;
+    }
+
     const pendingQ = query(
       collection(db, `classes/${classId}/requests`),
       where("studentId", "==", studentId),

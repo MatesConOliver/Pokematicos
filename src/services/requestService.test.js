@@ -1,5 +1,11 @@
-import { collectBatchFloatingMaxHits, prepareBatchFloatSchedules } from "./requestService";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collectBatchFloatingMaxHits,
+  createRequest,
+  getRequestableCards,
+  getStreakRewardCardIdSet,
+  prepareBatchFloatSchedules,
+} from "./requestService";
+import { addDoc, doc, getDoc, getDocs } from "firebase/firestore";
 
 jest.mock("firebase/firestore", () => ({
   addDoc: jest.fn(),
@@ -105,5 +111,74 @@ describe("batch request floating streak scheduling", () => {
     expect(res1).toEqual(chosenSchedule);
     expect(res2).toEqual(chosenSchedule);
     expect(scheduleFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("streak reward cards cannot be requested", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getDocs.mockResolvedValue({ size: 0 });
+    addDoc.mockResolvedValue({ id: "req_1" });
+  });
+
+  test("getStreakRewardCardIdSet and getRequestableCards exclude cards assigned to any streak reward", () => {
+    const cards = [
+      { id: "c1", title: "Normal Card", category: "points" },
+      { id: "c2", title: "Fire Streak Prize", category: "points" },
+      { id: "c3", title: "Star Streak Prize", category: "points" },
+      { id: "c4", title: "Shop Reward", category: "rewards" },
+      { id: "c5", title: "XP Badge", category: "experience" },
+    ];
+    const streakConfigs = [
+      { id: "s1", emoji: "🔥", max: 5, rewardCardIds: ["c2"] },
+      { id: "s2", emoji: "⭐", max: 3, rewardCardIds: ["c3", "c2"] },
+    ];
+
+    expect(Array.from(getStreakRewardCardIdSet(streakConfigs)).sort()).toEqual(["c2", "c3"]);
+    expect(getRequestableCards(cards, streakConfigs).map((c) => c.id)).toEqual(["c1"]);
+  });
+
+  test("createRequest rejects requesting a card configured as a streak reward", async () => {
+    const alertFn = jest.fn();
+    const ok = await createRequest(
+      {},
+      "class_1",
+      {
+        studentId: "stu_1",
+        studentName: "Ana",
+        className: "Math",
+        type: "card",
+        cardId: "c_streak",
+        cardTitle: "Fire Prize",
+        streakConfigs: [{ id: "s1", rewardCardIds: ["c_streak"] }],
+      },
+      alertFn
+    );
+
+    expect(ok).toBe(false);
+    expect(alertFn).toHaveBeenCalledWith("Cards given as a streak reward cannot be requested.");
+    expect(addDoc).not.toHaveBeenCalled();
+  });
+
+  test("createRequest allows requesting a regular points card not assigned to any streak", async () => {
+    const alertFn = jest.fn();
+    const ok = await createRequest(
+      {},
+      "class_1",
+      {
+        studentId: "stu_1",
+        studentName: "Ana",
+        className: "Math",
+        type: "card",
+        cardId: "c_normal",
+        cardTitle: "Normal Card",
+        streakConfigs: [{ id: "s1", rewardCardIds: ["c_streak"] }],
+      },
+      alertFn
+    );
+
+    expect(ok).toBe(true);
+    expect(addDoc).toHaveBeenCalledTimes(1);
+    expect(alertFn).not.toHaveBeenCalled();
   });
 });

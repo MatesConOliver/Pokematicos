@@ -78,6 +78,12 @@ export default function ProfileModal({
     [giveableCards, requestCardId]
   );
 
+  useEffect(() => {
+    if (requestCardId && !giveableCards.some((c) => c.id === requestCardId)) {
+      setRequestCardId("");
+    }
+  }, [giveableCards, requestCardId]);
+
   const evolutionCards = useMemo(
     () => (allCards || []).filter((c) => isEvolutionCard(c)),
     [allCards]

@@ -31,6 +31,7 @@ import {
   rejectRequest as rejectRequestService,
   resolveRequestApproved,
   prepareBatchFloatSchedules,
+  getRequestableCards,
 } from "./services/requestService";
 import {
   addStreakTypeForClass,
@@ -260,8 +261,8 @@ export default function App() {
   }, [openProfileFlag, profileStudentId, mode]);
 
   const giveableCardsForProfile = useMemo(
-    () => (cards || []).filter((c) => (c.category || "points") === "points"),
-    [cards]
+    () => getRequestableCards(cards, activeClass?.streakConfigs),
+    [cards, activeClass?.streakConfigs]
   );
 
   const cardsById = useMemo(
@@ -585,6 +586,7 @@ export default function App() {
             studentId: student.id,
             studentName: student.name,
             className: activeClass?.name || "",
+            streakConfigs: activeClass?.streakConfigs || [],
             ...payload,
           },
           notify
