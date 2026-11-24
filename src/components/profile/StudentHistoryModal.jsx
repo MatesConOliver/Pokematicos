@@ -9,6 +9,7 @@ import {
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { formatPoints } from "../../utils/helpers";
 import { reconcileAndEnrichStudentHistory } from "../../services/rewardCodeService.js";
+import { buildStudentHistoryEntries } from "../../services/studentHistoryService";
 import YearDivider from "../common/YearDivider";
 
 export default function StudentHistoryModal({
@@ -92,6 +93,24 @@ export default function StudentHistoryModal({
     };
   }, [allCards, rewards, student]);
 
+  const baseHistoryList = useMemo(
+    () =>
+      enrichedHistory && enrichedHistory.length > 0
+        ? enrichedHistory
+        : student?.rewardsHistory || [],
+    [enrichedHistory, student]
+  );
+
+  const historyList = useMemo(
+    () =>
+      buildStudentHistoryEntries({
+        student,
+        rewardsHistory: baseHistoryList,
+        allCards,
+      }),
+    [student, baseHistoryList, allCards]
+  );
+
   if (!student) return null;
 
   const displayName = `${student.name}${student.nameEmojis ? " " + student.nameEmojis : ""}`;
@@ -99,10 +118,6 @@ export default function StudentHistoryModal({
   const currentPoints = formatPoints(student.currentPoints);
   const effectiveMultiplier = computeEffectiveMultiplier(student, todayISODate(), allCards);
   const color = student.profileColor || "";
-  const historyList =
-    enrichedHistory && enrichedHistory.length > 0
-      ? enrichedHistory
-      : student.rewardsHistory || [];
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -162,7 +177,7 @@ export default function StudentHistoryModal({
               )}
             </div>
             <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-              📜 Reward &amp; Code History
+              📜 Reward, Code &amp; Experience History
             </div>
           </div>
           <button className="btn" onClick={onClose} style={{ padding: "6px 12px", fontSize: 13 }}>
@@ -182,12 +197,12 @@ export default function StudentHistoryModal({
               marginBottom: 12,
             }}
           >
-            Reward &amp; Code History
+            Reward, Code &amp; Experience History
           </div>
 
           {historyList.length === 0 ? (
             <div style={{ textAlign: "center", padding: "30px", color: "#9ca3af", fontStyle: "italic" }}>
-              No rewards or codes redeemed yet.
+              No rewards, codes, or experience cards yet.
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -216,10 +231,12 @@ export default function StudentHistoryModal({
                     lastKnownYear = itemYear;
                   }
 
+                  const isExperience = h.type === "experience";
                   const isEvolution = h.type === "evolution";
                   const isGroup = h.type === "group" || h.mode === "group";
                   const isCode =
                     !isEvolution &&
+                    !isExperience &&
                     Boolean(
                       h.isCodeRedemption ||
                         h.type === "achievement" ||
@@ -242,10 +259,11 @@ export default function StudentHistoryModal({
                     (isCode && codeObtainedKey && cardByObtainedFrom.get(codeObtainedKey)) ||
                     (isCode && codeCardTitleKey && cardByTitle.get(codeCardTitleKey)) ||
                     (!isEvolution &&
+                      !isExperience &&
                       !isCode &&
                       h.rewardId &&
                       (cardsMap.get(h.rewardId) || rewardCardByRewardId.get(h.rewardId))) ||
-                    (!isEvolution && !isCode && entryTitleKey && rewardCardByTitle.get(entryTitleKey)) ||
+                    (!isEvolution && !isExperience && !isCode && entryTitleKey && rewardCardByTitle.get(entryTitleKey)) ||
                     null;
 
                   const resolvedCardId =
@@ -309,7 +327,18 @@ export default function StudentHistoryModal({
                                 flexWrap: "wrap",
                               }}
                             >
-                              {isEvolution ? (
+                              {isExperience ? (
+                                <>
+                                  <span>{formatHistoryDateTime(h)}</span>
+                                  {h.xpRequired !== null &&
+                                    h.xpRequired !== undefined &&
+                                    Number.isFinite(Number(h.xpRequired)) && (
+                                      <span style={{ color: "#92400e", fontWeight: 600 }}>
+                                        • ✨ {Number(h.xpRequired)} XP
+                                      </span>
+                                    )}
+                                </>
+                              ) : isEvolution ? (
                                 <span>{formatHistoryDateTime(h)}</span>
                               ) : isCode ? (
                                 <>
@@ -360,7 +389,23 @@ export default function StudentHistoryModal({
                           </div>
                         </div>
 
-                        {isEvolution ? (
+                        {isExperience ? (
+                          <div
+                            style={{
+                              background: "#fef3c7",
+                              color: "#92400e",
+                              border: "1px solid #fde68a",
+                              fontWeight: 800,
+                              fontSize: 12,
+                              padding: "3px 10px",
+                              borderRadius: 999,
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                            }}
+                          >
+                            ✨ Experience
+                          </div>
+                        ) : isEvolution ? (
                           <div
                             style={{
                               background: "#f5f3ff",
@@ -411,7 +456,7 @@ export default function StudentHistoryModal({
                         )}
                       </div>
 
-                      {!isEvolution && !isCode && isGroup && h.contributors && (
+                      {!isExperience && !isEvolution && !isCode && isGroup && h.contributors && (
                         <div
                           style={{
                             marginTop: 4,
