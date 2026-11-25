@@ -23,9 +23,18 @@ service cloud.firestore {
     }
 
     function isStudentRedeemingReward() {
-      return request.resource.data.diff(resource.data)
-        .affectedKeys()
-        .hasOnly(['currentPoints', 'xp', 'rewardsHistory', 'cards']);
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['currentPoints', 'xp', 'rewardsHistory', 'cards'])
+        && (
+          !changed.hasAny(['currentPoints'])
+          || (
+            request.resource.data.currentPoints is number
+            && (
+              request.resource.data.currentPoints >= 0
+              || request.resource.data.currentPoints >= resource.data.currentPoints
+            )
+          )
+        );
     }
 
     function validAchievementCreate() {

@@ -795,6 +795,9 @@ export default function ProfileModal({
                     const cost = Number(r.cost || 0);
                     const projectedBalance = round2(currentPoints - cost);
                     const goesNegative = projectedBalance < 0;
+                    const isAdmin = mode === "admin";
+                    const insufficientPoints = goesNegative && !isAdmin;
+                    const missingPoints = round2(cost - currentPoints);
                     const linkedCard = r.cardId ? cardsMap.get(r.cardId) : null;
                     const evoUnlocked = !linkedCard || isCardUnlockedForStudent(student, linkedCard);
                     const cardImg = getCardDisplayImage(linkedCard, displayFlagValue, !evoUnlocked);
@@ -912,6 +915,24 @@ export default function ProfileModal({
                             >
                               🔒 Evolution locked
                             </button>
+                          ) : insufficientPoints ? (
+                            <button
+                              type="button"
+                              className="btn"
+                              disabled
+                              style={{
+                                width: "100%",
+                                padding: "8px 12px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: "#f3f4f6",
+                                color: "#6b7280",
+                                borderColor: "#e5e7eb",
+                                cursor: "not-allowed",
+                              }}
+                            >
+                              Not enough points (need {missingPoints} more)
+                            </button>
                           ) : (
                             <button
                               type="button"
@@ -932,7 +953,7 @@ export default function ProfileModal({
                               onClick={() => onRedeemReward && onRedeemReward(r.id)}
                             >
                               {goesNegative
-                                ? `Redeem for ${cost} pts (→ ${projectedBalance} pts)`
+                                ? `Admin redeem for ${cost} pts (→ ${projectedBalance} pts)`
                                 : `Redeem for ${cost} pts`}
                             </button>
                           )}

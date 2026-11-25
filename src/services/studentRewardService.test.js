@@ -106,4 +106,80 @@ describe("studentRewardService negative balance support", () => {
     expect(increment).toHaveBeenCalledWith(10);
     expect(batchCommit).toHaveBeenCalledTimes(1);
   });
+
+  test("redeemIndividual blocks student self-redemption when points are insufficient", async () => {
+    const students = [{ id: "stu_1", name: "Ana", currentPoints: 5, xp: 10, cards: [], rewardsHistory: [] }];
+    const confirmFn = jest.fn().mockResolvedValue(true);
+    const alertFn = jest.fn();
+
+    const ok = await redeemIndividual({
+      db: {},
+      classId: "class_1",
+      studentId: "stu_1",
+      rewardId: "rew_1",
+      rewards,
+      students,
+      cards,
+      allowNegative: false,
+      alertFn,
+      confirmFn,
+    });
+
+    expect(ok).toBe(false);
+    expect(confirmFn).not.toHaveBeenCalled();
+    expect(updateDoc).not.toHaveBeenCalled();
+    expect(alertFn).toHaveBeenCalledWith(
+      'Not enough points to redeem "Extra Time" (need 20 pts, current balance: 5 pts).'
+    );
+  });
+
+  test("redeemIndividual blocks student self-redemption when already negative even for 0-cost rewards", async () => {
+    const zeroRewards = [{ id: "rew_free", title: "Sticker", cost: 0, cardId: null }];
+    const students = [{ id: "stu_1", name: "Ana", currentPoints: -2, xp: 10, cards: [], rewardsHistory: [] }];
+    const confirmFn = jest.fn().mockResolvedValue(true);
+    const alertFn = jest.fn();
+
+    const ok = await redeemIndividual({
+      db: {},
+      classId: "class_1",
+      studentId: "stu_1",
+      rewardId: "rew_free",
+      rewards: zeroRewards,
+      students,
+      cards,
+      allowNegative: false,
+      alertFn,
+      confirmFn,
+    });
+
+    expect(ok).toBe(false);
+    expect(confirmFn).not.toHaveBeenCalled();
+    expect(updateDoc).not.toHaveBeenCalled();
+  });
+
+  test("redeemIndividual allows student self-redemption when points exactly cover the cost", async () => {
+    const students = [{ id: "stu_1", name: "Ana", currentPoints: 20, xp: 10, cards: [], rewardsHistory: [] }];
+    const confirmFn = jest.fn().mockResolvedValue(true);
+    const alertFn = jest.fn();
+
+    const ok = await redeemIndividual({
+      db: {},
+      classId: "class_1",
+      studentId: "stu_1",
+      rewardId: "rew_1",
+      rewards,
+      students,
+      cards,
+      allowNegative: false,
+      alertFn,
+      confirmFn,
+    });
+
+    expect(ok).toBe(true);
+    expect(confirmFn).toHaveBeenCalledWith('Redeem "Extra Time" for 20 points?');
+    expect(updateDoc).toHaveBeenCalledTimes(1);
+    const [, payload] = updateDoc.mock.calls[0];
+    expect(payload.currentPoints).toBe(0);
+    expect(payload.xp).toBe(30);
+  });
 });

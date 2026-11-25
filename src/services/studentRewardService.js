@@ -77,6 +77,7 @@ export async function redeemIndividual({
   rewards,
   students,
   cards,
+  allowNegative = true,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
   confirmFn = typeof window !== "undefined" ? window.confirm.bind(window) : null,
 }) {
@@ -97,7 +98,17 @@ export async function redeemIndividual({
     }
   }
 
-  const nextPoints = round2(Number(s.currentPoints || 0) - cost);
+  const currentPoints = round2(Number(s.currentPoints || 0));
+  const nextPoints = round2(currentPoints - cost);
+  if (!allowNegative && nextPoints < 0) {
+    if (alertFn) {
+      alertFn(
+        `Not enough points to redeem "${r.title}" (need ${cost} pts, current balance: ${currentPoints} pts).`
+      );
+    }
+    return false;
+  }
+
   const confirmMsg =
     nextPoints < 0
       ? `Redeem "${r.title}" for ${cost} points? Balance will become ${nextPoints} pts.`

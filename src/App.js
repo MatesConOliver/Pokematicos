@@ -853,13 +853,12 @@ export default function App() {
     });
   }
 
-  async function redeemIndividual(classId, studentId, rewardId) {
+  async function redeemIndividual(classId, studentId, rewardId, { allowNegative = mode === "admin" } = {}) {
     return runMutation({
       loadingMessage: "Redeeming reward...",
-      successMessage: "Reward redeemed.",
       errorMessage: "Could not redeem reward.",
       action: async () => {
-        await redeemIndividualService({
+        const ok = await redeemIndividualService({
           db,
           classId,
           studentId,
@@ -867,6 +866,7 @@ export default function App() {
           rewards: unifiedRewards,
           students,
           cards,
+          allowNegative,
           alertFn: (data) => {
             if (typeof data === "object" && data !== null && data.cards) {
               const studentFlagValue =
@@ -881,6 +881,10 @@ export default function App() {
           },
           confirmFn: askConfirmation,
         });
+        if (ok) {
+          notify("Reward redeemed.");
+        }
+        return ok;
       },
     });
   }
@@ -1949,7 +1953,9 @@ export default function App() {
           defaultCatalystCardId={activeClass?.defaultCatalystCardId || ""}
           onEvolve={(evoCard) => handleExecuteEvolution(profileStudent.id, evoCard.id)}
           onRedeemReward={(rewardId) =>
-            redeemIndividual(activeClassId, profileStudent.id, rewardId)
+            redeemIndividual(activeClassId, profileStudent.id, rewardId, {
+              allowNegative: mode === "admin",
+            })
           }
           myPendingRequests={myPendingRequests}
           onCreateRequest={(payload) => createStudentRequest(activeClassId, profileStudent, payload)}
@@ -2060,7 +2066,9 @@ export default function App() {
           confirmFn={askConfirmation}
           onRedeemIndividual={(rewardId) => {
             // Pass classId, studentId, rewardId
-            redeemIndividual(activeClassId, selectedStudentId, rewardId);
+            redeemIndividual(activeClassId, selectedStudentId, rewardId, {
+              allowNegative: true,
+            });
           }}
           onRedeemGroup={(rewardId, sharesMap) => {
             // 1. Convert the "Map" {id: 10} into an "Array" [[id, 10]]
