@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { todayISODate } from "../../utils/dateUtils";
+import { todayISODate, formatWeekdayMonthDayTime } from "../../utils/dateUtils";
 import { computeEffectiveMultiplier } from "../../utils/floatWindowUtils";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { PublicStudentIdDisplay } from "./PublicStudentIdDisplay";
@@ -335,7 +335,9 @@ export default function ProfileModal({
                     Your Pending Requests ({myPendingRequests.length}/3)
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {myPendingRequests.map((r) => (
+                    {myPendingRequests.map((r) => {
+                      const dateLabel = formatWeekdayMonthDayTime(r.createdAt);
+                      return (
                       <div
                         key={r.id}
                         style={{
@@ -350,7 +352,7 @@ export default function ProfileModal({
                         }}
                       >
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                             <span style={{ fontWeight: 700, fontSize: 14 }}>
                               {r.type === "both" || (r.cardId && r.amount)
                                 ? `🃏 ${r.cardTitle || r.cardId} + ⭐ ${r.amount} pts`
@@ -370,6 +372,11 @@ export default function ProfileModal({
                             >
                               Pending teacher approval
                             </span>
+                            {dateLabel && (
+                              <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                                {dateLabel}
+                              </span>
+                            )}
                           </div>
                           {r.note && (
                             <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, fontStyle: "italic" }}>
@@ -388,7 +395,8 @@ export default function ProfileModal({
                           </button>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

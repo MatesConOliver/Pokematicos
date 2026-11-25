@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { formatWeekdayMonthDayTime, getYearFromInput } from "../../utils/dateUtils";
+import YearDivider from "../common/YearDivider";
 
 export default function RequestsPanel({
   pendingRequests,
@@ -94,53 +96,85 @@ export default function RequestsPanel({
           {!visible.length ? (
             <div className="muted">No pending requests.</div>
           ) : (
-            visible.map((r) => (
-              <div
-                key={r.id}
-                style={{
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 12,
-                  padding: 12,
-                  background: "#ffffff",
-                  contentVisibility: "auto",
-                  containIntrinsicSize: "0 100px",
-                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                  <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(r.id)}
-                      onChange={() => toggle(r.id)}
-                      disabled={busy}
-                    />
-                    <div>
-                      <div style={{ fontWeight: 800 }}>{r.studentName || "Student"}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>{r.className}</div>
+            (() => {
+              const currentYear = new Date().getFullYear();
+              let lastKnownYear = null;
+
+              return visible.map((r) => {
+                const dateLabel = formatWeekdayMonthDayTime(r.createdAt);
+                const itemYear = getYearFromInput(r.createdAt);
+                let showDivider = false;
+                let dividerPrevYear = null;
+
+                if (itemYear) {
+                  if (lastKnownYear === null) {
+                    if (itemYear !== currentYear) {
+                      showDivider = true;
+                      dividerPrevYear = null;
+                    }
+                  } else if (itemYear !== lastKnownYear) {
+                    showDivider = true;
+                    dividerPrevYear = lastKnownYear;
+                  }
+                  lastKnownYear = itemYear;
+                }
+
+                return (
+                  <React.Fragment key={r.id}>
+                    {showDivider && (
+                      <YearDivider prevYear={dividerPrevYear} nextYear={itemYear} />
+                    )}
+                    <div
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: 12,
+                        background: "#ffffff",
+                        contentVisibility: "auto",
+                        containIntrinsicSize: "0 100px",
+                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(r.id)}
+                            onChange={() => toggle(r.id)}
+                            disabled={busy}
+                          />
+                          <div>
+                            <div style={{ fontWeight: 800 }}>{r.studentName || "Student"}</div>
+                            <div className="muted" style={{ fontSize: 12 }}>
+                              {r.className}
+                              {dateLabel ? (r.className ? ` • ${dateLabel}` : dateLabel) : ""}
+                            </div>
+                          </div>
+                        </label>
+                        <div className="pill">
+                          {r.type === "both" || (r.cardId && r.amount)
+                            ? `Card: ${r.cardTitle || r.cardId} + ${r.amount} pts`
+                            : r.cardId || r.type === "card"
+                              ? `Card: ${r.cardTitle || r.cardId}`
+                              : `${r.amount} pts`}
+                        </div>
+                      </div>
+
+                      {r.note && (
+                        <div style={{ marginTop: 8, fontSize: 13, color: "#555", fontStyle: "italic" }}>
+                          "{r.note}"
+                        </div>
+                      )}
+
+                      <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                        <button className="btn primary" disabled={busy} onClick={() => onApprove(r)}>Accept</button>
+                        <button className="btn" disabled={busy} onClick={() => onReject(r)}>Reject</button>
+                      </div>
                     </div>
-                  </label>
-                  <div className="pill">
-                    {r.type === "both" || (r.cardId && r.amount)
-                      ? `Card: ${r.cardTitle || r.cardId} + ${r.amount} pts`
-                      : r.cardId || r.type === "card"
-                        ? `Card: ${r.cardTitle || r.cardId}`
-                        : `${r.amount} pts`}
-                  </div>
-                </div>
-
-                {r.note && (
-                  <div style={{ marginTop: 8, fontSize: 13, color: "#555", fontStyle: "italic" }}>
-                    "{r.note}"
-                  </div>
-                )}
-
-                <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-                  <button className="btn primary" disabled={busy} onClick={() => onApprove(r)}>Accept</button>
-                  <button className="btn" disabled={busy} onClick={() => onReject(r)}>Reject</button>
-                </div>
-              </div>
-            ))
+                  </React.Fragment>
+                );
+              });
+            })()
           )}
         </div>
       </div>
