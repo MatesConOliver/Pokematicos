@@ -661,9 +661,7 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 11, color: "#475569" }}>
-                    {codeTargetActivity.sourceId === "Probab" && codeTargetActivity.activityId === "selJus"
-                      ? "Student can redeem this in Pokemáticos AND paste it in Probabilidad → Mis evidencias to mark selJus as validated."
-                      : "Student can redeem this code in Pokemáticos → Redeem Achievement Code."}
+                    Student can redeem this code in Pokemáticos → Redeem Achievement Code.
                   </span>
                   <button
                     type="button"
@@ -729,7 +727,8 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                   fontWeight: 700,
                 }}
               >
-                Statistics (12 · 36 pts)
+                Statistics ({PREDEFINED_ACTIVITY_PACKS.estadi.activities.length} ·{" "}
+                {PREDEFINED_ACTIVITY_PACKS.estadi.activities.reduce((s, a) => s + a.pointsAwarded, 0)} pts)
               </button>
               <button
                 type="button"
@@ -745,7 +744,8 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                   fontWeight: 700,
                 }}
               >
-                Probability (13 · 43 pts)
+                Probability ({PREDEFINED_ACTIVITY_PACKS.probab.activities.length} ·{" "}
+                {PREDEFINED_ACTIVITY_PACKS.probab.activities.reduce((s, a) => s + a.pointsAwarded, 0)} pts)
               </button>
               <button
                 type="button"
@@ -761,7 +761,13 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                   fontWeight: 700,
                 }}
               >
-                Both Packs (25 · 79 pts)
+                Both Packs (
+                {PREDEFINED_ACTIVITY_PACKS.estadi.activities.length +
+                  PREDEFINED_ACTIVITY_PACKS.probab.activities.length}{" "}
+                ·{" "}
+                {PREDEFINED_ACTIVITY_PACKS.estadi.activities.reduce((s, a) => s + a.pointsAwarded, 0) +
+                  PREDEFINED_ACTIVITY_PACKS.probab.activities.reduce((s, a) => s + a.pointsAwarded, 0)}{" "}
+                pts)
               </button>
               <button
                 type="button"

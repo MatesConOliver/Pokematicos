@@ -107,6 +107,7 @@ footer{
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .split-2{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:start}
+.split-2>*,.grid-2>*,.grid-3>*{min-width:0}
 
 /* Panels & Hero with Nova */
 .panel{
@@ -187,6 +188,20 @@ textarea.field-input{min-height:92px;resize:vertical}
 .cell-input.wide{width:110px}
 .cell-input.ok{border-color:var(--ok);background:var(--ok-soft)}
 .cell-input.bad{border-color:var(--err);background:var(--err-soft)}
+.field-input.ok,.cell-input.ok{border-color:var(--ok);background:#f0fbf6}
+.field-input.bad,.cell-input.bad{border-color:var(--err);background:#fff4f0}
+.review-cell-mark{display:block;font-size:11px;line-height:1.1;font-weight:850;margin:3px 0 0}
+.review-cell-mark.good{color:var(--ok)}
+.review-cell-mark.retry{color:var(--err)}
+.review-feedback{border:1px solid #d9c9ec;background:#faf7ff;border-radius:14px;padding:12px;margin:12px 0}
+.review-feedback summary{font-weight:800;cursor:pointer}
+.review-feedback ul{margin:9px 0 0;padding-left:20px}
+.review-feedback li{margin:5px 0}
+.case-mini-progress{font-size:13px;color:var(--purple-dark);font-weight:750;margin:6px 0 0}
+.stage-progress{font-size:14px;margin:8px 0 0;color:var(--muted)}
+.report-review-extra{margin-top:12px;padding:12px 14px;border:1px solid #c9b8ee;border-radius:14px;background:#fff}
+.report-review-extra summary{cursor:pointer;font-weight:800;color:var(--purple)}
+.report-review-extra p{margin:8px 0 0;font-size:14px}
 
 .choice-opt{
   display:flex;align-items:flex-start;gap:10px;padding:12px;border:2px solid #d9c9ec;
@@ -216,6 +231,7 @@ textarea.field-input{min-height:92px;resize:vertical}
 
 /* Charts & Recognition Panels */
 .svg-wrap{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px;margin:10px 0}
+.svg-wrap{min-width:0;max-width:100%;overflow-x:auto}
 .svg-wrap svg{width:100%;height:auto;display:block;max-height:360px}
 .hist-kbd{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft)}
 .ev-list{display:grid;gap:10px;margin:12px 0}
@@ -249,7 +265,7 @@ dialog::backdrop{background:#30234c88}
 .hidden{display:none!important}
 
 @media(max-width:880px){
-  .split-2,.grid-2,.grid-3,.exp-grid{grid-template-columns:1fr}
+  .split-2,.grid-2,.grid-3,.exp-grid{grid-template-columns:minmax(0,1fr)}
   .hero-kpis{grid-template-columns:1fr}
 }
 @media(max-width:600px){
@@ -339,7 +355,37 @@ body[data-screen="home"] .main-nav,body[data-screen="home"] .nav-tabs,body[data-
 @media(max-width:600px){.home-grid{grid-template-columns:1fr}.home-choice{padding:20px;gap:5px}.home-welcome{padding:18px;gap:12px;align-items:flex-start}.home-welcome .mascot{width:68px;height:68px}.home-welcome h1{font-size:25px}.home-choice .home-icon{font-size:28px}.topbar-inner{padding:20px 16px 8px}}
 @media print{.home-resume,#homeMenuBtn{display:none}}
 
-.formula-card{background:#faf7ff;border:1px solid #e5daf5;border-radius:16px;padding:14px 12px;margin:12px 0;overflow-x:auto}.formula-card h5{font:700 14px/1.4 system-ui;margin:0 0 12px;color:#6741b5}.formula-card math{font-size:1.35rem;margin:12px 0;min-width:max-content}.calc-grid{position:relative}
+.formula-card{background:#faf7ff;border:1px solid #e5daf5;border-radius:16px;padding:14px 12px;margin:12px 0;overflow-x:auto}.formula-card h5{font:700 14px/1.4 system-ui;margin:0 0 12px;color:#6741b5}.formula-card math{font-size:1.35rem;margin:12px 0;min-width:max-content}.math-equation math{font-size:1.2rem;font-weight:650}.calc-grid{position:relative}
+
+/* Learning, experimental labs and evidence: contained, accessible, not new topics */
+.strategy-picker select{margin-top:8px;max-width:100%}
+.evidence-notebook,.taller-lesson,.report-review-extra{background:#faf7ff;border:1px solid #d9c9ec;border-radius:16px;padding:12px 14px;margin:12px 0}
+.evidence-notebook summary,.taller-lesson summary,.report-review-extra summary{cursor:pointer;font-weight:800;color:#6741b5}
+.evidence-notebook p{margin:9px 0}
+.evidence-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:8px;margin-top:12px}
+.evidence-grid>div{background:#fff;border:1px solid #e5daf5;border-radius:12px;padding:10px;overflow-wrap:anywhere}
+.evidence-grid span{display:block;color:#655a77;font-size:.82rem}
+.evidence-grid strong{display:block;font-size:1rem;font-variant-numeric:tabular-nums;margin-top:4px}
+.reflection-card textarea{margin-top:8px;margin-bottom:8px}
+.case-finish{display:flex;gap:14px;align-items:flex-start;background:linear-gradient(120deg,#d9f7ec,#eee5ff);border:1px solid #bfe6d8;border-radius:20px;padding:18px;margin:16px 0}
+.case-finish .mascot{width:64px;height:64px;flex:none}
+.case-finish h3{margin:0 0 5px}.case-finish p{margin:4px 0 10px}
+.taller-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}
+.taller-mode{min-width:0;display:flex;align-items:flex-start;flex-direction:column;white-space:normal;text-align:left;background:#faf7ff;color:#30234c;border:2px solid #d9c9ec;box-shadow:none;padding:12px;gap:4px}
+.taller-mode.active{border-color:#6741b5;background:#eee5ff;box-shadow:0 2px 0 #cbbbe9}
+.taller-mode small{font-size:.8rem;font-weight:500;line-height:1.35;color:#51436c}
+.taller-lesson>div{padding:10px 3px}.taller-lesson p{margin:8px 0}
+.labs-launch,.labs-section{margin:14px 0;padding:16px;border:1px solid #c9b8ee;border-radius:20px;background:#f6f0ff}
+.labs-launch{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
+.labs-launch p{margin:3px 0}.labs-section h3{margin:0}.labs-section .subcard{background:#fff}
+.lab-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.lab-tabs>button{flex:1;min-width:140px;white-space:normal}
+.lab-tabs .lab-active{background:#6741b5;color:#fff;border-color:#6741b5}
+.lab-control{display:grid;gap:5px;margin:12px 0;padding:12px;border:1px solid #e5daf5;background:#faf7ff;border-radius:12px}
+.lab-control input[type=range]{width:100%;accent-color:#6741b5;min-height:35px}
+.lab-svg svg{width:100%;max-height:200px}
+.labs-section .note p{margin:8px 0 0}.labs-section select{margin-top:5px}
+.taller-lesson math,.formula-card math{font-size:1.17rem}
+@media(max-width:650px){.labs-section .svg-wrap{overflow-x:auto}.labs-section .svg-wrap svg{width:530px;max-width:none;height:auto}.taller-modes{grid-template-columns:1fr}.case-finish{gap:9px}.case-finish .mascot{width:43px;height:43px}.evidence-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -354,7 +400,7 @@ body[data-screen="home"] .main-nav,body[data-screen="home"] .nav-tabs,body[data-
     </nav>
     <div class="util-bar">
       <button type="button" class="btn-ghost" id="formulaBtn">🧮 Formulario y calc.</button>
-      <button type="button" class="btn-ghost" id="configBtn">⚙️ Config. docente</button>
+      <button type="button" class="btn-ghost" id="configBtn">⚙️ Convenciones de clase</button>
       <div class="lang-toggle" role="group" id="langGroup" aria-label="Idioma">
         <button type="button" id="langEs" aria-pressed="true">🇪🇸 Español</button>
         <button type="button" id="langEn" aria-pressed="false">🇬🇧 English</button>
@@ -410,7 +456,7 @@ function parseNum(raw) {
 function roundTo(n, d = 2) {
   if (!Number.isFinite(n)) return NaN;
   const f = 10 ** d;
-  return Math.round((n + Number.EPSILON) * f) / f;
+  return Math.sign(n) * Math.round((Math.abs(n) + Number.EPSILON) * f) / f;
 }
 
 function L() { return state?.lang === 'en' ? 'en' : 'es'; }
@@ -423,10 +469,25 @@ function fmt(n, d = 3) {
   });
 }
 
-function closeNum(userRaw, exact, tol = 0.025) {
+function regressionMath(m, n) {
+  const sign = n < 0 ? '−' : '+';
+  return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline" aria-label="${L() === 'es' ? 'y estimada igual a' : 'estimated y equals'} ${fmt(m, 3)} ${L() === 'es' ? 'por' : 'times'} x ${sign} ${fmt(Math.abs(n), 3)}"><mrow><mover><mi>y</mi><mo>^</mo></mover><mo>=</mo><mn>${fmt(m, 3)}</mn><mo>·</mo><mi>x</mi><mo>${sign}</mo><mn>${fmt(Math.abs(n), 3)}</mn></mrow></math>`;
+}
+
+const MIN_CONCLUSION_CHARS = 35;
+
+function closeNum(userRaw, exact, tol = 0.0015) {
   const u = parseNum(userRaw);
   if (!Number.isFinite(u) || !Number.isFinite(exact)) return false;
   return Math.abs(u - exact) <= tol;
+}
+
+function varianceTol(exact) {
+  return Math.max(0.01, Math.abs(exact) * 0.005);
+}
+
+function stdTol(exact) {
+  return Math.max(0.005, Math.abs(exact) * 0.005);
 }
 
 /* Pokemáticos Deterministic Reward Code Encoder (compatible with src/utils/rewardCodeUtils.js) */
@@ -472,8 +533,8 @@ const DEFAULT_TEACHER_CONFIG = () => ({
 const CONSTANCIA_META = [
   {
     id: 'cstRev', icon: '🔁', max: 5,
-    es: { name: 'Revisión tras error', desc: 'Revisar un error y resolver correctamente un caso equivalente nuevo.' },
-    en: { name: 'Error review', desc: 'Review a mistake and solve a fresh equivalent case correctly.' }
+    es: { name: 'Revisión tras error', desc: 'Detectar un error, revisar el procedimiento y corregir ese ejercicio en un nuevo intento.' },
+    en: { name: 'Error review', desc: 'Identify a mistake, review the method and correct the exercise on another attempt.' }
   },
   {
     id: 'cstPst', icon: '💡', max: 5,
@@ -492,8 +553,8 @@ const CONSTANCIA_META = [
   },
   {
     id: 'cstCoh', icon: '🔍', max: 4,
-    es: { name: 'Corrección por evidencia', desc: 'Ajustar una conclusión inicial al detectar datos o gráficos incompatibles.' },
-    en: { name: 'Evidence-led revision', desc: 'Revise an initial claim after detecting incompatible data or graphs.' }
+    es: { name: 'Corrección por evidencia', desc: 'Revisar por escrito una hipótesis inicial después de contrastarla con resultados comprobados (sin corrección automática del texto).' },
+    en: { name: 'Evidence-led revision', desc: 'Write a revision of a starting claim after checking actual results (text is not automatically graded).' }
   }
 ];
 
@@ -520,13 +581,13 @@ const COMPETENCIAS_META = [
   },
   {
     id: 'expAud', icon: '🔗', expIndex: 4,
-    es: { name: 'Detecto incoherencias bidimensionales', desc: 'Distinguo dependencia estadística y audito gráficos, Sxy y r.' },
-    en: { name: 'Audit bivariate inconsistencies', desc: 'Distinguish statistical dependence and audit plots, Sxy, and r.' }
+    es: { name: 'Audito asociaciones y conclusiones', desc: 'Contrasto nubes directas e inversas, covarianza, r y afirmaciones de informes.' },
+    en: { name: 'Audit relationships and claims', desc: 'Compare upward/downward trends, covariance, r, and report claims.' }
   },
   {
     id: 'expReg', icon: '📈', expIndex: 5,
-    es: { name: 'Estimo con modelos y concluyo con datos', desc: 'Aplico y = mx + n, distingo interpolación/extrapolación y argumento.' },
-    en: { name: 'Estimate with models & conclude', desc: 'Apply y = mx + n, distinguish interpolation/extrapolation, and justify.' }
+    es: { name: 'Estimo con modelos y concluyo con datos', desc: 'Estimo y o despejo x con una recta; distingo interpolación y extrapolación.' },
+    en: { name: 'Estimate with models & conclude', desc: 'Predict y or solve for x using a line; assess interpolation and extrapolation.' }
   }
 ];
 
@@ -544,6 +605,7 @@ function blankState(keepPrefs = false) {
     activeExp: 0,
     lastSessionDate: todayKey(),
     sessionsSeen: 1,
+    returnCreditPending: false,
     teacherConfig: keepPrefs && state ? { ...state.teacherConfig } : DEFAULT_TEACHER_CONFIG(),
     competencias: {
       expMue: 'pending', expTab: 'pending', expAgr: 'pending',
@@ -555,9 +617,10 @@ function blankState(keepPrefs = false) {
     prueba: {
       passed: false, bestScore: 0, attempts: 0, current: null
     },
+    labs: { open: false, active: 'outlier', outlier: {value: 17, prediction: '', revealed: false}, cv: {offset: 20, prediction: '', revealed: false}, corr: {lastY: 5, prediction: '', revealed: false} },
     expedientes: {}, // keyed by exp id -> { stage, guided, transfer, usedHelpInAnalysis, reportText, rubricChecks, selfAssessed, completedGuided, completedTransfer }
     taller: {
-      topic: 'mix', diff: 'standard', current: null, errorQueue: [], stats: { solved: 0, reviewed: 0 }
+      topic: 'mix', diff: 'standard', mode: 'train', current: null, errorQueue: [], stats: { solved: 0, reviewed: 0, autonomous: 0, withHelp: 0 }
     }
   };
 }
@@ -576,21 +639,8 @@ function validateSave(raw, opts = {}) {
   s.activeExp = Number.isInteger(raw.activeExp) && raw.activeExp >= 0 && raw.activeExp < 6 ? raw.activeExp : 0;
   s.lastSessionDate = typeof raw.lastSessionDate === 'string' ? raw.lastSessionDate.slice(0, 16) : todayKey();
   s.sessionsSeen = Number.isInteger(raw.sessionsSeen) && raw.sessionsSeen >= 1 ? raw.sessionsSeen : 1;
+  s.returnCreditPending = Boolean(raw.returnCreditPending);
 
-  if (raw.teacherConfig && typeof raw.teacherConfig === 'object') {
-    if (['rank_ceil', 'rank_interp'].includes(raw.teacherConfig.discreteQuantile)) {
-      s.teacherConfig.discreteQuantile = raw.teacherConfig.discreteQuantile;
-    }
-    if (['class_and_interp', 'class_and_ci'].includes(raw.teacherConfig.groupedQuantile)) {
-      s.teacherConfig.groupedQuantile = raw.teacherConfig.groupedQuantile;
-    }
-    if ([2, 3].includes(raw.teacherConfig.decimals)) {
-      s.teacherConfig.decimals = raw.teacherConfig.decimals;
-    }
-    if ([50, 60, 70].includes(raw.teacherConfig.exam2DWeight)) {
-      s.teacherConfig.exam2DWeight = raw.teacherConfig.exam2DWeight;
-    }
-  }
   const validComp = new Set(['pending', 'guided', 'autonomous', 'consolidated']);
   if (raw.competencias && typeof raw.competencias === 'object') {
     for (const m of COMPETENCIAS_META) {
@@ -616,14 +666,29 @@ function validateSave(raw, opts = {}) {
       }
     }
   }
+  if (raw.labs && typeof raw.labs === 'object') {
+    s.labs.open = Boolean(raw.labs.open);
+    if (['outlier','cv','corr'].includes(raw.labs.active)) s.labs.active = raw.labs.active;
+    for (const [id,key,min,max] of [['outlier','value',8,25],['cv','offset',1,40],['corr','lastY',0,10]]) {
+      const item = raw.labs[id];
+      if (item && typeof item === 'object') {
+        if (Number.isFinite(item[key])) s.labs[id][key] = clamp(item[key],min,max);
+        if (['a','b'].includes(item.prediction)) s.labs[id].prediction = item.prediction;
+        s.labs[id].revealed = Boolean(item.revealed);
+      }
+    }
+  }
   if (raw.taller && typeof raw.taller === 'object') {
     if (typeof raw.taller.topic === 'string') s.taller.topic = raw.taller.topic;
     if (['basic', 'standard', 'challenge'].includes(raw.taller.diff)) s.taller.diff = raw.taller.diff;
+    if (['learn','train','challenge'].includes(raw.taller.mode)) s.taller.mode = raw.taller.mode;
     if (raw.taller.current && typeof raw.taller.current === 'object') s.taller.current = raw.taller.current;
     if (Array.isArray(raw.taller.errorQueue)) s.taller.errorQueue = raw.taller.errorQueue.slice(0, 15);
     if (raw.taller.stats && typeof raw.taller.stats === 'object') {
       s.taller.stats.solved = Number.isInteger(raw.taller.stats.solved) ? raw.taller.stats.solved : 0;
       s.taller.stats.reviewed = Number.isInteger(raw.taller.stats.reviewed) ? raw.taller.stats.reviewed : 0;
+      s.taller.stats.autonomous = Number.isInteger(raw.taller.stats.autonomous) ? raw.taller.stats.autonomous : 0;
+      s.taller.stats.withHelp = Number.isInteger(raw.taller.stats.withHelp) ? raw.taller.stats.withHelp : 0;
     }
   }
   s.teacherConfig = DEFAULT_TEACHER_CONFIG();
@@ -638,7 +703,8 @@ try {
     if (state.lastSessionDate && state.lastSessionDate !== tk) {
       state.lastSessionDate = tk;
       state.sessionsSeen += 1;
-      if (state.constancia.cstRet < 3) state.constancia.cstRet += 1;
+      // Opening the page is not itself proof of renewed work.
+      state.returnCreditPending = true;
     }
   }
 } catch (err) {
@@ -667,7 +733,7 @@ const UI = {
     navEvi: '🏅 Mis evidencias',
     navPru: '📝 Prueba global',
     formulaBtn: '🧮 Formulario y calc.',
-    configBtn: '⚙️ Config. docente',
+    configBtn: '⚙️ Convenciones de clase',
     pkmBtn: '🎫 Pokemáticos',
     pkmBtnSet: '🎫 Pokemáticos ✓',
     mascotAlt: 'Nova, una estrella exploradora sonriente',
@@ -677,8 +743,8 @@ const UI = {
     invalidSave: 'El archivo seleccionado no es un respaldo válido de Observatorio de Datos.',
     confirmReset: '¿Borrar todo tu progreso local? Se recomienda exportar primero un respaldo en JSON.',
     heroKicker: 'Tu compañera de misión · Nova ⭐',
-    heroTitle: 'Investiga datos reales, detecta errores y justifica conclusiones',
-    heroSub: 'Trabaja los 6 expedientes en orden recomendado o elige el caso que necesites reforzar. Equivocarse forma parte del entrenamiento.',
+    heroTitle: 'Investiga datos contextualizados, detecta errores y justifica conclusiones',
+    heroSub: 'Trabaja los 6 expedientes en orden recomendado o elige qué reforzar. Los datos son simulados para practicar; equivocarse forma parte del entrenamiento.',
     kpiComp: 'Competencias demostradas',
     kpiConst: 'Acciones de constancia',
     kpiExam: 'Preparación prueba',
@@ -733,7 +799,7 @@ const UI = {
     navEvi: '🏅 My Evidence',
     navPru: '📝 Exam Prep',
     formulaBtn: '🧮 Formulas & Calc.',
-    configBtn: '⚙️ Teacher Config',
+    configBtn: '⚙️ Class conventions',
     pkmBtn: '🎫 Pokemáticos',
     pkmBtnSet: '🎫 Pokemáticos ✓',
     mascotAlt: 'Nova, a smiling explorer star',
@@ -743,8 +809,8 @@ const UI = {
     invalidSave: 'The selected file is not a valid Data Observatory backup.',
     confirmReset: 'Erase all local progress? Consider exporting a JSON backup first.',
     heroKicker: 'Your mission companion · Nova ⭐',
-    heroTitle: 'Investigate real datasets, spot inconsistencies, and justify conclusions',
-    heroSub: 'Follow the recommended route across 6 case files or jump to any skill you want to strengthen. Mistakes never lock the app.',
+    heroTitle: 'Investigate contextualized datasets, spot inconsistencies, and justify conclusions',
+    heroSub: 'Follow the 6 case files or select a skill to strengthen. Datasets are simulated for practice, and mistakes never lock the app.',
     kpiComp: 'Demonstrated competencies',
     kpiConst: 'Consistency actions',
     kpiExam: 'Exam prep',
@@ -839,9 +905,9 @@ const Stats = {
     const mean = N ? sumX / N : NaN;
     const maxNi = rows.reduce((m, r) => Math.max(m, r.ni), 0);
     const modes = rows.filter((r) => r.ni === maxNi && r.ni > 0).map((r) => r.xi);
-    const sorted = [];
-    for (const r of rows) for (let i = 0; i < r.ni; i++) sorted.push(r.xi);
-    const median = N ? this.discreteQuantile(rows, N, 0.5, mode) : NaN;
+    // Convención de clase para una tabla de frecuencias: primera fila con Nᵢ ≥ N/2.
+    // Si N/2 coincide exactamente con una Nᵢ, NO se promedian dos valores.
+    const median = N ? this.discreteQuantile(rows, N, 0.5, 'rank_ceil') : NaN;
     const q1 = this.discreteQuantile(rows, N, 0.25, mode);
     const q3 = this.discreteQuantile(rows, N, 0.75, mode);
     const iqr = q3 - q1;
@@ -904,6 +970,7 @@ const Stats = {
     const percentileValue = (pPercent, overrideMode = mode) => {
       const pFrac = pPercent / 100;
       const cls = locateClass(pFrac);
+      if (overrideMode === 'class_only') return NaN; // Only the interval is known.
       if (overrideMode === 'class_and_ci') return cls.ci;
       const prevN = cls.idx > 0 ? rows[cls.idx - 1].Ni : 0;
       if (cls.ni <= 0) return cls.ci;
@@ -916,7 +983,7 @@ const Stats = {
     const q1 = percentileValue(25);
     const median = percentileValue(50);
     const q3 = percentileValue(75);
-    const iqr = q3 - q1;
+    const iqr = Number.isFinite(q1) && Number.isFinite(q3) ? q3 - q1 : NaN;
 
     return {
       N, rows, mean, variance, std, meanDev, cv, cvValid, range: rangeApprox,
@@ -948,10 +1015,9 @@ const Stats = {
     // xBins & yBins: [{ lo, hi, label, closedRight? }]
     const matrix = yBins.map(() => xBins.map(() => 0));
     for (const p of pts) {
-      let xi = xBins.findIndex((b, idx) => idx === xBins.length - 1 ? (p.x >= b.lo && p.x <= b.hi) : (p.x >= b.lo && p.x < b.hi));
-      let yi = yBins.findIndex((b, idx) => idx === yBins.length - 1 ? (p.y >= b.lo && p.y <= b.hi) : (p.y >= b.lo && p.y < b.hi));
-      if (xi < 0) xi = clamp(p.x < xBins[0].lo ? 0 : xBins.length - 1, 0, xBins.length - 1);
-      if (yi < 0) yi = clamp(p.y < yBins[0].lo ? 0 : yBins.length - 1, 0, yBins.length - 1);
+      const xi = xBins.findIndex((b) => p.x >= b.lo && (p.x < b.hi || (b.closedRight && p.x <= b.hi)));
+      const yi = yBins.findIndex((b) => p.y >= b.lo && (p.y < b.hi || (b.closedRight && p.y <= b.hi)));
+      if (xi < 0 || yi < 0) throw new Error('Un dato bidimensional está fuera de los intervalos declarados.');
       matrix[yi][xi] += 1;
     }
     const rowTotals = matrix.map((row) => row.reduce((a, b) => a + b, 0));
@@ -1119,6 +1185,13 @@ function advanceCompetencia(compId, targetLevel) {
   }
 }
 
+function markPracticeReturn() {
+  if (state.returnCreditPending) {
+    state.returnCreditPending = false;
+    awardConstancia('cstRet');
+  }
+}
+
 function awardConstancia(cstId) {
   const meta = CONSTANCIA_META.find((c) => c.id === cstId);
   if (!meta) return false;
@@ -1168,7 +1241,7 @@ function renderHelpBar(helpObj, usedObj, prefix) {
 }
 
 /* ================= EXPEDIENTES (6 DATA CASE GENERATORS) ================= */
-const EXP_SCENARIO_COUNTS = { expMue: 3, expTab: 3, expAgr: 3, expDis: 2, expAud: 2, expReg: 2 };
+const EXP_SCENARIO_COUNTS = { expMue: 3, expTab: 3, expAgr: 3, expDis: 3, expAud: 4, expReg: 4 };
 function nextScenarioIndex(id, current) {
   return (Number(current || 0) + 1) % EXP_SCENARIO_COUNTS[id];
 }
@@ -1176,6 +1249,14 @@ function repairExpContext(rec, id) {
   if (!rec || !rec.guided || !rec.transfer) return rec;
   // Variables always belong to the selected scenario; remove legacy detached lists.
   if (id === 'expMue') delete rec.transfer.transferVars;
+  if (id === 'expAgr') {
+    // Previously completed saved analyses must remain accessible after update.
+    for (const inst of [rec.guided, rec.transfer]) {
+      if (inst.checked && inst.checked.ok) inst.tableVerified = true;
+    }
+  }
+  if (typeof rec.strategy !== 'string') rec.strategy = '';
+  if (!rec.peerReview || typeof rec.peerReview !== 'object') rec.peerReview = {evidence:'', suggestion:''};
   // An untouched transfer must use a genuinely different setting from guided practice.
   if (!rec.completedTransfer && rec.transfer.v === rec.guided.v) {
     rec.transfer = generateExpInstance(id, true, nextScenarioIndex(id, rec.guided.v));
@@ -1201,7 +1282,9 @@ function makeExpRecord(id) {
     selfAssessed: false,
     completedGuided: false,
     completedTransfer: false,
-    hadErrorAnalysis: false
+    hadErrorAnalysis: false,
+    strategy: '',
+    peerReview: { evidence: '', suggestion: '' }
   };
   state.expedientes[id] = rec;
   save();
@@ -1211,16 +1294,30 @@ function makeExpRecord(id) {
 function regenerateExpVariant(id, transferOnly = false) {
   const rec = makeExpRecord(id);
   if (!transferOnly) {
-    rec.guided = generateExpInstance(id, false);
+    rec.guided = generateExpInstance(id, false, nextScenarioIndex(id, rec.guided.v));
     rec.stage = 0;
     rec.stageDone = [true, false, false, false, false, false];
     rec.usedHelpAnalysis = { example: false, hint1: false, hint2: false, solution: false };
     rec.completedGuided = false;
     rec.hadErrorAnalysis = false;
+    rec.strategy = '';
+    rec.peerReview = { evidence: '', suggestion: '' };
+    rec.guidedHintAwarded = false;
+    rec.guidedReviewAwarded = false;
+    rec.cohAwarded = false;
+    // The former report describes another scenario: it must not carry over.
+    rec.reportText = '';
+    rec.rubricChecks = [false, false, false];
+    rec.selfAssessed = false;
+    rec.reportRubricVersion = 2;
+    rec.reportEffortAwarded = false;
   }
   rec.transfer = generateExpInstance(id, true, nextScenarioIndex(id, rec.guided.v));
   rec.usedHelpTransfer = { example: false, hint1: false, hint2: false, solution: false };
   rec.completedTransfer = false;
+  rec.transferHintAwarded = false;
+  rec.transferReviewAwarded = false;
+  rec.stageDone[5] = false;
   save();
   return rec;
 }
@@ -1365,7 +1462,14 @@ function generateExpInstance(id, isTransfer, forcedVariant = null) {
         en: { tag: 'Reading Habits', title: 'How many books were finished this term?', xName: 'Books/term', unit: 'books' } }
     ];
     const sc = scenarios[v % scenarios.length];
-    const xBase = isTransfer ? [1, 2, 3, 4, 5, 8] : [2, 3, 4, 5, 6, 9];
+    // Los contextos tienen escalas y valores extremos plausibles propios.
+    // No reutilizar, por ejemplo, el mismo número de canciones que de libros por trimestre.
+    const valuesByContext = [
+      isTransfer ? [2, 4, 6, 8, 11, 23] : [3, 5, 7, 9, 12, 26],
+      isTransfer ? [0, 1, 3, 5, 7, 14] : [0, 2, 4, 6, 8, 16],
+      isTransfer ? [0, 1, 2, 3, 5, 8] : [0, 1, 2, 3, 4, 9]
+    ];
+    const xBase = valuesByContext[v % valuesByContext.length];
     const counts = isTransfer ? [3, 5, 8, 5, 3, 1] : [3, 6, 9, 7, 4, 1];
     const raw = [];
     xBase.forEach((x, idx) => { for (let k = 0; k < counts[idx]; k++) raw.push(x); });
@@ -1404,7 +1508,7 @@ function generateExpInstance(id, isTransfer, forcedVariant = null) {
     // Row 2 has missing ni that student deduces from N
     const hiddenNiIdx = 2;
     return {
-      id, v, isTransfer, sc, g, hiddenNiIdx, selectedBar: -1,
+      id, v, isTransfer, sc, g, hiddenNiIdx, selectedBar: -1, tableVerified: false,
       user: {
         init: '',
         rows: g.rows.map((r, i) => ({ ci: '', ni: i === hiddenNiIdx ? '' : String(r.ni), Ni: '', fi: '', Fi: '' })),
@@ -1447,6 +1551,22 @@ function generateExpInstance(id, isTransfer, forcedVariant = null) {
         },
         arrA: isTransfer ? [196, 198, 200, 202, 204] : [146, 148, 150, 152, 154],
         arrB: isTransfer ? [16, 18, 20, 22, 24] : [11, 13, 15, 17, 19]
+      },
+      {
+        es: {
+          tag: 'Cooperativa · Manzanas y uvas',
+          title: 'Comparar la dispersión relativa de dos cosechas',
+          nameA: 'Masa por manzana (g)', nameB: 'Masa por uva (g)',
+          unitA: 'g', unitB: 'g'
+        },
+        en: {
+          tag: 'Growers · Apples and Grapes',
+          title: 'Compare the relative spread of two harvests',
+          nameA: 'Mass per apple (g)', nameB: 'Mass per grape (g)',
+          unitA: 'g', unitB: 'g'
+        },
+        arrA: isTransfer ? [138, 148, 158, 170, 183] : [140, 150, 160, 170, 180],
+        arrB: isTransfer ? [3, 4, 5, 7, 8] : [3, 4, 5, 6, 8]
       }
     ];
     const sc = scenarios[v % scenarios.length];
@@ -1462,64 +1582,105 @@ function generateExpInstance(id, isTransfer, forcedVariant = null) {
   }
 
   if (id === 'expAud') {
+    // Cuatro tipos de auditoría. La última contiene un coeficiente CORRECTO
+    // pero una conclusión funcional injustificada: no todas las pistas son errores numéricos.
     const scenarios = [
       {
-        es: { tag: 'Auditoría · Estudio y rendimiento', title: 'Detectar inconsistencias en un informe bidimensional', xLabel: 'Horas estudio/sem', yLabel: 'Calificación (0-10)' },
-        en: { tag: 'Audit · Study & Achievement', title: 'Spot inconsistencies in a bivariate report', xLabel: 'Study hours/wk', yLabel: 'Grade (0-10)' },
+        es: { tag: 'Auditoría · Estudio y rendimiento', title: '¿Coinciden la nube y el signo de la correlación?', xLabel: 'Horas de estudio/semana', yLabel: 'Calificación (0–10)' },
+        en: { tag: 'Audit · Study & Results', title: 'Does the plotted trend agree with the correlation sign?', xLabel: 'Study hours/week', yLabel: 'Grade (0–10)' },
         xMin: 0, xMax: 6, slope: 1.28, intercept: 1.7, noise: 1.0,
         xBins: [{ lo: 0, hi: 2, label: '[0, 2)' }, { lo: 2, hi: 4, label: '[2, 4)' }, { lo: 4, hi: 6, label: '[4, 6]', closedRight: true }],
         yBins: [{ lo: 0, hi: 4, label: '[0, 4)' }, { lo: 4, hi: 7, label: '[4, 7)' }, { lo: 7, hi: 10, label: '[7, 10]', closedRight: true }],
         badClaimType: 'sign_mismatch'
       },
       {
-        es: { tag: 'Auditoría · Ensayo musical', title: '¿Es coherente la correlación declarada con los datos?', xLabel: 'Minutos ensayo/día', yLabel: 'Aciertos en lectura (%)' },
-        en: { tag: 'Audit · Music Practice', title: 'Is the reported correlation consistent with the plot?', xLabel: 'Practice min/day', yLabel: 'Sight-reading accuracy (%)' },
+        es: { tag: 'Auditoría · Ensayo musical', title: '¿Puede una correlación superar el valor 1?', xLabel: 'Minutos de ensayo/día', yLabel: 'Aciertos en lectura (%)' },
+        en: { tag: 'Audit · Music Practice', title: 'Can a correlation coefficient exceed 1?', xLabel: 'Practice minutes/day', yLabel: 'Sight-reading accuracy (%)' },
         xMin: 10, xMax: 60, slope: 1.05, intercept: 28, noise: 8, yMin: 20, yMax: 100,
         xBins: [{ lo: 10, hi: 26, label: '[10, 26)' }, { lo: 26, hi: 43, label: '[26, 43)' }, { lo: 43, hi: 60, label: '[43, 60]', closedRight: true }],
         yBins: [{ lo: 20, hi: 50, label: '[20, 50)' }, { lo: 50, hi: 75, label: '[50, 75)' }, { lo: 75, hi: 100, label: '[75, 100]', closedRight: true }],
         badClaimType: 'out_of_bounds'
+      },
+      {
+        es: { tag: 'Auditoría · Cultivo experimental', title: '¿Es compatible el signo de r con una tendencia decreciente?', xLabel: 'Luz directa (h/semana)', yLabel: 'Crecimiento (cm/2 semanas)' },
+        en: { tag: 'Audit · Experimental Growing', title: 'Does the correlation sign fit a downward trend?', xLabel: 'Direct light (hours/week)', yLabel: 'Growth (cm/2 weeks)' },
+        xMin: 2, xMax: 28, slope: -0.038, intercept: 1.43, noise: 0.16, yMin: 0.2, yMax: 1.8,
+        xBins: [{ lo: 2, hi: 10, label: '[2, 10)' }, { lo: 10, hi: 19, label: '[10, 19)' }, { lo: 19, hi: 28, label: '[19, 28]', closedRight: true }],
+        yBins: [{ lo: 0.2, hi: 0.7, label: '[0,2; 0,7)' }, { lo: 0.7, hi: 1.2, label: '[0,7; 1,2)' }, { lo: 1.2, hi: 1.8, label: '[1,2; 1,8]', closedRight: true }],
+        badClaimType: 'sign_mismatch',
+        esContext: 'Observaciones simuladas de una plantación en condiciones concretas. La tendencia observada no demuestra que la luz cause el cambio.',
+        enContext: 'Simulated observations from plants under specific conditions. The observed trend does not establish that light caused the change.'
+      },
+      {
+        es: { tag: 'Auditoría · Pantallas y descanso', title: 'Un valor de r válido no garantiza una relación exacta', xLabel: 'Pantallas antes de dormir (h)', yLabel: 'Sueño nocturno (h)' },
+        en: { tag: 'Audit · Screens and Rest', title: 'A valid r does not guarantee an exact relationship', xLabel: 'Screen time before bed (h)', yLabel: 'Night-time sleep (h)' },
+        xMin: 0, xMax: 6, slope: -0.53, intercept: 8.8, noise: 0.7, yMin: 4, yMax: 10,
+        xBins: [{ lo: 0, hi: 2, label: '[0, 2)' }, { lo: 2, hi: 4, label: '[2, 4)' }, { lo: 4, hi: 6, label: '[4, 6]', closedRight: true }],
+        yBins: [{ lo: 4, hi: 6, label: '[4, 6)' }, { lo: 6, hi: 8, label: '[6, 8)' }, { lo: 8, hi: 10, label: '[8, 10]', closedRight: true }],
+        badClaimType: 'functional_claim'
       }
     ];
     const sc = scenarios[v % scenarios.length];
-    let bi = Stats.generateBivariateSample({ N: 22, xMin: sc.xMin, xMax: sc.xMax, slope: sc.slope, intercept: sc.intercept, noise: sc.noise, yMin: sc.yMin || 0, yMax: sc.yMax || 10 });
-    while (bi.r < 0.72) {
-      bi = Stats.generateBivariateSample({ N: 22, xMin: sc.xMin, xMax: sc.xMax, slope: sc.slope, intercept: sc.intercept, noise: sc.noise * 0.75, yMin: sc.yMin || 0, yMax: sc.yMax || 10 });
+    const sign = Math.sign(sc.slope);
+    let bi;
+    // Generación reproducible dentro de un intervalo válido; jamás usar r>0 en relaciones inversas.
+    for (let tries = 0; tries < 100; tries++) {
+      bi = Stats.generateBivariateSample({ N: 22, xMin: sc.xMin, xMax: sc.xMax,
+        slope: sc.slope, intercept: sc.intercept, noise: sc.noise * (tries < 50 ? 1 : 0.65),
+        yMin: sc.yMin ?? 0, yMax: sc.yMax ?? 10 });
+      if (bi.r * sign >= 0.72) break;
     }
     const table2d = Stats.buildContingency(bi.pts, sc.xBins, sc.yBins);
-    const fakeR = sc.badClaimType === 'sign_mismatch' ? -roundTo(bi.r, 2) : 1.18;
-    return {
-      id, v, isTransfer, sc, bi, table2d, fakeR,
-      user: { init: '', depType: '', missCell: '', missRowSum: '', fakeReason: '', contrast: '' },
-      checked: {}
-    };
+    const fakeR = sc.badClaimType === 'sign_mismatch' ? -roundTo(bi.r, 2) :
+                  sc.badClaimType === 'out_of_bounds' ? 1.18 : roundTo(bi.r, 2);
+    return { id, v, isTransfer, sc, bi, table2d, fakeR,
+      user: { init: '', depType: '', missCell: '', missRowSum: '', fakeReason: '', contrast: '' }, checked: {} };
   }
 
-  // expReg
+  // Exp. 6: predecir Y dado X o DESPEJAR X dado un objetivo Y.
+  // Ambas tareas aparecen en los materiales de referencia del curso.
   const scenarios = [
     {
-      es: { tag: 'Predicción · Deporte y resistencia', title: 'Estimar con modelo lineal y valorar límites reales', xLabel: 'Sesiones/mes', yLabel: 'Distancia 12 min (km)' },
-      en: { tag: 'Prediction · Endurance Training', title: 'Estimate with a linear model and judge real limits', xLabel: 'Sessions/month', yLabel: '12-min distance (km)' },
-      xMin: 2, xMax: 16, slope: 0.14, intercept: 1.35, noise: 0.25, yMin: 1.2, yMax: 4.0, xPred: isTransfer ? 11 : 10, xExt: 45
+      es: { tag: 'Predicción · Deporte y resistencia', title: 'Estimar resultados y valorar límites', xLabel: 'Sesiones de entrenamiento/mes', yLabel: 'Distancia en 12 min (km)' },
+      en: { tag: 'Prediction · Endurance Training', title: 'Estimate outcomes and judge limits', xLabel: 'Training sessions/month', yLabel: '12-minute distance (km)' },
+      xMin: 2, xMax: 16, slope: 0.14, intercept: 1.35, noise: 0.25, yMin: 1.2, yMax: 4.0,
+      xPred: isTransfer ? 11 : 10, xExt: 45, predictionMode: 'predict_y'
     },
     {
-      es: { tag: 'Predicción · Energía solar', title: 'De la nube de puntos a una estimación prudente', xLabel: 'Horas de sol', yLabel: 'Energía generada (kWh)' },
-      en: { tag: 'Prediction · Solar Yield', title: 'From scatter plot to careful model estimation', xLabel: 'Sunshine hours', yLabel: 'Energy generated (kWh)' },
-      xMin: 1, xMax: 10, slope: 1.42, intercept: 1.15, noise: 1.1, yMin: 1, yMax: 18, xPred: isTransfer ? 6 : 5, xExt: 22
+      es: { tag: 'Predicción · Energía solar', title: 'De la nube de puntos a una estimación prudente', xLabel: 'Horas de sol/día', yLabel: 'Energía generada (kWh)' },
+      en: { tag: 'Prediction · Solar Yield', title: 'From scatter plot to careful estimation', xLabel: 'Sunshine hours/day', yLabel: 'Energy generated (kWh)' },
+      xMin: 1, xMax: 10, slope: 1.42, intercept: 1.15, noise: 1.1, yMin: 1, yMax: 18,
+      xPred: isTransfer ? 6 : 5, xExt: 22, predictionMode: 'predict_y'
+    },
+    {
+      es: { tag: 'Objetivo · Estudio y calificaciones', title: '¿Cuánto estudio sugiere la recta para una nota objetivo?', xLabel: 'Horas de estudio/semana', yLabel: 'Calificación (0–10)' },
+      en: { tag: 'Target · Study and Grades', title: 'How much studying does the line suggest for a target mark?', xLabel: 'Study hours/week', yLabel: 'Grade (0–10)' },
+      xMin: 0, xMax: 6.5, slope: 1.20, intercept: 1.85, noise: 0.95, yMin: 0, yMax: 10,
+      xPred: 5, targetY: isTransfer ? 7.5 : 8.0, xExt: 15, predictionMode: 'solve_x'
+    },
+    {
+      es: { tag: 'Objetivo · Descanso y pantallas', title: '¿Qué tiempo de pantalla predice el modelo para cierto descanso?', xLabel: 'Pantallas antes de dormir (h)', yLabel: 'Sueño nocturno (h)' },
+      en: { tag: 'Target · Rest and Screens', title: 'What screen time does the model predict for a sleep target?', xLabel: 'Screen time before bed (h)', yLabel: 'Night-time sleep (h)' },
+      xMin: 1, xMax: 7, slope: -0.53, intercept: 9.35, noise: 0.55, yMin: 4.5, yMax: 10,
+      xPred: 4, targetY: isTransfer ? 6.6 : 7.0, xExt: 15, predictionMode: 'solve_x'
     }
   ];
   const sc = scenarios[v % scenarios.length];
-  let bi = Stats.generateBivariateSample({ N: 20, xMin: sc.xMin, xMax: sc.xMax, slope: sc.slope, intercept: sc.intercept, noise: sc.noise, yMin: sc.yMin, yMax: sc.yMax });
-  while (bi.r < 0.75) {
-    bi = Stats.generateBivariateSample({ N: 20, xMin: sc.xMin, xMax: sc.xMax, slope: sc.slope, intercept: sc.intercept, noise: sc.noise * 0.75, yMin: sc.yMin, yMax: sc.yMax });
+  const sign = Math.sign(sc.slope);
+  let bi;
+  for (let tries = 0; tries < 100; tries++) {
+    bi = Stats.generateBivariateSample({ N: 20, xMin: sc.xMin, xMax: sc.xMax,
+      slope: sc.slope, intercept: sc.intercept,
+      noise: sc.noise * (tries < 50 ? 1 : 0.65), yMin: sc.yMin, yMax: sc.yMax });
+    if (bi.r * sign >= 0.75) break;
   }
   const mShown = roundTo(bi.m, 2);
   const nShown = roundTo(bi.n, 2);
   const yPred = mShown * sc.xPred + nShown;
-  return {
-    id, v, isTransfer, sc, bi, mShown, nShown, yPred,
-    user: { init: '', reliable: '', yEst: '', interpVsExtrap: '', contrast: '' },
-    checked: {}
-  };
+  const estAnswer = sc.predictionMode === 'solve_x' ? (sc.targetY - nShown) / mShown : yPred;
+  return { id, v, isTransfer, sc, bi, mShown, nShown, yPred, estAnswer,
+    user: { init: '', reliable: '', yEst: '', interpVsExtrap: '', contrast: '' }, checked: {} };
+
 }
 
 /* ================= HELP TIERS BANK (4 TIERS PER EXPEDIENTE) ================= */
@@ -1540,16 +1701,16 @@ const EXP_HELPS = {
   },
   expTab: {
     es: {
-      example: 'Ejemplo con otros datos: Datos [1, 2, 2, 4] (N=4). xᵢ=1: nᵢ=1, Nᵢ=1, fᵢ=0,25, Fᵢ=0,25. xᵢ=2: nᵢ=2, Nᵢ=3, fᵢ=0,50, Fᵢ=0,75. xᵢ=4: nᵢ=1, Nᵢ=4, fᵢ=1,00. Media = (1+2+2+4)/4 = 2,25; Mediana = (2+2)/2 = 2; Moda = 2.',
-      hint1: 'Nᵢ acumula las frecuencias absolutas nᵢ fila a fila; fᵢ = nᵢ / N y Fᵢ = Nᵢ / N. Si hay un valor extremo muy alto, arrastra más a la media que a la mediana.',
+      example: 'Ejemplo con otros datos: Datos [1, 2, 2, 4] (N=4). xᵢ=1: nᵢ=1, Nᵢ=1, fᵢ=0,25, Fᵢ=0,25. xᵢ=2: nᵢ=2, Nᵢ=3, fᵢ=0,50, Fᵢ=0,75. xᵢ=4: nᵢ=1, Nᵢ=4, fᵢ=1,00. Media = (1+2+2+4)/4 = 2,25; Mediana: N/2=2, el primer Nᵢ ≥ 2 es 3, por tanto Me=2; Moda = 2.',
+      hint1: 'Nᵢ acumula las nᵢ; fᵢ = nᵢ/N y Fᵢ = Nᵢ/N. Para la mediana en tablas, localiza la primera Nᵢ ≥ N/2; no promedies dos filas. Un extremo puede arrastrar la media.',
       hint2: 'Ordena los valores xᵢ de menor a mayor, cuenta cuántas veces aparece cada uno (nᵢ), comprueba que ∑nᵢ = N, divide cada nᵢ entre N para fᵢ y suma xᵢ·nᵢ / N para la media.',
-      solution: 'Calcula primero todas las nᵢ comprobando que suman N. Después obtén Nᵢ sumando en diagonal, fᵢ = nᵢ/N y Fᵢ = Nᵢ/N. La moda es el xᵢ con mayor nᵢ, la media es ∑(xᵢ·nᵢ)/N y la mediana ocupa el centro de la serie ordenada.'
+      solution: 'Completa nᵢ, Nᵢ, fᵢ y Fᵢ. La moda es el xᵢ con mayor nᵢ, y la media es ∑(xᵢ·nᵢ)/N. En esta tabla, para la mediana calcula N/2 y toma el primer xᵢ con Nᵢ ≥ N/2; incluso si hay igualdad, no promedies dos valores.'
     },
     en: {
-      example: 'Different-data example: Data [1, 2, 2, 4] (N=4). xᵢ=1: nᵢ=1, Nᵢ=1, fᵢ=0.25, Fᵢ=0.25. xᵢ=2: nᵢ=2, Nᵢ=3, fᵢ=0.50, Fᵢ=0.75. xᵢ=4: nᵢ=1, Nᵢ=4, fᵢ=1.00. Mean = 2.25; Median = 2; Mode = 2.',
-      hint1: 'Nᵢ accumulates nᵢ row by row; fᵢ = nᵢ / N and Fᵢ = Nᵢ / N. A single high outlier pulls the mean upward far more than the median.',
+      example: 'Different-data example: Data [1, 2, 2, 4] (N=4). xᵢ=1: nᵢ=1, Nᵢ=1, fᵢ=0.25, Fᵢ=0.25. xᵢ=2: nᵢ=2, Nᵢ=3, fᵢ=0.50, Fᵢ=0.75. xᵢ=4: nᵢ=1, Nᵢ=4, fᵢ=1.00. Mean = 2.25; median: N/2=2, first Nᵢ ≥ 2 occurs at xᵢ=2; mode = 2.',
+      hint1: 'Nᵢ accumulates nᵢ; fᵢ = nᵢ/N and Fᵢ = Nᵢ/N. For a frequency table median use the first Nᵢ ≥ N/2, without averaging rows. Outliers can pull the mean.',
       hint2: 'Sort unique xᵢ ascending, tally each nᵢ, verify ∑nᵢ = N, divide by N for fᵢ, accumulate for Fᵢ, and compute ∑(xᵢ·nᵢ)/N.',
-      solution: 'Verify ∑nᵢ = N first, build cumulative Nᵢ and relative fᵢ, Fᵢ. Mode is the xᵢ with largest nᵢ; mean is ∑(xᵢ·nᵢ)/N; median sits at the center of sorted data.'
+      solution: 'Complete nᵢ, Nᵢ, fᵢ and Fᵢ. Mode has greatest nᵢ; mean is ∑(xᵢ·nᵢ)/N. For the median in this frequency table, calculate N/2 and use the first xᵢ whose cumulative Nᵢ reaches it, even at exact equality.'
     }
   },
   expAgr: {
@@ -1585,13 +1746,13 @@ const EXP_HELPS = {
       example: 'Ejemplo con otros datos: Si la nube sube hacia la derecha (Sxy = +4,5), r debe ser positivo y estar entre 0 y +1. Afirmar r = −0,85 o r = 1,24 es matemáticamente imposible.',
       hint1: 'Comprueba tres invariantes: 1) ¿Hay un único valor y exacto para cada x o hay dispersión (dependencia estadística)? 2) ¿Coinciden los signos de la pendiente, Sxy y r? 3) ¿Está r dentro de [−1, 1]?',
       hint2: 'Suma filas y columnas de la tabla 2D para deducir las casillas faltantes. Después compara el sentido visual de la nube con los valores de Sxy y r declarados en el borrador.',
-      solution: 'Como a un mismo x corresponden distintos y, la dependencia es estadística, no funcional. Además, el signo de r debe coincidir siempre con el de Sxy y cumplir −1 ≤ r ≤ 1. Por último, correlación no implica causalidad.'
+      solution: 'La nube muestra dispersión alrededor de una tendencia, no una recta exacta que explique cada observación; hablamos de asociación estadística, no de una predicción determinista. El signo de r coincide con el de Sxy y se cumple −1 ≤ r ≤ 1. La correlación no demuestra causalidad.'
     },
     en: {
       example: 'Different-data example: An upward scatter cloud (Sxy = +4.5) requires r > 0 inside [−1, 1]. Reporting r = −0.85 or r = 1.24 is mathematically impossible.',
       hint1: 'Check three invariants: 1) Functional exactness vs statistical scatter. 2) Same sign across trend slope, Sxy, and r. 3) Bounds −1 ≤ r ≤ 1.',
       hint2: 'Use row/column marginal totals in the 2D table to deduce missing entries, then compare the visual slope against the claimed Sxy and r.',
-      solution: 'Multiple y values share similar x values, so dependence is statistical. The claimed r contradicts the positive cloud (sign mismatch with Sxy or |r| > 1). Remember: correlation does not prove causation.'
+      solution: 'The scattered points show statistical rather than exact linear dependence. Check whether the reported r has the same sign as Sxy and lies within [−1, 1]. A strong association alone does not prove causation.'
     }
   },
   expReg: {
@@ -1609,6 +1770,43 @@ const EXP_HELPS = {
     }
   }
 };
+
+function expHelpFor(id, inst) {
+  // Las ayudas y la solución explicada deben corresponder a la modalidad concreta.
+  if (id === 'expReg' && inst.sc.predictionMode === 'solve_x') {
+    return {
+      es: {
+        example: 'Ejemplo distinto: si el modelo es y = 2x + 1 y el objetivo es y = 7, resolvemos 7 = 2x + 1 y obtenemos x = 3. Debes comprobar si x está dentro del rango medido.',
+        hint1: 'Ahora se conoce y, no x. Usa la recta proporcionada y despeja la incógnita. La tendencia puede ser creciente o decreciente.',
+        hint2: 'Escribe y objetivo = m·x + n; resta n y divide por m. Después compara el valor hallado con el intervalo de x observado.',
+        solution: 'Para un objetivo y = y₀, se resuelve x = (y₀ − n)/m. Un resultado dentro del rango medido es una estimación, no una garantía individual; para un x lejano sería una extrapolación.'
+      },
+      en: {
+        example: 'Different example: for y = 2x + 1 and target y = 7, solve 7 = 2x + 1 to obtain x = 3. Check whether this x belongs to the observed range.',
+        hint1: 'Here y is known and x is unknown. Rearrange the given line; the trend may increase or decrease.',
+        hint2: 'Write target y = m·x + n, subtract n and divide by m. Then compare x with the observed range.',
+        solution: 'For a target y₀, solve x = (y₀ − n)/m. Even an in-range result is an estimate, not a guaranteed individual outcome; distant x values require extrapolation.'
+      }
+    };
+  }
+  if (id === 'expAud' && inst.sc.badClaimType === 'functional_claim') {
+    return {
+      es: {
+        example: 'Ejemplo distinto: una nube descendente con r = −0,86 puede tener el signo correcto, aunque los puntos no sigan exactamente una misma recta.',
+        hint1: 'Separa dos preguntas: ¿el valor de r es posible? ¿La afirmación sobre dependencia exacta también está justificada?',
+        hint2: 'Compara el signo de r y Sxy, los límites de r y la dispersión visible. Un coeficiente válido no garantiza que todas las observaciones coincidan.',
+        solution: 'La correlación declarada puede ser coherente con una tendencia negativa y estar en [−1,1], pero la nube no justifica que la recta determine exactamente cada caso. Además, asociación no demuestra causalidad.'
+      },
+      en: {
+        example: 'Different example: a descending cloud with r = −0.86 may have a valid correlation sign even if its points are not exactly on a single line.',
+        hint1: 'Separate two questions: is r valid? Is the claim of exact dependence also supported?',
+        hint2: 'Compare the sign of r and Sxy, the bounds on r, and the plotted scatter. A valid coefficient does not guarantee exact agreement.',
+        solution: 'The stated r can agree with a negative trend and lie in [−1,1], but the cloud does not support exact predictions for every observation. Association alone does not prove causation.'
+      }
+    };
+  }
+  return EXP_HELPS[id];
+}
 
 /* ================= TALLER (PROCEDURAL PRACTICE & ERROR QUEUE) ================= */
 const TALLER_TOPICS = [
@@ -1650,8 +1848,11 @@ function generateTallerItem(topicReq = state.taller.topic, diff = state.taller.d
 
   if (topic === 'tab1d') {
     const base = diff === 'basic' ? [1, 2, 3, 4] : diff === 'standard' ? [2, 4, 5, 7, 10] : [3, 5, 6, 8, 12, 15];
-    const ni = base.map(() => ri(2, diff === 'basic' ? 5 : 7));
-    const st = Stats.fromFreq(base, ni);
+    let ni, st;
+    do {
+      ni = base.map(() => ri(2, diff === 'basic' ? 5 : 7));
+      st = Stats.fromFreq(base, ni);
+    } while (st.modes.length !== 1);
     return {
       topic, diff, isReview, kind: 'tab1d', st, user: { mean: '', median: '', mode: '' }, checked: false, ok: false,
       usedHelp: { example: false, hint1: false, hint2: false, solution: false }, counted: false
@@ -1728,9 +1929,13 @@ function generateExamProblem() {
   const w1 = 100 - w2;
 
   // Part 1 (1D): Partial grouped table (N=30 style like Exam PDF, rounded fi sums ~0.99 or 1.00) + CV comparison
-  const ni1 = [ri(3, 5), ri(3, 5), ri(6, 9), ri(7, 10), ri(4, 7)];
   const ivs1 = [{ lo: 0, hi: 2 }, { lo: 2, hi: 4 }, { lo: 4, hi: 6 }, { lo: 6, hi: 8 }, { lo: 8, hi: 10 }];
-  const g1 = Stats.grouped(ivs1, ni1);
+  let ni1, g1;
+  // Keep the modal-class question unambiguous: exactly one highest frequency.
+  do {
+    ni1 = [ri(3, 5), ri(3, 5), ri(6, 9), ri(7, 10), ri(4, 7)];
+    g1 = Stats.grouped(ivs1, ni1);
+  } while (g1.rows.filter(r => r.ni === g1.modalRow.ni).length !== 1);
   const missRow = 2;
 
   // Height vs Weight comparison with almost equal std (~15)
@@ -1784,6 +1989,23 @@ function classSelect(g, value, attributes) {
 }
 
 /* ================= RENDERERS: EXPEDIENTES & CASE WORKSPACE ================= */
+function caseProgress(rec) {
+  const finished = [1,2,3,4,5].filter(i=>rec.stageDone?.[i]).length;
+  const next = [1,2,3,4,5].find(i=>!rec.stageDone?.[i]);
+  const labels = tr('stages');
+  const review = (rec.stage===2 && rec.guided?.checked?.msg && !rec.guided.checked.ok) ||
+    (rec.stage===5 && rec.transfer?.checked?.msg && !rec.transfer.checked.ok);
+  const step = next == null ? '' : (labels[next] || '').replace(/^\d+\. /,'');
+  const en=L()==='en';
+  return {
+    finished,
+    short: en ? `${finished}/5 phases complete` : `${finished}/5 fases completas`,
+    nextText: next==null ? (en?'All phases complete':'Todas las fases completadas') :
+      review ? (en?`Needs review: ${step}`:`Por revisar: ${step}`) :
+      (en?`Next: ${step}`:`Falta: ${step}`)
+  };
+}
+
 function renderExpedientes() {
   const l = L();
   const doneComp = Object.values(state.competencias).filter((v) => v === 'autonomous' || v === 'consolidated').length;
@@ -1794,8 +2016,8 @@ function renderExpedientes() {
     expTab: { es: 'Tablas xi–ni–Ni–fi–Fi · media · mediana · moda', en: 'xi–ni–Ni–fi–Fi tables · mean · median · mode' },
     expAgr: { es: 'Intervalos [a,b) · marcas de clase · percentiles · RIC', en: '[a,b) intervals · class marks · percentiles · IQR' },
     expDis: { es: 'Rango · varianza · desviación típica · coeficiente de variación', en: 'Range · variance · standard deviation · coefficient of variation' },
-    expAud: { es: 'Tablas 2D · nube de puntos · covarianza · correlación', en: '2D tables · scatter plots · covariance · correlation' },
-    expReg: { es: 'Recta de regresión · estimación · interpolación y extrapolación', en: 'Regression line · estimation · interpolation and extrapolation' }
+    expAud: { es: 'Tablas 2D · relaciones directas e inversas · covarianza · correlación', en: '2D tables · positive/negative trends · covariance · correlation' },
+    expReg: { es: 'Recta de regresión · despeje de x · interpolación y extrapolación', en: 'Regression line · solving for x · interpolation and extrapolation' }
   };
 
   const cardsHtml = COMPETENCIAS_META.map((m, idx) => {
@@ -1814,8 +2036,9 @@ function renderExpedientes() {
         <h3>${escapeText(m[l].name)}</h3>
         <p>${escapeText(m[l].desc)}</p>
         <div class="case-focus">📚 ${escapeText(expFocus[m.id][l])}</div>
+        <p class="case-mini-progress">${escapeText(caseProgress(rec).nextText)}</p>
         <div style="margin-top:auto;padding-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="badge b-pend">${escapeText(tr('stages')[rec.stage] || tr('stages')[0])}</span>
+          <span class="badge b-pend">${escapeText(caseProgress(rec).short)}</span>
           <button type="button" class="${isSel ? 'btn-accent' : 'btn-ghost'}" data-open-exp="${idx}">
             ${escapeText(isSel ? tr('resumeCase') : st === 'pending' ? tr('openCase') : tr('reviewCase'))}
           </button>
@@ -1852,15 +2075,45 @@ function renderExpedientes() {
   `;
 }
 
+function maxUnlockedStage(rec) {
+  const done = Array.isArray(rec.stageDone) ? rec.stageDone : [true, false, false, false, false, false];
+  for (let i = 1; i < 6; i++) if (!done[i]) return i;
+  return 5;
+}
+
+const EXP_TAKEAWAYS = {
+ expMue: {es:'Una muestra grande no corrige automáticamente un sesgo de selección.',en:'A larger sample does not automatically fix selection bias.'},
+ expTab: {es:'La media, la mediana y la moda describen aspectos diferentes de una distribución.',en:'Mean, median and mode describe different features of a distribution.'},
+ expAgr: {es:'Una tabla agrupada localiza intervalos de cuantiles; las marcas estiman la media.',en:'Grouped data locate quantile intervals; class marks estimate the mean.'},
+ expDis: {es:'El coeficiente de variación permite comparar dispersión relativa si las medias son interpretables.',en:'The coefficient of variation compares relative spread when means are meaningful.'},
+ expAud: {es:'El sentido de la nube, Sxy y r deben ser coherentes; una asociación no demuestra causalidad.',en:'Scatter direction, Sxy and r must agree; association does not prove causation.'},
+ expReg: {es:'La recta permite estimar dentro del rango, pero una predicción no garantiza un resultado individual.',en:'A line supports estimates within range, but never guarantees an individual outcome.'}
+};
+function renderCaseFinish(meta, rec) {
+  if (!rec.stageDone?.[5] || !rec.stageDone?.[4]) return '';
+  const l=L(), es=l==='es', next=COMPETENCIAS_META[meta.expIndex+1];
+  return `<div class="case-finish" role="status">
+    ${mascot()}<div><h3>🎉 ${es?'¡Expediente terminado!':'Case completed!'}</h3>
+    <p>${es?'Has comprobado un caso nuevo y tu trabajo está guardado.':'You checked a fresh scenario and your work was saved.'}</p>
+    <p><strong>${es?'Una idea importante:':'An important takeaway:'}</strong> ${escapeText(EXP_TAKEAWAYS[meta.id][l])}</p>
+    <div class="row">
+      ${next?`<button type="button" class="btn-accent" data-exp-finish-next="${next.expIndex}">${es?'Siguiente expediente':'Next case'} →</button>`:''}
+      <button type="button" class="btn-ghost" data-home-go="taller">${es?'🛠️ Reforzar en el Taller':'🛠️ Practise in Workshop'}</button>
+      <button type="button" class="btn-ghost" data-exp-home="1">${es?'⌂ Menú principal':'⌂ Main menu'}</button>
+    </div></div>
+  </div>`;
+}
+
 function renderCaseWorkspace(meta, rec) {
   const l = L();
+  rec.stage = Math.min(rec.stage, maxUnlockedStage(rec));
   const isTransfer = rec.stage === 5;
   const inst = isTransfer ? rec.transfer : rec.guided;
   const sc = inst.sc[l] || inst.sc;
   const stg = rec.stage;
 
   const stepper = tr('stages').map((lbl, idx) => `
-    <button type="button" class="step-btn ${idx === stg ? 'active' : rec.stageDone[idx] ? 'done' : ''}" data-exp-stage="${idx}">
+    <button type="button" class="step-btn ${idx === stg ? 'active' : rec.stageDone[idx] ? 'done' : ''}" data-exp-stage="${idx}" ${idx > maxUnlockedStage(rec) ? 'disabled title="Completa las etapas anteriores"' : ''}>
       ${escapeText(lbl)}
     </button>`).join('');
 
@@ -1870,12 +2123,12 @@ function renderCaseWorkspace(meta, rec) {
   } else if (stg === 1) {
     bodyHtml = renderExpStage1(meta, rec, inst, sc);
   } else if (stg === 2) {
-    bodyHtml = renderExpAnalysisBlock(meta.id, inst, false) +
-      renderHelpBar(EXP_HELPS[meta.id], rec.usedHelpAnalysis, `exp:${meta.id}:A`);
+    bodyHtml = (rec.strategy ? `<div class="note info">🧭 ${escapeText(strategyPrompt(meta.id,rec.strategy))}</div>` : '') + renderExpAnalysisBlock(meta.id, inst, false) +
+      renderHelpBar(expHelpFor(meta.id, inst), rec.usedHelpAnalysis, `exp:${meta.id}:A`);
   } else if (stg === 3) {
-    bodyHtml = renderExpContrast(meta.id, rec, inst);
+    bodyHtml = renderEvidenceNotebook(meta.id, rec, inst) + renderExpContrast(meta.id, rec, inst) + renderPredictionReflection(meta.id, rec, inst);
   } else if (stg === 4) {
-    bodyHtml = renderExpReport(meta.id, rec, inst);
+    bodyHtml = renderEvidenceNotebook(meta.id, rec, inst) + renderExpReport(meta.id, rec, inst);
   } else {
     bodyHtml = `
       <div class="note ok" style="margin-bottom:12px">
@@ -1884,7 +2137,7 @@ function renderCaseWorkspace(meta, rec) {
           : '<strong>Transfer problem (fresh data):</strong> Solve this new scenario without opening hints to demonstrate autonomous or consolidated mastery.'}
       </div>
       ${renderExpAnalysisBlock(meta.id, inst, true)}
-      ${renderHelpBar(EXP_HELPS[meta.id], rec.usedHelpTransfer, `exp:${meta.id}:T`)}`;
+      ${renderHelpBar(expHelpFor(meta.id, inst), rec.usedHelpTransfer, `exp:${meta.id}:T`)}`;
   }
 
   const novaHints = l === 'es'
@@ -1919,18 +2172,42 @@ function renderCaseWorkspace(meta, rec) {
       </div>
 
       ${novaNote(novaHints[stg] || novaHints[0])}
+      <div class="stage-progress" role="status">📍 ${escapeText(caseProgress(rec).short)} · ${escapeText(caseProgress(rec).nextText)}</div>
 
       <div class="stepper" role="tablist" aria-label="Etapas del expediente">
         ${stepper}
       </div>
 
       ${bodyHtml}
+      ${stg===5 ? renderCaseFinish(meta,rec) : ''}
 
       <div class="row-between" style="margin-top:18px;padding-top:12px;border-top:1px solid var(--line)">
         <button type="button" class="btn-ghost" ${stg === 0 ? 'disabled' : ''} data-exp-stage="${Math.max(0, stg - 1)}">${escapeText(tr('prevBtn'))}</button>
-        <button type="button" class="btn-primary" ${stg === 5 ? 'disabled' : ''} data-exp-stage="${Math.min(5, stg + 1)}">${escapeText(tr('nextBtn'))}</button>
+        <button type="button" class="btn-primary" ${stg === 5 || stg + 1 > maxUnlockedStage(rec) ? 'disabled' : ''} data-exp-stage="${Math.min(5, stg + 1)}">${escapeText(tr('nextBtn'))}</button>
       </div>
     </section>`;
+}
+
+const CASE_STRATEGIES = {
+  expMue: { es: ['Comprobar primero a quién representa la muestra','Comenzar clasificando las variables del estudio'], en: ['Start by checking population coverage','Start by classifying study variables'] },
+  expTab: { es: ['Construir primero las frecuencias nᵢ y Nᵢ','Ordenar primero los valores y buscar el centro'], en: ['Build counts nᵢ and Nᵢ first','Sort values and examine the center first'] },
+  expAgr: { es: ['Completar primero nᵢ y Nᵢ','Revisar primero las marcas de clase cᵢ'], en: ['Complete nᵢ and Nᵢ first','Find class marks cᵢ first'] },
+  expDis: { es: ['Calcular primero R y σ','Empezar por las medias y la dispersión relativa'], en: ['Compute R and σ first','Start with means and relative spread'] },
+  expAud: { es: ['Examinar primero la nube de puntos','Comprobar primero los totales de la tabla 2D'], en: ['Inspect the scatter plot first','Check 2D table totals first'] },
+  expReg: { es: ['Valorar primero si la recta es adecuada','Comenzar preparando la sustitución o el despeje'], en: ['Assess model suitability first','Prepare substitution or rearrangement first'] }
+};
+function strategyPrompt(id, strategy) {
+  if (!strategy) return '';
+  const en=L()==='en';
+  const tips={
+    expMue: [en?'Compare target population with the selected group.':'Compara la población objetivo con el grupo seleccionado.',en?'Classify categories, counts and measurements; then inspect selection.':'Distingue categorías, recuentos y medidas; después examina la selección.'],
+    expTab: [en?'Sum nᵢ and check N before calculating cumulative counts.':'Comprueba que la suma de nᵢ es N antes de acumular.',en?'Locate N/2 in the cumulative frequency table, without averaging central ranks.':'Localiza N/2 en la columna Nᵢ, sin promediar posiciones centrales.'],
+    expAgr: [en?'Complete the missing frequency and cumulative column before looking at quantile classes.':'Calcula la frecuencia faltante y la columna acumulada antes de localizar cuantiles.',en?'Use class marks for the estimated mean, not as exact quantile values.':'Usa las marcas para la media estimada, no como valores exactos de los cuantiles.'],
+    expDis: [en?'Keep units clear for σ; compare relative spread using CV.':'Conserva las unidades de σ y después compara mediante CV.',en?'Check that CV uses σ divided by the absolute mean.':'Comprueba que CV divide σ entre el valor absoluto de la media.'],
+    expAud: [en?'Describe direction and dispersion before looking at the reported r.':'Describe sentido y dispersión antes de mirar r declarado.',en?'Check all totals and then compare Sxy and the draft claim.':'Comprueba los totales y después contrasta Sxy y la afirmación del borrador.'],
+    expReg: [en?'Check whether the scatter supports interpolation, then calculate.':'Comprueba si la nube permite interpolar y después calcula.',en?'Keep the x and y units distinct, then check the range of the result.':'Distingue las unidades de x e y; después comprueba el rango del resultado.']
+  };
+  return tips[id]?.[strategy==='a'?0:1]||'';
 }
 
 function renderExpStage0(meta, rec, inst, sc) {
@@ -1948,22 +2225,23 @@ function renderExpStage0(meta, rec, inst, sc) {
       : `We have ${inst.g.N} continuous measurements grouped into non-overlapping [Lᵢ, Lₛ) intervals. Complete the table, distinguish exact values from class-mark estimates, and locate quartiles and P40.`;
   } else if (meta.id === 'expDis') {
     prompt = l === 'es'
-      ? `Queremos decidir cuál de dos variables (${sc.nameA} vs ${sc.nameB}) presenta mayor dispersión relativa cuando sus medias y unidades son distintas.`
-      : `We want to determine which variable (${sc.nameA} vs ${sc.nameB}) shows greater relative dispersion when means and units differ.`;
+      ? `Queremos decidir cuál de dos variables (${sc.nameA} vs ${sc.nameB}) presenta mayor dispersión relativa cuando sus medias o escalas son diferentes.`
+      : `We want to determine which variable (${sc.nameA} vs ${sc.nameB}) shows greater relative dispersion when means or measurement scales differ.`;
   } else if (meta.id === 'expAud') {
     prompt = l === 'es'
-      ? `Un borrador afirma que ${sc.xLabel} y ${sc.yLabel} tienen relación exacta y reporta un r incompatible con el gráfico. Audita la tabla 2D, la covarianza y el coeficiente r.`
-      : `A draft report claims exact dependence between ${sc.xLabel} and ${sc.yLabel} and states an impossible correlation r. Audit the 2D table, covariance, and r.`;
+      ? `Un informe sobre ${sc.xLabel} y ${sc.yLabel} incluye una tabla 2D, una nube de puntos y afirmaciones sobre su dependencia y correlación. Decide qué se sostiene con los datos y qué debe corregirse.`
+      : `A report about ${sc.xLabel} and ${sc.yLabel} includes a 2D table, scatter plot and claims about dependence and correlation. Decide what the evidence supports and what needs correcting.`;
   } else {
     prompt = l === 'es'
-      ? `A partir de la nube de puntos (${sc.xLabel} vs ${sc.yLabel}) y su recta y = ${fmt(inst.mShown, 3)}x + ${fmt(inst.nShown, 3)} (r = ${fmt(inst.bi.r, 3)}), debes estimar valores, juzgar el modelo y redactar conclusiones con límites.`
-      : `Using the scatter plot (${sc.xLabel} vs ${sc.yLabel}) and line y = ${fmt(inst.mShown, 3)}x + ${fmt(inst.nShown, 3)} (r = ${fmt(inst.bi.r, 3)}), estimate values, judge model utility, and justify limits.`;
+      ? `A partir de la nube de puntos (${sc.xLabel} frente a ${sc.yLabel}) y la recta dada (r = ${fmt(inst.bi.r, 3)}), ${inst.sc.predictionMode === 'solve_x' ? 'debes despejar x para un valor objetivo de y' : 'debes estimar y para un valor de x'}, valorar el modelo y justificar sus límites.`
+      : `Using the scatter plot (${sc.xLabel} vs ${sc.yLabel}) and regression line (r = ${fmt(inst.bi.r, 3)}), ${inst.sc.predictionMode === 'solve_x' ? 'solve for x from a target y' : 'estimate y for a given x'}, assess the model and justify its limits.`;
   }
   return `
     <div class="grid-2">
       <div class="subcard">
         <h4>${l === 'es' ? 'Pregunta de investigación' : 'Research Question'}</h4>
         <p style="font-size:.98rem;line-height:1.6">${escapeText(prompt)}</p>
+         ${meta.id === 'expReg' ? `<p class="math-equation">${regressionMath(inst.mShown, inst.nShown)}</p>` : ''}
       </div>
       <div class="subcard">
         <h4>${l === 'es' ? 'Plan de trabajo del expediente' : 'Case File Workflow'}</h4>
@@ -1974,10 +2252,18 @@ function renderExpStage0(meta, rec, inst, sc) {
           <li>${l === 'es' ? 'Redacta un informe breve con rúbrica y resuelve una transferencia nueva.' : 'Write a brief evidence report with rubric and solve a fresh transfer case.'}</li>
         </ul>
       </div>
+    </div>
+    <div class="subcard strategy-picker">
+      <label for="caseStrategy"><strong>${l==='es'?'🧭 ¿Por dónde prefieres empezar el análisis?':'🧭 How would you like to begin the analysis?'}</strong></label>
+      <select id="caseStrategy" class="field-input" data-exp-strategy="${meta.id}">
+        <option value="">${l==='es'?'Elegir más adelante (opcional)':'Decide later (optional)'}</option>
+        ${(CASE_STRATEGIES[meta.id]?.[l]||[]).map((txt,i)=>`<option value="${i===0?'a':'b'}" ${rec.strategy===(i===0?'a':'b')?'selected':''}>${escapeText(txt)}</option>`).join('')}
+      </select>
+      <p class="muted">${l==='es'?'Ambas rutas son válidas y llevan al mismo problema. Esta elección no se puntúa.':'Both approaches are valid and lead to the same problem. This choice is not graded.'}</p>
     </div>`;
 }
 
-function renderExpStage1(meta, rec, inst, sc) {
+function initialClaimContent(meta, inst, sc) {
   const l = L();
   const u = inst.user;
   let prompt = '';
@@ -1987,15 +2273,15 @@ function renderExpStage1(meta, rec, inst, sc) {
       ? `Propuesta: "${sc.proposal}". Antes de calcular nada, ¿crees que sirve para generalizar a toda la población?`
       : `Proposal: "${sc.proposal}". Before checking details, can this generalize to the full population?`;
     opts = l === 'es'
-      ? ['Sí, cualquier muestra vale si es rápida', 'No, deja fuera partes relevantes de la población (sesgo)', 'Solo si preguntamos dos veces al mismo grupo']
-      : ['Yes, any quick sample works', 'No, it systematically excludes key subgroups (bias)', 'Only if we ask the same group twice'];
+      ? ['Sí, porque los tubos se fabrican con el mismo procedimiento y los últimos pueden resumir la producción', 'No, deja fuera partes relevantes de la población (sesgo)', 'Solo si preguntamos dos veces al mismo grupo']
+      : ['Yes, the tubes share the same process and the last ones may summarize production', 'No, it systematically excludes key subgroups (bias)', 'Only if we ask the same group twice'];
   } else if (meta.id === 'expTab') {
     prompt = l === 'es'
       ? `Observando los ${inst.st.N} datos [${inst.raw.slice(0, 12).join(', ')}...], con un valor aislado alto (${inst.xMax}), ¿qué esperas?`
       : `Looking at the ${inst.st.N} values [${inst.raw.slice(0, 12).join(', ')}...] with a high outlier (${inst.xMax}), what do you expect?`;
     opts = l === 'es'
-      ? ['La media quedará por encima o igual que la mediana por el valor alto', 'La mediana será siempre mucho mayor que la media', 'Media, mediana y moda siempre son idénticas']
-      : ['The mean will be pulled at or above the median by the high value', 'The median will always exceed the mean', 'Mean, median, and mode are always equal'];
+      ? ['La media quedará por encima o igual que la mediana por el valor alto', 'La mediana podría quedar por encima de la media si muchos valores se concentran en la zona baja', 'La moda será la mayor observación, porque el valor extremo destaca respecto de las demás']
+      : ['The mean will be pulled at or above the median by the high value', 'The median could exceed the mean if many observations are concentrated at the low end', 'The largest observation will be the mode, because the outlier stands out from the rest'];
   } else if (meta.id === 'expAgr') {
     prompt = l === 'es'
       ? 'Al definir intervalos de clase consecutivos de amplitud 10, ¿qué escritura evita que un dato caiga en dos filas?'
@@ -2003,41 +2289,48 @@ function renderExpStage1(meta, rec, inst, sc) {
     opts = ['[10, 20], [20, 30], [30, 40]', '[10, 20), [20, 30), [30, 40]', '(10, 20), (20, 30), (30, 40)'];
   } else if (meta.id === 'expDis') {
     prompt = l === 'es'
-      ? `Si ${sc.nameA} y ${sc.nameB} tienen casi la misma desviación típica σ, ¿tienen la misma dispersión relativa?`
-      : `If ${sc.nameA} and ${sc.nameB} have nearly equal standard deviation σ, is their relative spread identical?`;
+      ? `Para comparar la dispersión relativa de ${sc.nameA} y ${sc.nameB}, ¿basta con mirar sus desviaciones típicas?`
+      : `To compare relative spread for ${sc.nameA} and ${sc.nameB}, is comparing standard deviations enough?`;
     opts = l === 'es'
-      ? ['Sí, porque σ es igual en ambos', 'No necesariamente: depende de sus medias y unidades (usar CV)', 'Solo cambia si el rango es negativo']
-      : ['Yes, because σ is equal', 'Not necessarily: it depends on their means and units (use CV)', 'Only if the range is negative'];
+      ? ['Es una comparación razonable porque la desviación típica mide directamente la dispersión de cada muestra', 'No necesariamente: si las medias o unidades difieren, conviene usar el coeficiente de variación', 'La dispersión depende únicamente del número de observaciones, no de los valores']
+      : ['Reasonable: standard deviation directly measures the spread of each sample', 'Not necessarily: with differing means or units, use the coefficient of variation', 'Spread depends only on the sample size, not on the values'];
   } else if (meta.id === 'expAud') {
     prompt = l === 'es'
       ? `Al estudiar ${sc.xLabel} y ${sc.yLabel}, ¿esperas una relación funcional exacta o estadística?`
       : `When studying ${sc.xLabel} and ${sc.yLabel}, do you expect exact functional or statistical dependence?`;
     opts = l === 'es'
-      ? ['Funcional exacta (misma x implica idéntica y siempre)', 'Estadística (tendencia con dispersión alrededor)', 'Sin relación posible si hay decimales']
-      : ['Exact functional (same x always yields identical y)', 'Statistical (overall trend with scatter around it)', 'No relationship when decimals appear'];
+      ? ['Una tendencia bastante clara podría indicar una dependencia funcional exacta', 'Es una dependencia estadística: puede haber tendencia con dispersión', 'Si los datos son distintos, no puede estudiarse ninguna relación']
+      : ['A clear-looking trend could imply an exact functional dependence', 'Statistical dependence: a trend may include scatter', 'Different values mean the relationship cannot be studied'];
   } else {
     prompt = l === 'es'
       ? `El modelo que relaciona ${sc.xLabel} con ${sc.yLabel} tiene r = ${fmt(inst.bi.r, 3)} en ${sc.xLabel} ∈ [${inst.sc.xMin}, ${inst.sc.xMax}]. ¿Garantiza un valor exacto cuando ${sc.xLabel} = ${inst.sc.xExt}?`
       : `The model relating ${sc.xLabel} to ${sc.yLabel} has r = ${fmt(inst.bi.r, 3)} for ${sc.xLabel} ∈ [${inst.sc.xMin}, ${inst.sc.xMax}]. Does it guarantee an exact value when ${sc.xLabel} = ${inst.sc.xExt}?`;
     opts = l === 'es'
-      ? ['Sí, una recta con r alto es infalible a cualquier x', 'No: estima valores medios dentro del rango; fuera es extrapolación arriesgada', 'Sí, siempre que y sea positivo']
-      : ['Yes, high r makes predictions exact anywhere', 'No: it estimates averages inside the domain; outside is risky extrapolation', 'Yes, whenever y is positive'];
+      ? ['Sí, si la tendencia es fuerte, la misma recta puede mantenerse aunque se aleje del rango observado', 'No: estima valores medios dentro del rango; fuera es extrapolación arriesgada', 'No, una recta estadística no sirve para estimar ni siquiera dentro del rango observado']
+      : ['Yes, if the trend is strong, the same line can continue to hold well beyond the data', 'No: it estimates averages inside the domain; outside is risky extrapolation', 'No, a statistical regression line cannot be used to estimate even inside the observed range'];
   }
+  return {prompt, opts};
+}
+
+function renderExpStage1(meta, rec, inst, sc) {
+  const l = L(), u = inst.user;
+  const {prompt,opts} = initialClaimContent(meta, inst, sc);
   return `
     <div class="subcard">
       <h4>${l === 'es' ? 'Decisión inicial (hipótesis previa)' : 'Initial Claim (Pre-Analysis)'}</h4>
+      <p class="muted">${l==='es'?'Aquí no se puntúa acertar. Registra tu intuición y compárala después con el análisis.':'This is not graded. Record your intuition and test it against your later analysis.'}</p>
       <p>${escapeText(prompt)}</p>
       <div style="display:grid;gap:8px;margin-top:10px">
         ${opts.map((txt, i) => `
           <label class="choice-opt">
-            <input type="radio" name="initClaim" value="${i}" ${u.init === String(i) ? 'checked' : ''} data-exp-input="init">
+            <input type="radio" name="initClaim" value="${i}" ${u.init === String(i) ? 'checked' : ''} data-exp-input="init" ${rec.stageDone[1] ? 'disabled' : ''}>
             <span>${escapeText(txt)}</span>
           </label>`).join('')}
       </div>
       <div class="row" style="margin-top:12px">
-        <button type="button" class="btn-primary" data-check-init="${meta.id}">${escapeText(tr('checkBtn'))}</button>
+        <button type="button" class="btn-primary" data-check-init="${meta.id}" ${rec.stageDone[1]?'disabled':''}>${l==='es'?'🔒 Registrar hipótesis':'🔒 Save initial claim'}</button>
       </div>
-      ${u.initFeedback ? `<div class="note ${u.initFeedback.ok ? 'ok' : 'warn'}">${escapeText(u.initFeedback.msg)}</div>` : ''}
+      ${rec.stageDone[1] ? `<div class="note info">${l==='es'?'Hipótesis guardada sin calificar. Compruébala en el análisis y vuelve a ella en el contraste.':'Ungraded hypothesis saved. Test it in Analysis and revisit it during Contrast.'}</div>` : u.initFeedback ? `<div class="note info">${escapeText(u.initFeedback.msg)}</div>` : ''}
     </div>`;
 }
 
@@ -2102,8 +2395,8 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
       <div class="subcard">
         <p><strong>${l === 'es' ? 'Datos brutos' : 'Raw dataset'} (N = ${st.N}):</strong> <span class="mono">${inst.raw.join(', ')}</span></p>
         <p class="muted" style="font-size:.86rem">${l === 'es'
-          ? 'Notación: xᵢ = valor · nᵢ = frecuencia absoluta · Nᵢ = frecuencia absoluta acumulada · fᵢ = nᵢ/N (fracción o decimal) · Fᵢ = Nᵢ/N.'
-          : 'Notation: xᵢ = value · nᵢ = count · Nᵢ = cumulative count · fᵢ = nᵢ/N · Fᵢ = Nᵢ/N.'}</p>
+          ? 'Notación: xᵢ = valor · nᵢ = frecuencia absoluta · Nᵢ = acumulada · fᵢ = nᵢ/N · Fᵢ = Nᵢ/N. Mediana en tabla: primer xᵢ con Nᵢ ≥ N/2.'
+          : 'Notation: xᵢ = value · nᵢ = count · Nᵢ = cumulative count · fᵢ = nᵢ/N · Fᵢ = Nᵢ/N. Table median: first xᵢ with Nᵢ ≥ N/2.'}</p>
         <div class="table-wrap">
           <table>
             <thead><tr><th>xᵢ (${escapeText(sc.xName)})</th><th>nᵢ</th><th>Nᵢ</th><th>fᵢ</th><th>Fᵢ</th></tr></thead>
@@ -2154,16 +2447,20 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
           </table>
         </div>
 
-        <h4 style="margin-top:14px">${l === 'es' ? `Haz clic o selecciona con teclado el intervalo que contiene a P${inst.sc.pTarget} en el histograma:` : `Click or keyboard-select the class containing P${inst.sc.pTarget} on the histogram:`}</h4>
-        ${renderHistogramSVG(g, { selectedIdx: inst.selectedBar, actionPrefix: `expAgr_${pfx}`, xLabel: sc.xName, yLabel: 'nᵢ' })}
+         ${inst.tableVerified ? `
+          <h4 style="margin-top:14px">${l === 'es' ? `Ahora utiliza el histograma para seleccionar el intervalo que contiene P${inst.sc.pTarget}:` : `Now use the histogram to select the interval containing P${inst.sc.pTarget}:`}</h4>
+          ${renderHistogramSVG(g, { selectedIdx: inst.selectedBar, actionPrefix: `expAgr_${pfx}`, xLabel: sc.xName, yLabel: 'nᵢ' })}
+         ` : `<div class="note info">${l === 'es' ? 'Primero completa y comprueba la tabla. Después aparecerán el histograma y las preguntas sobre cuantiles: así no se revela antes la frecuencia oculta.' : 'First complete and check the table. Then the histogram and quantile questions will appear, so the hidden count is not revealed.'}</div>`}
 
-        <div class="grid-3" style="margin-top:12px">
+         ${inst.tableVerified ? `<div class="grid-3" style="margin-top:12px">
           <div><label><strong>${l === 'es' ? 'Media estimada (x̄)' : 'Estimated mean (x̄)'}</strong></label><input class="field-input" value="${escapeText(u.mean)}" data-exp-field="mean" data-tr="${pfx}"></div>
           <div><label><strong>${l==='es'?'Intervalo de':'Interval for'} P${inst.sc.pTarget}</strong></label>${classSelect(g,u.pkVal,`data-exp-field="pkVal" data-tr="${pfx}"`)}</div>
           <div><label><strong>${l==='es'?'Intervalo de':'Interval for'} Q₁</strong></label>${classSelect(g,u.q1Interval,`data-exp-field="q1Interval" data-tr="${pfx}"`)}</div><div><label><strong>${l==='es'?'Intervalo de':'Interval for'} Q₃</strong></label>${classSelect(g,u.q3Interval,`data-exp-field="q3Interval" data-tr="${pfx}"`)}</div><p class="small">${l==='es'?'Con intervalos no se obtiene un RIC numérico exacto sin añadir un método de estimación.':'Intervals alone do not give an exact numerical IQR without further estimation.'}</p>
-        </div>
+         </div>` : ''}
         <div class="row" style="margin-top:14px">
-          <button type="button" class="btn-primary" data-check-analysis="expAgr:${pfx}">${escapeText(tr('checkBtn'))}</button>
+           ${inst.tableVerified
+             ? `<button type="button" class="btn-primary" data-check-analysis="expAgr:${pfx}">${escapeText(tr('checkBtn'))}</button>`
+             : `<button type="button" class="btn-primary" data-check-agr-table="${pfx}">${l === 'es' ? '✓ Comprobar tabla y ver el histograma' : '✓ Check table and show histogram'}</button>`}
         </div>
         ${chk.msg ? `<div class="note ${chk.ok ? 'ok' : 'err'}">${escapeText(chk.msg)}</div>` : ''}
       </div>`;
@@ -2221,9 +2518,14 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
             <div class="note warn" style="margin-top:0">
               <strong>${l === 'es' ? 'Borrador a auditar:' : 'Draft report to audit:'}</strong><br>
               • Sxy = ${fmt(inst.bi.sxy, 3)}<br>
-              • r ${l === 'es' ? 'declarado en el borrador' : 'claimed in draft'} = <strong>${fmt(inst.fakeR, 3)}</strong>
+              • r ${l === 'es' ? 'declarado' : 'reported'} = <strong>${fmt(inst.fakeR, 3)}</strong><br>
+              • ${inst.sc.badClaimType === 'functional_claim'
+                ? (l === 'es' ? 'El autor afirma que la recta determina exactamente cada resultado individual.' : 'The author claims that the line determines every individual outcome exactly.')
+                : (l === 'es' ? 'El autor afirma que el coeficiente publicado es coherente con el estudio.' : 'The author claims the reported coefficient agrees with the data.')}
             </div>
+            ${inst.sc.esContext ? `<p class="muted">${escapeText(l==='es'?inst.sc.esContext:inst.sc.enContext)}</p>` : ''}
             <h4 style="margin-top:12px">${l === 'es' ? 'Tabla de contingencia 2D (completa casilla y total faltantes)' : '2D Contingency table (fill missing cell & total)'}</h4>
+            <p class="muted">${l==='es'?'Los intervalos son [a, b), salvo el último, [a, b], que incluye el máximo.':'Intervals are [a, b), except the last [a, b], which includes the maximum.'}</p>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>${escapeText(sc.yLabel)} \\ ${escapeText(sc.xLabel)}</th>${t.xBins.map((b) => `<th>${escapeText(b.label)}</th>`).join('')}<th>Total</th></tr></thead>
@@ -2256,9 +2558,10 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
             <label><strong>${l === 'es' ? 'Incompatibilidad principal detectada' : 'Primary detected inconsistency'}</strong></label>
             <select class="field-input" data-exp-field="fakeReason" data-tr="${pfx}">
               <option value="">—</option>
-              <option value="sign_mismatch" ${u.fakeReason === 'sign_mismatch' ? 'selected' : ''}>${l === 'es' ? 'r declarado negativo contradice Sxy > 0 y la nube creciente' : 'Negative claimed r contradicts Sxy > 0 and upward trend'}</option>
+              <option value="sign_mismatch" ${u.fakeReason === 'sign_mismatch' ? 'selected' : ''}>${l === 'es' ? 'El signo de r contradice el de Sxy y la tendencia' : 'The sign of r conflicts with Sxy and the trend'}</option>
               <option value="out_of_bounds" ${u.fakeReason === 'out_of_bounds' ? 'selected' : ''}>${l === 'es' ? '|r| > 1 es matemáticamente imposible (r ∈ [−1, 1])' : '|r| > 1 is impossible (must lie in [−1, 1])'}</option>
-              <option value="no_error" ${u.fakeReason === 'no_error' ? 'selected' : ''}>${l === 'es' ? 'No hay ningún error en el borrador' : 'No error in the draft'}</option>
+              <option value="functional_claim" ${u.fakeReason === 'functional_claim' ? 'selected' : ''}>${l === 'es' ? 'r es coherente, pero la relación exacta no está justificada' : 'r is valid, but exact dependence is not justified'}</option>
+              <option value="no_error" ${u.fakeReason === 'no_error' ? 'selected' : ''}>${l === 'es' ? 'Las afirmaciones del borrador están justificadas' : 'All draft claims are justified'}</option>
             </select>
           </div>
         </div>
@@ -2270,8 +2573,10 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
   }
 
   // expReg
-  const userXNum = parseNum(u.yEst);
-  const predDot = Number.isFinite(userXNum) ? { x: sc.xPred, y: userXNum } : null;
+  const userPrediction = parseNum(u.yEst);
+  const inverse = inst.sc.predictionMode === 'solve_x';
+  const predDot = Number.isFinite(userPrediction)
+    ? (inverse ? { x: userPrediction, y: inst.sc.targetY } : { x: sc.xPred, y: userPrediction }) : null;
   return `
     <div class="subcard">
       <div class="grid-2">
@@ -2281,7 +2586,7 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
         <div>
           <div class="note ok" style="margin-top:0">
             <strong>${l === 'es' ? 'Recta de regresión proporcionada:' : 'Provided regression line:'}</strong><br>
-            <span class="mono" style="font-size:1.05rem">y = ${fmt(inst.mShown, 3)}·x + ${fmt(inst.nShown, 3)}</span><br>
+            <span class="math-equation">${regressionMath(inst.mShown, inst.nShown)}</span><br>
             <span>r = ${fmt(inst.bi.r, 3)} · x ∈ [${inst.sc.xMin}, ${inst.sc.xMax}]</span>
           </div>
           <div style="margin-top:12px">
@@ -2294,7 +2599,10 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
             </select>
           </div>
           <div style="margin-top:10px">
-            <label><strong>${l === 'es' ? `2. Estima ŷ cuando x = ${inst.sc.xPred}` : `2. Estimate ŷ when x = ${inst.sc.xPred}`}</strong></label>
+            <label><strong>${inverse
+                ? (l === 'es' ? `2. ¿Qué valor de ${sc.xLabel} estima la recta para ${sc.yLabel} = ${fmt(inst.sc.targetY,3)}?` : `2. What ${sc.xLabel} value does the line predict for ${sc.yLabel} = ${fmt(inst.sc.targetY,3)}?`)
+                : (l === 'es' ? `2. Estima ŷ cuando x = ${inst.sc.xPred}` : `2. Estimate ŷ when x = ${inst.sc.xPred}`)}</strong></label>
+            ${inverse ? `<p class="muted" style="margin:4px 0">${l==='es'?'Despeja x en la recta dada. Introduce únicamente el valor numérico, con tres decimales.':'Rearrange the given line for x. Enter only the numeric result to three decimals.'}</p>` : ''}
             <input class="field-input" value="${escapeText(u.yEst)}" data-exp-field="yEst" data-tr="${pfx}" style="margin-top:4px">
           </div>
           <div style="margin-top:10px">
@@ -2312,6 +2620,80 @@ function renderExpAnalysisBlock(id, inst, isTransfer) {
       </div>
       ${chk.msg ? `<div class="note ${chk.ok ? 'ok' : 'err'}">${escapeText(chk.msg)}</div>` : ''}
     </div>`;
+}
+
+/* The notebook only repeats evidence already calculated and verified in THIS guided case. */
+function caseEvidence(id, rec, inst) {
+  if (!rec.stageDone?.[2] || !inst.checked?.ok) return [];
+  const l = L(), es = l === 'es', u = inst.user, sc=inst.sc[l]||inst.sc;
+  if (id === 'expMue') {
+    const improvements = es ? [
+      'Seleccionar tubos aleatoriamente en distintos turnos y momentos de fabricación',
+      'Incluir vecinos de distintos barrios, tanto entre semana como en fin de semana',
+      'Seleccionar viviendas de distintos tipos, con y sin placas solares'
+    ] : [
+      'Randomly sample tubes across shifts and production times',
+      'Include residents from different districts on weekdays and weekends',
+      'Sample different types of homes, with and without solar panels'
+    ];
+    return [
+      [es?'Selección examinada':'Examined selection',sc.proposal],
+      [es?'Mejora comprobada':'Verified improvement',improvements[inst.v]||improvements[0]]
+    ];
+  }
+  if (id === 'expTab') return [
+    ['N',String(inst.st.N)],
+    [es?'Media':'Mean',fmt(inst.st.mean)],
+    [es?'Mediana (Nᵢ ≥ N/2)':'Median (Nᵢ ≥ N/2)',fmt(inst.st.median)],
+    [es?'Moda':'Mode',fmt(inst.st.mode)]
+  ];
+  if (id === 'expAgr') return [
+    ['N',String(inst.g.N)],
+    [es?'Media estimada':'Estimated mean',fmt(inst.g.mean)],
+    [`P${inst.sc.pTarget}`,inst.g.locateClass(inst.sc.pTarget).label],
+    ['Q₁ / Q₃',inst.g.q1Class.label+' / '+inst.g.q3Class.label]
+  ];
+  if (id === 'expDis') return [
+    ['CV(A)',fmt(inst.stA.cv)],['CV(B)',fmt(inst.stB.cv)],
+    [es?'Mayor dispersión relativa':'Higher relative spread',inst.stA.cv>inst.stB.cv?sc.nameA:sc.nameB]
+  ];
+  if (id === 'expAud') return [
+    [es?'Variables':'Variables',sc.xLabel+' / '+sc.yLabel],
+    ['Sxy',fmt(inst.bi.sxy)],
+    [es?'Sentido observado de la nube':'Observed scatter direction', inst.bi.r<0?(es?'Inversa':'Negative'):(es?'Directa':'Positive')],
+    [es?'r declarado en el borrador':'r claimed in draft',fmt(inst.fakeR)]
+  ];
+  const answer=inst.sc.predictionMode==='solve_x'?inst.estAnswer:inst.yPred;
+  const prediction=inst.sc.predictionMode==='solve_x' ? 'x̂' : 'ŷ';
+  return [
+    [es?'Variables':'Variables',sc.xLabel+' / '+sc.yLabel],
+    ['r',fmt(inst.bi.r)],
+    [es?'Resultado estimado':'Estimated result',prediction+' = '+fmt(answer)],
+    [es?'Rango observado de x':'Observed x range',`[${inst.sc.xMin}, ${inst.sc.xMax}]`]
+  ];
+}
+function renderEvidenceNotebook(id, rec, inst) {
+  const entries = caseEvidence(id, rec, inst), es=L()==='es';
+  if (!entries.length) return '';
+  return `<details class="evidence-notebook"><summary>📒 ${es?'Mis evidencias verificadas de este expediente':'My verified evidence from this case'}</summary>
+    <p class="muted">${es?'Son resultados de TU caso, no un informe ya redactado. Decide cuáles justifican tu conclusión.':'These are results from YOUR case, not a pre-written report. Choose those that support your conclusion.'}</p>
+    <div class="evidence-grid">${entries.map(([k,v])=>`<div><span>${escapeText(k)}</span><strong>${escapeText(v)}</strong></div>`).join('')}</div>
+  </details>`;
+}
+function renderPredictionReflection(id, rec, inst) {
+  const l=L(), es=l==='es', u=inst.user, sc=inst.sc[l]||inst.sc;
+  const options=initialClaimContent({id},inst,sc).opts;
+  const saved=typeof u.init==='string' && u.init!=='';
+  if (!saved || !rec.stageDone?.[2]) return '';
+  return `<div class="subcard reflection-card">
+    <h4>🔮 ${es?'Vuelve a tu hipótesis inicial':'Revisit your initial prediction'}</h4>
+    <p><strong>${es?'Habías elegido:':'You selected:'}</strong> ${escapeText(options[Number(u.init)]||'')}</p>
+    <p>${es?'Contrástala con la tabla, el gráfico o los parámetros que acabas de comprobar. ¿Qué mantendrías o modificarías? Cita una evidencia concreta.':'Compare it with the table, plot, or measurements just checked. What would you keep or change? Quote a specific piece of evidence.'}</p>
+    <label for="expRevision"><strong>${es?'Mi revisión razonada (opcional)':'My reasoned revision (optional)'}</strong></label>
+    <textarea id="expRevision" class="field-input" data-exp-revision="${id}" rows="2" placeholder="${es?'Ahora considero que… porque los datos muestran…':'I now think… because the evidence shows…'}">${escapeText(u.predRevision||'')}</textarea>
+    <button type="button" class="btn-ghost" data-save-revision="${id}">${es?'Guardar mi revisión':'Save my revision'}</button>
+    ${u.predRevisionFeedback?`<div class="note info" role="status">${escapeText(u.predRevisionFeedback)}</div>`:''}
+  </div>`;
 }
 
 function renderExpContrast(id, rec, inst) {
@@ -2340,8 +2722,8 @@ function renderExpContrast(id, rec, inst) {
           ? `Con el valor extremo (${inst.xMax}) la media vale ${fmt(inst.st.mean, 3)} y sin él pasa a ${fmt(inst.stNoOut.mean, 3)}. La mediana pasa de ${fmt(inst.st.median, 3)} a ${fmt(inst.stNoOut.median, 3)}. ¿Qué parámetro describe mejor el centro cuando hay valores extremos aislados?`
           : `With outlier (${inst.xMax}), the mean is ${fmt(inst.st.mean, 3)} and without it ${fmt(inst.stNoOut.mean, 3)}. Median shifts from ${fmt(inst.st.median, 3)} to ${fmt(inst.stNoOut.median, 3)}. Which measure resists extreme outliers better?`}</p>
         <div style="display:grid;gap:8px;margin-top:8px">
-          <label class="choice-opt"><input type="radio" name="expContr" value="median" ${u.contrast === 'median' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'La mediana, porque depende del orden central y apenas se altera por extremos' : 'The median, because it depends on central rank and resists extreme values'}</span></label>
-          <label class="choice-opt"><input type="radio" name="expContr" value="mean" ${u.contrast === 'mean' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'La media siempre es insensible a valores atípicos' : 'The mean is insensitive to outliers'}</span></label>
+          <label class="choice-opt"><input type="radio" name="expContr" value="median" ${u.contrast === 'median' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'La mediana: en los resultados del contraste cambia menos que la media cuando se retira el extremo' : 'The median: in the comparison it shifts less than the mean when the outlier is removed'}</span></label>
+          <label class="choice-opt"><input type="radio" name="expContr" value="mean" ${u.contrast === 'mean' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'La media utiliza todos los datos, de modo que podría describir mejor el grupo; comprueba cuánto cambia al retirar el extremo' : 'The mean uses every observation and could better describe the group; check how much it changes without the outlier'}</span></label>
         </div>
         <div class="row" style="margin-top:12px"><button type="button" class="btn-primary" data-check-contrast="${id}">${escapeText(tr('checkBtn'))}</button></div>
         ${u.contrastFb ? `<div class="note ${u.contrastFb.ok ? 'ok' : 'err'}">${escapeText(u.contrastFb.msg)}</div>` : ''}
@@ -2354,8 +2736,8 @@ function renderExpContrast(id, rec, inst) {
         <h4>${l === 'es' ? 'Contraste: intervalo del cuantil y media estimada' : 'Contrast: Quantile Interval and Estimated Mean'}</h4>
         <p>${l === 'es' ? 'Si solo conoces frecuencias por intervalos, ¿puedes obtener la media y el valor numérico de P40 exactos?' : 'Can grouped counts alone give the exact raw-data mean and numerical P40?'}</p>
         <div style="display:grid;gap:8px;margin-top:8px">
-          <label class="choice-opt"><input type="radio" name="expContr" value="approx" ${u.contrast === 'approx' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No: localizamos el intervalo de P40 por Nᵢ; la media con cᵢ es una estimación y desconocemos el valor exacto de P40' : 'No: use Nᵢ to identify the P40 interval; the midpoint-based mean is an estimate and exact P40 is unknown'}</span></label>
-          <label class="choice-opt"><input type="radio" name="expContr" value="exact" ${u.contrast === 'exact' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Sí, coinciden exactamente con los datos brutos originales sin margen de error' : 'Yes, they always match raw ungrouped data with zero error'}</span></label>
+          <label class="choice-opt"><input type="radio" name="expContr" value="approx" ${u.contrast === 'approx' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'La tabla solo justifica el intervalo de P40; sí permite estimar la media con cᵢ, pero no conocer valores exactos dentro de cada clase' : 'The table supports only the P40 interval; it estimates the mean using cᵢ, but exact within-class values remain unknown'}</span></label>
+          <label class="choice-opt"><input type="radio" name="expContr" value="exact" ${u.contrast === 'exact' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Sí: para P40 y la media basta elegir las marcas de clase, que dan un valor suficientemente representativo para tratarlo como exacto' : 'Yes: class midpoints provide representative enough values to treat both P40 and the mean as exact'}</span></label>
         </div>
         <div class="row" style="margin-top:12px"><button type="button" class="btn-primary" data-check-contrast="${id}">${escapeText(tr('checkBtn'))}</button></div>
         ${u.contrastFb ? `<div class="note ${u.contrastFb.ok ? 'ok' : 'err'}">${escapeText(u.contrastFb.msg)}</div>` : ''}
@@ -2371,7 +2753,7 @@ function renderExpContrast(id, rec, inst) {
           : `A sensor records daily temperature anomalies: [${inst.zeroMeanData.join(', ')}] °C (x̄ = 0 °C). Is CV = σ / |x̄| valid here?`}</p>
         <div style="display:grid;gap:8px;margin-top:8px">
           <label class="choice-opt"><input type="radio" name="expContr" value="invalid" ${u.contrast === 'invalid' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No procede: dividir entre x̄ = 0 es indefinido (y cerca de 0 dispara artificialmente el CV); hay que usar σ o RIC' : 'Invalid: dividing by x̄ = 0 is undefined (and near-zero blows up CV); use σ or IQR instead'}</span></label>
-          <label class="choice-opt"><input type="radio" name="expContr" value="zero" ${u.contrast === 'zero' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'El CV vale automáticamente 0%' : 'CV automatically equals 0%'}</span></label>
+          <label class="choice-opt"><input type="radio" name="expContr" value="zero" ${u.contrast === 'zero' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Como los datos tienen desviaciones que se compensan en la media, el CV podría interpretarse como 0% aunque haya dispersión' : 'Because positive and negative deviations cancel in the mean, CV could be treated as 0% despite the spread'}</span></label>
         </div>
         <div class="row" style="margin-top:12px"><button type="button" class="btn-primary" data-check-contrast="${id}">${escapeText(tr('checkBtn'))}</button></div>
         ${u.contrastFb ? `<div class="note ${u.contrastFb.ok ? 'ok' : 'err'}">${escapeText(u.contrastFb.msg)}</div>` : ''}
@@ -2382,10 +2764,10 @@ function renderExpContrast(id, rec, inst) {
     return `
       <div class="subcard">
         <h4>${l === 'es' ? 'Contraste: correlación frente a causalidad' : 'Contrast: Correlation vs Causation'}</h4>
-        <p>${l === 'es' ? `El borrador concluye: "Como la correlación es alta, aumentar ${sc.xLabel} causa automáticamente un aumento de ${sc.yLabel}". ¿Es válida esa afirmación?` : `The draft concludes: "Because correlation is strong, increasing ${sc.xLabel} automatically causes an increase in ${sc.yLabel}." Is this valid?`}</p>
+        <p>${l === 'es' ? `El borrador concluye: "Como |r| es alto, aumentar ${sc.xLabel} causa automáticamente ${inst.bi.r<0?'una disminución':'un aumento'} de ${sc.yLabel}". ¿Se sostiene esa afirmación?` : `The draft concludes: "Because |r| is high, increasing ${sc.xLabel} automatically causes ${inst.bi.r<0?'a decrease':'an increase'} in ${sc.yLabel}." Does this follow?`}</p>
         <div style="display:grid;gap:8px;margin-top:8px">
           <label class="choice-opt"><input type="radio" name="expContr" value="no_cause" ${u.contrast === 'no_cause' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No: una correlación lineal fuerte mide asociación estadística, no demuestra causalidad por sí sola' : 'No: strong linear correlation measures statistical association, never proving causation by itself'}</span></label>
-          <label class="choice-opt"><input type="radio" name="expContr" value="yes_cause" ${u.contrast === 'yes_cause' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Sí: r > 0,80 demuestra causa-efecto directa' : 'Yes: r > 0.80 proves direct cause and effect'}</span></label>
+          <label class="choice-opt"><input type="radio" name="expContr" value="yes_cause" ${u.contrast === 'yes_cause' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'La asociación fuerte es compatible con una posible influencia; podría presentarse como causa demostrada si r es suficientemente alto' : 'A strong association is compatible with influence; it could be reported as proven cause if r is high enough'}</span></label>
         </div>
         <div class="row" style="margin-top:12px"><button type="button" class="btn-primary" data-check-contrast="${id}">${escapeText(tr('checkBtn'))}</button></div>
         ${u.contrastFb ? `<div class="note ${u.contrastFb.ok ? 'ok' : 'err'}">${escapeText(u.contrastFb.msg)}</div>` : ''}
@@ -2396,10 +2778,12 @@ function renderExpContrast(id, rec, inst) {
   return `
     <div class="subcard">
       <h4>${l === 'es' ? 'Contraste: estimación frente a garantía' : 'Contrast: Estimate vs Guarantee'}</h4>
-      <p>${l === 'es' ? `Si el modelo predice ${sc.yLabel} = ${fmt(inst.yPred, 3)} cuando ${sc.xLabel} = ${inst.sc.xPred}, ¿significa que todos los casos con ese valor de ${sc.xLabel} tendrán exactamente ese resultado?` : `If the model predicts ${sc.yLabel} = ${fmt(inst.yPred, 3)} when ${sc.xLabel} = ${inst.sc.xPred}, does every case with that ${sc.xLabel} value have exactly that outcome?`}</p>
+      <p>${inst.sc.predictionMode === 'solve_x'
+        ? (l === 'es' ? `Para ${sc.yLabel} = ${fmt(inst.sc.targetY,3)}, la recta estima ${sc.xLabel} ≈ ${fmt(inst.estAnswer,3)}. ¿Es una garantía para todos los casos individuales?` : `For ${sc.yLabel} = ${fmt(inst.sc.targetY,3)}, the line estimates ${sc.xLabel} ≈ ${fmt(inst.estAnswer,3)}. Is this guaranteed for every individual case?`)
+        : (l === 'es' ? `Si el modelo predice ${sc.yLabel} = ${fmt(inst.yPred,3)} cuando ${sc.xLabel} = ${inst.sc.xPred}, ¿significa que todos los casos con ese valor tendrán exactamente ese resultado?` : `If the model predicts ${sc.yLabel} = ${fmt(inst.yPred,3)} when ${sc.xLabel} = ${inst.sc.xPred}, will all individual cases have exactly that outcome?`)}</p>
       <div style="display:grid;gap:8px;margin-top:8px">
         <label class="choice-opt"><input type="radio" name="expContr" value="est" ${u.contrast === 'est' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'No: es un valor medio esperado según la tendencia; los casos reales presentan dispersión alrededor de la recta' : 'No: it is an expected trend estimate; real individual outcomes scatter around the line'}</span></label>
-        <label class="choice-opt"><input type="radio" name="expContr" value="guar" ${u.contrast === 'guar' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Sí, por eso la recta sustituye cualquier medición real' : 'Yes, so the line guarantees every single outcome'}</span></label>
+        <label class="choice-opt"><input type="radio" name="expContr" value="guar" ${u.contrast === 'guar' ? 'checked' : ''} data-exp-input="contrast"><span>${l === 'es' ? 'Como la nube sigue bastante la recta, para un valor observado de x se puede tratar ŷ como resultado individual preciso' : 'Because points lie close to the line, for an observed x the prediction ŷ can be treated as a precise individual result'}</span></label>
       </div>
       <div class="row" style="margin-top:12px"><button type="button" class="btn-primary" data-check-contrast="${id}">${escapeText(tr('checkBtn'))}</button></div>
       ${u.contrastFb ? `<div class="note ${u.contrastFb.ok ? 'ok' : 'err'}">${escapeText(u.contrastFb.msg)}</div>` : ''}
@@ -2498,20 +2882,20 @@ const REPORT_TASKS = {
   "expAud": {
     "es": [
       "Auditoría: corrige el informe bidimensional",
-      "Explica qué dependencia se observa entre las variables y por qué no es funcional. Identifica el error del coeficiente r declarado usando la nube de puntos, la covarianza o el intervalo permitido de r, según el caso. Termina aclarando qué puede y qué no puede concluirse sobre causalidad.",
+      "Explica qué asociación se observa y por qué la recta no reproduce exactamente las observaciones. Identifica el error del coeficiente r declarado usando la nube de puntos, la covarianza o el intervalo permitido, según el caso. Termina aclarando qué puede y qué no puede concluirse sobre causalidad.",
       "La relación observada es… No es funcional porque… El r declarado no es posible porque… Estos datos permiten afirmar… pero no demuestran…",
       [
-        "Describo la dirección de la relación y justifico que es estadística, no funcional, con la dispersión de los puntos.",
+        "Describo la dirección y explico por qué la dispersión de los puntos impide una predicción exacta mediante una recta.",
         "Señalo la incoherencia concreta del r declarado y la justifico con el gráfico, el signo de la covarianza o los límites de r, según corresponda.",
         "Redacto una conclusión sobre asociación sin afirmar que la correlación demuestra causalidad."
       ]
     ],
     "en": [
       "Audit: correct the bivariate report",
-      "Describe the dependence between the variables and why it is not functional. Identify the error in the claimed r using the scatter plot, covariance or allowed range of r as applicable. Explain what can and cannot be concluded about causation.",
+      "Describe the observed association and why the straight line does not reproduce every observation exactly. Identify the error in claimed r using the scatter plot, covariance or the allowed range, as applicable. Discuss limits on causal conclusions.",
       "The observed relationship is… It is not functional because… The claimed r is impossible because… The data support… but do not prove…",
       [
-        "I describe direction and use point scatter to justify statistical rather than functional dependence.",
+        "I describe direction and explain why scatter prevents exact predictions from the fitted line.",
         "I identify the specific inconsistency in the claimed r using the plot, covariance sign or bounds as applicable.",
         "I conclude about association without claiming that correlation proves causation."
       ]
@@ -2549,10 +2933,49 @@ function ensureReportReview(rec) {
    rec.reportRubricVersion = 2;
  }
 }
+function reportTaskFor(id, inst, l=L()) {
+  let task = REPORT_TASKS[id][l];
+  if (id==='expAud' && inst.sc.badClaimType==='functional_claim') {
+    task = l==='es' ? [
+      'Auditoría: un coeficiente correcto no basta',
+      'Describe la dirección de la relación y señala por qué el coeficiente r y la covarianza son coherentes con la nube. Explica qué afirmación del borrador sigue sin quedar justificada. Termina distinguiendo asociación estadística de causalidad.',
+      'La nube muestra… El signo de Sxy y r… Aunque r sea posible, no podemos afirmar que… Tampoco se demuestra…',
+      ['Describo la asociación del caso y su dirección utilizando la nube de puntos.',
+       'Justifico que el signo de Sxy y de r coincide con los datos, pero que la recta no determina exactamente cada observación.',
+       'Redacto una conclusión que distingue tendencia estadística y causalidad.']
+    ] : [
+      'Audit: a correct coefficient is not enough',
+      'Describe the trend and why r and covariance agree with the cloud. Explain which remaining draft claim is unsupported. Finish by distinguishing association from causation.',
+      'The cloud shows… The sign of Sxy and r… Even if r is valid, we cannot claim… Nor is it proved that…',
+      ['I describe the association and direction using the scatter plot.',
+       'I justify why the signs of Sxy and r agree but the line does not exactly determine every observation.',
+       'I conclude by distinguishing statistical trend and causation.']
+    ];
+  }
+  if (id==='expReg' && inst.sc.predictionMode==='solve_x') {
+    task = l==='es' ? [
+      'Regresión: razona desde un objetivo',
+      'Explica si el modelo es útil utilizando la nube y r. Escribe cómo has despejado x en la recta para alcanzar el valor objetivo de y, interpreta el resultado en este contexto y comprueba que está en el rango de datos. Después valora la extrapolación al x lejano propuesto y la incertidumbre individual.',
+      'El modelo es… Para alcanzar el objetivo… sustituyo y = … y despejo x = … El resultado es una estimación porque… Para el valor lejano…',
+      ['Relaciono la utilidad del modelo con la nube y la intensidad de la correlación, sin confundir tendencia con exactitud.',
+       'Explico cómo despejo x para un objetivo y dado e interpreto la estimación con sus unidades y rango.',
+       'Justifico los límites de la extrapolación y por qué la predicción no garantiza casos individuales.']
+    ] : [
+      'Regression: reasoning from a target',
+      'Use the cloud and r to assess the line. Show how you solved for x from a target y, interpret that x in context, and check its observed range. Discuss extrapolation for the distant x and individual uncertainty.',
+      'The model is… For the target y… I rearrange x = … This is an estimate because… At distant x…',
+      ['I assess the model using the cloud and correlation strength, not treating the trend as exact.',
+       'I rearrange the line for x from target y and interpret the result with units and range.',
+       'I justify the risks of extrapolation and the limits of individual predictions.']
+    ];
+  }
+  return task;
+}
+
 function renderExpReport(id, rec, inst) {
   ensureReportReview(rec);
   const l = L();
-  const task = REPORT_TASKS[id][l];
+  const task = reportTaskFor(id, inst, l);
   const rubricItems = task[3];
   const sc = inst.sc[l] || inst.sc;
   return `
@@ -2563,9 +2986,24 @@ function renderExpReport(id, rec, inst) {
       ${id==='expMue'?`<div class="note info"><strong>${l==='es'?'Situación del caso:':'Case scenario:'}</strong> ${escapeText(sc.question)}</div>`:''}
       <p class="small">${l==='es'?'Utiliza solo el enunciado y lo trabajado en este expediente. No necesitas buscar fuentes en internet. Puedes volver a Análisis y Contraste para consultar tus respuestas.':'Use only this case and your work in it. No internet research is needed. Return to Analysis and Contrast to consult your answers.'}</p>
       <div class="row"><button type="button" class="btn-ghost" data-exp-stage="2">${l==='es'?'↩ Consultar mi análisis':'↩ Review my analysis'}</button><button type="button" class="btn-ghost" data-exp-stage="3">${l==='es'?'↩ Consultar el contraste':'↩ Review the contrast'}</button></div>
-      <p class="small">${l==='es'?'Después de escribir, revisa las tres comprobaciones. Son una autoevaluación: guardar el texto no valida automáticamente su corrección matemática.':'After writing, review the three checks. This is self-assessment: saving text does not automatically validate its mathematical correctness.'}</p>
+      <p class="small">${l==='es'?'Revisa los tres criterios antes de guardar. Es una autoevaluación: marcar casillas no demuestra por sí solo que el informe sea correcto.':'Check the three criteria before saving. This is self-assessment: ticking boxes does not by itself prove the report is correct.'}</p>
       <label for="expReportText"><strong>${l === 'es' ? 'Tu conclusión justificada' : 'Your justified conclusion'}</strong></label>
       <textarea id="expReportText" class="field-input" rows="4" placeholder="${escapeText(task[2])}" data-exp-report="${id}" style="margin-top:6px">${escapeText(rec.reportText)}</textarea>
+      <details class="report-review-extra">
+        <summary>${l==='es'?'🔎 Revisión guiada opcional (dos preguntas)':'🔎 Optional guided review (two questions)'}</summary>
+        <p><strong>1.</strong> ${l==='es'?'¿Has incluido al menos un dato o decisión concreta que ya apareciera en Análisis o Contraste?':'Have you included a concrete result or decision from Analysis or Contrast?'}</p>
+        <p><strong>2.</strong> ${l==='es'?'¿Tu conclusión responde a la pregunta de este caso sin afirmar más de lo que permiten los datos?':'Does your conclusion answer this case without claiming more than the evidence shows?'}</p>
+        <p class="muted">${l==='es'?'Puedes consultar tus respuestas anteriores y volver al informe. Abrir esta guía no afecta a tus recompensas.':'You can revisit previous answers and return to the report. Opening this guide does not affect rewards.'}</p>
+      </details>
+      <details class="report-review-extra">
+        <summary>👥 ${l==='es'?'Mirada de un compañero (opcional)':'Peer perspective (optional)'}</summary>
+        <p class="muted">${l==='es'?'Si trabajáis juntos, podéis registrar dos observaciones sin modificar el informe original. Esto no equivale a validación docente ni concede logros.':'If working together, record two observations without changing the original report. This is not teacher validation and awards no achievements.'}</p>
+        <label><strong>${l==='es'?'¿Qué evidencia respalda bien el informe?':'What evidence is used well?'}</strong></label>
+        <textarea class="field-input" rows="2" data-peer-review="${id}:evidence">${escapeText(rec.peerReview?.evidence||'')}</textarea>
+        <label><strong>${l==='es'?'¿Qué conclusión o justificación convendría revisar?':'What conclusion or justification needs attention?'}</strong></label>
+        <textarea class="field-input" rows="2" data-peer-review="${id}:suggestion">${escapeText(rec.peerReview?.suggestion||'')}</textarea>
+        <p class="muted">${l==='es'?'Se guarda en este navegador; la autoevaluación es independiente.':'Saved on this device; separate from self-assessment.'}</p>
+      </details>
       <div class="rubric" style="margin-top:12px">
         <strong>${escapeText(tr('rubricTitle'))}</strong>
         ${rubricItems.map((txt, i) => `
@@ -2582,7 +3020,174 @@ function renderExpReport(id, rec, inst) {
     </div>`;
 }
 
+/* Feedback de precisión por celda/campo, sin revelar resultados. */
+function reviewFields(id, inst, tableOnly = false) {
+  const l = L(), en = l === 'en', u = inst.user;
+  const fields = {};
+  function add(key, ok, label, hintEs, hintEn) {
+    fields[key] = { ok: Boolean(ok), label, hint: en ? (hintEn || hintEs) : hintEs };
+  }
+  function num(key, raw, val, label, es, eng, tol = 0.0015) {
+    add(key, closeNum(raw, val, tol), label, es, eng);
+  }
+  function sel(key, raw, expected, label, es, eng) {
+    add(key, raw === expected, label, es, eng);
+  }
+  if (id === 'expMue') {
+    sel('field:bias',u.bias,'selection',en?'Sample bias':'Sesgo muestral',
+      '¿Qué parte de la población no tiene oportunidad de aparecer?', 'Which part of the population is left out?');
+    sel('field:fix',u.fix,'stratified',en?'Sample improvement':'Mejora de muestreo',
+      'La mejora debe cubrir los distintos grupos u horarios, no solo sumar casos.', 'Cover different groups or times rather than only adding observations.');
+    inst.sc[l].vars.forEach((v,i)=>sel(`var:${i}`,u.vars[i],v.ans,v.label,
+      'Decide si es una categoría, un recuento entero o una medida.', 'Is it a category, a whole-number count or a measurement?'));
+  } else if (id === 'expTab') {
+    const st=inst.st;
+    st.rows.forEach((r,i)=>{
+      const row=u.table[i], head=`xᵢ = ${r.xi}`;
+      num(`tab:${i}:ni`,row.ni,r.ni,`${head}, nᵢ`, 'Cuenta cuántas veces aparece este valor.', 'Count how often this value appears.',0.001);
+      num(`tab:${i}:Ni`,row.Ni,r.Ni,`${head}, Nᵢ`, 'Acumula las nᵢ desde la primera fila hasta esta.', 'Add the nᵢ from the first row up to this row.',0.001);
+      num(`tab:${i}:fi`,row.fi,r.fi,`${head}, fᵢ`, 'Divide nᵢ entre el total N; expresa 3 decimales.', 'Divide nᵢ by total N; give 3 decimals.',0.005);
+      num(`tab:${i}:Fi`,row.Fi,r.Fi,`${head}, Fᵢ`, 'Divide Nᵢ entre N; comprueba que la última Fᵢ es 1.', 'Divide Nᵢ by N; the last Fᵢ should be 1.',0.005);
+    });
+    num('field:mean',u.mean,st.mean,en?'Mean':'Media','Suma xᵢ·nᵢ y divide por N.', 'Sum xᵢ·nᵢ and divide by N.',0.01);
+    num('field:median',u.median,st.median,en?'Median':'Mediana','Calcula N/2: toma el primer xᵢ con Nᵢ ≥ N/2, incluso si hay igualdad.', 'Find N/2 and take the first xᵢ with Nᵢ ≥ N/2, including equality.',0.001);
+    num('field:mode',u.mode,st.mode,en?'Mode':'Moda','Busca el mayor nᵢ y su correspondiente xᵢ.', 'Find the largest nᵢ and its xᵢ.',0.001);
+  } else if (id === 'expAgr') {
+    const g=inst.g;
+    g.rows.forEach((r,i)=>{
+      const row=u.rows[i], head=r.label;
+      num(`agr:${i}:ci`,row.ci,r.ci,`${head}, cᵢ`,'La marca de clase es la media de los dos extremos del intervalo.','The class midpoint averages the two interval limits.',0.0015);
+      num(`agr:${i}:ni`,row.ni,r.ni,`${head}, nᵢ`,'Deduce la frecuencia faltante restando al total las demás frecuencias.','Subtract known counts from the total for the missing frequency.',0.001);
+      num(`agr:${i}:Ni`,row.Ni,r.Ni,`${head}, Nᵢ`,'Acumula las frecuencias nᵢ desde el primer intervalo.','Accumulate nᵢ from the first interval.',0.001);
+      num(`agr:${i}:fi`,row.fi,r.fi,`${head}, fᵢ`,'Usa nᵢ/N y redondea a 3 decimales.','Use nᵢ/N and round to 3 decimals.',0.005);
+      num(`agr:${i}:Fi`,row.Fi,r.Fi,`${head}, Fᵢ`,'Usa Nᵢ/N, no la suma de frecuencias ya redondeadas.','Use Nᵢ/N, not the sum of previously rounded values.',0.005);
+    });
+    if (!tableOnly) {
+      const p=g.locateClass(inst.sc.pTarget);
+      sel('field:pkVal',u.pkVal,p.label,`P${inst.sc.pTarget}`,'Busca el primer Nᵢ que alcance (p/100)·N.','Find the first Nᵢ reaching (p/100)·N.');
+      sel('field:q1Interval',u.q1Interval,g.locateClass(25).label,'Q₁','Localiza la primera Nᵢ ≥ 0,25·N.','Locate the first Nᵢ ≥ 0.25·N.');
+      sel('field:q3Interval',u.q3Interval,g.locateClass(75).label,'Q₃','Localiza la primera Nᵢ ≥ 0,75·N.','Locate the first Nᵢ ≥ 0.75·N.');
+      num('field:mean',u.mean,g.mean,en?'Estimated mean':'Media estimada','Usa ∑(cᵢ·nᵢ)/N; la marca de clase aproxima la media.','Use ∑(cᵢ·nᵢ)/N; class midpoints estimate the mean.',0.01);
+      add('field:hist',inst.selectedBar===p.idx,en?'Histogram selection':'Intervalo del histograma',
+        'La barra seleccionada debe alcanzar la posición del percentil según Nᵢ.','The selected bar must contain the percentile rank from Nᵢ.');
+    }
+  } else if (id === 'expDis') {
+    num('field:rangeA',u.rangeA,inst.stA.range,en?'Range A':'Rango A','R = máximo − mínimo.','Range = maximum − minimum.',0.0015);
+    num('field:varA',u.varA,inst.stA.variance,en?'Variance A':'Varianza A','Eleva al cuadrado las desviaciones respecto de la media y divide por N.','Square deviations from the mean and divide by N.',varianceTol(inst.stA.variance));
+    num('field:stdA',u.stdA,inst.stA.std,en?'Standard deviation A':'Desviación típica A','La desviación típica es la raíz de la varianza.','Standard deviation is the square root of variance.',stdTol(inst.stA.std));
+    num('field:cvA',u.cvA,inst.stA.cv,'CV(A)','Divide σ entre |x̄|, en forma decimal.','Divide σ by |x̄|, as a decimal ratio.',0.005);
+    num('field:cvB',u.cvB,inst.stB.cv,'CV(B)','Usa la σ y la media de B; no las de A.','Use the standard deviation and mean of B.',0.005);
+    sel('field:moreDispersed',u.moreDispersed,inst.stB.cv > inst.stA.cv ? 'B' : inst.stB.cv < inst.stA.cv ? 'A' : 'same',
+      en?'Relative comparison':'Comparación relativa','Compara los CV con la misma forma (razón o porcentaje).','Compare CVs in the same format (ratio or percentage).');
+  } else if (id === 'expAud') {
+    const t=inst.table2d;
+    num('field:missCell',u.missCell,t.matrix[1][1],en?'Missing cell':'Casilla 2D','Resta las demás casillas al total de la columna.','Subtract the other cells from the column total.',0.001);
+    num('field:missRowSum',u.missRowSum,t.rowTotals[1],en?'Missing row total':'Total de fila 2D','Suma todas las casillas de la fila.','Sum all the cells of that row.',0.001);
+    sel('field:depType',u.depType,inst.bi.r<0?'stat_neg':'stat_pos',en?'Type of association':'Dependencia','Revisa si la nube sube o baja y si los puntos forman una recta exacta.','Check upward/downward trend and whether all points lie on one line.');
+    sel('field:fakeReason',u.fakeReason,inst.sc.badClaimType,en?'Draft inconsistency':'Incoherencia del borrador','Comprueba signo y límites de r; si son correctos, revisa si el informe exagera la exactitud.','Check the sign and bounds of r; if valid, examine whether the report overstates exactness.');
+  } else if (id === 'expReg') {
+    sel('field:reliable',u.reliable,'yes',en?'Model usefulness':'Utilidad del modelo','Una tendencia clara permite estimar, pero no da certezas.','A clear trend supports estimates, not certainty.');
+    num('field:yEst',u.yEst,inst.sc.predictionMode==='solve_x'?inst.estAnswer:inst.yPred,
+      en?'Estimate':'Estimación',
+      inst.sc.predictionMode==='solve_x'?'Se conoce y: despeja x restando n y dividiendo por m.':'Sustituye x en la recta proporcionada.',
+      inst.sc.predictionMode==='solve_x'?'Target y is known: solve for x by subtracting n and dividing by m.':'Substitute x in the given line.',0.01);
+    sel('field:interpVsExtrap',u.interpVsExtrap,'extrap',en?'Prediction limits':'Límites de la predicción','Compara el valor propuesto con el rango observado.','Compare the proposed input with the observed range.');
+  }
+  return { fields, allOk: Object.values(fields).every(v => v.ok) };
+}
+
+function clearReviewMarkup() {
+  app.querySelectorAll('.review-cell-mark,.review-feedback').forEach(el=>el.remove());
+  app.querySelectorAll('.field-input.ok,.field-input.bad,.cell-input.ok,.cell-input.bad').forEach(el=>{
+    el.classList.remove('ok','bad');el.removeAttribute('aria-invalid');el.removeAttribute('aria-describedby');
+  });
+}
+function decorateReviewFeedback() {
+  if (state.activeNav !== 'expedientes') return;
+  const m=COMPETENCIAS_META[state.activeExp];
+  if (!m) return;
+  const rec=makeExpRecord(m.id);
+  if (![2,5].includes(rec.stage)) return;
+  const inst=rec.stage===5 ? rec.transfer : rec.guided;
+  const details=inst.checked?.fields;
+  if (!details) return;
+  const loc = L();
+  const container=$('caseWorkspace');
+  for (const el of container.querySelectorAll('[data-tab-cell], [data-agr-cell], [data-exp-field], [data-exp-var]')) {
+    let key='';
+    if(el.dataset.tabCell) {const [i,col]=el.dataset.tabCell.split(':');key=`tab:${i}:${col}`;}
+    else if(el.dataset.agrCell) {const [i,col]=el.dataset.agrCell.split(':');key=`agr:${i}:${col}`;}
+    else if(el.dataset.expField) key=`field:${el.dataset.expField}`;
+    else if(el.dataset.expVar!=null) key=`var:${el.dataset.expVar}`;
+    const entry=details[key];
+    if(!entry) continue;
+    el.classList.add(entry.ok?'ok':'bad');
+    el.setAttribute('aria-invalid',String(!entry.ok));
+    if (el.readOnly) continue;
+    const mark=document.createElement('small');
+    mark.className=`review-cell-mark ${entry.ok?'good':'retry'}`;
+    mark.textContent=entry.ok?'✓':(el.closest('td')?'↻':`${loc==='es'?'Revisa:':'Review:'} ${entry.hint}`);
+    mark.title=entry.ok?(loc==='es'?'Correcto':'Correct'):entry.hint;
+    mark.id=`reviewMark${Math.random().toString(36).slice(2,9)}`;
+    el.setAttribute('aria-describedby',mark.id);
+    el.insertAdjacentElement('afterend',mark);
+  }
+  const wrong=Object.values(details).filter(v=>!v.ok);
+  if(!wrong.length) return;
+  const panel=document.createElement('details');
+  panel.className='review-feedback';
+  panel.open=wrong.length <= 8;
+  const summary=document.createElement('summary');
+  summary.textContent=loc==='es'?`🔎 ${wrong.length} ${wrong.length===1?'campo por revisar':'campos por revisar'} (sin dar la respuesta)`:`🔎 ${wrong.length} fields to review (answers not revealed)`;
+  panel.appendChild(summary);
+  const list=document.createElement('ul');
+  for(const r of wrong){
+    const li=document.createElement('li');
+    const strong=document.createElement('strong');strong.textContent=`${r.label}: `;
+    li.append(strong,document.createTextNode(r.hint));list.appendChild(li);
+  }
+  panel.appendChild(list);
+  const card=container.querySelector('.subcard');
+  card?.appendChild(panel);
+}
+
+function checkGroupedTable(isTransfer) {
+  const rec = makeExpRecord('expAgr');
+  const inst = isTransfer ? rec.transfer : rec.guided;
+  const review = reviewFields('expAgr', inst, true);
+  const rowsOk = review.allOk;
+  inst.tableVerified = rowsOk;
+  inst.checked = {
+    ok: false,
+    fields: review.fields,
+    msg: rowsOk
+      ? (L() === 'es' ? 'Tabla comprobada. Ahora analiza el histograma y localiza los cuantiles.' : 'Table checked. Now use the histogram and locate the quantiles.')
+      : (L() === 'es' ? 'Todavía hay algún dato de la tabla que revisar: comprueba las frecuencias, sus acumuladas y el redondeo a tres decimales.' : 'Some table values need review: check frequencies, cumulative counts and three-decimal rounding.')
+  };
+  save(); render();
+}
+
+function invalidateAnalysis(id, isTransfer) {
+  const rec = makeExpRecord(id);
+  const inst = isTransfer ? rec.transfer : rec.guided;
+  inst.checked = {};
+  if (isTransfer) {
+    rec.completedTransfer = false;
+    rec.stageDone[5] = false;
+  } else if (rec.completedGuided || rec.stageDone[2]) {
+    rec.completedGuided = false;
+    rec.stageDone[2] = false;
+    rec.stageDone[3] = false;
+    rec.stageDone[4] = false;
+    rec.stageDone[5] = false;
+    rec.selfAssessed = false;
+    rec.completedTransfer = false;
+    rec.rubricChecks = [false, false, false];
+  }
+}
+
 function checkExpAnalysis(id, isTransfer) {
+  markPracticeReturn();
   const l = L();
   const rec = makeExpRecord(id);
   const inst = isTransfer ? rec.transfer : rec.guided;
@@ -2600,52 +3205,54 @@ function checkExpAnalysis(id, isTransfer) {
     const st = inst.st;
     const rowsOk = st.rows.every((r, i) => {
       const ur = u.table[i];
-      return closeNum(ur.ni, r.ni, 0.01) && closeNum(ur.Ni, r.Ni, 0.01) && closeNum(ur.fi, r.fi, 0.02) && closeNum(ur.Fi, r.Fi, 0.02);
+      return closeNum(ur.ni, r.ni, 0.001) && closeNum(ur.Ni, r.Ni, 0.001) && closeNum(ur.fi, r.fi, 0.005) && closeNum(ur.Fi, r.Fi, 0.005);
     });
-    const pOk = closeNum(u.mean, st.mean, 0.03) && closeNum(u.median, st.median, 0.03) && closeNum(u.mode, st.mode, 0.03);
+    const pOk = closeNum(u.mean, st.mean, 0.01) && closeNum(u.median, st.median, 0.001) && closeNum(u.mode, st.mode, 0.001);
     ok = rowsOk && pOk;
-    if (!ok) badMsg = l === 'es' ? 'Revisa nᵢ, Nᵢ, fᵢ, Fᵢ (tolerancia ±0,02 en redondeo) y Media/Mediana/Moda.' : 'Check nᵢ, Nᵢ, fᵢ, Fᵢ (±0.02 rounding tolerance) and Mean/Median/Mode.';
+    if (!ok) badMsg = l === 'es' ? 'Revisa las celdas señaladas y sus pistas; las frecuencias relativas se presentan a tres decimales.' : 'Review marked cells and hints; relative frequencies are shown to three decimals.';
   } else if (id === 'expAgr') {
     const g = inst.g;
     const rowsOk = g.rows.every((r, i) => {
       const ur = u.rows[i];
-      return closeNum(ur.ci, r.ci, 0.05) && closeNum(ur.ni, r.ni, 0.01) && closeNum(ur.Ni, r.Ni, 0.01) && closeNum(ur.fi, r.fi, 0.02) && closeNum(ur.Fi, r.Fi, 0.02);
+      return closeNum(ur.ci, r.ci, 0.0015) && closeNum(ur.ni, r.ni, 0.001) && closeNum(ur.Ni, r.Ni, 0.001) && closeNum(ur.fi, r.fi, 0.005) && closeNum(ur.Fi, r.Fi, 0.005);
     });
     const expCls = g.locateClass(inst.sc.pTarget);
     const barOk = inst.selectedBar === expCls.idx;
     const expPk = g.percentileValue(inst.sc.pTarget);
-    const pOk = closeNum(u.mean, g.mean, 0.08) && matchesClass(u.pkVal, expCls) && matchesClass(u.q1Interval,g.locateClass(25)) && matchesClass(u.q3Interval,g.locateClass(75));
+    const pOk = closeNum(u.mean, g.mean, 0.01) && matchesClass(u.pkVal, expCls) && matchesClass(u.q1Interval,g.locateClass(25)) && matchesClass(u.q3Interval,g.locateClass(75));
     ok = rowsOk && barOk && pOk;
-    if (!ok) badMsg = l === 'es' ? `Verifica cᵢ, nᵢ faltante, el intervalo de P${inst.sc.pTarget} en el histograma y las medidas según Config. docente.` : `Verify cᵢ, missing nᵢ, P${inst.sc.pTarget} bar on histogram, and measures per Teacher Config.`;
+    if (!ok) badMsg = l === 'es' ? `Verifica cᵢ, nᵢ faltante, el intervalo de P${inst.sc.pTarget} en el histograma y las medidas según las convenciones de clase.` : `Verify cᵢ, missing nᵢ, P${inst.sc.pTarget} bar on histogram, and measures using the class conventions.`;
   } else if (id === 'expDis') {
-    ok = closeNum(u.rangeA, inst.stA.range, 0.05) && closeNum(u.varA, inst.stA.variance, 0.25) &&
-      closeNum(u.stdA, inst.stA.std, 0.12) && closeNum(u.cvA, inst.stA.cv, 0.02) &&
-      closeNum(u.cvB, inst.stB.cv, 0.02) && u.moreDispersed === (inst.stB.cv > inst.stA.cv ? 'B' : 'A');
+    ok = closeNum(u.rangeA, inst.stA.range, 0.0015) && closeNum(u.varA, inst.stA.variance, varianceTol(inst.stA.variance)) &&
+      closeNum(u.stdA, inst.stA.std, stdTol(inst.stA.std)) && closeNum(u.cvA, inst.stA.cv, 0.005) &&
+      closeNum(u.cvB, inst.stB.cv, 0.005) && u.moreDispersed === (inst.stB.cv > inst.stA.cv ? 'B' : 'A');
     if (!ok) badMsg = l === 'es' ? 'Revisa R, varianza con divisor N, σ y CV = σ/|x̄| para A y B.' : 'Check R, variance (divisor N), σ, and CV = σ/|x̄| for A and B.';
   } else if (id === 'expAud') {
     const t = inst.table2d;
-    ok = closeNum(u.missCell, t.matrix[1][1], 0.01) && closeNum(u.missRowSum, t.rowTotals[1], 0.01) &&
-      u.depType === 'stat_pos' && u.fakeReason === inst.sc.badClaimType;
-    if (!ok) badMsg = l === 'es' ? 'Comprueba los totales de la tabla 2D, dependencia estadística positiva y la contradicción de r.' : 'Check 2D table totals, positive statistical dependence, and the r contradiction.';
+    ok = closeNum(u.missCell, t.matrix[1][1], 0.001) && closeNum(u.missRowSum, t.rowTotals[1], 0.001) &&
+      u.depType === (inst.bi.r < 0 ? 'stat_neg':'stat_pos') && u.fakeReason === inst.sc.badClaimType;
+    if (!ok) badMsg = l === 'es' ? 'Comprueba la tabla 2D, la dirección de la dependencia y si el problema está en r o en la interpretación.' : 'Check 2D totals, association direction, and whether the issue is r or its interpretation.';
   } else if (id === 'expReg') {
-    ok = u.reliable === 'yes' && closeNum(u.yEst, inst.yPred, 0.12) && u.interpVsExtrap === 'extrap';
-    if (!ok) badMsg = l === 'es' ? 'Comprueba la sustitución y = m·x + n, la utilidad lineal y el riesgo de extrapolar.' : 'Check substituting into y = m·x + n, model usefulness, and extrapolation risk.';
+    ok = u.reliable === 'yes' && closeNum(u.yEst, inst.sc.predictionMode==='solve_x'?inst.estAnswer:inst.yPred, 0.01) && u.interpVsExtrap === 'extrap';
+    if (!ok) badMsg = l === 'es' ? 'Comprueba la recta (sustitución o despeje de x), la utilidad lineal y la extrapolación.' : 'Check the line (substitution or solving for x), model usefulness and extrapolation.';
   }
 
+  const review = reviewFields(id, inst);
+  ok = review.allOk;
   inst.checked = {
     ok,
+    fields: review.fields,
     msg: ok
       ? (l === 'es' ? 'Análisis verificado correctamente.' : 'Analysis verified correctly.')
-      : badMsg
+      : (badMsg || (l==='es'?'Revisa los campos señalados; usa las pistas sin necesidad de ver la solución.':'Review the marked fields; use the hints without revealing the solution.'))
   };
 
   if (ok) {
     if (!isTransfer) {
       rec.completedGuided = true;
       rec.stageDone[2] = true;
-      advanceCompetencia(id, usedHelp ? 'guided' : 'autonomous');
-      if (usedHelp) awardConstancia('cstPst');
-      if (rec.hadErrorAnalysis) awardConstancia('cstRev');
+      if (usedHelp && !rec.guidedHintAwarded) { awardConstancia('cstPst'); rec.guidedHintAwarded = true; }
+      if (rec.hadErrorAnalysis && !rec.guidedReviewAwarded) { awardConstancia('cstRev'); rec.guidedReviewAwarded = true; }
     } else {
       rec.completedTransfer = true;
       rec.stageDone[5] = true;
@@ -2653,9 +3260,9 @@ function checkExpAnalysis(id, isTransfer) {
         advanceCompetencia(id, rec.completedGuided && !anyHelpUsed(rec.usedHelpAnalysis) ? 'consolidated' : 'autonomous');
       } else {
         advanceCompetencia(id, 'guided');
-        awardConstancia('cstPst');
+        if (!rec.transferHintAwarded) { awardConstancia('cstPst'); rec.transferHintAwarded = true; }
       }
-      if (rec.hadErrorAnalysis) awardConstancia('cstRev');
+      if (rec.hadErrorAnalysis && !rec.transferReviewAwarded) { awardConstancia('cstRev'); rec.transferReviewAwarded = true; }
     }
   } else if (!isTransfer) {
     rec.hadErrorAnalysis = true;
@@ -2673,13 +3280,12 @@ function checkExpContrast(id) {
   inst.user.contrastFb = {
     ok,
     msg: ok
-      ? (l === 'es' ? 'Contraste correcto. Ya puedes redactar tu informe en el paso 5.' : 'Correct contrast. You can now write your report in step 5.')
+      ? (l === 'es' ? 'Interpretación defendida con la evidencia del caso. En tu informe cita el dato, gráfico o límite matemático que la respalda.' : 'Interpretation supported by this case. In the report, cite the value, graph or mathematical limit behind it.')
       : (l === 'es' ? 'Revisa la evidencia numérica o gráfica y vuelve a comparar las dos posturas.' : 'Re-check the numerical/graphical evidence and compare both claims again.')
   };
   if (ok) {
     rec.stageDone[3] = true;
-    const initWrong = inst.user.initFeedback && !inst.user.initFeedback.ok;
-    if (initWrong) awardConstancia('cstCoh');
+    // Reconsidering an initial hypothesis is recorded separately, after explicit reflection.
   }
   save();
   render();
@@ -2689,17 +3295,39 @@ function checkExpInit(id) {
   const l = L();
   const rec = makeExpRecord(id);
   const inst = rec.guided;
-  const expected = { expMue: '1', expTab: '0', expAgr: '1', expDis: '1', expAud: '1', expReg: '1' }[id];
-  const ok = inst.user.init === expected;
-  inst.user.initFeedback = {
-    ok,
-    msg: ok
-      ? (l === 'es' ? 'Hipótesis inicial bien enfocada. Compruébala ahora en el paso 3 (Análisis).' : 'Sound initial claim. Verify it quantitatively in step 3 (Analysis).')
-      : (l === 'es' ? 'Hipótesis anotada. Ponla a prueba con los datos del paso 3 y revisa tu idea en el paso 4.' : 'Claim logged. Test it against the data in step 3 and revisit it in step 4.')
-  };
+  if (rec.stageDone[1]) return;
+  if (inst.user.init === '') {
+    inst.user.initFeedback = { msg: l === 'es' ? 'Elige una hipótesis antes de continuar.' : 'Choose an initial claim before continuing.' };
+    save(); render(); return;
+  }
+  markPracticeReturn();
+  inst.user.initFeedback = { msg: l === 'es'
+    ? 'Hipótesis guardada sin calificar. Examina los datos y vuelve a ella durante el contraste.'
+    : 'Unmarked prediction saved. Examine the data, then revisit it during the contrast.' };
   rec.stageDone[1] = true;
-  save();
-  render();
+  save(); render();
+}
+
+function recordExpRevision(id) {
+  const rec = makeExpRecord(id), inst = rec.guided, u = inst.user;
+  const l = L();
+  const txt = String(u.predRevision || '').trim();
+  if (!rec.stageDone[2] || !rec.stageDone[3] || txt.length < 25) {
+    u.predRevisionFeedback = l === 'es'
+      ? 'Contrasta primero las evidencias y explica tu revisión en al menos una frase (25 caracteres).'
+      : 'First check the evidence, then explain your revision in at least one sentence (25 characters).';
+  } else {
+    u.predRevisionSaved = true;
+    u.predRevisionFeedback = l === 'es'
+      ? 'Revisión registrada (reflexión personal, no corregida automáticamente).'
+      : 'Revision saved (personal reflection, not automatically graded).';
+    // An initially mistaken claim must be reconsidered after a correct analysis and contrast.
+    const expected = { expMue:'1', expTab:'0', expAgr:'1', expDis:'1', expAud:'1', expReg:'1' }[id];
+    if (u.init !== expected && !rec.cohAwarded) {
+      awardConstancia('cstCoh'); rec.cohAwarded = true;
+    }
+  }
+  save(); render();
 }
 
 function saveExpReport(id) {
@@ -2708,7 +3336,7 @@ function saveExpReport(id) {
   ensureReportReview(rec);
   const txt = (rec.reportText || '').trim();
   const allRubric = rec.rubricChecks.every(Boolean);
-  if (!txt || !allRubric) {
+  if (txt.length < 60 || !allRubric) {
     rec.selfAssessed = false;
     save();
     render();
@@ -2717,8 +3345,8 @@ function saveExpReport(id) {
       const msg = document.createElement('div');
       msg.className = 'note warn';
       msg.textContent = l === 'es'
-        ? 'Escribe tu conclusión y marca los 3 puntos de la rúbrica tras revisarlos.'
-        : 'Write your conclusion and confirm all 3 rubric review items.';
+        ? 'Redacta al menos 60 caracteres de conclusión y marca los 3 puntos de la rúbrica después de revisarlos.'
+        : 'Write at least 60 characters of reasoning and check all 3 rubric review items.';
       box.querySelector('.subcard')?.appendChild(msg);
     }
     return;
@@ -2726,6 +3354,10 @@ function saveExpReport(id) {
   if (!rec.reportEffortAwarded) { awardConstancia('cstInf'); rec.reportEffortAwarded = true; }
   rec.selfAssessed = true;
   rec.stageDone[4] = true;
+  // The competence encompasses the analysis, contrast AND reviewed report.
+  if (rec.completedGuided && rec.stageDone[3]) {
+    advanceCompetencia(id, anyHelpUsed(rec.usedHelpAnalysis) ? 'guided' : 'autonomous');
+  }
   save();
   render();
 }
@@ -2741,6 +3373,97 @@ function getTallerHelp(kind) {
     reg2d: EXP_HELPS.expReg
   };
   return map[kind] || EXP_HELPS.expMue;
+}
+
+/* Learning explanations are on OTHER datasets; opening them is never counted as a hint. */
+const TALLER_LESSONS = {
+  vars: {
+    es: `<p>Antes de responder, decide qué se registra: una categoría, un recuento o una medida.</p><p><strong>Ejemplo ajeno al ejercicio:</strong> el tipo de vehículo es cualitativo; el número de pasajeros es discreto; la distancia recorrida, continua.</p>`,
+    en: `<p>First distinguish a category, a count, and a measurement.</p><p><strong>Separate example:</strong> vehicle type is qualitative; passenger count is discrete; distance travelled is continuous.</p>`
+  },
+  tab1d: {
+    es: `<p>Ejemplo distinto: datos 1, 1, 3, 5. La tabla acumula 2, 3 y 4 observaciones. Con N = 4, buscamos N/2 = 2 y elegimos el primer xᵢ con Nᵢ ≥ 2: la mediana es 1 (según nuestra convención de tablas).</p><div class="formula-card"><math display="block"><mrow><mover><mi>x</mi><mo>¯</mo></mover><mo>=</mo><mfrac><mrow><mn>1</mn><mo>+</mo><mn>1</mn><mo>+</mo><mn>3</mn><mo>+</mo><mn>5</mn></mrow><mn>4</mn></mfrac><mo>=</mo><mn>2,500</mn></mrow></math></div>`,
+    en: `<p>Different example: values 1, 1, 3, 5. Cumulative frequencies are 2, 3 and 4. N/2 = 2, so the first xᵢ with Nᵢ ≥ 2 is 1: the table-convention median is 1.</p><div class="formula-card"><math display="block"><mrow><mover><mi>x</mi><mo>¯</mo></mover><mo>=</mo><mfrac><mrow><mn>1</mn><mo>+</mo><mn>1</mn><mo>+</mo><mn>3</mn><mo>+</mo><mn>5</mn></mrow><mn>4</mn></mfrac><mo>=</mo><mn>2.500</mn></mrow></math></div>`
+  },
+  agr1d: {
+    es: `<p>Ejemplo distinto: [0, 10) contiene 4 datos y [10, 20) contiene 6, de un total de 10. Para P₂₅, la posición es 0,25·10 = 2,5. La primera frecuencia acumulada ≥ 2,5 es 4: P₂₅ pertenece a [0, 10). No sustituyas el percentil por la marca de clase.</p><div class="formula-card"><math display="block"><mrow><msub><mi>c</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow><mn>2</mn></mfrac></mrow></math></div>`,
+    en: `<p>Different example: [0, 10) has 4 observations and [10, 20) has 6, N = 10. The P₂₅ rank is 2.5; the first cumulative count ≥ 2.5 is 4, so P₂₅ lies in [0, 10), not at the class midpoint.</p><div class="formula-card"><math display="block"><mrow><msub><mi>c</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow><mn>2</mn></mfrac></mrow></math></div>`
+  },
+  disp: {
+    es: `<p>Ejemplo distinto: datos 8, 10, 12, media 10. Con divisor N, la varianza es 8/3; la desviación típica ≈ 1,633 y CV ≈ 0,163 (16,3 %). Para comparar dispersión relativa utiliza el CV cuando la media es positiva e interpretable.</p><div class="formula-card"><math display="block"><mrow><mi>CV</mi><mo>=</mo><mfrac><mi>σ</mi><mrow><mo>|</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>|</mo></mrow></mfrac></mrow></math></div>`,
+    en: `<p>Different example: 8, 10, 12, mean 10. Using divisor N, variance = 8/3, standard deviation ≈ 1.633 and CV ≈ 0.163 (16.3%). Compare relative spread using CV when the mean is meaningful and positive.</p><div class="formula-card"><math display="block"><mrow><mi>CV</mi><mo>=</mo><mfrac><mi>σ</mi><mrow><mo>|</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>|</mo></mrow></mfrac></mrow></math></div>`
+  },
+  audit2d: {
+    es: `<p>Una nube que desciende hacia la derecha tiene relación inversa; la covarianza y r deben tener signo negativo. Además, r está entre −1 y 1. Un coeficiente compatible no demuestra que la recta explique exactamente todos los puntos ni que una variable cause otra.</p>`,
+    en: `<p>A downward scatter shows inverse association; covariance and r must both be negative. r also lies between −1 and 1. A valid value does not prove exact functional dependence or causation.</p>`
+  },
+  reg2d: {
+    es: `<p>Ejemplo distinto: el modelo es ŷ = 1,5x + 2, con datos observados para x entre 1 y 8. Si x = 4, se estima ŷ = 8,000. Si queremos alcanzar y = 8, despejamos x = (8−2)/1,5 = 4,000. Fuera del intervalo sería extrapolación y ninguna estimación garantiza un resultado individual.</p><div class="formula-card"><math display="block"><mrow><mi>x</mi><mo>=</mo><mfrac><mrow><mi>y</mi><mo>−</mo><mi>n</mi></mrow><mi>m</mi></mfrac></mrow></math></div>`,
+    en: `<p>Different example: ŷ = 1.5x + 2 is fitted over x from 1 to 8. At x = 4, ŷ = 8.000. For a target y = 8, rearrange x = (8−2)/1.5 = 4.000. Outside the measured range this is extrapolation, and no individual outcome is guaranteed.</p><div class="formula-card"><math display="block"><mrow><mi>x</mi><mo>=</mo><mfrac><mrow><mi>y</mi><mo>−</mo><mi>n</mi></mrow><mi>m</mi></mfrac></mrow></math></div>`
+  }
+};
+function renderTallerLesson(kind) {
+ const l=L(), actual=kind==='mix'?'audit2d':kind;
+ return `<details class="taller-lesson" ${state.taller.mode==='learn'?'open':''}>
+   <summary>📘 ${l==='es'?'Aprende con Nova · un ejemplo diferente':'Learn with Nova · a different example'}</summary>
+   <div>${TALLER_LESSONS[actual]?.[l]||''}<p class="muted">${l==='es'?'Leer esta explicación no reduce el dominio. Solo las pistas del ejercicio actual cuentan como ayuda.':'Reading this lesson does not reduce mastery. Only hints for the current exercise count as assistance.'}</p></div>
+ </details>`;
+}
+function renderDotRowsSVG(rows, max=27) {
+ const W=570,H=156,left=38,right=18, plot=W-left-right;
+ const at=x=>left+(x/max)*plot;
+ const y=[48,104];
+ let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Comparación visual de dos series de datos">`;
+ rows.forEach((r,j)=>{svg+=`<text x="6" y="${y[j]+5}" font-size="13" font-weight="750" fill="#30234c">${escapeText(r.name)}</text>`;
+ r.vals.forEach((v,i)=>{svg+=`<circle cx="${at(v).toFixed(2)}" cy="${y[j]}" r="6.5" fill="${i===r.vals.length-1&&r.highlight?'#c83e3b':'#6741b5'}" fill-opacity=".85"><title>${escapeText(String(v))}</title></circle>`;});});
+ svg+=`<line x1="${left}" x2="${W-right}" y1="134" y2="134" stroke="#655a77"/>`;
+ for(let n=0;n<=max;n+=max>30?10:5){svg+=`<text x="${at(n)}" y="150" text-anchor="middle" font-size="12">${n}</text>`;}
+ return `<div class="svg-wrap lab-svg">${svg}</svg></div>`;
+}
+function renderStatsLabs() {
+ const l=L(), es=l==='es', labs=state.labs;
+ const meta=[['outlier','📊',es?'Media y mediana':'Mean and median'],['cv','⚖️',es?'Dispersión relativa':'Relative spread'],['corr','📈',es?'Correlación y recta':'Correlation and line']];
+ if(!labs.open) return `<div class="labs-launch"><div><strong>🔬 ${es?'Laboratorios de Nova':'Nova Labs'}</strong><p class="muted">${es?'Experimentos con datos ficticios distintos de los expedientes. Predice, modifica un dato y contrasta.':'Explore fictional datasets distinct from the case files. Predict, modify, compare.'}</p></div><button type="button" class="btn-ghost" data-labs-toggle="1">${es?'Abrir laboratorios':'Open labs'}</button></div>`;
+ const id=labs.active, x=labs[id], opts=id==='outlier'?
+   [es?'La media cambia, pero la mediana puede quedarse igual':'The mean changes but the median can remain unchanged',es?'Media y mediana necesariamente aumentan lo mismo':'Mean and median must increase by the same amount']:
+  id==='cv'?
+   [es?'Con la misma σ, una media mayor da un CV menor':'With equal σ, a larger mean gives a smaller CV',es?'Con la misma σ, el CV es siempre igual':'With equal σ, CV must be equal']:
+   [es?'Alejar un punto de la recta suele reducir la fuerza de la correlación':'Moving a point away from the line often weakens the correlation',es?'Mover un punto no afecta a r':'Moving a point never affects r'];
+ let visual='', result='', question='', control='';
+ if(id==='outlier') {
+   const a=[2,3,3,4,5,6,7], b=[2,3,3,4,5,6,x.value];
+   const sta=Stats.ungrouped(a),stb=Stats.ungrouped(b);
+   question=es?'En siete observaciones, cambia solo el mayor valor. ¿Qué sucede con el centro de los datos?':'Change only the highest of seven observations. What happens to their centre?';
+   control=`<label for="labSlider"><strong>${es?'Nuevo valor máximo':'New maximum'}: ${x.value}</strong></label><input id="labSlider" type="range" min="8" max="25" step="1" value="${x.value}" data-lab-slider="value" />`;
+   visual=renderDotRowsSVG([{name:'A',vals:a},{name:'B',vals:b,highlight:true}]);
+   result=`${es?'Serie A':'Series A'}: x̄ = ${fmt(sta.mean)}, Me = ${fmt(sta.median)} · ${es?'Serie B':'Series B'}: x̄ = ${fmt(stb.mean)}, Me = ${fmt(stb.median)}. ${es?'Al mover solo el dato extremo, la media aumenta y la mediana de la tabla permanece igual.':'Changing only the extreme value raises the mean, while the table median remains unchanged.'}`;
+ } else if(id==='cv') {
+   const a=[8,9,10,11,12],b=a.map(v=>v+x.offset),sa=Stats.ungrouped(a),sb=Stats.ungrouped(b);
+   question=es?'Dos conjuntos de medidas positivas tienen la misma desviación típica. ¿Tienen también el mismo CV?':'Two sets of positive measurements have the same standard deviation. Must they have the same CV?';
+   control=`<label for="labSlider"><strong>${es?'Desplazamiento de B':'Shift for B'}: +${x.offset}</strong></label><input id="labSlider" type="range" min="1" max="40" step="1" value="${x.offset}" data-lab-slider="offset" />`;
+   visual=`<div class="table-wrap"><table><thead><tr><th>${es?'Conjunto':'Dataset'}</th><th>${es?'Valores':'Values'}</th></tr></thead><tbody><tr><th>A</th><td>8, 9, 10, 11, 12</td></tr><tr><th>B</th><td>${b.join(', ')}</td></tr></tbody></table></div>`;
+   result=`A: x̄ = ${fmt(sa.mean)}, σ = ${fmt(sa.std)}, CV = ${fmt(sa.cv)} · B: x̄ = ${fmt(sb.mean)}, σ = ${fmt(sb.std)}, CV = ${fmt(sb.cv)}. ${es?'Tras desplazar todos los datos, σ permanece igual; con media positiva mayor, el CV disminuye.':'Shifting all data preserves σ; a larger positive mean lowers CV.'}`;
+ } else {
+   const pts=[1,2,3,4,5,6,7].map((xx,i)=>({x:xx,y:i===6?x.lastY:xx+2}));
+   const bi=Stats.bivariate(pts);
+   question=es?'Modifica la puntuación de una persona sin cambiar las otras seis observaciones. ¿Cómo cambia la asociación lineal?':'Change one person’s score without changing the other six. How does the linear association change?';
+   control=`<label for="labSlider"><strong>${es?'Puntuación de la séptima observación':'Seventh observation score'}: ${x.lastY}</strong></label><input id="labSlider" type="range" min="0" max="10" step="1" value="${x.lastY}" data-lab-slider="lastY" />`;
+   visual=renderScatterSVG(bi,{showLine:true, xLabel:es?'Horas de práctica':'Practice hours',yLabel:es?'Puntuación (0–10)':'Score (0–10)',title:'Laboratorio de correlación',xDomain:[0,8],yDomain:[0,11]});
+   const base=Stats.bivariate([1,2,3,4,5,6,7].map(xx=>({x:xx,y:xx+2})));
+   result=`${es?'r original':'Original r'} = ${fmt(base.r)} · ${es?'r modificado':'Modified r'} = ${fmt(bi.r)} · ${es?'Pendiente actual':'Current slope'} = ${fmt(bi.m)}. ${es?'La recta se ajusta a los datos modificados. El signo y la intensidad de r dependen de la nube completa; la correlación no demuestra causalidad.':'The line refits the modified data. Direction and strength of r depend on all points; correlation does not prove causation.'}`;
+ }
+ return `<div class="labs-section" id="novaLabs">
+   <div class="row-between"><div><h3>🔬 ${es?'Laboratorios de Nova':'Nova Labs'}</h3><p class="muted">${es?'Datos ficticios separados de los expedientes; ninguna simulación cambia sus respuestas ni concede dominio.':'Fictional datasets separate from your cases; labs neither modify case answers nor award mastery.'}</p></div><button type="button" class="btn-ghost" data-labs-toggle="1">${es?'Cerrar':'Close'}</button></div>
+   <div class="lab-tabs">${meta.map(([k,icon,title])=>`<button type="button" class="btn-ghost ${id===k?'lab-active':''}" aria-pressed="${id===k}" data-lab-choose="${k}">${icon} ${title}</button>`).join('')}</div>
+   <div class="subcard"><p><strong>${escapeText(question)}</strong></p>
+     <label for="labPrediction"><strong>${es?'1. Mi predicción (sin nota)':'1. My prediction (ungraded)'}</strong></label>
+     <select id="labPrediction" class="field-input" data-lab-pred="${id}"><option value="">${es?'Elige una interpretación':'Choose an interpretation'}</option>${opts.map((txt,i)=>`<option value="${i===0?'a':'b'}" ${x.prediction===(i===0?'a':'b')?'selected':''}>${escapeText(txt)}</option>`).join('')}</select>
+     ${x.prediction?`<div class="lab-control"><strong>${es?'2. Cambia los datos':'2. Change the data'}</strong>${control}</div>${visual}
+       <button type="button" class="btn-accent" data-lab-contrast="${id}">${es?'3. Contrastar con los cálculos':'3. Compare calculations'}</button>`:
+       `<div class="note info">${es?'Guarda primero una predicción para mostrar las representaciones y modificar los datos.':'Save a prediction first to reveal the visualizations and change the data.'}</div>`}
+     ${x.revealed?`<div class="note info" role="status"><p><strong>${es?'Tu hipótesis inicial:':'Your initial hypothesis:'}</strong> ${escapeText(opts[x.prediction==='a'?0:1])}</p><p><strong>${es?'Resultado del experimento:':'Experiment result:'}</strong> ${escapeText(result)}</p><p>${es?'¿Mantendrías tu hipótesis o la cambiarías? Esta reflexión no se califica.':'Would you keep or change your hypothesis? This reflection is ungraded.'}</p></div><button type="button" class="btn-ghost" data-lab-exp="${{outlier:1,cv:3,corr:4}[id]}">${es?'Practicar en el expediente relacionado':'Practise in the related case'} →</button>`:''}
+   </div>
+ </div>`;
 }
 
 function renderTaller() {
@@ -2763,7 +3486,7 @@ function renderTaller() {
       </div>`;
   } else if (cur.kind === 'tab1d') {
     bodyHtml = `
-      <p>${l === 'es' ? 'Calcula media, mediana y moda a partir de esta tabla de frecuencias:' : 'Compute mean, median, and mode from this frequency table:'} (N = ${cur.st.N})</p>
+      <p>${l === 'es' ? 'Una encuesta registra el número de mensajes recibidos en una hora. Calcula media, mediana y moda a partir de su tabla de frecuencias:' : 'A survey records how many messages arrive in one hour. Find mean, median and mode from its frequency table:'} (N = ${cur.st.N})</p>
       <div class="table-wrap" style="max-width:460px">
         <table>
           <thead><tr><th>xᵢ</th><th>nᵢ</th><th>Nᵢ</th></tr></thead>
@@ -2777,7 +3500,7 @@ function renderTaller() {
       </div>`;
   } else if (cur.kind === 'agr1d') {
     bodyHtml = `
-      <p>${l === 'es' ? `Tabla agrupada (N = ${cur.g.N}). Calcula la media aproximada x̄ y elige el intervalo [a, b) que contiene P${cur.pTarget}:` : `Grouped table (N = ${cur.g.N}). Compute the grouped mean x̄ and select the interval [a, b) containing P${cur.pTarget}:`}</p>
+      <p>${l === 'es' ? `Se registró la duración de ${cur.g.N} trayectos escolares (minutos). Calcula el tiempo medio estimado x̄ y elige el intervalo [a, b) que contiene P${cur.pTarget}:` : `The duration of ${cur.g.N} school journeys was recorded in minutes. Estimate mean duration x̄ and select the [a, b) interval containing P${cur.pTarget}:`}</p>
       <div class="table-wrap" style="max-width:520px">
         <table>
           <thead><tr><th>Intervalo</th><th>cᵢ</th><th>nᵢ</th><th>Nᵢ</th></tr></thead>
@@ -2796,7 +3519,7 @@ function renderTaller() {
       </div>`;
   } else if (cur.kind === 'disp') {
     bodyHtml = `
-      <p><strong>${l === 'es' ? 'Conjunto:' : 'Dataset:'}</strong> <span class="mono">[${cur.arr.join(', ')}]</span> (x̄ = ${fmt(cur.st.mean, 3)})</p>
+      <p><strong>${l === 'es' ? (cur.isZero ? 'Anomalías térmicas respecto a la referencia (°C):' : 'Duración de cinco trayectos (min):') : (cur.isZero ? 'Temperature anomalies relative to a reference (°C):' : 'Five journey durations (min):')}</strong> <span class="mono">[${cur.arr.join(', ')}]</span> (x̄ = ${fmt(cur.st.mean, 3)})</p>
       <div class="grid-3" style="margin-top:10px">
         <div><label><strong>σ² (divisor N)</strong></label><input class="field-input" value="${escapeText(u.varN)}" data-taller-field="varN"></div>
         <div><label><strong>σ</strong></label><input class="field-input" value="${escapeText(u.std)}" data-taller-field="std"></div>
@@ -2842,7 +3565,7 @@ function renderTaller() {
         <div>${renderScatterSVG(cur.bi, { showLine: true, xLabel: ctx.xLabel, yLabel: ctx.yLabel })}</div>
         <div>
           <div class="note ok" style="margin-top:0">
-            <strong>y = ${fmt(cur.mS, 3)}·x + ${fmt(cur.nS, 3)}</strong> · r = ${fmt(cur.bi.r, 3)} · x ∈ [2, 10]
+            <strong class="math-equation">${regressionMath(cur.mS, cur.nS)}</strong> · r = ${fmt(cur.bi.r, 3)} · x ∈ [2, 10]
           </div>
           <div style="margin-top:10px">
             <label><strong>${l === 'es' ? `Estima ${ctx.yLabel} cuando ${ctx.xLabel} = ${cur.xQ}` : `Estimate ${ctx.yLabel} when ${ctx.xLabel} = ${cur.xQ}`}</strong></label>
@@ -2870,9 +3593,18 @@ function renderTaller() {
         <div class="row">
           <span class="badge b-auto">${l === 'es' ? 'Resueltos:' : 'Solved:'} ${state.taller.stats.solved}</span>
           <span class="badge b-guided">${l === 'es' ? 'Errores revisados:' : 'Errors reviewed:'} ${state.taller.stats.reviewed}</span>
+          <span class="badge b-auto">${l==='es'?'Primeros intentos autónomos':'Independent first tries'}: ${state.taller.stats.autonomous||0}</span>
         </div>
       </div>
 
+      <div class="taller-modes" role="group" aria-label="${l==='es'?'Tipo de práctica':'Practice mode'}">
+        ${[
+          ['learn','📘',l==='es'?'Aprender':'Learn',l==='es'?'Explicación con Nova y ejemplo diferente':'Nova lesson and a separate example'],
+          ['train','🛠️',l==='es'?'Entrenar':'Train',l==='es'?'Ejercicios con pistas y revisión':'Problems with hints and feedback'],
+          ['challenge','🚀',l==='es'?'Desafiarme':'Challenge',l==='es'?'Primer intento independiente; ayudas opcionales':'Independent first attempt; optional help']
+        ].map(([k,icon,title,desc])=>`<button type="button" class="taller-mode ${state.taller.mode===k?'active':''}" data-taller-mode="${k}" aria-pressed="${state.taller.mode===k}"><strong>${icon} ${title}</strong><small>${desc}</small></button>`).join('')}
+      </div>
+      ${renderStatsLabs()}
       <div class="grid-3" style="margin-top:14px">
         <div>
           <label for="tTopic"><strong>${l === 'es' ? 'Bloque / Enfoque' : 'Topic / Focus'}</strong></label>
@@ -2897,6 +3629,8 @@ function renderTaller() {
       </div>
 
       <div class="subcard" style="margin-top:14px">
+        ${state.taller.mode==='learn' ? renderTallerLesson(cur.kind) : ''}
+        ${state.taller.mode==='challenge' ? `<div class="note info">${l==='es'?'🚀 Intenta resolver primero sin pistas. Si pides ayuda, podrás continuar, pero la solución no contará como primer intento autónomo.':'🚀 Try without hints first. If you request help you can still solve, but it will not count as an independent first attempt.'}</div>` : ''}
         ${cur.isReview ? `<div class="note info" style="margin-top:0;margin-bottom:10px">${l === 'es' ? '<strong>Caso equivalente de revisión:</strong> resuélvelo tras tu error anterior para registrar constancia.' : '<strong>Equivalent review case:</strong> solve after a prior error to log consistency.'}</div>` : ''}
         ${bodyHtml}
         <div class="row" style="margin-top:14px">
@@ -2909,6 +3643,7 @@ function renderTaller() {
 }
 
 function checkTaller() {
+  markPracticeReturn();
   const l = L();
   const cur = state.taller.current;
   if (!cur) return;
@@ -2916,19 +3651,19 @@ function checkTaller() {
   let ok = false;
 
   if (cur.kind === 'vars') ok = u.ans === cur.item.ans;
-  else if (cur.kind === 'tab1d') ok = closeNum(u.mean, cur.st.mean, 0.04) && closeNum(u.median, cur.st.median, 0.04) && closeNum(u.mode, cur.st.mode, 0.04);
+  else if (cur.kind === 'tab1d') ok = closeNum(u.mean, cur.st.mean, 0.01) && closeNum(u.median, cur.st.median, 0.001) && closeNum(u.mode, cur.st.mode, 0.001);
   else if (cur.kind === 'agr1d') {
     const cls = cur.g.locateClass(cur.pTarget);
     const val = cur.g.percentileValue(cur.pTarget);
-    ok = closeNum(u.mean, cur.g.mean, 0.1) && u.pClassIdx === String(cls.idx);
+    ok = closeNum(u.mean, cur.g.mean, 0.01) && u.pClassIdx === String(cls.idx);
   } else if (cur.kind === 'disp') {
-    const cvOk = cur.isZero ? Boolean(u.cvInvalid) : (!u.cvInvalid && closeNum(u.cv, cur.st.cv, 0.02));
-    ok = closeNum(u.varN, cur.st.variance, 0.25) && closeNum(u.std, cur.st.std, 0.12) && cvOk;
+    const cvOk = cur.isZero ? Boolean(u.cvInvalid) : (!u.cvInvalid && closeNum(u.cv, cur.st.cv, 0.005));
+    ok = closeNum(u.varN, cur.st.variance, varianceTol(cur.st.variance)) && closeNum(u.std, cur.st.std, stdTol(cur.st.std)) && cvOk;
   } else if (cur.kind === 'audit2d') {
     const expDir = cur.bi.sxy >= 0 ? 'pos' : 'neg';
     ok = u.dir === expDir && u.verdict === cur.auditMode;
   } else if (cur.kind === 'reg2d') {
-    ok = closeNum(u.yEst, cur.yAns, 0.15) && u.interpOk === 'no_extrap';
+    ok = closeNum(u.yEst, cur.yAns, 0.01) && u.interpOk === 'no_extrap';
   }
 
   cur.checked = true;
@@ -2938,13 +3673,17 @@ function checkTaller() {
     if (!cur.counted) {
       cur.counted = true;
       state.taller.stats.solved += 1;
-      if (anyHelpUsed(cur.usedHelp)) awardConstancia('cstPst');
+      const neededHelp=anyHelpUsed(cur.usedHelp);
+      if (state.taller.mode==='challenge' && !neededHelp && !cur.hadError) state.taller.stats.autonomous=(state.taller.stats.autonomous||0)+1;
+      else state.taller.stats.withHelp=(state.taller.stats.withHelp||0)+1;
+      if (neededHelp) awardConstancia('cstPst');
       if (cur.isReview) {
         state.taller.stats.reviewed += 1;
         awardConstancia('cstRev');
       }
     }
   } else {
+    cur.hadError = true;
     cur.msg = l === 'es' ? 'Hay valores por revisar. Puedes consultar una pista o practicar un caso equivalente de revisión.' : 'Check your values. You can open a hint or practice an equivalent review case.';
     if (!cur.queuedErr) {
       cur.queuedErr = true;
@@ -2967,7 +3706,8 @@ function renderEvidencias() {
       <div class="ev-row">
         <div>
           <strong>${m.icon || '🎯'} ${escapeText(m[l].name)}</strong><br>
-          <span class="muted" style="font-size:.86rem">${escapeText(m[l].desc)}</span>
+          <span class="muted" style="font-size:.86rem">${escapeText(m[l].desc)}</span><br>
+          <span class="case-mini-progress">${escapeText(caseProgress(makeExpRecord(m.id)).short)} · ${escapeText(caseProgress(makeExpRecord(m.id)).nextText)}</span>
         </div>
         <div class="row">
           ${stateBadgeHTML(st)}
@@ -3064,11 +3804,11 @@ function renderPrueba() {
       <div class="subcard" style="margin-top:14px">
         <h3>${l === 'es' ? `Parte 1 (${ex.w1}%): Estadística unidimensional` : `Part 1 (${ex.w1}%): Unidimensional Statistics`}</h3>
         <p>${l === 'es'
-          ? `1.1 Completa la tabla agrupada (N = ${ex.g1.N}; recuerda que las fᵢ redondeadas pueden sumar 0,99 o 1,00), calcula la media aproximada x̄, la clase modal y el intervalo [a, b) de P40:`
-          : `1.1 Complete the grouped table (N = ${ex.g1.N}; rounded fᵢ may sum to 0.99 or 1.00), then compute approximate mean x̄, modal class, and P40:`}</p>
+          ? `1.1 En una biblioteca se registraron tiempos de espera (min) de ${ex.g1.N} visitas. Completa la tabla de intervalos [a, b); después calcula la media estimada x̄, la clase modal y el intervalo que contiene P40:`
+          : `1.1 A library recorded waiting times (min) for ${ex.g1.N} visits. Complete the [a, b) frequency table, then find estimated mean x̄, modal class and P40 interval:`}</p>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Intervalo</th><th>cᵢ</th><th>nᵢ</th><th>Nᵢ</th><th>fᵢ</th><th>Fᵢ</th></tr></thead>
+            <thead><tr><th>${l === 'es' ? 'Espera (min)' : 'Wait (min)'}</th><th>cᵢ</th><th>nᵢ</th><th>Nᵢ</th><th>fᵢ</th><th>Fᵢ</th></tr></thead>
             <tbody>
               ${ex.g1.rows.map((r, i) => `
                 <tr>
@@ -3094,8 +3834,8 @@ function renderPrueba() {
         </div>
 
         <p style="margin-top:16px">${l === 'es'
-          ? `1.2 Comparación de dispersión relativa: Estatura (cm): x̄=${fmt(ex.stA.mean, 1)}, σ=${fmt(ex.stA.std, 3)} · Masa (kg): x̄=${fmt(ex.stB.mean, 1)}, σ=${fmt(ex.stB.std, 3)}. Calcula ambos CV y señala cuál presenta mayor dispersión relativa:`
-          : `1.2 Relative dispersion comparison: Height (cm): x̄=${fmt(ex.stA.mean, 1)}, σ=${fmt(ex.stA.std, 3)} · Mass (kg): x̄=${fmt(ex.stB.mean, 1)}, σ=${fmt(ex.stB.std, 3)}. Compute both CVs and select greater relative dispersion:`}</p>
+          ? `1.2 Estudio independiente (datos de cinco personas): comparación de dispersión relativa. Estatura (cm): x̄=${fmt(ex.stA.mean, 1)}, σ=${fmt(ex.stA.std, 3)} · Masa (kg): x̄=${fmt(ex.stB.mean, 1)}, σ=${fmt(ex.stB.std, 3)}. Calcula ambos CV y señala cuál presenta mayor dispersión relativa:`
+          : `1.2 Independent study (five observations): relative spread. Height (cm): x̄=${fmt(ex.stA.mean, 1)}, σ=${fmt(ex.stA.std, 3)} · Mass (kg): x̄=${fmt(ex.stB.mean, 1)}, σ=${fmt(ex.stB.std, 3)}. Compute both CVs and select greater relative dispersion:`}</p>
         <div class="grid-3">
           <div><label><strong>CV (Estatura)</strong></label><input class="field-input" value="${escapeText(u.cvA)}" data-ex-field="cvA"></div>
           <div><label><strong>CV (Masa)</strong></label><input class="field-input" value="${escapeText(u.cvB)}" data-ex-field="cvB"></div>
@@ -3118,7 +3858,7 @@ function renderPrueba() {
           <div>
             <div class="note warn" style="margin-top:0">
               <strong>${l === 'es' ? 'Datos del estudio (N = 22):' : 'Study summary (N = 22):'}</strong><br>
-              • ${l === 'es' ? 'Recta dada:' : 'Given line:'} <span class="mono">y = ${fmt(ex.mShown, 3)}x + ${fmt(ex.nShown, 3)}</span><br>
+              • ${l === 'es' ? 'Recta dada:' : 'Given line:'} <span class="math-equation">${regressionMath(ex.mShown, ex.nShown)}</span><br>
               • Sxy = ${fmt(ex.bi.sxy, 3)} · r ${l === 'es' ? 'propuesto en borrador' : 'proposed in draft'} = <strong>${fmt(ex.fakeR, 3)}</strong>
             </div>
             <div class="table-wrap" style="margin-top:10px">
@@ -3173,15 +3913,15 @@ function renderPrueba() {
         </div>
 
         <div style="margin-top:14px">
-          <label for="exConcl"><strong>2.5 ${l === 'es' ? 'Conclusión contextualizada respaldada por datos' : 'Data-backed contextual conclusion'}</strong></label>
+          <label for="exConcl"><strong>2.5 ${l === 'es' ? `Conclusión contextualizada respaldada por datos (mínimo ${MIN_CONCLUSION_CHARS} caracteres)` : `Data-backed contextual conclusion (at least ${MIN_CONCLUSION_CHARS} characters)`}</strong></label>
           <div class="note info" style="margin:6px 0">${escapeText(tr('openTextNote'))}</div>
           <textarea id="exConcl" class="field-input" rows="4" data-ex-field="conclusion">${escapeText(u.conclusion)}</textarea>
           <div class="rubric" style="margin-top:10px">
             <strong>${escapeText(tr('rubricTitle'))}</strong>
             ${[
-              l === 'es' ? 'Incluyo los valores de tendencia, correlación real y estimación para x = 5.' : 'I cite trend values, valid correlation, and x = 5 estimate.',
+              l === 'es' ? 'Describo la tendencia observada, explico por qué el r declarado es incoherente y doy la estimación para x = 5.' : 'I describe the observed trend, explain why the claimed r is inconsistent and give the estimate for x = 5.',
               l === 'es' ? 'Indico explícitamente que correlación no demuestra causalidad ni la recta garantiza certeza.' : 'I note that correlation is not causation and estimates are not guarantees.',
-              l === 'es' ? 'He verificado mis cálculos con el formulario y la calculadora.' : 'I verified calculations with the formula sheet and calculator.'
+              l === 'es' ? 'Distingo los datos observados de las estimaciones y señalo el r incompatible del borrador.' : 'I distinguish observations from estimates and flag the contradictory claimed r.'
             ].map((txt, i) => `<label class="rubric-item"><input type="checkbox" ${u.rubric[i] ? 'checked' : ''} data-ex-rubric="${i}"><span>${escapeText(txt)}</span></label>`).join('')}
           </div>
         </div>
@@ -3194,34 +3934,41 @@ function renderPrueba() {
         <div class="note ${ex.scoreBreakdown.total >= 6 ? 'ok' : 'warn'}">
           <strong>${l === 'es' ? 'Resultado objetivo:' : 'Objective score:'} ${fmt(ex.scoreBreakdown.total, 1)} / 10</strong>
           (${l === 'es' ? 'Parte 1 (1D):' : 'Part 1 (1D):'} ${fmt(ex.scoreBreakdown.p1, 3)}/${ex.w1 / 10} · ${l === 'es' ? 'Parte 2 (2D):' : 'Part 2 (2D):'} ${fmt(ex.scoreBreakdown.p2, 3)}/${ex.w2 / 10}).
-          ${l === 'es' ? 'Revisa además tu conclusión abierta con la rúbrica o imprímela para revisión docente.' : 'Also review your open conclusion with the rubric or print for teacher review.'}
+          ${ex.scoreBreakdown.total >= 6 && (!u.rubric.every(Boolean) || (u.conclusion || '').trim().length < MIN_CONCLUSION_CHARS)
+            ? (l === 'es'
+              ? `Para acreditar la prueba necesitas además una conclusión propia de al menos ${MIN_CONCLUSION_CHARS} caracteres y marcar los 3 puntos de la rúbrica.`
+              : `To credit this exam you also need an open conclusion of at least ${MIN_CONCLUSION_CHARS} characters and all 3 rubric items checked.`)
+            : (l === 'es'
+              ? 'Revisa además tu conclusión abierta con la rúbrica o imprímela para revisión docente.'
+              : 'Also review your open conclusion with the rubric or print for teacher review.')}
         </div>` : ''}
     </section>`;
 }
 
 function gradeExam() {
+  markPracticeReturn();
   const ex = state.prueba.current;
   if (!ex) return;
   const u = ex.user;
   const rowsOk = ex.g1.rows.every((r, i) => {
     const ur = u.rows1[i];
-    return closeNum(ur.ci, r.ci, 0.05) && closeNum(ur.ni, r.ni, 0.01) && closeNum(ur.Ni, r.Ni, 0.01) && closeNum(ur.fi, r.fi, 0.02) && closeNum(ur.Fi, r.Fi, 0.02);
+    return closeNum(ur.ci, r.ci, 0.0015) && closeNum(ur.ni, r.ni, 0.001) && closeNum(ur.Ni, r.Ni, 0.001) && closeNum(ur.fi, r.fi, 0.005) && closeNum(ur.Fi, r.Fi, 0.005);
   });
   const p1Checks = [
     rowsOk,
-    closeNum(u.mean1, ex.g1.mean, 0.08),
+    closeNum(u.mean1, ex.g1.mean, 0.01),
     u.modal1 === String(ex.g1.modalRow.idx),
     matchesClass(u.p40, ex.g1.locateClass(40)),
-    closeNum(u.cvA, ex.stA.cv, 0.02),
-    closeNum(u.cvB, ex.stB.cv, 0.02),
+    closeNum(u.cvA, ex.stA.cv, 0.005),
+    closeNum(u.cvB, ex.stB.cv, 0.005),
     u.moreDisp === 'B'
   ];
   const p2Checks = [
-    closeNum(u.miss2dCell, ex.t2d.matrix[1][1], 0.01) && closeNum(u.miss2dTotal, ex.t2d.rowTotals[1], 0.01),
+    closeNum(u.miss2dCell, ex.t2d.matrix[1][1], 0.001) && closeNum(u.miss2dTotal, ex.t2d.rowTotals[1], 0.001),
     u.depType === 'stat_pos',
     u.sxyAud === 'incomp',
     u.modelRel === 'useful',
-    closeNum(u.yPred, ex.yPred, 0.12)
+    closeNum(u.yPred, ex.yPred, 0.01)
   ];
   const f1 = p1Checks.filter(Boolean).length / p1Checks.length;
   const f2 = p2Checks.filter(Boolean).length / p2Checks.length;
@@ -3231,11 +3978,14 @@ function gradeExam() {
 
   ex.graded = true;
   ex.scoreBreakdown = { p1, p2, total };
-  state.prueba.attempts += 1;
+  if (!ex.attemptRecorded) {
+    state.prueba.attempts += 1;
+    ex.attemptRecorded = true;
+  }
   if (total > state.prueba.bestScore) state.prueba.bestScore = total;
-  if (total >= 6 && u.rubric.every(Boolean) && (u.conclusion || '').trim().length > 0) {
+  if (total >= 6 && u.rubric.every(Boolean) && (u.conclusion || '').trim().length >= MIN_CONCLUSION_CHARS) {
     state.prueba.passed = true;
-    awardConstancia('cstInf');
+    if (!ex.reportEffortAwarded) { awardConstancia('cstInf'); ex.reportEffortAwarded = true; }
   }
   save();
   render();
@@ -3274,7 +4024,7 @@ function openFormulaCalcModal() {
       <div class="grid-2">
         <div>
           <h4 style="margin-top:0">${l === 'es' ? 'Formulario y notación' : 'Formula Sheet & Notation'}</h4>
-<p class="small">${l === 'es' ? 'N: número de datos · k: número de valores o clases en los sumatorios · nᵢ: frecuencia absoluta · Nᵢ: frecuencia acumulada · cᵢ: marca de clase.' : 'N: number of observations · k: number of values or classes in sums · nᵢ: count · Nᵢ: cumulative count · cᵢ: class midpoint.'}</p><section class="formula-card"><h5>${l === 'es' ? 'Frecuencias relativas' : 'Relative frequencies'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>f</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><mi>N</mi></mfrac><mo> </mo><msub><mi>F</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>N</mi><mi>i</mi></msub><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Media · datos aislados' : 'Mean · discrete data'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>x</mi><mo>¯</mo></mover><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>x</mi><mi>i</mi></msub><mo>·</mo><msub><mi>n</mi><mi>i</mi></msub></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Media estimada · datos agrupados' : 'Estimated mean · grouped data'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>x</mi><mo>¯</mo></mover><mo>≈</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>c</mi><mi>i</mi></msub><mo>·</mo><msub><mi>n</mi><mi>i</mi></msub></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Rango y rango intercuartílico' : 'Range and interquartile range'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>R</mi><mo>=</mo><msub><mi>x</mi><mi>máx</mi></msub><mo>−</mo><msub><mi>x</mi><mi>mín</mi></msub><mo> </mo><mi>RIC</mi><mo>=</mo><msub><mi>Q</mi><mi>3</mi></msub><mo>−</mo><msub><mi>Q</mi><mi>1</mi></msub></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Varianza · divisor N' : 'Variance · divisor N'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msup><mi>σ</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>n</mi><mi>i</mi></msub><mo>·</mo><msup><mrow><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>)</mo></mrow><mn>2</mn></msup></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Desviación típica' : 'Standard deviation'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>σ</mi><mo>=</mo><msqrt><msup><mi>σ</mi><mn>2</mn></msup></msqrt></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Coeficiente de variación · media distinta de cero' : 'Coefficient of variation · nonzero mean'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>CV</mi><mo>=</mo><mfrac><mi>σ</mi><mrow><mo>|</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>|</mo></mrow></mfrac></mrow></math></section><section class="formula-card"><h5>${l==='es'?'Cuantil agrupado · intervalo':'Grouped quantile · interval'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><msub><mi>N</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>&lt;</mo><mi>p</mi><mo>·</mo><mi>N</mi><mo>≤</mo><msub><mi>N</mi><mi>i</mi></msub></math><p>${l==='es'?'El cuantil se localiza en la clase [aᵢ, bᵢ). Para P40, p = 0,40; para Q₁, p = 0,25.':'Locate the quantile in class [aᵢ, bᵢ). For P40 use p = 0.40; for Q₁ use p = 0.25.'}</p></section><section class="formula-card"><h5>${l === 'es' ? 'Covarianza · pares de datos' : 'Covariance · paired observations'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>S</mi><mi>xy</mi></msub><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mrow><mrow><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>)</mo></mrow><mo>·</mo><mrow><mo>(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover><mi>y</mi><mo>¯</mo></mover><mo>)</mo></mrow></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Correlación lineal' : 'Linear correlation'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>r</mi><mo>=</mo><mfrac><msub><mi>S</mi><mi>xy</mi></msub><mrow><msub><mi>σ</mi><mi>x</mi></msub><mo>·</mo><msub><mi>σ</mi><mi>y</mi></msub></mrow></mfrac><mo> </mo><mo>−</mo><mn>1</mn><mo>≤</mo><mi>r</mi><mo>≤</mo><mn>1</mn></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Recta de regresión · estimación' : 'Regression line · estimate'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>y</mi><mo>^</mo></mover><mo>=</mo><mi>m</mi><mo>·</mo><mi>x</mi><mo>+</mo><mi>n</mi></mrow></math></section><p class="small">${l === 'es' ? 'Nᵢ₋₁ es la frecuencia acumulada anterior (0 antes de la primera clase). Se informa del intervalo del cuantil; no se estima su valor numérico. Las marcas de clase cᵢ se siguen usando para estimar la media, no los cuantiles. El CV se expresa aquí como razón; multiplica por 100 para porcentaje. La correlación requiere ambas desviaciones típicas distintas de cero.' : 'Nᵢ₋₁ is the previous cumulative count (0 before the first class). Report the quantile interval, without estimating a numerical value. Class midpoints are still used to estimate the mean. CV is a ratio; multiply by 100 for percent. Correlation requires nonzero standard deviations.'}</p>
+<p class="small">${l === 'es' ? 'N: número de datos · k: número de valores o clases en los sumatorios · nᵢ: frecuencia absoluta · Nᵢ: frecuencia acumulada · cᵢ: marca de clase.' : 'N: number of observations · k: number of values or classes in sums · nᵢ: count · Nᵢ: cumulative count · cᵢ: class midpoint.'}</p><section class="formula-card"><h5>${l === 'es' ? 'Frecuencias relativas' : 'Relative frequencies'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>f</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><mi>N</mi></mfrac><mo> </mo><msub><mi>F</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>N</mi><mi>i</mi></msub><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Media · datos aislados' : 'Mean · discrete data'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>x</mi><mo>¯</mo></mover><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>x</mi><mi>i</mi></msub><mo>·</mo><msub><mi>n</mi><mi>i</mi></msub></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Mediana en tabla de frecuencias' : 'Median in a frequency table'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>N</mi><mi>i</mi></msub><mo>≥</mo><mfrac><mi>N</mi><mn>2</mn></mfrac></mrow></math><p>${l==='es'?'Toma el primer valor xᵢ cuya frecuencia acumulada alcance N/2; si hay igualdad, no promedies dos xᵢ.':'Take the first xᵢ whose cumulative count reaches N/2; on equality do not average two xᵢ.'}</p></section><section class="formula-card"><h5>${l === 'es' ? 'Media estimada · datos agrupados' : 'Estimated mean · grouped data'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>x</mi><mo>¯</mo></mover><mo>≈</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>c</mi><mi>i</mi></msub><mo>·</mo><msub><mi>n</mi><mi>i</mi></msub></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Rango y rango intercuartílico' : 'Range and interquartile range'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>R</mi><mo>=</mo><msub><mi>x</mi><mi>máx</mi></msub><mo>−</mo><msub><mi>x</mi><mi>mín</mi></msub><mo> </mo><mi>RIC</mi><mo>=</mo><msub><mi>Q</mi><mi>3</mi></msub><mo>−</mo><msub><mi>Q</mi><mi>1</mi></msub></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Varianza · divisor N' : 'Variance · divisor N'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msup><mi>σ</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mrow><msub><mi>n</mi><mi>i</mi></msub><mo>·</mo><msup><mrow><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>)</mo></mrow><mn>2</mn></msup></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Desviación típica' : 'Standard deviation'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>σ</mi><mo>=</mo><msqrt><msup><mi>σ</mi><mn>2</mn></msup></msqrt></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Coeficiente de variación · media distinta de cero' : 'Coefficient of variation · nonzero mean'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>CV</mi><mo>=</mo><mfrac><mi>σ</mi><mrow><mo>|</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>|</mo></mrow></mfrac></mrow></math></section><section class="formula-card"><h5>${l==='es'?'Cuantil agrupado · intervalo':'Grouped quantile · interval'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><msub><mi>N</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>&lt;</mo><mi>p</mi><mo>·</mo><mi>N</mi><mo>≤</mo><msub><mi>N</mi><mi>i</mi></msub></math><p>${l==='es'?'El cuantil se localiza en la clase [aᵢ, bᵢ). Para P40, p = 0,40; para Q₁, p = 0,25.':'Locate the quantile in class [aᵢ, bᵢ). For P40 use p = 0.40; for Q₁ use p = 0.25.'}</p></section><section class="formula-card"><h5>${l === 'es' ? 'Covarianza · pares de datos' : 'Covariance · paired observations'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>S</mi><mi>xy</mi></msub><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mrow><mrow><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover><mi>x</mi><mo>¯</mo></mover><mo>)</mo></mrow><mo>·</mo><mrow><mo>(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover><mi>y</mi><mo>¯</mo></mover><mo>)</mo></mrow></mrow></mrow><mi>N</mi></mfrac></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Correlación lineal' : 'Linear correlation'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>r</mi><mo>=</mo><mfrac><msub><mi>S</mi><mi>xy</mi></msub><mrow><msub><mi>σ</mi><mi>x</mi></msub><mo>·</mo><msub><mi>σ</mi><mi>y</mi></msub></mrow></mfrac><mo> </mo><mo>−</mo><mn>1</mn><mo>≤</mo><mi>r</mi><mo>≤</mo><mn>1</mn></mrow></math></section><section class="formula-card"><h5>${l === 'es' ? 'Recta de regresión · estimación' : 'Regression line · estimate'}</h5><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover><mi>y</mi><mo>^</mo></mover><mo>=</mo><mi>m</mi><mo>·</mo><mi>x</mi><mo>+</mo><mi>n</mi></mrow></math></section><p class="small">${l === 'es' ? 'Nᵢ₋₁ es la frecuencia acumulada anterior (0 antes de la primera clase). Se informa del intervalo del cuantil; no se estima su valor numérico. Las marcas de clase cᵢ se siguen usando para estimar la media, no los cuantiles. El CV se expresa aquí como razón; multiplica por 100 para porcentaje. La correlación requiere ambas desviaciones típicas distintas de cero.' : 'Nᵢ₋₁ is the previous cumulative count (0 before the first class). Report the quantile interval, without estimating a numerical value. Class midpoints are still used to estimate the mean. CV is a ratio; multiply by 100 for percent. Correlation requires nonzero standard deviations.'}</p>
         </div>
         <div>
           <h4 style="margin-top:0">${l === 'es' ? 'Calculadora científica' : 'Scientific Calculator'}</h4>
@@ -3290,7 +4040,7 @@ function openFormulaCalcModal() {
 
 function openTeacherConfigModal() {
  const en=L()==='en';
- openDialog(`<div class="dlg-head"><h3>⚙️ ${en?'Class conventions':'Configuración de la clase'}</h3><button type="button" class="btn-ghost" data-close-dlg="1">✕</button></div><div class="dlg-body"><p>${en?'These conventions are fixed in this HTML file and apply to new, saved and imported sessions.':'Estas convenciones están fijadas en este archivo y se aplican a partidas nuevas, guardadas e importadas.'}</p><ul><li>${en?'Discrete quantiles: cumulative frequency table.':'Cuantiles discretos: tabla de frecuencias acumuladas.'}</li><li>${en?'Grouped quantiles: identify the interval [a, b); no midpoint or interpolation required.':'Cuantiles agrupados: identificar el intervalo [a, b); sin marca de clase ni interpolación.'}</li><li>${en?'Display precision: three decimal places.':'Precisión de presentación: tres decimales.'}</li><li>${en?'Test weighting: 40% 1D / 60% 2D.':'Peso de la prueba: 40 % 1D / 60 % 2D.'}</li><li>${en?'Variance: divisor N.':'Varianza: divisor N.'}</li></ul></div>`);
+ openDialog(`<div class="dlg-head"><h3>⚙️ ${en?'Class conventions':'Configuración de la clase'}</h3><button type="button" class="btn-ghost" data-close-dlg="1">✕</button></div><div class="dlg-body"><p>${en?'These conventions are fixed in this HTML file and apply to new, saved and imported sessions.':'Estas convenciones están fijadas en este archivo y se aplican a partidas nuevas, guardadas e importadas.'}</p><ul><li>${en?'Discrete quantiles: cumulative frequency table.':'Cuantiles discretos: tabla de frecuencias acumuladas.'}</li><li>${en?'Grouped quantiles: identify the interval [a, b); no midpoint or interpolation required.':'Cuantiles agrupados: identificar el intervalo [a, b); sin marca de clase ni interpolación.'}</li><li>${en?'Display precision: three decimal places.':'Precisión de presentación: tres decimales.'}</li><li>${en?'Test weighting: 40% 1D / 60% 2D.':'Peso de la prueba: 40 % 1D / 60 % 2D.'}</li><li>${en?'Variance: divisor N.':'Varianza: divisor N.'}</li><li>${en?'Bivariate tables: final interval [a, b] includes the upper boundary; all preceding intervals [a, b).':'Tablas 2D: el último intervalo [a, b] incluye el extremo superior; los anteriores son [a, b).'}</li></ul></div>`);
 }
 
 function openPrintReportModal() {
@@ -3298,8 +4048,8 @@ function openPrintReportModal() {
   const reports = COMPETENCIAS_META.map((m) => {
     const rec = state.expedientes[m.id];
     const txt = rec && rec.reportText ? rec.reportText : (l === 'es' ? '(Sin redactar aún)' : '(Not written yet)');
-    const task = REPORT_TASKS[m.id][l];
-    return `<div style="border-bottom:1px solid #dbe4ef;padding:8px 0"><strong>${escapeText(m[l].name)}</strong> · ${escapeText(tr('states')[state.competencias[m.id]])}<p>${escapeText(task[1])}</p><p style="margin:4px 0 0;white-space:pre-wrap">${escapeText(txt)}</p><ul>${task[3].map((item,i)=>`<li>${rec?.reportRubricVersion===2 && rec.rubricChecks[i]?'☑':'☐'} ${escapeText(item)}</li>`).join('')}</ul></div>`;
+    const task = rec?.guided ? reportTaskFor(m.id,rec.guided,l) : REPORT_TASKS[m.id][l];
+    return `<div style="border-bottom:1px solid #dbe4ef;padding:8px 0"><strong>${escapeText(m[l].name)}</strong> · ${escapeText(tr('states')[state.competencias[m.id]])}<p>${escapeText(task[1])}</p><p style="margin:4px 0 0;white-space:pre-wrap">${escapeText(txt)}</p><ul>${task[3].map((item,i)=>`<li>${rec?.reportRubricVersion===2 && rec.rubricChecks[i]?'☑':'☐'} ${escapeText(item)}</li>`).join('')}</ul>${rec?.guided?.user?.predRevisionSaved?`<p><strong>${l==='es'?'Revisión de hipótesis':'Prediction revision'}:</strong> ${escapeText(rec.guided.user.predRevision||'')}</p>`:''}${rec?.peerReview?.evidence||rec?.peerReview?.suggestion?`<p><strong>${l==='es'?'Observaciones del compañero (sin validar)':'Peer notes (unverified)'}:</strong> ${escapeText(rec.peerReview.evidence||'')} / ${escapeText(rec.peerReview.suggestion||'')}</p>`:''}</div>`;
   }).join('');
   openDialog(`
     <div class="dlg-head">
@@ -3389,10 +4139,21 @@ function updateChrome() {
 
 function restoreGroupedModels(node) {
   if (!node || typeof node !== 'object') return;
+  // Conserva las partidas anteriores: el último intervalo 2D contiene el extremo derecho.
+  // La versión anterior expandía artificialmente el límite una unidad para simular [a,b).
+  if (Array.isArray(node.xBins) && Array.isArray(node.yBins)) {
+    for (const bins of [node.xBins, node.yBins]) {
+      const last = bins[bins.length - 1];
+      if (!last) continue;
+      const oldExpanded = new Map([[4,7],[7,11],[43,61],[75,101]]);
+      if (!last.closedRight && oldExpanded.get(last.lo) === last.hi) last.hi -= 1;
+      last.closedRight = true;
+      last.label = `[${last.lo}, ${last.hi}]`;
+    }
+  }
   if (Array.isArray(node.rows) && node.rows.length &&
       node.rows.every(r => r && Number.isFinite(r.lo) && Number.isFinite(r.hi) && Number.isFinite(r.ni))) {
-    const rebuilt = Stats.grouped(node.rows.map(r => ({lo:r.lo, hi:r.hi, closedRight:r.closedRight})), node.rows.map(r => r.ni));
-    Object.assign(node, rebuilt);
+    Object.assign(node, Stats.grouped(node.rows.map(r => ({lo:r.lo, hi:r.hi})), node.rows.map(r => r.ni)));
     return;
   }
   if (Array.isArray(node.rows) && node.rows.length && node.rows.every(r => Number.isFinite(r.xi) && Number.isFinite(r.ni))) {
@@ -3402,11 +4163,10 @@ function restoreGroupedModels(node) {
     if (value && typeof value === 'object') restoreGroupedModels(value);
   }
 }
-
 let showingHome = true;
 const HOME_SECTIONS = [
  ["expedientes", "🗂️", "Expedientes", "Cases", "Investiga datos, compara y redacta conclusiones.", "Investigate data, compare and draw conclusions.", ["Muestreo y variables", "Tablas y cuantiles", "Dispersión y CV", "Correlación y regresión"], ["Sampling & variables", "Tables & quantiles", "Spread & CV", "Correlation & regression"]],
- ["taller", "🛠️", "Taller", "Practice", "Elige una habilidad concreta y practícala con ejercicios y pistas.", "Choose one specific skill and practise it with exercises and hints.", ["Variables", "Tablas 1D", "Datos agrupados", "Varianza y CV", "Estadística 2D"], ["Variables", "1D tables", "Grouped data", "Variance & CV", "Bivariate statistics"]],
+ ["taller", "🛠️", "Taller", "Practice", "Elige entre aprender, entrenar o desafiarte; experimenta con datos en los laboratorios de Nova.", "Choose Learn, Train or Challenge; explore datasets in Nova's labs.", ["Variables", "Tablas 1D", "Datos agrupados", "Varianza y CV", "Estadística 2D"], ["Variables", "1D tables", "Grouped data", "Variance & CV", "Bivariate statistics"]],
  ["prueba", "📝", "Preparación de prueba", "Exam preparation", "Combina lo aprendido con problemas nuevos en el formato de evaluación.", "Combine your skills on new problems in assessment format.", ["40% estadística 1D", "60% estadística 2D", "Interpretación y conclusión"], ["40% univariate", "60% bivariate", "Interpretation & conclusion"]],
  ["evidencias", "🏅", "Mis evidencias", "My evidence", "Consulta tus competencias, constancia y trabajos; aquí no aparece contenido nuevo.", "Review your skills, consistency and work; no new content is introduced here.", ["Progreso", "Informes", "Logros"], ["Progress", "Reports", "Achievements"]]
 ];
@@ -3433,6 +4193,18 @@ function render() {
   state.teacherConfig = DEFAULT_TEACHER_CONFIG();
   if (state.prueba.current) { state.prueba.current.w1 = 40; state.prueba.current.w2 = 60; }
   restoreGroupedModels(state);
+  // Reparar la tabla y sus intervalos en partidas previas sin cambiar las observaciones.
+  for (const rec of Object.values(state.expedientes)) {
+    if (rec && typeof rec === 'object') for (const inst of [rec.guided, rec.transfer]) {
+      if (inst?.bi?.pts && inst.table2d?.xBins && inst.table2d?.yBins) {
+        inst.table2d = Stats.buildContingency(inst.bi.pts, inst.table2d.xBins, inst.table2d.yBins);
+      }
+    }
+  }
+  if (state.prueba.current?.bi?.pts && state.prueba.current.t2d?.xBins) {
+    const ex = state.prueba.current;
+    ex.t2d = Stats.buildContingency(ex.bi.pts, ex.t2d.xBins, ex.t2d.yBins);
+  }
   updateChrome();
   document.body.dataset.screen = showingHome ? 'home' : 'activity';
   homeButton.textContent = L()==='en' ? '⌂ Main menu' : '⌂ Menú principal';
@@ -3442,6 +4214,7 @@ function render() {
   else if (state.activeNav === 'taller') app.innerHTML = renderTaller();
   else if (state.activeNav === 'evidencias') app.innerHTML = renderEvidencias();
   else app.innerHTML = renderPrueba();
+  decorateReviewFeedback();
 }
 
 $('brandTitle').addEventListener('click', (e) => {
@@ -3466,6 +4239,11 @@ app.addEventListener('click', (e) => {
   const t = e.target.closest('button, rect[data-hist-idx]');
   if (!t) return;
 
+  if (t.dataset.expFinishNext != null) {
+    state.activeExp=Number(t.dataset.expFinishNext); save(); render();
+    $('caseWorkspace')?.scrollIntoView({block:'start'}); return;
+  }
+  if (t.dataset.expHome) { showingHome=true; render(); window.scrollTo(0,0); return; }
   if (t.dataset.openExp != null) {
     state.activeExp = Number(t.dataset.openExp);
     save();
@@ -3476,7 +4254,7 @@ app.addEventListener('click', (e) => {
   if (t.dataset.expStage != null) {
     const m = COMPETENCIAS_META[state.activeExp];
     const rec = makeExpRecord(m.id);
-    rec.stage = clamp(Number(t.dataset.expStage), 0, 5);
+    rec.stage = clamp(Number(t.dataset.expStage), 0, maxUnlockedStage(rec));
     save();
     render();
     $('caseWorkspace')?.scrollIntoView({block:'start', behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
@@ -3488,12 +4266,14 @@ app.addEventListener('click', (e) => {
     return;
   }
   if (t.dataset.checkInit) { checkExpInit(t.dataset.checkInit); return; }
+  if (t.dataset.checkAgrTable) { checkGroupedTable(t.dataset.checkAgrTable === 'T'); return; }
   if (t.dataset.checkAnalysis) {
     const [id, pfx] = t.dataset.checkAnalysis.split(':');
     checkExpAnalysis(id, pfx === 'T');
     return;
   }
   if (t.dataset.checkContrast) { checkExpContrast(t.dataset.checkContrast); return; }
+  if (t.dataset.saveRevision) { recordExpRevision(t.dataset.saveRevision); return; }
   if (t.dataset.saveReport) { saveExpReport(t.dataset.saveReport); return; }
   if (t.dataset.openPrint) { openPrintReportModal(); return; }
 
@@ -3521,16 +4301,35 @@ app.addEventListener('click', (e) => {
       render();
     } else if (parts[0] === 'tal' && state.taller.current) {
       state.taller.current.usedHelp[parts[1]] = true;
-      if (parts[1] === 'solution' && !state.taller.current.queuedErr) {
-        state.taller.current.queuedErr = true;
-        if (state.taller.errorQueue.length < 15) state.taller.errorQueue.push({ topic: state.taller.current.topic, diff: state.taller.current.diff });
-      }
       save();
       render();
     }
     return;
   }
 
+  if (t.dataset.tallerMode) {
+    if (['learn','train','challenge'].includes(t.dataset.tallerMode)) {
+      state.taller.mode=t.dataset.tallerMode;
+      state.taller.current=generateTallerItem(state.taller.topic,state.taller.diff,false);
+      save(); render();
+    }
+    return;
+  }
+  if (t.dataset.labsToggle) { state.labs.open=!state.labs.open; save(); render(); return; }
+  if (t.dataset.labChoose) {
+    if (['outlier','cv','corr'].includes(t.dataset.labChoose)) {
+      state.labs.active=t.dataset.labChoose; save(); render();
+    } return;
+  }
+  if (t.dataset.labExp != null) {
+    showingHome=false; state.activeNav='expedientes'; state.activeExp=Number(t.dataset.labExp);
+    save(); render(); $('caseWorkspace')?.scrollIntoView({block:'start'}); return;
+  }
+  if (t.dataset.labContrast) {
+    const id=t.dataset.labContrast;
+    if (state.labs[id] && state.labs[id].prediction) { state.labs[id].revealed=true; save(); render(); }
+    return;
+  }
   if (t.dataset.tallerNext != null) {
     const isRev = t.dataset.tallerNext === '1';
     if (isRev && state.taller.errorQueue.length) {
@@ -3589,36 +4388,64 @@ app.addEventListener('input', (e) => {
   const m = COMPETENCIAS_META[state.activeExp];
   const rec = m ? makeExpRecord(m.id) : null;
 
-  if (el.dataset.expInput && rec) {
+  if (el.dataset.expStrategy && rec) {
+    rec.strategy = ['a','b'].includes(el.value)?el.value:'';
+    save();
+  } else if (el.dataset.peerReview && rec) {
+    const [id, key]=el.dataset.peerReview.split(':');
+    if (id===m.id && ['evidence','suggestion'].includes(key)) {
+      rec.peerReview ??= {evidence:'',suggestion:''};
+      rec.peerReview[key] = el.value.slice(0,1500); save();
+    }
+  } else if (el.dataset.expInput && rec) {
     rec.guided.user[el.dataset.expInput] = el.value;
     save();
   } else if (el.dataset.expField && rec) {
     const inst = el.dataset.tr === 'T' ? rec.transfer : rec.guided;
     inst.user[el.dataset.expField] = el.value;
+    invalidateAnalysis(m.id, el.dataset.tr === 'T');
+    clearReviewMarkup();
     save();
   } else if (el.dataset.expVar != null && rec) {
     const inst = el.dataset.tr === 'T' ? rec.transfer : rec.guided;
     inst.user.vars[Number(el.dataset.expVar)] = el.value;
+    invalidateAnalysis(m.id, el.dataset.tr === 'T');
+    clearReviewMarkup();
     save();
   } else if (el.dataset.tabCell && rec) {
     const [idx, key, pfx] = el.dataset.tabCell.split(':');
     const inst = pfx === 'T' ? rec.transfer : rec.guided;
     inst.user.table[Number(idx)][key] = el.value;
+    invalidateAnalysis(m.id, pfx === 'T');
+    clearReviewMarkup();
     save();
   } else if (el.dataset.agrCell && rec) {
     const [idx, key, pfx] = el.dataset.agrCell.split(':');
     const inst = pfx === 'T' ? rec.transfer : rec.guided;
     inst.user.rows[Number(idx)][key] = el.value;
+    inst.tableVerified = false;
+    invalidateAnalysis(m.id, pfx === 'T');
+    clearReviewMarkup();
+    save();
+  } else if (el.dataset.expRevision && rec) {
+    rec.guided.user.predRevision = el.value;
+    rec.guided.user.predRevisionSaved = false;
+    delete rec.guided.user.predRevisionFeedback;
     save();
   } else if (el.dataset.expReport) {
-    makeExpRecord(el.dataset.expReport).reportText = el.value;
+    const r=makeExpRecord(el.dataset.expReport); r.reportText = el.value; r.selfAssessed=false; r.stageDone[4]=false; r.stageDone[5]=false; r.completedTransfer=false;
     save();
   } else if (el.dataset.expRubric) {
     const [id, idx] = el.dataset.expRubric.split(':');
-    makeExpRecord(id).rubricChecks[Number(idx)] = el.checked;
+    const r=makeExpRecord(id); r.rubricChecks[Number(idx)] = el.checked; r.selfAssessed=false; r.stageDone[4]=false; r.stageDone[5]=false; r.completedTransfer=false;
     save();
+  } else if (el.dataset.labPred && state.labs[el.dataset.labPred]) {
+    state.labs[el.dataset.labPred].prediction=['a','b'].includes(el.value)?el.value:'';
+    state.labs[el.dataset.labPred].revealed=false;
+    save(); render();
   } else if (el.dataset.tallerField && state.taller.current) {
     state.taller.current.user[el.dataset.tallerField] = el.value;
+    state.taller.current.checked = false;
     save();
   } else if (el.dataset.tallerCheck && state.taller.current) {
     state.taller.current.user[el.dataset.tallerCheck] = el.checked;
@@ -3632,13 +4459,27 @@ app.addEventListener('input', (e) => {
   } else if (el.dataset.exRow && state.prueba.current) {
     const [idx, key] = el.dataset.exRow.split(':');
     state.prueba.current.user.rows1[Number(idx)][key] = el.value;
+    state.prueba.current.graded = false;
     save();
   } else if (el.dataset.exField && state.prueba.current) {
     state.prueba.current.user[el.dataset.exField] = el.value;
+    state.prueba.current.graded = false;
     save();
   } else if (el.dataset.exRubric != null && state.prueba.current) {
     state.prueba.current.user.rubric[Number(el.dataset.exRubric)] = el.checked;
     save();
+  }
+});
+
+app.addEventListener('change',(e)=>{
+  const el=e.target;
+  if (el.dataset.labSlider && state.labs.open) {
+    const lab=state.labs[state.labs.active];
+    const [min,max]=state.labs.active==='outlier'?[8,25]:state.labs.active==='cv'?[1,40]:[0,10];
+    const n=Number(el.value);
+    if (Number.isFinite(n)) lab[el.dataset.labSlider]=clamp(n,min,max);
+    lab.revealed=false;
+    save(); render();
   }
 });
 
