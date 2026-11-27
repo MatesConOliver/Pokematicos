@@ -709,7 +709,7 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                 📦 Bulk Upload Activities to Selected Class
               </h4>
               <div style={{ fontSize: 12, color: "#475569" }}>
-                Load a 4.º ESO app pack or paste JSON, adjust points/cards if needed, and upload in one batch.
+                Load a predefined app pack or paste JSON, adjust points/cards if needed, and upload in one batch.
               </div>
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -761,13 +761,30 @@ export function ActivityCatalogueManager({ db, classId, alertFn }) {
                   fontWeight: 700,
                 }}
               >
-                Both Packs (
+                Both 4º Packs (
                 {PREDEFINED_ACTIVITY_PACKS.estadi.activities.length +
                   PREDEFINED_ACTIVITY_PACKS.probab.activities.length}{" "}
                 ·{" "}
                 {PREDEFINED_ACTIVITY_PACKS.estadi.activities.reduce((s, a) => s + a.pointsAwarded, 0) +
                   PREDEFINED_ACTIVITY_PACKS.probab.activities.reduce((s, a) => s + a.pointsAwarded, 0)}{" "}
                 pts)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLoadPack(["ration"])}
+                style={{
+                  padding: "7px 12px",
+                  background: "#fdf4ff",
+                  color: "#7e22ce",
+                  border: "1px solid #e9d5ff",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                Rationals 3º ESO ({PREDEFINED_ACTIVITY_PACKS.ration.activities.length} ·{" "}
+                {PREDEFINED_ACTIVITY_PACKS.ration.activities.reduce((s, a) => s + a.pointsAwarded, 0)} pts)
               </button>
               <button
                 type="button"

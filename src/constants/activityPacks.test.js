@@ -100,4 +100,57 @@ describe("PREDEFINED_ACTIVITY_PACKS", () => {
       ])
     );
   });
+
+  test("Rationals 3º ESO pack has 17 activities totaling 50 points (24 pts spaces + 26 pts achievements)", () => {
+    const ration = PREDEFINED_ACTIVITY_PACKS.ration;
+    expect(ration.activities).toHaveLength(17);
+
+    const spaceActs = ration.activities.filter((a) => a.activityId.startsWith("m"));
+    const achActs = ration.activities.filter((a) => !a.activityId.startsWith("m"));
+    expect(spaceActs).toHaveLength(5);
+    expect(achActs).toHaveLength(12);
+
+    const spacePoints = spaceActs.reduce((sum, a) => sum + a.pointsAwarded, 0);
+    const achPoints = achActs.reduce((sum, a) => sum + a.pointsAwarded, 0);
+    expect(spacePoints).toBe(24);
+    expect(achPoints).toBe(26);
+    expect(spacePoints + achPoints).toBe(50);
+
+    const seen = new Set();
+    for (const act of ration.activities) {
+      expect(act.sourceId).toBe("ration");
+      expect(act.activityId.length).toBeGreaterThan(0);
+      expect(act.activityId.length).toBeLessThanOrEqual(6);
+      expect(seen.has(act.activityId)).toBe(false);
+      seen.add(act.activityId);
+
+      const code = generateRewardCode("student123", act.sourceId, act.activityId);
+      const decoded = decodeRewardCode(code);
+      expect(decoded.success).toBe(true);
+      expect(decoded.sourceId).toBe(act.sourceId);
+      expect(decoded.activityId).toBe(act.activityId);
+    }
+
+    expect(seen).toEqual(
+      new Set([
+        "m1sion",
+        "m2sion",
+        "m3sion",
+        "m4sion",
+        "m5sion",
+        "logro1",
+        "logro2",
+        "logro3",
+        "logro4",
+        "logro5",
+        "logro6",
+        "logro7",
+        "logro8",
+        "logro9",
+        "logr10",
+        "logr11",
+        "logr12",
+      ])
+    );
+  });
 });
