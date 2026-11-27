@@ -20,6 +20,7 @@ import { decodeRewardCode, getStudentHash } from "../utils/rewardCodeUtils.js";
 import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
 import { todayISODate } from "../utils/dateUtils";
 import { uid, round2 } from "../utils/helpers";
+import { applyComboCardGrants } from "./cardComboService";
 
 /**
  * Redeem a reward code for the current student
@@ -157,16 +158,45 @@ export async function redeemRewardCode({
                 };
               }
 
-              await updateDoc(studentRef, { cards: currentCards, rewardsHistory: history });
+              let cardLibrary = Array.isArray(allCards) ? allCards : null;
+              if (!cardLibrary) {
+                const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
+                cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+              }
+              const recoveryMult = computeEffectiveMultiplier(
+                { ...studentData, cards: currentCards },
+                todayISODate(),
+                cardLibrary || []
+              );
+              const comboRes = applyComboCardGrants({
+                cardsArr: currentCards,
+                currentPoints: Number(studentData.currentPoints || 0),
+                multiplier: recoveryMult,
+                allCards: cardLibrary || [],
+                student: studentData,
+              });
 
+              const updatePayload = { cards: currentCards, rewardsHistory: history };
+              if (comboRes.grantedComboCards.length > 0) {
+                updatePayload.currentPoints = comboRes.currentPoints;
+              }
+              await updateDoc(studentRef, updatePayload);
+
+              const comboNames = comboRes.grantedComboCards.map((c) => `"${c.title}"`).join(", ");
               return {
                 success: true,
-                message: `Reward card "${cardTitle}" added to your collection!`,
+                message: comboNames
+                  ? `Reward card "${cardTitle}" added and combo unlocked: ${comboNames}!`
+                  : `Reward card "${cardTitle}" added to your collection!`,
                 achievement: {
                   cardId: cardIdToGive,
                   cardName: cardTitle,
                   activityName: activity.name,
-                  effectivePointsAwarded: 0,
+                  effectivePointsAwarded: comboRes.grantedComboCards.reduce(
+                    (sum, c) => round2(sum + (c.pointsGranted || 0)),
+                    0
+                  ),
+                  comboCards: comboRes.grantedComboCards,
                 },
               };
             }
@@ -191,10 +221,16 @@ export async function redeemRewardCode({
       allCards,
     });
 
+    const comboNames = Array.isArray(achievement.comboCards) && achievement.comboCards.length > 0
+      ? achievement.comboCards.map((c) => `"${c.title}"`).join(", ")
+      : "";
+
     return {
       success: true,
       message: achievement.cardName
-        ? `Achievement redeemed! Card "${achievement.cardName}" added to your collection.`
+        ? comboNames
+          ? `Achievement redeemed! Card "${achievement.cardName}" added and combo unlocked: ${comboNames}!`
+          : `Achievement redeemed! Card "${achievement.cardName}" added to your collection.`
         : "Achievement successfully redeemed!",
       achievement,
     };
@@ -303,8 +339,13 @@ export async function recordAndAwardAchievement({
     }
 
     const studentData = studentSnap.data();
+    const cardIdHint = activity.cardId || activity.linkedCardId || activity.rewardCardId;
+    const expectsCard = Boolean(
+      cardIdHint &&
+      (activity.rewardType === "card" || activity.rewardType === "both" || activity.rewardType !== "points")
+    );
     let cardLibrary = Array.isArray(allCards) ? allCards : null;
-    if (!cardLibrary && Array.isArray(studentData.cards) && studentData.cards.length > 0) {
+    if (!cardLibrary && (expectsCard || (Array.isArray(studentData.cards) && studentData.cards.length > 0))) {
       const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
       cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }
@@ -409,11 +450,35 @@ export async function recordAndAwardAchievement({
     history.push(rewardEntry);
 
     // Update student document in one single batch operation
+    const baseNextPoints = round2(Number(studentData.currentPoints || 0) + effectivePoints);
+    let finalPoints = baseNextPoints;
+    let grantedComboCards = [];
+
+    if (shouldAwardCard && cardIdToGive) {
+      const postCardMult = computeEffectiveMultiplier(
+        { ...studentData, cards: currentCards },
+        todayISODate(),
+        cardLibrary || []
+      );
+      const comboRes = applyComboCardGrants({
+        cardsArr: currentCards,
+        currentPoints: baseNextPoints,
+        multiplier: postCardMult,
+        allCards: cardLibrary || [],
+        student: studentData,
+      });
+      finalPoints = comboRes.currentPoints;
+      grantedComboCards = comboRes.grantedComboCards;
+      if (grantedComboCards.length > 0) {
+        achievement.comboCards = grantedComboCards;
+      }
+    }
+
     const studentUpdates = {
-      currentPoints: round2(Number(studentData.currentPoints || 0) + effectivePoints),
+      currentPoints: finalPoints,
       rewardsHistory: history,
     };
-    if (shouldAwardCard && cardIdToGive) {
+    if ((shouldAwardCard && cardIdToGive) || grantedComboCards.length > 0) {
       studentUpdates.cards = currentCards;
     }
 

@@ -10,6 +10,11 @@ import {
   checkEvolutionEligibility,
   isCardUnlockedForStudent,
 } from "../../services/cardEvolutionService";
+import {
+  isComboCard,
+  evaluateComboProgress,
+  getComboPeriodLabel,
+} from "../../services/cardComboService";
 
 export default function ProfileModal({
   mode,
@@ -33,7 +38,7 @@ export default function ProfileModal({
   onCreateRequest,
   onCancelRequest,
 }) {
-  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "evolutions" | "settings" | "redeem"
+  const [activeTab, setActiveTab] = useState("requests"); // "requests" | "rewards" | "special" | "settings" | "redeem"
 
   // Profile customization state
   const [emojis, setEmojis] = useState(student.nameEmojis || "");
@@ -84,10 +89,40 @@ export default function ProfileModal({
     }
   }, [giveableCards, requestCardId]);
 
-  const evolutionCards = useMemo(
-    () => (allCards || []).filter((c) => isEvolutionCard(c)),
+  const pointsLibraryCards = useMemo(
+    () => (allCards || []).filter((c) => (c.category || "points") === "points"),
     [allCards]
   );
+
+  const evolutionCards = useMemo(
+    () => pointsLibraryCards.filter((c) => isEvolutionCard(c)),
+    [pointsLibraryCards]
+  );
+
+  const comboCards = useMemo(
+    () => pointsLibraryCards.filter((c) => isComboCard(c)),
+    [pointsLibraryCards]
+  );
+
+  const hasSpecialCards = evolutionCards.length > 0 || comboCards.length > 0;
+
+  const comboProgressList = useMemo(() => {
+    const items = comboCards.map((comboCard) => ({
+      comboCard,
+      progress: evaluateComboProgress({
+        student,
+        comboCard,
+        allCards,
+      }),
+    }));
+    // Show active/incomplete combos (sorted by highest progress first) above already-claimed ones
+    return items.sort((a, b) => {
+      if (a.progress.isAlreadyClaimed !== b.progress.isAlreadyClaimed) {
+        return a.progress.isAlreadyClaimed ? 1 : -1;
+      }
+      return b.progress.progressRatio - a.progress.progressRatio;
+    });
+  }, [comboCards, student, allCards]);
 
   const defaultCatalystCard = useMemo(
     () => (defaultCatalystCardId ? cardsMap.get(defaultCatalystCardId) || null : null),
@@ -95,10 +130,10 @@ export default function ProfileModal({
   );
 
   useEffect(() => {
-    if (evolutionCards.length === 0 && activeTab === "evolutions") {
+    if (!hasSpecialCards && activeTab === "special") {
       setActiveTab("requests");
     }
-  }, [evolutionCards.length, activeTab]);
+  }, [hasSpecialCards, activeTab]);
 
   const readyToEvolveCount = useMemo(
     () =>
@@ -258,26 +293,27 @@ export default function ProfileModal({
             ⚙️ Settings & PIN
           </button>
 
-          {evolutionCards.length > 0 && (
+          {hasSpecialCards && (
             <button
               type="button"
               className="btn"
-              onClick={() => setActiveTab("evolutions")}
+              onClick={() => setActiveTab("special")}
               style={{
                 borderBottomLeftRadius: 0,
                 borderBottomRightRadius: 0,
-                borderBottom: activeTab === "evolutions" ? "3px solid #7c3aed" : "3px solid transparent",
-                background: activeTab === "evolutions" ? "#f5f3ff" : "transparent",
-                color: activeTab === "evolutions" ? "#6d28d9" : "#4b5563",
-                fontWeight: activeTab === "evolutions" ? 700 : 500,
+                borderBottom: activeTab === "special" ? "3px solid #7c3aed" : "3px solid transparent",
+                background: activeTab === "special" ? "#f5f3ff" : "transparent",
+                color: activeTab === "special" ? "#6d28d9" : "#4b5563",
+                fontWeight: activeTab === "special" ? 700 : 500,
                 padding: "8px 14px",
                 fontSize: 13,
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
+                whiteSpace: "nowrap",
               }}
             >
-              🧬 Evolutions
+              ✨ Cartas especiales
               {readyToEvolveCount > 0 && (
                 <span
                   style={{
@@ -966,26 +1002,250 @@ export default function ProfileModal({
             </div>
           )}
 
-          {/* ================= TAB: EVOLUTIONS ================= */}
-          {activeTab === "evolutions" && evolutionCards.length > 0 && (
-            <div>
-              <div style={{ marginBottom: 14 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    color: "#6b7280",
-                    fontWeight: 700,
-                  }}
-                >
-                  Available Evolutions
+          {/* ================= TAB: CARTAS ESPECIALES (COMBOS + EVOLUTIONS) ================= */}
+          {activeTab === "special" && hasSpecialCards && (
+            <div style={{ display: "grid", gap: 22 }}>
+              {comboProgressList.length > 0 && (
+                <div>
+                  <div style={{ marginBottom: 12 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        color: "#0f766e",
+                        fontWeight: 800,
+                      }}
+                    >
+                      ⏱️ Temporal Combos
+                    </div>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      Collect all required cards within the same natural period to earn the combo card automatically
+                      {effectiveMultiplier !== 1
+                        ? ` (your x${effectiveMultiplier} multiplier applies to the points reward).`
+                        : "."}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {comboProgressList.map(({ comboCard, progress }) => {
+                      const isLockedComboEvo = Boolean(progress.evolutionLocked);
+                      const isThumbnailLocked = !progress.isAlreadyClaimed || isLockedComboEvo;
+                      const comboImg = getCardDisplayImage(
+                        comboCard,
+                        displayFlagValue,
+                        isThumbnailLocked
+                      );
+                      const basePts = Number(comboCard.points || 0);
+                      const multipliedPts = round2(basePts * effectiveMultiplier);
+                      const pct = Math.round((progress.progressRatio || 0) * 100);
+
+                      return (
+                        <div
+                          key={comboCard.id}
+                          style={{
+                            border: progress.isAlreadyClaimed
+                              ? "1px solid #86efac"
+                              : "1px solid #99f6e4",
+                            borderRadius: 12,
+                            padding: 12,
+                            background: progress.isAlreadyClaimed ? "#f0fdf4" : "#ffffff",
+                            display: "flex",
+                            gap: 12,
+                            alignItems: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 66,
+                              height: 88,
+                              borderRadius: 8,
+                              overflow: "hidden",
+                              background: "#f3f4f6",
+                              flexShrink: 0,
+                              position: "relative",
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            {comboImg ? (
+                              <img
+                                src={comboImg}
+                                alt={comboCard.title}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  filter: !isThumbnailLocked ? "none" : "grayscale(0.65)",
+                                }}
+                              />
+                            ) : (
+                              <div style={{ padding: 6, fontSize: 10 }}>{comboCard.title}</div>
+                            )}
+                            {isThumbnailLocked && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  inset: 0,
+                                  background: "rgba(15, 23, 42, 0.35)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 18,
+                                }}
+                              >
+                                🔒
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 800, fontSize: 15, color: "#111827" }}>
+                                {comboCard.title}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  background: "#ccfbf1",
+                                  color: "#0f766e",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ⏱️ {getComboPeriodLabel(progress.period)}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  background: "#e0f2fe",
+                                  color: "#0369a1",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                +{formatPoints(multipliedPts)} pts
+                                {effectiveMultiplier !== 1 && basePts > 0
+                                  ? ` (${formatPoints(basePts)} × ${effectiveMultiplier})`
+                                  : ""}
+                              </span>
+                              {isLockedComboEvo && (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    padding: "2px 8px",
+                                    borderRadius: 999,
+                                    background: "#ede9fe",
+                                    color: "#6d28d9",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  🔒 Evolution locked
+                                </span>
+                              )}
+                              {progress.isAlreadyClaimed ? (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    padding: "2px 8px",
+                                    borderRadius: 999,
+                                    background: "#dcfce7",
+                                    color: "#166534",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  ✅ Earned
+                                  {progress.repeatMode === "once" ? " (One-time)" : " this period"}
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    padding: "2px 8px",
+                                    borderRadius: 999,
+                                    background: "#f1f5f9",
+                                    color: "#475569",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {progress.repeatMode === "once" ? "One-time" : "Repeatable"}
+                                </span>
+                              )}
+                            </div>
+
+                            {comboCard.description && (!isLockedComboEvo || mode === "admin") && (
+                              <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                                {comboCard.description}
+                              </div>
+                            )}
+
+                            {/* Visual progress bar */}
+                            <div
+                              style={{
+                                marginTop: 6,
+                                height: 6,
+                                borderRadius: 999,
+                                background: "#e2e8f0",
+                                overflow: "hidden",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: `${pct}%`,
+                                  height: "100%",
+                                  background: progress.isAlreadyClaimed ? "#16a34a" : "#0d9488",
+                                  transition: "width 0.25s ease",
+                                }}
+                              />
+                            </div>
+
+                            {/* Requirement progress chips */}
+                            <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                              {progress.requirementsProgress.map((req) => (
+                                <span
+                                  key={req.cardId}
+                                  style={{
+                                    fontSize: 11,
+                                    padding: "2px 7px",
+                                    borderRadius: 6,
+                                    background: req.met || progress.isAlreadyClaimed ? "#dcfce7" : "#f1f5f9",
+                                    color: req.met || progress.isAlreadyClaimed ? "#15803d" : "#475569",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  🃏 {req.title}: {req.currentCount}/{req.requiredCount}
+                                  {req.met ? " ✓" : ""}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="muted" style={{ fontSize: 12 }}>
-                  Collect the required copies of the base card and 1{" "}
-                  <strong>{defaultCatalystCard?.title || "catalyst"}</strong> to unlock new forms.
-                </div>
-              </div>
+              )}
+
+              {evolutionCards.length > 0 && (
+                <div>
+                  <div style={{ marginBottom: 14 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        color: "#6b7280",
+                        fontWeight: 700,
+                      }}
+                    >
+                      🧬 Available Evolutions
+                    </div>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      Collect the required copies of the base card and 1{" "}
+                      <strong>{defaultCatalystCard?.title || "catalyst"}</strong> to unlock new forms.
+                    </div>
+                  </div>
 
               <div style={{ display: "grid", gap: 12 }}>
                 {evolutionCards.map((evoCard) => {
@@ -1152,7 +1412,9 @@ export default function ProfileModal({
                     </div>
                   );
                 })}
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1395,8 +1657,15 @@ export default function ProfileModal({
                 classId={classId}
                 studentId={student.id}
                 allCards={allCards}
-                onSuccess={() => {
-                  onValidationError("Achievement redeemed successfully! ✨");
+                onSuccess={(achievement) => {
+                  const comboNames = Array.isArray(achievement?.comboCards) && achievement.comboCards.length > 0
+                    ? achievement.comboCards.map((c) => `"${c.title}"`).join(", ")
+                    : "";
+                  onValidationError(
+                    comboNames
+                      ? `Achievement redeemed + Combo unlocked: ${comboNames}! ✨`
+                      : "Achievement redeemed successfully! ✨"
+                  );
                 }}
               />
             </div>

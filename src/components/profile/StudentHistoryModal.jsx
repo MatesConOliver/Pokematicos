@@ -233,10 +233,12 @@ export default function StudentHistoryModal({
 
                   const isExperience = h.type === "experience";
                   const isEvolution = h.type === "evolution";
+                  const isCombo = h.type === "combo";
                   const isGroup = h.type === "group" || h.mode === "group";
                   const isCode =
                     !isEvolution &&
                     !isExperience &&
+                    !isCombo &&
                     Boolean(
                       h.isCodeRedemption ||
                         h.type === "achievement" ||
@@ -260,10 +262,11 @@ export default function StudentHistoryModal({
                     (isCode && codeCardTitleKey && cardByTitle.get(codeCardTitleKey)) ||
                     (!isEvolution &&
                       !isExperience &&
+                      !isCombo &&
                       !isCode &&
                       h.rewardId &&
                       (cardsMap.get(h.rewardId) || rewardCardByRewardId.get(h.rewardId))) ||
-                    (!isEvolution && !isExperience && !isCode && entryTitleKey && rewardCardByTitle.get(entryTitleKey)) ||
+                    (!isEvolution && !isExperience && !isCombo && !isCode && entryTitleKey && rewardCardByTitle.get(entryTitleKey)) ||
                     null;
 
                   const resolvedCardId =
@@ -338,8 +341,15 @@ export default function StudentHistoryModal({
                                       </span>
                                     )}
                                 </>
-                              ) : isEvolution ? (
-                                <span>{formatHistoryDateTime(h)}</span>
+                              ) : isEvolution || isCombo ? (
+                                <>
+                                  <span>{formatHistoryDateTime(h)}</span>
+                                  {isCombo && (
+                                    <span style={{ color: "#0f766e", fontWeight: 700 }}>
+                                      • ⏱️ Temporal combo
+                                    </span>
+                                  )}
+                                </>
                               ) : isCode ? (
                                 <>
                                   <span
@@ -421,6 +431,22 @@ export default function StudentHistoryModal({
                           >
                             🧬 Evolution
                           </div>
+                        ) : isCombo ? (
+                          <div
+                            style={{
+                              background: "#ccfbf1",
+                              color: "#0f766e",
+                              border: "1px solid #99f6e4",
+                              fontWeight: 800,
+                              fontSize: 12,
+                              padding: "3px 10px",
+                              borderRadius: 999,
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                            }}
+                          >
+                            ⏱️ +{formatPoints(h.pointsAwarded ?? 0)} pts
+                          </div>
                         ) : isCode ? (
                           <div
                             style={{
@@ -456,7 +482,7 @@ export default function StudentHistoryModal({
                         )}
                       </div>
 
-                      {!isExperience && !isEvolution && !isCode && isGroup && h.contributors && (
+                      {!isExperience && !isEvolution && !isCombo && !isCode && isGroup && h.contributors && (
                         <div
                           style={{
                             marginTop: 4,

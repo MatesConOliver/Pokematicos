@@ -11,6 +11,7 @@ import { uid } from "../utils/helpers";
 import { todayISODate, addDaysISO } from "../utils/dateUtils";
 import { normalizeFloatWindows, computeEffectiveMultiplier } from "../utils/floatWindowUtils";
 import { grantStreakMaxRewardCards } from "./rewardService";
+import { applyComboCardGrants } from "./cardComboService";
 
 export async function addStreakTypeForClass({
   db,
@@ -234,7 +235,7 @@ export async function changeStudentStreakValue({
       const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
       if (rewardIds.length) {
         let cardLibrary = Array.isArray(allCards) ? allCards : null;
-        if (!cardLibrary && Array.isArray(data.cards) && data.cards.length > 0) {
+        if (!cardLibrary) {
           const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
           cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         }
@@ -244,7 +245,7 @@ export async function changeStudentStreakValue({
           cardLibrary || []
         );
         const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
-        const currentPoints = await grantStreakMaxRewardCards({
+        const pointsAfterRewards = await grantStreakMaxRewardCards({
           rewardCardIds: rewardIds,
           cardsArr,
           currentPoints: Number(data.currentPoints || 0),
@@ -254,8 +255,21 @@ export async function changeStudentStreakValue({
           getCardDataFast,
         });
 
+        const postCardsMult = computeEffectiveMultiplier(
+          { ...data, streaks: updatedStreaks, cards: cardsArr },
+          today,
+          cardLibrary || []
+        );
+        const comboRes = applyComboCardGrants({
+          cardsArr,
+          currentPoints: pointsAfterRewards,
+          multiplier: postCardsMult,
+          allCards: cardLibrary || [],
+          student: data,
+        });
+
         payload.cards = cardsArr;
-        payload.currentPoints = currentPoints;
+        payload.currentPoints = comboRes.currentPoints;
       }
     }
 
@@ -448,7 +462,7 @@ export async function bulkChangeStreakValue({
         const rewardIds = Array.isArray(cfg?.rewardCardIds) ? cfg.rewardCardIds : [];
         if (rewardIds.length) {
           let cardLibrary = Array.isArray(allCards) ? allCards : null;
-          if (!cardLibrary && Array.isArray(data.cards) && data.cards.length > 0) {
+          if (!cardLibrary) {
             const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
             cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
           }
@@ -458,7 +472,7 @@ export async function bulkChangeStreakValue({
             cardLibrary || []
           );
           const cardsArr = Array.isArray(data.cards) ? [...data.cards] : [];
-          const currentPoints = await grantStreakMaxRewardCards({
+          const pointsAfterRewards = await grantStreakMaxRewardCards({
             rewardCardIds: rewardIds,
             cardsArr,
             currentPoints: Number(data.currentPoints || 0),
@@ -467,8 +481,20 @@ export async function bulkChangeStreakValue({
             classId,
             getCardDataFast,
           });
+          const postCardsMult = computeEffectiveMultiplier(
+            { ...data, streaks: payload.streaks, cards: cardsArr },
+            today,
+            cardLibrary || []
+          );
+          const comboRes = applyComboCardGrants({
+            cardsArr,
+            currentPoints: pointsAfterRewards,
+            multiplier: postCardsMult,
+            allCards: cardLibrary || [],
+            student: data,
+          });
           payload.cards = cardsArr;
-          payload.currentPoints = currentPoints;
+          payload.currentPoints = comboRes.currentPoints;
         }
       }
 

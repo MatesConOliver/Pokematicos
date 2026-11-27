@@ -1,6 +1,6 @@
-import { addDoc, collection, deleteField, doc, getDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteField, doc, getDoc, getDocs, runTransaction, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { createCard, updateCard } from "./cardService";
+import { createCard, giveCardToStudent, updateCard } from "./cardService";
 
 jest.mock("firebase/firestore", () => ({
   addDoc: jest.fn(),
@@ -136,5 +136,96 @@ describe("cardService locked image handling", () => {
     expect(updatePayload.imageURL_B).toContain("_unlockedB_new-unlockedB.png");
     expect(updatePayload.lockedImageURL).toEqual({ __type: "deleteField" });
     expect(updatePayload.lockedImageURL_B).toEqual({ __type: "deleteField" });
+  });
+
+  it("saves normalized combo config on createCard and triggers combo card with multiplier on giveCardToStudent", async () => {
+    await createCard({
+      db: {},
+      storage: {},
+      classId: "class-1",
+      title: "Weekly Combo",
+      points: 10,
+      category: "points",
+      combo: {
+        isCombo: true,
+        period: "week",
+        repeatMode: "per_period",
+        requirements: [{ cardId: "base_a", count: 2 }],
+      },
+      alertFn: jest.fn(),
+    });
+
+    const createdPayload = addDoc.mock.calls[0][1];
+    expect(createdPayload.combo).toEqual({
+      isCombo: true,
+      period: "week",
+      repeatMode: "per_period",
+      requirements: [{ cardId: "base_a", count: 2 }],
+    });
+
+    const baseCard = { id: "base_a", title: "Base A", category: "points", points: 2, linkedStreakIds: [] };
+    const comboCard = {
+      id: "combo_1",
+      title: "Weekly Combo",
+      category: "points",
+      points: 10,
+      combo: {
+        isCombo: true,
+        period: "week",
+        repeatMode: "per_period",
+        requirements: [{ cardId: "base_a", count: 2 }],
+      },
+    };
+    const nowIso = new Date().toISOString();
+    const studentData = {
+      name: "Leo",
+      currentPoints: 4,
+      multiplier: 2,
+      cards: [{ id: "o1", cardId: "base_a", grantedAt: nowIso }],
+    };
+
+    getDoc.mockImplementation((refObj) => {
+      if (refObj.path === "classes/class-1/cards/base_a") {
+        return Promise.resolve({ exists: () => true, data: () => baseCard });
+      }
+      if (refObj.path === "classes/class-1/students/stu-1") {
+        return Promise.resolve({ exists: () => true, data: () => studentData });
+      }
+      return Promise.resolve({ exists: () => false });
+    });
+
+    getDocs.mockResolvedValue({
+      docs: [
+        { id: "base_a", data: () => baseCard },
+        { id: "combo_1", data: () => comboCard },
+      ],
+    });
+
+    let updatedPayload = null;
+    runTransaction.mockImplementation(async (_db, fn) => {
+      const tx = {
+        get: () => Promise.resolve({ exists: () => true, data: () => studentData }),
+        update: (_ref, payload) => {
+          updatedPayload = payload;
+        },
+      };
+      await fn(tx);
+    });
+
+    await giveCardToStudent({
+      db: {},
+      classId: "class-1",
+      studentId: "stu-1",
+      cardId: "base_a",
+      activeClass: { streakConfigs: [] },
+      allCards: [baseCard, comboCard],
+    });
+
+    expect(updatedPayload).toBeTruthy();
+    // 4 initial + (2 * 2) base_a + (10 * 2) combo_1 = 28
+    expect(updatedPayload.currentPoints).toBe(28);
+    expect(updatedPayload.cards.map((c) => c.cardId)).toEqual(["base_a", "base_a", "combo_1"]);
+    expect(updatedPayload.cards[2].pointsGranted).toBe(20);
+    expect(updatedPayload.cards[2].autoFrom?.type).toBe("combo");
   });
 });

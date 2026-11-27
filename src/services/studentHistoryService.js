@@ -35,7 +35,7 @@ export function buildStudentHistoryEntries({
     }
   });
 
-  const experienceEntries = [];
+  const autoCardEntries = [];
   const seenXpCardIds = new Set();
 
   (Array.isArray(student?.cards) ? student.cards : []).forEach((owned, idx) => {
@@ -46,42 +46,62 @@ export function buildStudentHistoryEntries({
       cardMeta?.category === "experience" ||
       owned.autoFrom?.type === "xpUnlock" ||
       owned.autoFrom?.streakId === "xp_unlock";
+    const isCombo = owned.autoFrom?.type === "combo";
 
-    if (!isExperience) return;
+    if (isExperience) {
+      if (owned.obtainedFrom && existingObtainedFrom.has(String(owned.obtainedFrom))) {
+        return;
+      }
 
-    if (owned.obtainedFrom && existingObtainedFrom.has(String(owned.obtainedFrom))) {
+      if (owned.cardId) {
+        if (existingExperienceCardIds.has(owned.cardId) || seenXpCardIds.has(owned.cardId)) {
+          return;
+        }
+        seenXpCardIds.add(owned.cardId);
+      }
+
+      const title =
+        String(cardMeta?.title || owned.title || "Experience Card").trim() ||
+        "Experience Card";
+      const rawXp = cardMeta?.points ?? owned.autoFrom?.xpRequired;
+      const xpRequired =
+        rawXp !== undefined && rawXp !== null && Number.isFinite(Number(rawXp))
+          ? Number(rawXp)
+          : null;
+      const timestampValue = owned.grantedAt ?? owned.obtainedAt ?? owned.date ?? null;
+
+      autoCardEntries.push({
+        id: `xp_${owned.id || owned.cardId || idx}`,
+        type: "experience",
+        cardId: owned.cardId || null,
+        title,
+        xpRequired,
+        date: timestampValue,
+        grantedAt: timestampValue,
+      });
       return;
     }
 
-    if (owned.cardId) {
-      if (existingExperienceCardIds.has(owned.cardId) || seenXpCardIds.has(owned.cardId)) {
-        return;
-      }
-      seenXpCardIds.add(owned.cardId);
+    if (isCombo) {
+      const title =
+        String(cardMeta?.title || owned.title || "Combo Card").trim() ||
+        "Combo Card";
+      const timestampValue = owned.grantedAt ?? owned.obtainedAt ?? owned.date ?? null;
+
+      autoCardEntries.push({
+        id: `combo_${owned.id || owned.cardId || idx}`,
+        type: "combo",
+        cardId: owned.cardId || null,
+        title,
+        pointsAwarded: Number(owned.pointsGranted ?? cardMeta?.points ?? 0),
+        period: owned.autoFrom?.period || cardMeta?.combo?.period || "week",
+        date: timestampValue,
+        grantedAt: timestampValue,
+      });
     }
-
-    const title =
-      String(cardMeta?.title || owned.title || "Experience Card").trim() ||
-      "Experience Card";
-    const rawXp = cardMeta?.points ?? owned.autoFrom?.xpRequired;
-    const xpRequired =
-      rawXp !== undefined && rawXp !== null && Number.isFinite(Number(rawXp))
-        ? Number(rawXp)
-        : null;
-    const timestampValue = owned.grantedAt ?? owned.obtainedAt ?? owned.date ?? null;
-
-    experienceEntries.push({
-      id: `xp_${owned.id || owned.cardId || idx}`,
-      type: "experience",
-      cardId: owned.cardId || null,
-      title,
-      xpRequired,
-      date: timestampValue,
-      grantedAt: timestampValue,
-    });
   });
 
-  return [...baseHistory, ...experienceEntries].sort((a, b) => {
+  return [...baseHistory, ...autoCardEntries].sort((a, b) => {
     const diff = getHistoryTimestamp(b) - getHistoryTimestamp(a);
     if (diff !== 0) return diff;
     return Number(b?.xpRequired ?? 0) - Number(a?.xpRequired ?? 0);

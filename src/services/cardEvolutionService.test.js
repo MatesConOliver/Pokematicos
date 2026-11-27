@@ -256,5 +256,70 @@ describe("cardEvolutionService", () => {
       expect(updatePayload.cards).toHaveLength(3);
       expect(updatePayload.cards.every((c) => c.cardId === "card_pikachu")).toBe(true);
     });
+
+    test("immediately awards evolution+combo card with multiplied points when combo requirements are already met", async () => {
+      const nowIso = new Date().toISOString();
+      const studentData = {
+        currentPoints: 10,
+        multiplier: 1.5,
+        cards: [
+          { id: "o1", cardId: "card_pikachu", grantedAt: nowIso },
+          { id: "o2", cardId: "card_pikachu", grantedAt: nowIso },
+          { id: "c1", cardId: "item_stone", grantedAt: nowIso },
+        ],
+        unlockedEvolutionIds: [],
+        rewardsHistory: [],
+      };
+      const evoComboCardData = {
+        title: "Raichu Combo",
+        category: "points",
+        points: 10,
+        evolution: {
+          isEvolution: true,
+          baseCardId: "card_pikachu",
+          requiredCopies: 2,
+          catalystCardId: "item_stone",
+        },
+        combo: {
+          isCombo: true,
+          period: "day",
+          repeatMode: "once",
+          requirements: [{ cardId: "card_pikachu", count: 2 }],
+        },
+      };
+
+      doc.mockImplementation((_db, path) => ({ path }));
+      const txUpdate = jest.fn();
+      runTransaction.mockImplementation(async (_db, fn) =>
+        fn({
+          get: jest.fn(async (ref) => {
+            if (ref.path.includes("/students/")) {
+              return { exists: () => true, id: "stu_1", data: () => studentData };
+            }
+            return { exists: () => true, id: "card_raichu_combo", data: () => evoComboCardData };
+          }),
+          update: txUpdate,
+        })
+      );
+
+      const res = await executeEvolution({
+        db: {},
+        classId: "class_1",
+        studentId: "stu_1",
+        evolutionCardId: "card_raichu_combo",
+        allCards: [{ id: "card_raichu_combo", ...evoComboCardData }],
+      });
+
+      expect(res.grantedComboCards).toHaveLength(1);
+      expect(res.grantedComboCards[0].cardId).toBe("card_raichu_combo");
+      expect(res.grantedComboCards[0].pointsGranted).toBe(15);
+
+      const updatePayload = txUpdate.mock.calls[0][1];
+      expect(updatePayload.unlockedEvolutionIds).toEqual(["card_raichu_combo"]);
+      expect(updatePayload.currentPoints).toBe(25);
+      // 2 pikachus + 1 granted combo card (catalyst consumed)
+      expect(updatePayload.cards).toHaveLength(3);
+      expect(updatePayload.cards.some((c) => c.cardId === "card_raichu_combo")).toBe(true);
+    });
   });
 });

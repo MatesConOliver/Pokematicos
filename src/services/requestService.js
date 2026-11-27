@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { todayISODate } from "../utils/dateUtils";
 import { isCardUnlockedForStudent } from "./cardEvolutionService";
+import { isComboCard } from "./cardComboService";
 
 export const MAX_PENDING_REQUESTS_PER_STUDENT = 3;
 
@@ -30,20 +31,29 @@ export function getRequestableCards(cards = [], streakConfigs = []) {
     (c) =>
       c &&
       (c.category || "points") === "points" &&
-      !streakRewardCardIds.has(c.id)
+      !streakRewardCardIds.has(c.id) &&
+      !isComboCard(c)
   );
 }
 
 export async function createRequest(
   db,
   classId,
-  { studentId, studentName, className, type, amount, cardId, cardTitle, note, streakConfigs },
+  { studentId, studentName, className, type, amount, cardId, cardTitle, note, streakConfigs, cards = [] },
   alertFn = null
 ) {
   try {
     if (cardId && getStreakRewardCardIdSet(streakConfigs).has(cardId)) {
       if (alertFn) alertFn("Cards given as a streak reward cannot be requested.");
       return false;
+    }
+
+    if (cardId && Array.isArray(cards)) {
+      const targetCard = cards.find((c) => c && c.id === cardId);
+      if (isComboCard(targetCard)) {
+        if (alertFn) alertFn("Combo cards are awarded automatically and cannot be requested.");
+        return false;
+      }
     }
 
     const pendingQ = query(

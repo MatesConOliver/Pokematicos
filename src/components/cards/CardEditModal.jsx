@@ -28,6 +28,26 @@ export default function CardEditModal({
     () => card.evolution?.catalystCardId || ""
   );
 
+  // Temporal combo configuration
+  const [isCombo, setIsCombo] = useState(() =>
+    Boolean(
+      (card.category || "points") === "points" &&
+        card.combo?.isCombo &&
+        Array.isArray(card.combo?.requirements) &&
+        card.combo.requirements.length > 0
+    )
+  );
+  const [comboPeriod, setComboPeriod] = useState(() => card.combo?.period || "week");
+  const [comboRepeatMode, setComboRepeatMode] = useState(() => card.combo?.repeatMode || "per_period");
+  const [comboRequirements, setComboRequirements] = useState(() =>
+    Array.isArray(card.combo?.requirements) && card.combo.requirements.length > 0
+      ? card.combo.requirements.map((r) => ({
+          cardId: r.cardId || "",
+          count: Math.max(1, parseInt(r.count, 10) || 1),
+        }))
+      : [{ cardId: "", count: 1 }]
+  );
+
   const [linkedStreakIds, setLinkedStreakIds] = useState(
     () => (Array.isArray(card.linkedStreakIds) ? card.linkedStreakIds.filter(Boolean).map(String) : [])
   );
@@ -103,6 +123,7 @@ export default function CardEditModal({
                   setLinkedStreakIds([]);
                   setStreakPick("");
                   setStreakLookup("");
+                  setIsCombo(false);
                 }
               }}
               style={{ width: 220 }}
@@ -349,6 +370,176 @@ export default function CardEditModal({
             )}
           </div>
 
+          {/* Temporal combo configuration */}
+          {category === "points" && (
+            <div
+              style={{
+                border: "1px solid #99f6e4",
+                borderRadius: 12,
+                padding: 12,
+                background: isCombo ? "#f0fdfa" : "#f8fafc",
+              }}
+            >
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  color: "#0f766e",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isCombo}
+                  onChange={(e) => setIsCombo(e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: "#0d9488" }}
+                />
+                ⏱️ Is this a temporal combo card? (auto-awarded)
+              </label>
+
+              {isCombo && (
+                <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 150 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                        Natural period:
+                      </div>
+                      <select
+                        value={comboPeriod}
+                        onChange={(e) => setComboPeriod(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: 8,
+                          borderRadius: 8,
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                        }}
+                      >
+                        <option value="day">Same day</option>
+                        <option value="week">Same week (Mon–Sun)</option>
+                        <option value="month">Same month</option>
+                      </select>
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 170 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                        Frequency:
+                      </div>
+                      <select
+                        value={comboRepeatMode}
+                        onChange={(e) => setComboRepeatMode(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: 8,
+                          borderRadius: 8,
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                        }}
+                      >
+                        <option value="per_period">Repeatable (once per period)</option>
+                        <option value="once">One time only</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>
+                      Required cards within the period:
+                    </div>
+                    <div style={{ display: "grid", gap: 6 }}>
+                      {comboRequirements.map((req, idx) => (
+                        <div key={idx} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <select
+                            value={req.cardId}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setComboRequirements((prev) =>
+                                prev.map((row, i) => (i === idx ? { ...row, cardId: val } : row))
+                              );
+                            }}
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              padding: 8,
+                              borderRadius: 8,
+                              border: "1px solid #cbd5e1",
+                              background: "#ffffff",
+                            }}
+                          >
+                            <option value="">Select required card...</option>
+                            {cards
+                              .filter((c) => c.id !== card.id && (c.category || "points") !== "rewards")
+                              .map((c) => {
+                                const cat = c.category || "points";
+                                const suffix = cat === "points" ? `${c.points || 0} pts` : cat;
+                                return (
+                                  <option key={c.id} value={c.id}>
+                                    {c.title} ({suffix})
+                                  </option>
+                                );
+                              })}
+                          </select>
+
+                          <input
+                            type="number"
+                            min="1"
+                            value={req.count}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setComboRequirements((prev) =>
+                                prev.map((row, i) => (i === idx ? { ...row, count: val } : row))
+                              );
+                            }}
+                            title="Required quantity in period"
+                            style={{
+                              width: 68,
+                              padding: 8,
+                              borderRadius: 8,
+                              border: "1px solid #cbd5e1",
+                              background: "#ffffff",
+                            }}
+                          />
+
+                          {comboRequirements.length > 1 && (
+                            <button
+                              type="button"
+                              className="btn"
+                              onClick={() =>
+                                setComboRequirements((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              style={{ padding: "6px 10px", color: "#dc2626", borderColor: "#fecaca" }}
+                              title="Remove requirement"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() =>
+                        setComboRequirements((prev) => [...prev, { cardId: "", count: 1 }])
+                      }
+                      style={{ marginTop: 8, fontSize: 12 }}
+                    >
+                      + Add required card
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: 11, color: "#0f766e" }}>
+                    💡 Awarded automatically (with student multiplier applied to points) when the requirements are met in the same natural period. Students cannot request combo cards manually.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {flagConfig && (
             <div style={{ borderTop: "1px solid #eee", paddingTop: 10 }}>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>
@@ -376,11 +567,32 @@ export default function CardEditModal({
                   return;
                 }
 
+                if (category === "points" && isCombo) {
+                  const validReqs = comboRequirements.filter((r) => Boolean(r.cardId));
+                  const hasEmptyRow = comboRequirements.some((r) => !r.cardId);
+                  if (validReqs.length === 0 || hasEmptyRow) {
+                    if (onValidationError) onValidationError("Select a card for each combo requirement row");
+                    return;
+                  }
+                }
+
                 const evolution = isEvolution && baseCardId ? {
                   isEvolution: true,
                   baseCardId,
                   requiredCopies: Math.max(1, parseInt(requiredCopies, 10) || 1),
                   catalystCardId: catalystCardId || "",
+                } : null;
+
+                const combo = category === "points" && isCombo ? {
+                  isCombo: true,
+                  period: comboPeriod,
+                  repeatMode: comboRepeatMode,
+                  requirements: comboRequirements
+                    .filter((r) => Boolean(r.cardId))
+                    .map((r) => ({
+                      cardId: r.cardId,
+                      count: Math.max(1, parseInt(r.count, 10) || 1),
+                    })),
                 } : null;
 
                 const parsedMultBonus = parseFloat(multiplierBonus);
@@ -398,6 +610,7 @@ export default function CardEditModal({
                   lockedFile_B: isExtra ? null : lockedFile_B,
                   unlockedFile_B,
                   evolution,
+                  combo,
                 });
               }}
             >

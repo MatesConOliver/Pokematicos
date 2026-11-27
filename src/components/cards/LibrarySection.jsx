@@ -1,6 +1,7 @@
 import CardLibrary from "./CardLibrary";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { isEvolutionCard, isCardUnlockedForStudent } from "../../services/cardEvolutionService";
+import { isComboCard, evaluateComboProgress } from "../../services/cardComboService";
 
 export default function LibrarySection({
   mode,
@@ -57,9 +58,20 @@ export default function LibrarySection({
       onCreateCard={onCreateCard}
       onPreviewCard={(card, flagValue = "A") => {
         const isEvo = isEvolutionCard(card);
+        const isCombo = isComboCard(card);
         const unlocked = isEvo ? isCardUnlockedForStudent(activeStudent, card) : false;
+        const comboClaimed =
+          isCombo && activeStudent
+            ? evaluateComboProgress({ student: activeStudent, comboCard: card }).isAlreadyClaimed
+            : false;
         const isLockedPreview =
-          (card.category || "points") === "extra" ? false : isEvo ? !unlocked : true;
+          (card.category || "points") === "extra"
+            ? false
+            : isEvo
+            ? !unlocked
+            : isCombo
+            ? !comboClaimed
+            : true;
         onPreviewCard({
           ...card,
           imageURL: getCardDisplayImage(card, flagValue, isLockedPreview),

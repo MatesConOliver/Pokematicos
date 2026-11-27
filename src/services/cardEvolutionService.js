@@ -3,6 +3,9 @@
  */
 
 import { doc, runTransaction } from "firebase/firestore";
+import { todayISODate } from "../utils/dateUtils";
+import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
+import { applyComboCardGrants } from "./cardComboService";
 
 /**
  * Validates if a card has evolution configuration
@@ -119,6 +122,7 @@ export async function executeEvolution({
   studentId,
   evolutionCardId,
   classCatalystCardId,
+  allCards = null,
 }) {
   if (!classId || !studentId || !evolutionCardId) {
     throw new Error("Missing required parameters for evolution");
@@ -202,16 +206,37 @@ export async function executeEvolution({
       date: new Date().toISOString(),
     });
 
-    tx.update(studentRef, {
+    const cardLibrary =
+      Array.isArray(allCards) && allCards.length > 0 ? allCards : [evolutionCard];
+    const postEvoMult = computeEffectiveMultiplier(
+      { ...studentData, cards: currentCards },
+      todayISODate(),
+      cardLibrary
+    );
+    const comboRes = applyComboCardGrants({
+      cardsArr: currentCards,
+      currentPoints: Number(studentData.currentPoints || 0),
+      multiplier: postEvoMult,
+      allCards: cardLibrary,
+      student: { ...studentData, unlockedEvolutionIds },
+    });
+
+    const updatePayload = {
       cards: currentCards,
       unlockedEvolutionIds,
       rewardsHistory: history,
-    });
+    };
+    if (comboRes.grantedComboCards.length > 0) {
+      updatePayload.currentPoints = comboRes.currentPoints;
+    }
+
+    tx.update(studentRef, updatePayload);
 
     return {
       success: true,
       evolvedCard: evolutionCard,
       baseCardId: eligibility.baseCardId,
+      grantedComboCards: comboRes.grantedComboCards,
     };
   });
 }

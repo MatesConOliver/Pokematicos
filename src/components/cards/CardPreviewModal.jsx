@@ -1,5 +1,11 @@
 import React, { useEffect } from "react";
 import { isEvolutionCard, checkEvolutionEligibility } from "../../services/cardEvolutionService";
+import {
+  isComboCard,
+  evaluateComboProgress,
+  getComboPeriodLabel,
+  getComboPeriodShortLabel,
+} from "../../services/cardComboService";
 
 export default function CardPreviewModal({
   cardPreview,
@@ -45,6 +51,16 @@ export default function CardPreviewModal({
       : defaultCatalystCardId && cardsById
       ? cardsById.get(defaultCatalystCardId)
       : null;
+
+  const isCombo = cardPreview.isLibraryCard && isComboCard(cardPreview);
+  const allCardsList = cardsById ? Array.from(cardsById.values()) : [];
+  const comboProgress = isCombo
+    ? evaluateComboProgress({
+        student: activeStudent || { cards: [] },
+        comboCard: cardPreview,
+        allCards: allCardsList,
+      })
+    : null;
 
   const eligibility =
     isEvo && activeStudent
@@ -98,6 +114,21 @@ export default function CardPreviewModal({
                     }}
                   >
                     🧬 {eligibility?.isAlreadyUnlocked ? "Evolution Unlocked" : "Evolution Card"}
+                  </span>
+                )}
+                {isCombo && comboProgress && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      padding: "3px 8px",
+                      borderRadius: 999,
+                      background: comboProgress.isAlreadyClaimed ? "#dcfce7" : "#ccfbf1",
+                      color: comboProgress.isAlreadyClaimed ? "#166534" : "#0f766e",
+                      fontWeight: 800,
+                    }}
+                  >
+                    ⏱️ Combo · {getComboPeriodShortLabel(comboProgress.period)}
+                    {activeStudent && comboProgress.isAlreadyClaimed ? " ✓" : ""}
                   </span>
                 )}
               </div>
@@ -214,6 +245,76 @@ export default function CardPreviewModal({
                     >
                       ✨ Evolve now!
                     </button>
+                  )}
+                </div>
+              )}
+
+              {/* Combo requirement details */}
+              {isCombo && comboProgress && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: 12,
+                    borderRadius: 12,
+                    background: "#f0fdfa",
+                    border: "1px solid #99f6e4",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 13, color: "#0f766e", marginBottom: 4 }}>
+                    Combo Requirements ({getComboPeriodLabel(comboProgress.period)}):
+                  </div>
+                  <div style={{ fontSize: 11, color: "#115e59", marginBottom: 8 }}>
+                    {comboProgress.repeatMode === "once"
+                      ? "Can be earned once."
+                      : "Repeatable once per period."}
+                  </div>
+
+                  <div style={{ fontSize: 12, display: "grid", gap: 6, color: "#334155" }}>
+                    {comboProgress.requirementsProgress.map((req) => (
+                      <div key={req.cardId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                        <span>
+                          🃏 <b>{req.title}</b>
+                        </span>
+                        <span
+                          style={{
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            fontWeight: 700,
+                            fontSize: 11,
+                            background: activeStudent && req.met ? "#dcfce7" : "#f1f5f9",
+                            color: activeStudent && req.met ? "#166534" : "#475569",
+                          }}
+                        >
+                          {activeStudent
+                            ? `${req.currentCount} / ${req.requiredCount}`
+                            : `${req.requiredCount} required`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {activeStudent && comboProgress.evolutionLocked && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: "6px 8px",
+                        borderRadius: 8,
+                        background: "#ede9fe",
+                        color: "#5b21b6",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      🔒 Unlock this evolution first to earn this combo automatically.
+                    </div>
+                  )}
+
+                  {activeStudent && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: comboProgress.isAlreadyClaimed ? "#15803d" : "#64748b", fontWeight: comboProgress.isAlreadyClaimed ? 700 : 400 }}>
+                      {comboProgress.isAlreadyClaimed
+                        ? `✅ Already earned${comboProgress.repeatMode === "once" ? "" : " in this period"} by ${activeStudent.name}`
+                        : `Progress for: ${activeStudent.name}`}
+                    </div>
                   )}
                 </div>
               )}

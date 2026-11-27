@@ -181,4 +181,38 @@ describe("streak reward cards cannot be requested", () => {
     expect(addDoc).toHaveBeenCalledTimes(1);
     expect(alertFn).not.toHaveBeenCalled();
   });
+
+  test("getRequestableCards excludes temporal combo cards and createRequest rejects them", async () => {
+    const cards = [
+      { id: "c1", title: "Normal Card", category: "points" },
+      {
+        id: "c_combo",
+        title: "Combo Card",
+        category: "points",
+        combo: { isCombo: true, period: "week", requirements: [{ cardId: "c1", count: 2 }] },
+      },
+    ];
+
+    expect(getRequestableCards(cards, []).map((c) => c.id)).toEqual(["c1"]);
+
+    const alertFn = jest.fn();
+    const ok = await createRequest(
+      {},
+      "class_1",
+      {
+        studentId: "stu_1",
+        studentName: "Ana",
+        className: "Math",
+        type: "card",
+        cardId: "c_combo",
+        cardTitle: "Combo Card",
+        cards,
+      },
+      alertFn
+    );
+
+    expect(ok).toBe(false);
+    expect(alertFn).toHaveBeenCalledWith("Combo cards are awarded automatically and cannot be requested.");
+    expect(addDoc).not.toHaveBeenCalled();
+  });
 });

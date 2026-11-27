@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 import { getCardDisplayImage } from "../../utils/cardImageUtils";
 import { isEvolutionCard, checkEvolutionEligibility } from "../../services/cardEvolutionService";
+import {
+  isComboCard,
+  evaluateComboProgress,
+  getComboPeriodShortLabel,
+} from "../../services/cardComboService";
 
 export default function LibraryCardRow({
   c,
   mode,
   flagValue = "A",
+  cardsById,
   activeStudent,
   defaultCatalystCardId,
   childEvolutions = [],
@@ -18,6 +24,7 @@ export default function LibraryCardRow({
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const isEvo = isEvolutionCard(c);
+  const isCombo = isComboCard(c);
   const hasChildEvolutions = Array.isArray(childEvolutions) && childEvolutions.length > 0;
 
   const eligibility =
@@ -29,9 +36,27 @@ export default function LibraryCardRow({
         })
       : null;
 
+  const allCardsList = cardsById ? Array.from(cardsById.values()) : [];
+  const comboProgress =
+    isCombo
+      ? evaluateComboProgress({
+          student: activeStudent || { cards: [] },
+          comboCard: c,
+          allCards: allCardsList,
+        })
+      : null;
+
   const isUnlockedByStudent = Boolean(eligibility?.isAlreadyUnlocked);
-  // Extra cards have no locked image. For normal cards, library shows locked preview; for evolution cards, show unlocked once student unlocks it.
-  const isImgLocked = (c.category || "points") === "extra" ? false : isEvo ? !isUnlockedByStudent : true;
+  const isComboClaimed = Boolean(activeStudent && comboProgress?.isAlreadyClaimed);
+  // Extra cards have no locked image. For normal cards, library shows locked preview; for evolution/combo cards, show unlocked once unlocked/claimed.
+  const isImgLocked =
+    (c.category || "points") === "extra"
+      ? false
+      : isEvo
+      ? !isUnlockedByStudent
+      : isCombo
+      ? !isComboClaimed
+      : true;
   const showURL = getCardDisplayImage(c, flagValue, isImgLocked);
 
   return (
@@ -54,10 +79,22 @@ export default function LibraryCardRow({
         display: "flex",
         gap: 12,
         alignItems: "center",
-        border: isDragOver ? "2px dashed #8b5cf6" : isEvo ? "1px solid #c7d2fe" : "1px solid #e2e8f0",
+        border: isDragOver
+          ? "2px dashed #8b5cf6"
+          : isEvo
+          ? "1px solid #c7d2fe"
+          : isCombo
+          ? "1px solid #99f6e4"
+          : "1px solid #e2e8f0",
         padding: 12,
         borderRadius: 14,
-        background: isDragOver ? "#f5f3ff" : isEvo ? "#faf5ff" : "#ffffff",
+        background: isDragOver
+          ? "#f5f3ff"
+          : isEvo
+          ? "#faf5ff"
+          : isCombo
+          ? "#f0fdfa"
+          : "#ffffff",
         boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
         marginBottom: 10,
         color: "#0f172a",
@@ -131,6 +168,21 @@ export default function LibraryCardRow({
               🧬 {isUnlockedByStudent ? "Evolution unlocked" : "Evolution"}
             </span>
           )}
+          {isCombo && (
+            <span
+              style={{
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: isComboClaimed ? "#dcfce7" : "#ccfbf1",
+                color: isComboClaimed ? "#166534" : "#0f766e",
+                fontWeight: 700,
+              }}
+            >
+              ⏱️ Combo · {getComboPeriodShortLabel(c.combo?.period)}
+              {isComboClaimed ? " ✓" : ""}
+            </span>
+          )}
           {hasChildEvolutions && (
             <span
               style={{
@@ -194,6 +246,46 @@ export default function LibraryCardRow({
                 ✨ Evolve!
               </button>
             )}
+          </div>
+        )}
+
+        {/* Combo requirements tracker */}
+        {isCombo && comboProgress && (
+          <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            {activeStudent && comboProgress.evolutionLocked && (
+              <span
+                style={{
+                  fontSize: 11,
+                  padding: "2px 6px",
+                  borderRadius: 6,
+                  background: "#ede9fe",
+                  color: "#6d28d9",
+                  fontWeight: 700,
+                  border: "1px solid #ddd6fe",
+                }}
+                title="Unlock the evolution first to earn this combo"
+              >
+                🔒 Evolve first
+              </span>
+            )}
+            {comboProgress.requirementsProgress.map((req) => (
+              <span
+                key={req.cardId}
+                style={{
+                  fontSize: 11,
+                  padding: "2px 6px",
+                  borderRadius: 6,
+                  background: activeStudent && req.met ? "#dcfce7" : "#f1f5f9",
+                  color: activeStudent && req.met ? "#15803d" : "#475569",
+                  fontWeight: 700,
+                  border: "1px solid rgba(0,0,0,0.06)",
+                }}
+                title={req.title}
+              >
+                🃏 {req.title}:{" "}
+                {activeStudent ? `${req.currentCount}/${req.requiredCount}` : `×${req.requiredCount}`}
+              </span>
+            ))}
           </div>
         )}
 

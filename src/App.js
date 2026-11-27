@@ -587,6 +587,7 @@ export default function App() {
             studentName: student.name,
             className: activeClass?.name || "",
             streakConfigs: activeClass?.streakConfigs || [],
+            cards,
             ...payload,
           },
           notify
@@ -716,6 +717,7 @@ export default function App() {
     lockedFile_B,
     unlockedFile_B,
     evolution = null,
+    combo = null,
   }) {
     if (!ensureClassSelected()) return;
 
@@ -743,6 +745,7 @@ export default function App() {
           lockedFileBInputRef,
           unlockedFileBInputRef,
           evolution,
+          combo,
         });
       },
     });
@@ -981,9 +984,13 @@ export default function App() {
       return notify(`You need 1 ${catalystName} in your panel to evolve.`);
     }
 
+    const isComboEvo = Boolean(evolutionCard.combo?.isCombo);
+
     return runMutation({
       loadingMessage: "Awakening evolution...",
-      successMessage: "Evolution unlocked! You can now request this card.",
+      successMessage: isComboEvo
+        ? "Evolution unlocked! Combo requirements will now count toward automatic reward."
+        : "Evolution unlocked! You can now request this card.",
       errorMessage: "Could not unlock evolution.",
       action: async () => {
         const result = await executeEvolution({
@@ -992,6 +999,7 @@ export default function App() {
           studentId,
           evolutionCardId,
           classCatalystCardId: activeClass?.defaultCatalystCardId,
+          allCards: cards,
         });
 
         const baseCard = cardsById.get(result.baseCardId) || null;
@@ -999,6 +1007,13 @@ export default function App() {
           baseCard,
           evolvedCard: result.evolvedCard,
         });
+
+        if (result.grantedComboCards && result.grantedComboCards.length > 0) {
+          const comboSummary = result.grantedComboCards
+            .map((g) => `${g.title} (+${g.pointsGranted} pts)`)
+            .join(", ");
+          notify(`⏱️ Combo triggered on unlock: ${comboSummary}!`);
+        }
       },
     });
   }

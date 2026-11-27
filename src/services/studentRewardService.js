@@ -13,6 +13,7 @@ import { todayISODate } from "../utils/dateUtils";
 import { computeEffectiveMultiplier } from "../utils/floatWindowUtils";
 import { round2 } from "../utils/helpers";
 import { isCardUnlockedForStudent } from "./cardEvolutionService";
+import { applyComboCardGrants } from "./cardComboService";
 
 export async function quickAddPoints({
   db,
@@ -157,8 +158,21 @@ export async function redeemIndividual({
       });
     });
 
-    await updateDoc(studentRef, {
+    const postMultiplier = computeEffectiveMultiplier(
+      { ...s, xp: newXp, cards: newCards },
+      todayISODate(),
+      cards || []
+    );
+    const comboRes = applyComboCardGrants({
+      cardsArr: newCards,
       currentPoints: nextPoints,
+      multiplier: postMultiplier,
+      allCards: cards || [],
+      student: s,
+    });
+
+    await updateDoc(studentRef, {
+      currentPoints: comboRes.currentPoints,
       xp: newXp,
       rewardsHistory: [...(s.rewardsHistory || []), historyEntry],
       cards: newCards,
@@ -169,6 +183,10 @@ export async function redeemIndividual({
         message: `Unlocked ${unlockedXpCards.length} new Experience Card(s)!`,
         cards: unlockedXpCards,
       });
+    }
+    if (comboRes.grantedComboCards.length > 0 && alertFn) {
+      const names = comboRes.grantedComboCards.map((c) => `"${c.title}"`).join(", ");
+      alertFn(`⏱️ Combo unlocked: ${names}!`);
     }
 
     return true;
@@ -285,10 +303,22 @@ export async function redeemGroup({
       });
 
       const nextHistory = [...(st.rewardsHistory || []), historyEntry];
-      const nextPoints = round2(Number(st.currentPoints || 0) - costNum);
+      const baseNextPoints = round2(Number(st.currentPoints || 0) - costNum);
+      const postMultiplier = computeEffectiveMultiplier(
+        { ...st, xp: newXp, cards: newCards },
+        todayISODate(),
+        cards || []
+      );
+      const comboRes = applyComboCardGrants({
+        cardsArr: newCards,
+        currentPoints: baseNextPoints,
+        multiplier: postMultiplier,
+        allCards: cards || [],
+        student: st,
+      });
 
       batch.update(studentRef, {
-        currentPoints: nextPoints,
+        currentPoints: comboRes.currentPoints,
         xp: increment(costNum),
         rewardsHistory: nextHistory,
         cards: newCards,

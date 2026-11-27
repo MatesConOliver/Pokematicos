@@ -29,6 +29,7 @@ import {
   incrementStreaksNoFloatWindows,
 } from "./streakService";
 import { isCardUnlockedForStudent } from "./cardEvolutionService";
+import { normalizeComboConfig, applyComboCardGrants } from "./cardComboService";
 
 export async function updateCard({
   db,
@@ -138,6 +139,15 @@ export async function updateCard({
       updatePayload.evolution = updates.evolution;
     }
 
+    if (updates.combo !== undefined) {
+      updatePayload.combo = normalizeComboConfig(updates.combo, {
+        category: nextCategory,
+        excludeCardId: cardId,
+      });
+    } else if (nextCategory !== "points") {
+      updatePayload.combo = null;
+    }
+
     await updateDoc(cardRef, updatePayload);
   } catch (err) {
     console.error("updateCard error", err);
@@ -163,6 +173,7 @@ export async function createCard({
   lockedFileBInputRef,
   unlockedFileBInputRef,
   evolution = null,
+  combo = null,
   multiplierBonus = 0,
   alertFn = typeof window !== "undefined" ? window.alert.bind(window) : null,
 }) {
@@ -236,6 +247,7 @@ export async function createCard({
             lockedImageURL_B,
           }),
       evolution: evolution || null,
+      combo: normalizeComboConfig(combo, { category: nextCategory }),
       createdAt: Date.now(),
     };
 
@@ -298,7 +310,7 @@ export async function giveCardToStudent({
     }
 
     let cardLibrary = Array.isArray(allCards) ? allCards : null;
-    if (!cardLibrary && Array.isArray(sdata.cards) && sdata.cards.length > 0) {
+    if (!cardLibrary) {
       const cardsSnap = await getDocs(collection(db, `classes/${classId}/cards`));
       cardLibrary = cardsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }
@@ -369,10 +381,29 @@ export async function giveCardToStudent({
       if (!freshSnap.exists()) return;
       const freshData = freshSnap.data();
       const freshCards = Array.isArray(freshData.cards) ? freshData.cards : [];
+      const combinedCards = [...freshCards, ...newEntries];
+      const basePtsAfterGrant = round2((freshData.currentPoints || 0) + pointsDelta);
+
+      const postGrantMult = computeEffectiveMultiplier(
+        {
+          ...freshData,
+          streaks: nextStreaks || freshData.streaks,
+          cards: combinedCards,
+        },
+        today,
+        cardLibrary || []
+      );
+      const comboRes = applyComboCardGrants({
+        cardsArr: combinedCards,
+        currentPoints: basePtsAfterGrant,
+        multiplier: postGrantMult,
+        allCards: cardLibrary || [],
+        student: freshData,
+      });
 
       const payload = {
-        cards: [...freshCards, ...newEntries],
-        currentPoints: round2((freshData.currentPoints || 0) + pointsDelta),
+        cards: combinedCards,
+        currentPoints: comboRes.currentPoints,
       };
       if (nextStreaks) payload.streaks = nextStreaks;
 
@@ -471,6 +502,8 @@ export async function giveCardToStudentsBulk({
         studentRef,
         studentName: sdata.name || studentId,
         baseMultiplier,
+        streaks: sdata.streaks || {},
+        unlockedEvolutionIds: Array.isArray(sdata.unlockedEvolutionIds) ? sdata.unlockedEvolutionIds : [],
         cardsArr,
         currentPoints,
         nextStreaks,
@@ -577,6 +610,24 @@ export async function giveCardToStudentsBulk({
     let given = 0;
 
     for (const item of pending) {
+      const postComboMult = computeEffectiveMultiplier(
+        {
+          multiplier: item.baseMultiplier,
+          streaks: item.nextStreaks || item.streaks || {},
+          cards: item.cardsArr,
+        },
+        today,
+        cardLibrary
+      );
+      const comboRes = applyComboCardGrants({
+        cardsArr: item.cardsArr,
+        currentPoints: item.currentPoints,
+        multiplier: postComboMult,
+        allCards: cardLibrary,
+        student: { unlockedEvolutionIds: item.unlockedEvolutionIds },
+      });
+      item.currentPoints = comboRes.currentPoints;
+
       const payload = { cards: item.cardsArr, currentPoints: item.currentPoints };
       if (item.nextStreaks) payload.streaks = item.nextStreaks;
 
