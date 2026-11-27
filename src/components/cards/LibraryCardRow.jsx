@@ -250,44 +250,49 @@ export default function LibraryCardRow({
         )}
 
         {/* Combo requirements tracker */}
-        {isCombo && comboProgress && (
-          <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            {activeStudent && comboProgress.evolutionLocked && (
+        {isCombo && comboProgress && (() => {
+          const totalComboCards = comboProgress.requirementsProgress.reduce(
+            (sum, req) => sum + req.requiredCount,
+            0
+          );
+          const isComboSatisfied = Boolean(
+            activeStudent && (comboProgress.isAlreadyClaimed || comboProgress.isCompleteNow)
+          );
+          return (
+            <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {activeStudent && comboProgress.evolutionLocked && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    padding: "2px 6px",
+                    borderRadius: 6,
+                    background: "#ede9fe",
+                    color: "#6d28d9",
+                    fontWeight: 700,
+                    border: "1px solid #ddd6fe",
+                  }}
+                  title="Unlock the evolution first to earn this combo"
+                >
+                  🔒 Evolve first
+                </span>
+              )}
               <span
                 style={{
                   fontSize: 11,
                   padding: "2px 6px",
                   borderRadius: 6,
-                  background: "#ede9fe",
-                  color: "#6d28d9",
-                  fontWeight: 700,
-                  border: "1px solid #ddd6fe",
-                }}
-                title="Unlock the evolution first to earn this combo"
-              >
-                🔒 Evolve first
-              </span>
-            )}
-            {comboProgress.requirementsProgress.map((req) => (
-              <span
-                key={req.cardId}
-                style={{
-                  fontSize: 11,
-                  padding: "2px 6px",
-                  borderRadius: 6,
-                  background: activeStudent && req.met ? "#dcfce7" : "#f1f5f9",
-                  color: activeStudent && req.met ? "#15803d" : "#475569",
+                  background: isComboSatisfied ? "#dcfce7" : "#f1f5f9",
+                  color: isComboSatisfied ? "#15803d" : "#475569",
                   fontWeight: 700,
                   border: "1px solid rgba(0,0,0,0.06)",
                 }}
-                title={req.title}
+                title="Click the card to see the required cards and period progress"
               >
-                🃏 {req.title}:{" "}
-                {activeStudent ? `${req.currentCount}/${req.requiredCount}` : `×${req.requiredCount}`}
+                🃏 {totalComboCards} {totalComboCards === 1 ? "card" : "cards"} combo
               </span>
-            ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
         {(c.category || "points") !== "extra" && (
           <div style={{ marginTop: 6, fontWeight: 900, color: "#0f172a", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>

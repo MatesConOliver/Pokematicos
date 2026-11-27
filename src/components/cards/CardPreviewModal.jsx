@@ -281,13 +281,11 @@ export default function CardPreviewModal({
                             borderRadius: 999,
                             fontWeight: 700,
                             fontSize: 11,
-                            background: activeStudent && req.met ? "#dcfce7" : "#f1f5f9",
-                            color: activeStudent && req.met ? "#166534" : "#475569",
+                            background: req.met ? "#dcfce7" : "#f1f5f9",
+                            color: req.met ? "#166534" : "#475569",
                           }}
                         >
-                          {activeStudent
-                            ? `${req.currentCount} / ${req.requiredCount}`
-                            : `${req.requiredCount} required`}
+                          {`${req.currentCount}/${req.requiredCount}`}
                         </span>
                       </div>
                     ))}
